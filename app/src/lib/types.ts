@@ -94,7 +94,7 @@ export type LayerOverride = {
   opacity?: number | null;
 };
 
-export type ViewMode = "plan" | "axonometric" | "explode";
+export type ViewMode = "plan" | "axonometric" | "explode" | "section";
 
 export type View = {
   mode: ViewMode;
@@ -123,7 +123,13 @@ export type Look = {
   selection?: Area | null;
   /** Leaves the project's pins off this sheet. */
   hide_pins?: boolean;
+  /** The line the section view cuts along; missing until one is drawn. */
+  section?: SectionLine | null;
 };
+
+// crates/core/src/section.rs
+/** A section line in RD New metres, from A to A'; the section looks to the left of A -> A'. */
+export type SectionLine = { start: [number, number]; end: [number, number]; depth_m: number };
 
 // crates/core/src/pin.rs
 // "number" is no longer offered in the app, but older projects still hold numbered pins.

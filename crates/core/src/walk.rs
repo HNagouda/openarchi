@@ -283,6 +283,7 @@ mod tests {
             }),
             editions: Default::default(),
             context: vec![],
+            terrain: None,
         };
 
         let neighbourhood = neighbourhood(&scene).unwrap();

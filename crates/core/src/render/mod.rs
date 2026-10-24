@@ -26,6 +26,10 @@ mod order;
 mod patterns;
 mod pins;
 mod points;
+mod section;
+mod section_draw;
+mod section_levels;
+mod section_marker;
 mod shadow;
 mod simplify;
 mod solid;
@@ -43,7 +47,7 @@ use std::fmt::Write;
 use crate::diagram::Diagram;
 use crate::pin::Pin;
 use crate::project::Look;
-use crate::scene::Scene;
+use crate::scene::{Layer, Scene};
 use crate::selection;
 use crate::sheet::Sheet;
 use crate::theme::Theme;
@@ -77,6 +81,9 @@ use geometry::mm;
 use layout::Layout;
 use pins::PinLayer;
 use text::SheetTexts;
+
+/// What a section draws whatever the diagram, so their sources are credited.
+const SECTION_LAYERS: [Layer; 2] = [Layer::Building, Layer::Tree];
 
 /// Everything the renderer needs, already resolved from ids.
 pub struct RenderInput<'a> {
@@ -126,6 +133,14 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         ViewMode::Plan => map::plan(input, &layout, &typesetter)?,
         ViewMode::Axonometric => map::axonometric(input, &layout, &typesetter)?,
         ViewMode::Explode => explode::render(input, &layout, &typesetter)?,
+        ViewMode::Section => section::render(input, &layout, &typesetter)?,
+    };
+    // A section has no ground plane on paper, so pins and the section's own marker stay off it.
+    let is_section = look.view.mode == ViewMode::Section;
+    let ground_points = if is_section {
+        String::new()
+    } else {
+        pins::ground_points(&drawing.ground, input.scene.origin)
     };
 
     let mut out = String::with_capacity(estimated_size(drawing.body.len()));
@@ -138,10 +153,20 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         mm(layout.width),
         mm(layout.height),
         palette.paper,
-        pins::ground_points(&drawing.ground, input.scene.origin)
+        ground_points
     );
     out.push_str(&drawing.body);
-    if !look.hide_pins {
+    if let Some(line) = look.section.as_ref().filter(|_| !is_section) {
+        section_marker::write(
+            &mut out,
+            line,
+            input.scene,
+            &drawing.ground,
+            palette,
+            &typesetter,
+        );
+    }
+    if !look.hide_pins && !is_section {
         let pin_layer = PinLayer {
             pins: input.pins,
             scene: input.scene,
@@ -155,6 +180,7 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
     // The furniture describes the drawing as drawn: a fitted scale, a turned north.
     let sheet = Sheet {
         scale: drawing.scale,
+        show_north_arrow: look.sheet.show_north_arrow && !is_section,
         ..look.sheet.clone()
     };
     let texts = SheetTexts::resolve(&sheet, &typesetter, palette)?;
@@ -162,7 +188,11 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         texts: &texts,
         sheet: &sheet,
         scene: input.scene,
-        layers: &input.diagram.layers,
+        layers: if is_section {
+            &SECTION_LAYERS
+        } else {
+            &input.diagram.layers
+        },
         diagram_name: &drawing.title_name,
         palette,
         mm_per_m: drawing.mm_per_m,

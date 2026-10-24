@@ -85,8 +85,9 @@ pub struct SetLook {
     /// "road", "water" and so on, as in list_diagrams). Passing a layer replaces
     /// its override; passing null for a layer removes it.
     pub overrides: Option<BTreeMap<String, Option<OverrideInput>>>,
-    /// Plan, axonometric (buildings standing up) or explode (several diagrams
-    /// stacked as plates). Only the fields you pass change.
+    /// Plan, axonometric (buildings standing up), explode (several diagrams
+    /// stacked as plates) or section (along the line set_section draws). Only
+    /// the fields you pass change.
     pub view: Option<ViewInput>,
     /// The date and Dutch clock time the sun path and shadow diagrams, and the
     /// lighting of the axonometric, are drawn for. Only the fields you pass change.
@@ -111,13 +112,15 @@ pub struct ViewInput {
 }
 
 /// "plan" looks straight down. "axonometric" tilts the site and extrudes
-/// buildings to their height. "explode" stacks the chosen plates.
+/// buildings to their height. "explode" stacks the chosen plates. "section"
+/// draws the elevation along the sheet's section line, which set_section draws first.
 #[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ViewModeInput {
     Plan,
     Axonometric,
     Explode,
+    Section,
 }
 
 impl From<ViewModeInput> for ViewMode {
@@ -126,6 +129,7 @@ impl From<ViewModeInput> for ViewMode {
             ViewModeInput::Plan => ViewMode::Plan,
             ViewModeInput::Axonometric => ViewMode::Axonometric,
             ViewModeInput::Explode => ViewMode::Explode,
+            ViewModeInput::Section => ViewMode::Section,
         }
     }
 }

@@ -11,7 +11,7 @@ const LABEL_GAP_MM = 1.5;
 const LABEL_SIZE_MM = 2.6;
 
 /** RD New metres to paper millimetres, from the ground points on the fixture's paper rectangle. */
-function rdToPaper(svg: string): ((x: number, y: number) => [number, number]) | null {
+export function rdToPaper(svg: string): ((x: number, y: number) => [number, number]) | null {
   const values = /data-ground-points="([^"]+)"/.exec(svg)?.[1].split(" ").map(Number);
   if (!values || values.length !== 12) return null;
   // The second point lies 1 km east of the first and the third 1 km north, so each pair gives one direction.

@@ -13,6 +13,7 @@ mod download;
 mod editions;
 mod environment;
 mod source;
+mod terrain;
 #[cfg(test)]
 mod tests;
 
@@ -37,7 +38,7 @@ use crate::sources::cache::TileCache;
 use crate::sources::clip::{self, Clipped};
 use crate::sources::osm::{self, Osm};
 use crate::sources::pdok::Record;
-use crate::sources::raster::Grid;
+use crate::sources::raster::{self, Grid};
 use crate::sources::{bag, bag_units, bands, bgt, brk, cbs, contours, heights};
 use crate::walk;
 use crate::{Error, Result};
@@ -113,6 +114,7 @@ fn build_scene_with(
         mut measured,
         has_base,
         context,
+        context_terrain,
     } = join(downloads, bbox, &boundary, editions);
     if !has_base {
         return Err(Error::Network {
@@ -128,6 +130,13 @@ fn build_scene_with(
         features.extend(slope);
         measured.slope_percent = stats;
     }
+    let terrain = kept_terrain(
+        context_terrain,
+        context_extent,
+        elevation.as_ref(),
+        bbox,
+        origin,
+    );
     report("Heights and contours", total - 2);
 
     let walk = osm.as_ref().and_then(|osm| walk_around(osm, origin));
@@ -176,7 +185,25 @@ fn build_scene_with(
         walk,
         editions: editions.years(),
         context,
+        terrain,
     })
+}
+
+/// The ground a section reads its profile from: the neighbourhood's terrain,
+/// which reaches as far as a sheet draws, or the site's own when the
+/// neighbourhood could not be fetched.
+fn kept_terrain(
+    context_terrain: Option<Grid>,
+    context_extent: Rect<f64>,
+    elevation: Option<&Elevation>,
+    bbox: Rect<f64>,
+    origin: (f64, f64),
+) -> Option<Grid> {
+    if let Some(grid) = context_terrain {
+        return terrain::kept(&grid, context_extent, origin);
+    }
+
+    elevation.and_then(|elevation| terrain::kept(&elevation.terrain, ahn::extent(bbox), origin))
 }
 
 /// The walk from the site centre, moved into the scene's frame. Not clipped:
@@ -215,6 +242,8 @@ struct Joined {
     has_base: bool,
     /// The neighbourhood around the site, in RD New and not cut yet.
     context: Vec<Feature>,
+    /// The neighbourhood's bare ground in 2 m cells, RD New, when every tile of it arrived.
+    context_terrain: Option<Grid>,
 }
 
 /// Joins the tiles of each source. A source missing even one tile is left out
@@ -258,6 +287,10 @@ fn join(
         .iter()
         .all(|source| !failed.contains_key(source));
     if has_context {
+        // Joined before the neighbourhood takes its rasters, for the section profile.
+        joined.context_terrain = rasters
+            .get(&Dataset::ContextTerrain)
+            .and_then(|tiles| raster::join(tiles));
         joined.context = context::features(&records, &mut rasters);
     }
     let mut take = |dataset| unique(records.remove(&dataset).unwrap_or_default());

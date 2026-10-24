@@ -152,6 +152,7 @@ pub fn scene() -> Scene {
         walk: None,
         editions: Default::default(),
         context: vec![],
+        terrain: None,
     }
 }
 

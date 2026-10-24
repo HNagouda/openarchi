@@ -9,6 +9,7 @@ import { chosenVariant } from "../lib/diagrams";
 import type { Area, Catalog, Credit, LaserSettings, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
 import { answerPalette, withPaletteEdits } from "./mockPalettes";
 import { withMockPins } from "./mockPins";
+import { withMockSection } from "./mockSection";
 import { mockBackdrop, mockBlockFixture, mockTextBlock } from "./mockReports";
 
 const FIXTURES = "/dev-fixtures";
@@ -142,10 +143,14 @@ async function answer(command: string, args: Args) {
   if (command === "fitting_scale") return (args.look as Look).selection ? MOCK_SELECTION_SCALE : MOCK_SCALE;
   if (command === "render_preview") {
     const shown = args.look as Look;
-    // The explode fixture has the default plates in their default order, whatever the look asks for.
-    const name = shown.view.mode === "explode" ? `explode--${shown.theme_id}` : fixtureName(shown);
+    // The explode fixture has the default plates in their default order, whatever the look asks for,
+    // and the section fixture is cut along one fixed line, whatever line is drawn.
+    const isFixedView = shown.view.mode === "explode" || shown.view.mode === "section";
+    const name = isFixedView ? `${shown.view.mode}--${shown.theme_id}` : fixtureName(shown);
     const svg = await fetch(`${FIXTURES}/previews/${name}.svg`).then((response) => response.text());
-    return shown.hide_pins ? svg : withMockPins(svg, (args.pins as Pin[] | undefined) ?? []);
+    if (shown.view.mode === "section") return svg;
+    const withLine = withMockSection(svg, shown);
+    return shown.hide_pins ? withLine : withMockPins(withLine, (args.pins as Pin[] | undefined) ?? []);
   }
   if (command === "render_thumbnail") return picture(args.look as Look);
   if (command === "search_places") {

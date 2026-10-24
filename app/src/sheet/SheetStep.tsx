@@ -29,6 +29,8 @@ import { paletteSwatches } from "./paletteSwatches";
 import { PinOverlay } from "./pins/PinOverlay";
 import { usePinTool } from "./pins/usePinTool";
 import { SelectionDialog } from "./selection/SelectionDialog";
+import { SectionOverlay } from "./section/SectionOverlay";
+import { useSectionTool } from "./section/useSectionTool";
 import { SheetTabs } from "./tabs/SheetTabs";
 import { useTabKeys } from "./tabs/useTabKeys";
 import { saveWorkbook, useWorkbook } from "./tabs/useWorkbook";
@@ -86,6 +88,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     isEnabled: isEditable,
     onRefused: (message) => toast(message),
   });
+  const sectionTool = useSectionTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: isEditable, onRefused: (message) => toast(message) });
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isAreaOpen && !isReportsOpen);
 
   // A new diagram starts on its first variant.
@@ -248,14 +251,20 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           <ColumnResizer column={DIAGRAM_COLUMN} />
         </div>
         <div className="sheet-main">
-          <div className="canvas-wrap">
+          <div className={sectionTool.isDrawing ? "canvas-wrap is-drawing-section" : "canvas-wrap"}>
             <Canvas
               svg={preview.svg}
               controls={canvas}
               onZoom={setZoom}
               onPaperPointerDown={(event, view) => {
-                // Pins sit on top of the drawing, so they take the press first.
+                // A section being drawn takes every press; then pins, which sit on top of the drawing.
+                if (sectionTool.isDrawing) return sectionTool.onPaperPointerDown(event, view);
                 if (pinTool.onPaperPointerDown(event, view)) {
+                  textTool.setSelectedId(null);
+                  sectionTool.setSelected(false);
+                  return true;
+                }
+                if (sectionTool.onPaperPointerDown(event, view)) {
                   textTool.setSelectedId(null);
                   return true;
                 }
@@ -265,6 +274,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               overlay={(view) =>
                 preview.svg && (
                   <>
+                    <SectionOverlay view={view} svg={preview.svg} draft={sectionTool.draft} isSelected={sectionTool.isSelected} />
                     <PinOverlay
                       view={view}
                       svg={preview.svg}
@@ -325,6 +335,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             onDropPin={pinTool.dropAt}
             onPlacePin={pinTool.placeInView}
             onEditArea={() => setAreaOpen(true)}
+            isDrawingSection={sectionTool.isDrawing}
+            onSectionTool={sectionTool.toggle}
           />
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>

@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
 use crate::environment::Measured;
+use crate::sources::raster::Grid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scene {
@@ -46,6 +47,11 @@ pub struct Scene {
     /// counted in ratios, legends or analysis. Empty for scenes fetched before it.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub context: Vec<Feature>,
+    /// Bare ground above NAP over the site and its neighbourhood, in cells of
+    /// a few metres, for drawing sections. `None` for scenes fetched before
+    /// it was kept, or when AHN could not be fetched; sections then draw flat ground.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub terrain: Option<Grid>,
 }
 
 impl Scene {
