@@ -115,7 +115,6 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
     // The furniture describes the drawing as drawn: a fitted scale, a turned north.
     let sheet = Sheet {
         scale: drawing.scale,
-        show_scale_bar: look.sheet.show_scale_bar && drawing.has_scale_bar,
         ..look.sheet.clone()
     };
     let texts = SheetTexts::resolve(&sheet, &typesetter, palette)?;
@@ -127,6 +126,7 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         diagram_name: &drawing.title_name,
         palette,
         mm_per_m: drawing.mm_per_m,
+        is_foreshortened: drawing.is_foreshortened,
         north_deg: drawing.north_deg,
         legend: drawing.legend,
     };

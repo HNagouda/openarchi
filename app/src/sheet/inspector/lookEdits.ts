@@ -14,12 +14,13 @@ export function withSun(look: Look, patch: Partial<SunMoment>): Look {
   return { ...look, sun: { ...look.sun, ...patch } };
 }
 
-/** The plate at `index` swapped with its neighbour `by` places away; out of range does nothing. */
-export function withPlateMoved(look: Look, index: number, by: number): Look {
-  const target = index + by;
+/** The plate at `from` taken out and put back at `to`, the others closing up; out of range does nothing. */
+export function withPlateMoved(look: Look, from: number, to: number): Look {
   const plates = [...look.view.plates];
-  if (target < 0 || target >= plates.length) return look;
-  [plates[index], plates[target]] = [plates[target], plates[index]];
+  const isInRange = from >= 0 && from < plates.length && to >= 0 && to < plates.length;
+  if (!isInRange || from === to) return look;
+  const [moved] = plates.splice(from, 1);
+  plates.splice(to, 0, moved);
   return withView(look, { plates });
 }
 

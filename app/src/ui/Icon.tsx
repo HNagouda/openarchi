@@ -34,6 +34,7 @@ const PATHS: Record<string, string> = {
   folder: "M2 4.5V12.5h12V5.5H8L6.5 4H2z",
   reset: "M3 8a5 5 0 1 0 1.5-3.5M3 2.5v2.5h2.5",
   more: "M4 8h.01M8 8h.01M12 8h.01",
+  grip: "M6 4h.01M10 4h.01M6 8h.01M10 8h.01M6 12h.01M10 12h.01",
   keyboard: "M1.5 4h13v8h-13zM4 6.5h.01M6.5 6.5h.01M9 6.5h.01M11.5 6.5h.01M5 9.5h6",
   text: "M3.5 4V3h9v1M8 3v10M6 13h4",
   alignLeft: "M2.5 4h11M2.5 7h7M2.5 10h11M2.5 13h7",
@@ -44,7 +45,7 @@ const PATHS: Record<string, string> = {
 export type IconName = keyof typeof PATHS;
 
 export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {
-  const isDots = name === "more";
+  const isDots = name === "more" || name === "grip";
   return (
     <svg
       width={size}
