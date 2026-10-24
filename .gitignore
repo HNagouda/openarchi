@@ -6,3 +6,5 @@ dist/
 .vscode/
 # Throwaway libraries used when running the app or the MCP server in tests.
 .scratch/
+# openarchi-mcp builds that scripts/build-mcp-sidecar.sh puts here for the installers.
+app/src-tauri/binaries/

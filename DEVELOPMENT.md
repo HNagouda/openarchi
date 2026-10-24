@@ -90,4 +90,16 @@ scripts/mcp.sh render_preview '{"id": "<project id>"}'   # prints the path of th
 Projects are JSON files with a `format_version`. When the shape changes, bump `PROJECT_FORMAT_VERSION` in `project.rs` and add a step to `library/migrate.rs`, so every older file still opens. Themes have their own `THEME_FORMAT_VERSION` for the same reason, because people share them.
 
 #! NOTE[size, scene] : A 1 km site is about 73 MB of JSON; compress the stored scene before sites get bigger
-#! NOTE[release, mcp] : Ship openarchi-mcp inside the app bundle and the Windows installer, then fill in the paths in docs/mcp.md
+
+## Building the installers
+
+CI builds them, so you rarely need to. `dev-build.yml` and `release.yml` both call `installers.yml`, which builds a universal `.dmg` on macOS and a `.msi` and setup `.exe` on Windows. It first runs `scripts/build-mcp-sidecar.sh`, which builds `openarchi-mcp` into `app/src-tauri/binaries/`, and then merges `app/src-tauri/tauri.installer.conf.json` over the normal config. That file adds the server as a sidecar (`bundle.externalBin`), so it lands next to the app's program, and ad-hoc signs the Mac app. It is kept out of `tauri.conf.json` because a sidecar must exist before the app compiles, which would make `pnpm tauri dev` build the server first.
+
+To build one locally on an Apple Silicon Mac:
+
+```sh
+scripts/build-mcp-sidecar.sh aarch64-apple-darwin
+cd app && pnpm tauri build --target aarch64-apple-darwin --config src-tauri/tauri.installer.conf.json
+```
+
+Releases come from tags. Set the version in `Cargo.toml` and `app/src-tauri/tauri.conf.json`, give it a section in `CHANGELOG.md`, merge to `main`, then tag that commit as `v<version>` and push the tag. `release.yml` refuses a tag that disagrees with either version or has no changelog section.

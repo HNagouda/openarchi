@@ -25,9 +25,10 @@ The library lives in `~/Library/Application Support/openarchi` on macOS and `%AP
 
 ## Where is the program?
 
-In a release, `openarchi-mcp` is shipped next to the app.
+Every installer puts `openarchi-mcp` next to the app's own program, so installing openarchi installs the server too.
 
-#! NOTE[release, mcp] : Decide where openarchi-mcp sits in the macOS bundle and the Windows installer, then put the exact paths here
+- **Mac:** `/Applications/openarchi.app/Contents/MacOS/openarchi-mcp`, if you dragged openarchi into Applications.
+- **Windows:** `openarchi-mcp.exe` in the folder openarchi was installed to. That is `%LOCALAPPDATA%\openarchi` for the setup `.exe` and `C:\Program Files\openarchi` for the `.msi`, unless you picked another folder while installing.
 
 When you build from source, `cargo build --release -p openarchi-mcp` puts it at `target/release/openarchi-mcp` (`openarchi-mcp.exe` on Windows).
 

@@ -1,0 +1,87 @@
+name: Installers
+
+# Builds the macOS and Windows installers, each with openarchi-mcp inside, and
+# uploads them as one workflow artifact per platform. dev-build.yml and
+# release.yml both call this, so a dev build and a release are built the same way.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          # One universal .dmg runs on Apple Silicon and Intel Macs, so nobody
+          # has to know which chip they have before downloading.
+          - os: macos-latest
+            target: universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            platform: macos
+          # Tauri makes both a .msi and an NSIS setup .exe on Windows.
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust-targets: x86_64-pc-windows-msvc
+            platform: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # The workspace target/ lives at the repo root, not under app/.
+          workspaces: ". -> target"
+      # app/package.json has no `packageManager` field, so pin pnpm here, as in ci.yml.
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: app
+
+      # bash on Windows too, which the runners ship with Git for Windows.
+      - name: Build openarchi-mcp for the installer
+        shell: bash
+        run: scripts/build-mcp-sidecar.sh "${{ matrix.target }}"
+
+      # tauri.installer.conf.json is merged over tauri.conf.json only here, so
+      # `pnpm tauri dev` and the CI app build do not need the sidecar binary.
+      # It adds openarchi-mcp as a sidecar (bundle.externalBin) and ad-hoc signs
+      # the Mac app (signingIdentity "-"). Ad-hoc signing does not make the app
+      # trusted, but without it macOS calls a downloaded Apple Silicon app
+      # "damaged" instead of offering Open Anyway.
+      # No tagName or releaseId, so the action only builds; the calling workflow publishes.
+      - uses: tauri-apps/tauri-action@v1
+        with:
+          projectPath: app
+          args: --target ${{ matrix.target }} --config src-tauri/tauri.installer.conf.json
+
+      - name: Check openarchi-mcp is in the Mac app for both chips
+        if: runner.os == 'macOS'
+        run: |
+          mcp="target/universal-apple-darwin/release/bundle/macos/openarchi.app/Contents/MacOS/openarchi-mcp"
+          lipo "$mcp" -verify_arch arm64
+          lipo "$mcp" -verify_arch x86_64
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installers-${{ matrix.platform }}
+          # Each runner matches only its own platform's installers.
+          path: |
+            target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+            target/${{ matrix.target }}/release/bundle/msi/*.msi
+            target/${{ matrix.target }}/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          # The publishing job downloads these minutes later; the release keeps the real copies.
+          retention-days: 1

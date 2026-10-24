@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+# Pull requests from forks get a read-only token anyway; this keeps it that way for every run.
+permissions:
+  contents: read
+
 # A newer push to the same branch makes the older run pointless, so cancel it.
 concurrency:
   group: ci-${{ github.ref }}
@@ -17,7 +21,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -34,7 +38,7 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -49,6 +53,36 @@ jobs:
       # Tests that need the network or unfinished layers are #[ignore]d, so
       # this run never depends on PDOK being up.
       - run: cargo test --workspace --exclude openarchi-app
+      # The installers ship this binary, so it must build on every platform.
+      # --locked fails if Cargo.lock is out of date, as the installer build would.
+      - name: Build openarchi-mcp
+        run: cargo build --locked -p openarchi-mcp
+
+  # * ====================================================================
+  # * === Front end
+  # * ====================================================================
+  # The app job also type-checks, inside `pnpm build`, but only after a long
+  # Rust build. This job reports a type error in about a minute.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      # app/package.json has no `packageManager` field, so pin pnpm here.
+      # Once it has one, drop `version` and the action reads it from there.
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      # --frozen-lockfile fails the build if package.json and the lockfile disagree.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
 
   # * ====================================================================
   # * === Tauri app build
@@ -64,24 +98,50 @@ jobs:
       run:
         working-directory: app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           # The workspace target/ lives at the repo root, not under app/.
           workspaces: ". -> target"
-      # app/package.json has no `packageManager` field, so pin pnpm here.
-      # Once it has one, drop `version` and the action reads it from there.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 11
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: app/pnpm-lock.yaml
-      # --frozen-lockfile fails the build if package.json and the lockfile disagree.
       - run: pnpm install --frozen-lockfile
-      # --no-bundle compiles the app without making installers, which need
-      # signing keys CI does not have.
+      # --no-bundle compiles the app without making installers. The installers
+      # are built by dev-build.yml and release.yml, through installers.yml.
       - run: pnpm tauri build --no-bundle
+
+  # * ====================================================================
+  # * === Repo rules
+  # * ====================================================================
+  # main only takes merges from dev, so everything released has been through a dev build first.
+  main-only-from-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the pull request comes from dev
+        if: github.event_name == 'pull_request' && github.base_ref == 'main' && github.head_ref != 'dev'
+        # Through an environment variable, so a branch name full of shell syntax is printed, never run.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          echo "Pull requests into main must come from dev, this one comes from $HEAD_REF."
+          exit 1
+
+  # Keeps the repo free of references to other products.
+  no-other-products:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check no tracked file names another product
+        # The brackets in the pattern stop it from matching this file. -I skips binary files.
+        run: |
+          if git grep -n -I -i -E 'archi-?[m]ap|mass[l]abs'; then
+            echo "The lines above name another product. Remove them."
+            exit 1
+          fi

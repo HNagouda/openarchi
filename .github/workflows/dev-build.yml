@@ -1,0 +1,54 @@
+name: Dev build
+
+# Every push to dev replaces the "dev-build" prerelease with fresh installers, so there is always one to download and try.
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+
+# Only the newest push to dev matters, so a newer one cancels a build still running.
+concurrency:
+  group: dev-build
+  cancel-in-progress: true
+
+jobs:
+  installers:
+    uses: ./.github/workflows/installers.yml
+
+  publish:
+    needs: installers
+    runs-on: ubuntu-latest
+    # Only this job may write, because it is the one that replaces the release.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: installers-*
+          path: dist
+          merge-multiple: true
+      - name: Write checksums
+        working-directory: dist
+        # The installers sit in dmg/, msi/ and nsis/ folders; the release wants them side by side.
+        run: |
+          find . -mindepth 2 -type f -exec mv {} . \;
+          find . -mindepth 1 -type d -delete
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Replace the dev prerelease
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # There is no checkout in this job, so gh needs to be told which repo.
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # The tag is not called "dev", because a tag and a branch with the same name make git refs ambiguous.
+          if gh release view dev-build > /dev/null 2>&1; then
+            gh release delete dev-build --cleanup-tag --yes
+          fi
+          gh release create dev-build --prerelease --target "$GITHUB_SHA" \
+            --title "Dev build ${GITHUB_SHA::7}" \
+            --notes "Latest build of the dev branch, commit $GITHUB_SHA. Not a release; it changes with every push to dev. The installers are unsigned, see the README for how to open them." \
+            *

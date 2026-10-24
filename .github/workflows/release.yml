@@ -1,0 +1,73 @@
+name: Release
+
+# Pushing a tag like v0.1.0 builds the installers and publishes them as release v0.1.0,
+# with that version's section of CHANGELOG.md as the notes.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+# A release must never be cancelled halfway through publishing.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Checked before the long installer builds, so a mistake fails in seconds.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the tag matches the app version
+        # The installers are named after the version in tauri.conf.json, so a
+        # tag that disagrees would publish v0.2.0 with files called 0.1.0.
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          app_version="$(jq -r .version app/src-tauri/tauri.conf.json)"
+          cargo_version="$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -n 1)"
+          if [[ "$TAG" != "v$app_version" || "$TAG" != "v$cargo_version" ]]; then
+            echo "Tag $TAG does not match tauri.conf.json ($app_version) and Cargo.toml ($cargo_version)."
+            exit 1
+          fi
+      - name: Check CHANGELOG.md has notes for this version
+        run: scripts/changelog-section.sh "${GITHUB_REF_NAME#v}"
+
+  installers:
+    needs: check
+    uses: ./.github/workflows/installers.yml
+
+  publish:
+    needs: installers
+    runs-on: ubuntu-latest
+    # Only this job may write, because it is the one that creates the release.
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: installers-*
+          path: dist
+          merge-multiple: true
+      - name: Write checksums
+        working-directory: dist
+        # The installers sit in dmg/, msi/ and nsis/ folders; the release wants them side by side.
+        run: |
+          find . -mindepth 2 -type f -exec mv {} . \;
+          find . -mindepth 1 -type d -delete
+          sha256sum -- * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Write release notes
+        run: scripts/changelog-section.sh "${TAG#v}" > release-notes.md
+      # Created as a draft and published once every file is attached, so nobody
+      # downloads from a release that is still missing an installer.
+      - name: Publish release
+        run: |
+          gh release create "$TAG" --draft --verify-tag --title "openarchi $TAG" --notes-file release-notes.md dist/*
+          gh release edit "$TAG" --draft=false --latest
