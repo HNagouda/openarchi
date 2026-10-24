@@ -68,21 +68,25 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `list_projects`, `get_project` | Lists projects, and shows one with a summary of its site |
 | `create_project` | Makes a project from a circle, rectangle or polygon |
 | `fetch_site` | Downloads buildings, roads, water, green and terrain into the project |
-| `list_diagrams`, `list_themes` | Shows the diagrams and themes to choose from |
-| `set_look` | Changes the diagram, theme, sheet, single layers, the view and the sun's date and time |
+| `list_diagrams`, `list_themes` | Shows the diagrams, with their group and variants, and the themes to choose from |
+| `set_look` | Changes the diagram and its variant, theme, sheet, single layers, the view and the sun's date and time |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
 | `get_environment` | Gives the site's road and total noise, yearly NO₂, PM10 and PM2.5, deepest flood water and the share of the site it reaches, steepest slope, residents, households and dwellings, each with its source year |
 | `get_neighbourhood` | Counts the businesses, facilities, car and bicycle parking, and transit stops within a 5, 10 and 15 minute walk of the site, by group |
-| `get_analysis` | Gives the site analysis: address, municipality and province, a site summary, the climate from a PVGIS typical year (temperature, comfort hours, wind by season, sun, humidity), 30 years of rain from the nearest KNMI station, and design notes for each section |
+| `get_analysis` | Gives the site analysis: address, municipality and province, a site summary, the climate from a PVGIS typical year (temperature, outdoor comfort as UTCI hours per stress category in the sun and in the shade, wind by season, sun, humidity), 30 years of rain from the nearest KNMI station, and design notes for each section |
 | `export` | Writes SVG, PDF, PNG or DXF |
 | `create_theme` | Saves a new theme, which the app picks up too |
 | `delete_project`, `restore_project` | Moves a project to Recently Deleted and back |
 
+## What is a variant?
+
+Some diagrams answer one question with a choice of measure. Air quality has the variants `no2`, `pm10` and `pm25`, and noise has `road` and `all`. `list_diagrams` lists them under `variants`, each with its own layers and classes, and a diagram with variants has no layers of its own. `set_look` takes `variant` next to `diagram_id`, like `{"diagram_id": "air-quality", "variant": "pm25"}`. The variant stays while the diagram does, and a new diagram without a variant starts on its first. The ids from before the fold, such as `air-quality-pm10` and `traffic-noise`, still work and land on the variant they became.
+
 ## How does an assistant switch to a tilted view?
 
-`set_look` takes a `view` and a `sun` next to the sheet fields, and like the rest of the look only the fields you pass change. `view.mode` is `plan`, `axonometric` (the site tilted, with buildings at their measured height) or `explode` (several diagrams stacked as tilted plates). `rotation_deg` turns the site on the paper, `tilt_deg` sets how steeply the viewer looks down (15 to 80, 35 by default), `plates` lists the diagram ids to stack with the top plate first, and `stacking: true` packs the plates closer.
+`set_look` takes a `view` and a `sun` next to the sheet fields, and like the rest of the look only the fields you pass change. `view.mode` is `plan`, `axonometric` (the site tilted, with buildings at their measured height) or `explode` (several diagrams stacked as tilted plates). `rotation_deg` turns the site on the paper, `tilt_deg` sets how steeply the viewer looks down (15 to 80, 35 by default), `plates` lists the diagram ids to stack with the top plate first, and `stacking: true` packs the plates closer. A plate of a diagram with variants shows its first, and `"air-quality:pm25"` picks one.
 
 `sun` is a day and a Dutch clock time, summer time included. The sun path and shadow diagrams are drawn for it, and the axonometric uses it to light its walls and cast its shadows. It starts at 21 March, 13:00, the equinox near solar noon.
 

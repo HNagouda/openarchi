@@ -33,6 +33,7 @@ crates/core/            the library: no window, no async
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
   src/export/           SVG -> PDF and PNG, scene -> DXF
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
+  src/catalog/          finding a diagram by id, and the old ids of diagrams folded into variants
   src/project.rs        one site plus the look the user chose
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
@@ -61,7 +62,8 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A source published in yearly editions | a function in its source module that asks the service for the newest one, called through `sources/edition.rs` from `site/editions.rs`, with the year in `Scene::editions` and `{year}` in the legend note |
 | A new layer | `Layer` in `scene.rs` (the one list), then a style in every theme |
 | A new raster from a WCS | a `Coverage` in its source module, fetched by `sources/wcs.rs`, turned into bands in `site/environment.rs` with the breaks of the diagram that draws it |
-| A new diagram | a JSON file in `crates/core/assets/diagrams/`, listed in `catalog.rs` |
+| A new diagram | a JSON file in `crates/core/assets/diagrams/` with its `group`, listed in `catalog.rs` next to its group |
+| Another measure for an existing diagram | a variant in that diagram's JSON; a diagram folded into another keeps its old id in `catalog/lookup.rs` |
 | A new theme | a JSON file in `crates/core/assets/themes/`, listed in `catalog.rs` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
 | A new export format | `crates/core/src/export/` |
@@ -88,7 +90,7 @@ To work on looks without the app, fetch a site once and render every diagram in 
 ```sh
 cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300 .scratch/site.json
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
-cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, target/analysis-samples/
+cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, and the A4 PDF, target/analysis-samples/
 ```
 
 To work on the front end in a plain browser, render the fixtures once and start Vite on its own. Outside Tauri, `app/src/dev/mockIpc.ts` answers every command from those fixtures, so the gallery, the sheet and the site step all work without the Rust side. This is how the screenshots in `docs/screenshots/` are taken. The mock is loaded only in dev, so it never reaches a release build.

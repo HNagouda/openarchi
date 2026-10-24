@@ -314,6 +314,74 @@ fn edit_text_with_an_unknown_font_names_the_bundled_ones() {
 }
 
 #[test]
+fn set_look_picks_a_variant_and_keeps_it_while_the_diagram_stays() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let chosen = server.call_ok(
+        "set_look",
+        json!({ "id": id, "diagram_id": "air-quality", "variant": "pm25" }),
+    );
+    let themed = server.call_ok("set_look", json!({ "id": id, "theme_id": "ink" }));
+    let moved_on = server.call_ok("set_look", json!({ "id": id, "diagram_id": "noise" }));
+
+    assert_eq!(chosen["variant"], json!("pm25"));
+    assert_eq!(themed["variant"], json!("pm25"));
+    assert_eq!(moved_on["diagram_id"], json!("noise"));
+    assert_eq!(moved_on["variant"], Value::Null);
+}
+
+#[test]
+fn set_look_with_an_old_diagram_id_lands_on_its_variant() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let look = server.call_ok(
+        "set_look",
+        json!({ "id": id, "diagram_id": "noise-all-sources" }),
+    );
+
+    assert_eq!(look["diagram_id"], json!("noise"));
+    assert_eq!(look["variant"], json!("all"));
+}
+
+#[test]
+fn set_look_with_an_unknown_variant_names_the_ones_there_are() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let message = server.call_err(
+        "set_look",
+        json!({ "id": id, "diagram_id": "air-quality", "variant": "ozone" }),
+    );
+    let plain = server.call_err(
+        "set_look",
+        json!({ "id": id, "diagram_id": "context", "variant": "pm25" }),
+    );
+
+    assert!(message.contains("no2, pm10, pm25"), "{message}");
+    assert!(plain.contains("no variants"), "{plain}");
+}
+
+#[test]
+fn set_look_takes_a_plate_for_one_variant() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let look = server.call_ok(
+        "set_look",
+        json!({ "id": id, "view": { "mode": "explode", "plates": ["air-quality:pm10", "context"] } }),
+    );
+    let message = server.call_err(
+        "set_look",
+        json!({ "id": id, "view": { "plates": ["air-quality:ozone"] } }),
+    );
+
+    assert_eq!(look["view"]["plates"][0], json!("air-quality:pm10"));
+    assert!(message.contains("id:variant"), "{message}");
+}
+
+#[test]
 fn set_look_with_an_unknown_layer_is_a_readable_error() {
     let mut server = Server::start();
     let id = server.create_westermarkt();
@@ -457,6 +525,27 @@ fn get_analysis_returns_location_climate_and_notes_from_the_cache() {
     let report = server.call_ok("get_analysis", json!({ "id": id }));
     assert_eq!(report["location"]["municipality"], json!("Amsterdam"));
     assert_eq!(report["climate"]["months"].as_array().unwrap().len(), 12);
+    // Outdoor comfort is the UTCI, hours per stress category in the sun and in the shade.
+    let categories = report["climate"]["comfort_categories"].as_array().unwrap();
+    assert_eq!(categories.len(), 10);
+    assert_eq!(categories[5], json!("No thermal stress"));
+    assert!(report["climate"]["comfort_method"]
+        .as_str()
+        .unwrap()
+        .contains("UTCI"));
+    let july = &report["climate"]["months"][6];
+    for exposure in ["comfort_sun_hours", "comfort_shade_hours"] {
+        let hours: Vec<u64> = july[exposure]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|hours| hours.as_u64().unwrap())
+            .collect();
+        assert_eq!(hours.len(), 10);
+        // 31 days from 8:00 to 22:00, mostly free of thermal stress.
+        assert_eq!(hours.iter().sum::<u64>(), 31 * 14);
+        assert!(hours[5] * 2 > 31 * 14, "{exposure}: {hours:?}");
+    }
     assert!(report["summary"]["coverage"].as_f64().unwrap() > 0.0);
     let sections: Vec<&str> = report["notes"]
         .as_array()
@@ -557,7 +646,6 @@ fn fetch_site_saves_a_scene_and_get_project_summarizes_it() {
 }
 
 #[test]
-#[ignore = "needs catalog::builtin_diagrams from the render layer"]
 fn list_diagrams_includes_the_default_diagram() {
     let mut server = Server::start();
     let diagrams = server.call_ok("list_diagrams", json!({}));
@@ -566,6 +654,29 @@ fn list_diagrams_includes_the_default_diagram() {
         .unwrap()
         .iter()
         .any(|d| d["id"] == json!("context")));
+}
+
+#[test]
+fn list_diagrams_shows_groups_and_the_variants_of_air_quality() {
+    let mut server = Server::start();
+    let diagrams = server.call_ok("list_diagrams", json!({}));
+    let air = diagrams
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["id"] == json!("air-quality"))
+        .unwrap()
+        .clone();
+
+    let variants: Vec<&str> = air["variants"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(variants, ["no2", "pm10", "pm25"]);
+    assert_eq!(air["group"], json!("Environment"));
+    assert_eq!(air["variants"][2]["classify"]["layer"], json!("pm25"));
 }
 
 #[test]

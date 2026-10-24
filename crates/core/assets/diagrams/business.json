@@ -1,6 +1,7 @@
 {
   "id": "business",
   "name": "Business",
+  "group": "Movement and places",
   "description": "Shops, food and drink, offices, hotels and services on the site, from OpenStreetMap.",
   "layers": [
     "water",

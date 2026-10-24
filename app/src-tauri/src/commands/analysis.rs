@@ -2,8 +2,8 @@
 
 use std::path::Path;
 
-use openarchi_core::analysis::{self, report_svg, section_svg, Part, Section, PARTS};
-use openarchi_core::export::svg_to_pdf;
+use openarchi_core::analysis::{self, report_pages, report_svg, section_svg, Part, Section, PARTS};
+use openarchi_core::export::{svg_pages_to_pdf, svg_to_pdf};
 use openarchi_core::scene::Scene;
 use openarchi_core::theme::Theme;
 use tauri::State;
@@ -43,7 +43,8 @@ pub fn analysis_file_name(state: State<'_, Shared>, section_id: Option<String>) 
 }
 
 /// Writes one section, or the whole analysis when `section_id` is missing,
-/// as SVG or PDF, chosen by the extension the user picked.
+/// as SVG or PDF, chosen by the extension the user picked. The whole analysis
+/// as PDF is laid out on A4 pages; as SVG it stays one long page.
 #[tauri::command]
 pub async fn export_analysis(
     state: State<'_, Shared>,
@@ -57,15 +58,14 @@ pub async fn export_analysis(
         let theme = find_theme(&state, &theme_id)?;
         let title = project_name(&state);
         let (sections, failures) = every_section(&state, &scene, &theme)?;
-        let svg = match &section_id {
-            Some(id) => {
-                let section = sections
+        let section = match &section_id {
+            Some(id) => Some(
+                sections
                     .iter()
                     .find(|section| &section.id == id)
-                    .ok_or_else(|| format!("There is no analysis section called “{id}”."))?;
-                section_svg(section, &theme, &title).map_err(text)?
-            }
-            None => report_svg(&sections, &failures, &theme, &title).map_err(text)?,
+                    .ok_or_else(|| format!("There is no analysis section called “{id}”."))?,
+            ),
+            None => None,
         };
 
         let extension = Path::new(&path)
@@ -73,9 +73,20 @@ pub async fn export_analysis(
             .and_then(|extension| extension.to_str())
             .unwrap_or_default()
             .to_lowercase();
-        let bytes = match extension.as_str() {
-            "svg" => svg.into_bytes(),
-            "pdf" => svg_to_pdf(&svg).map_err(text)?,
+        let bytes = match (extension.as_str(), section) {
+            ("svg", Some(section)) => section_svg(section, &theme, &title)
+                .map_err(text)?
+                .into_bytes(),
+            ("svg", None) => report_svg(&sections, &failures, &theme, &title)
+                .map_err(text)?
+                .into_bytes(),
+            ("pdf", Some(section)) => {
+                svg_to_pdf(&section_svg(section, &theme, &title).map_err(text)?).map_err(text)?
+            }
+            ("pdf", None) => {
+                let pages = report_pages(&sections, &failures, &theme, &title).map_err(text)?;
+                svg_pages_to_pdf(&pages, &title).map_err(text)?
+            }
             _ => {
                 return Err(format!(
                     "The analysis exports as .svg or .pdf, not “{extension}”."

@@ -1,0 +1,85 @@
+{
+  "id": "noise",
+  "name": "Noise",
+  "group": "Environment",
+  "description": "How loud the site is over a whole day, from road traffic alone or from every source, from the RIVM noise map.",
+  "mute_others": true,
+  "highlight": [],
+  "as_figure": [],
+  "variants": [
+    {
+      "id": "road",
+      "name": "Road traffic",
+      "title": "Traffic noise",
+      "description": "How loud road traffic is across the site, over a whole day, from the RIVM noise map.",
+      "layers": [
+        "road_noise",
+        "building"
+      ],
+      "emphasis": "road_noise",
+      "classify": {
+        "layer": "road_noise",
+        "attribute": "value",
+        "title": "Road traffic noise",
+        "note": "Lden in dB, the day, evening and night average. RIVM, {year}.",
+        "scheme": {
+          "kind": "sequential",
+          "breaks": [
+            45,
+            50,
+            55,
+            60,
+            65,
+            70
+          ],
+          "labels": [
+            "Under 45 dB",
+            "45–50 dB",
+            "50–55 dB",
+            "55–60 dB",
+            "60–65 dB",
+            "65–70 dB",
+            "70 dB and louder"
+          ]
+        }
+      }
+    },
+    {
+      "id": "all",
+      "name": "All sources",
+      "title": "Noise, all sources",
+      "description": "Road, rail, aircraft, industry and wind turbines together, from the RIVM noise map.",
+      "layers": [
+        "all_noise",
+        "building"
+      ],
+      "emphasis": "all_noise",
+      "classify": {
+        "layer": "all_noise",
+        "attribute": "value",
+        "title": "Noise from all sources",
+        "note": "Lden in dB: road, rail, air, industry and wind turbines. RIVM, {year}.",
+        "scheme": {
+          "kind": "sequential",
+          "breaks": [
+            45,
+            50,
+            55,
+            60,
+            65,
+            70
+          ],
+          "labels": [
+            "Under 45 dB",
+            "45–50 dB",
+            "50–55 dB",
+            "55–60 dB",
+            "60–65 dB",
+            "65–70 dB",
+            "70 dB and louder"
+          ]
+        }
+      }
+    }
+  ]
+}

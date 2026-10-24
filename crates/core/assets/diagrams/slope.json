@@ -1,6 +1,7 @@
 {
   "id": "slope",
   "name": "Slope",
+  "group": "Environment",
   "description": "How steep the ground is, from the AHN terrain model, for paths, ramps and drainage.",
   "layers": [
     "slope",

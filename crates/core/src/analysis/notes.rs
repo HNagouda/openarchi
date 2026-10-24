@@ -4,10 +4,16 @@
 //! for a design. Every threshold is a named constant with where it comes from;
 //! the ones that are rules of thumb say so. Nothing here is generated.
 
-use super::climate::{Climate, COMFORTABLE_BAND, COMFORT_EDGES_C, SEASONS, WINTER_HALF};
+use super::climate::{Climate, SEASONS, WINTER_HALF};
+use super::comfort::{yearly_hours, Exposure};
 use super::figure::percent;
 use super::rain::Rain;
 use super::summary::{SiteSummary, FACILITY_WALK_MIN, TRANSIT_WALK_MIN};
+use super::utci::NO_STRESS;
+
+mod words;
+
+use words::{capitalised, during, list, month_name};
 
 /// Closed urban blocks have a ground space index of about 0.4 to 0.6, open
 /// row housing and slabs 0.15 to 0.3 (Berghauser Pont and Haupt, "Spacematrix", 2010).
@@ -32,8 +38,14 @@ const WHO_ROAD_NOISE_DB: f64 = 53.0;
 const WHO_NO2_UG_M3: f64 = 10.0;
 
 /// A month is a comfortable month when at least this share of its daytime
-/// hours is in the comfortable band. Half is a rule of thumb used here.
+/// hours carries no thermal stress (UTCI 9 to 26 °C). Half is a rule of thumb used here.
 const COMFORTABLE_MONTH_SHARE: f64 = 0.5;
+/// The UTCI category "Slight cold stress"; everything colder is moderate cold
+/// stress or worse, where the UTCI scale expects people to dress up and move on.
+const SLIGHT_COLD: usize = NO_STRESS - 1;
+/// A rule of thumb used here: when half the winter's daytime hours bring
+/// moderate cold stress or worse, shelter outweighs sun.
+const COLD_WINTER_SHARE: f64 = 0.5;
 /// Mean daily minimum below which nights freeze often enough to detail for frost.
 const FROST_C: f64 = 0.0;
 /// A rule of thumb used here: summer nights at or below this can still cool
@@ -55,21 +67,6 @@ const EXAMPLE_HEIGHT_M: f64 = 10.0;
 const DAMP_HUMIDITY_PCT: f64 = 85.0;
 
 const DAYS_PER_YEAR: f64 = 365.25;
-
-const MONTH_NAMES: [&str; 12] = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-];
 
 pub fn site_notes(summary: &SiteSummary) -> Vec<String> {
     let mut notes = Vec::new();
@@ -174,31 +171,43 @@ pub fn comfort_notes(climate: &Climate) -> Vec<String> {
     let comfortable: Vec<u32> = climate
         .months
         .iter()
-        .filter(|month| comfortable_share(&month.comfort_hours) >= COMFORTABLE_MONTH_SHARE)
+        .filter(|month| no_stress_share(&month.comfort_sun_hours) >= COMFORTABLE_MONTH_SHARE)
         .map(|month| month.month)
         .collect();
     if comfortable.is_empty() {
-        notes.push("No month is comfortable for more than half its daytime hours by air temperature alone. Outdoor space has to make its own climate: sun, shelter from the wind, somewhere dry.".to_string());
+        notes.push("No month has most of its daytime hours free of thermal stress, even in the sun. Outdoor space has to make its own climate: sun, shelter from the wind, somewhere dry.".to_string());
     } else {
-        notes.push(format!("Air temperature is comfortable for most daytime hours {}. Outside that, a sunny spot out of the wind feels several degrees warmer than the chart says.", during(&comfortable)));
+        notes.push(format!("In the sun, most daytime hours {} carry no thermal stress. That is when outdoor space gets used; put terraces, balconies and play where the sun reaches them.", during(&comfortable)));
     }
 
-    let total: u32 = climate
+    let sun = yearly_hours(climate, Exposure::Sun);
+    let shade = yearly_hours(climate, Exposure::Shade);
+    let cold_in_sun: u32 = sun[..NO_STRESS].iter().sum();
+    let cold_in_shade: u32 = shade[..NO_STRESS].iter().sum();
+    if cold_in_shade > cold_in_sun {
+        notes.push(format!("Sunshine takes about {} daytime hours a year out of cold stress. Sheltered corners that catch the sun stretch the outdoor season into spring and autumn.", cold_in_shade - cold_in_sun));
+    }
+
+    let (_, _, winter) = SEASONS[0];
+    let mut winter_total = 0;
+    let mut winter_cold = 0;
+    for month in climate
         .months
         .iter()
-        .flat_map(|month| month.comfort_hours.iter())
-        .sum();
-    let hot: u32 = climate
-        .months
-        .iter()
-        .map(|month| {
-            month.comfort_hours[COMFORTABLE_BAND + 1..]
-                .iter()
-                .sum::<u32>()
-        })
-        .sum();
-    if hot > 0 && total > 0 {
-        notes.push(format!("About {hot} daytime hours a year are above {:.0} °C. Shade south and west glass from outside, and give outdoor space a shaded corner.", COMFORT_EDGES_C[2]));
+        .filter(|month| winter.contains(&month.month))
+    {
+        winter_total += month.comfort_sun_hours.iter().sum::<u32>();
+        winter_cold += month.comfort_sun_hours[..SLIGHT_COLD].iter().sum::<u32>();
+    }
+    let winter_cold = winter_cold as f64 / winter_total.max(1) as f64;
+    if winter_cold >= COLD_WINTER_SHARE {
+        notes.push(format!("In winter {} of daytime hours bring moderate cold stress or worse, even in the sun. Then shelter from the wind counts for more than sun: keep entrances, bike parking and routes out of it.", percent(winter_cold)));
+    }
+
+    let heat_in_sun: u32 = sun[NO_STRESS + 1..].iter().sum();
+    let heat_in_shade: u32 = shade[NO_STRESS + 1..].iter().sum();
+    if heat_in_sun > 0 {
+        notes.push(format!("About {heat_in_sun} daytime hours a year bring heat stress in the sun, against {heat_in_shade} in the shade. Give outdoor space a shaded corner, and shade south and west glass from outside."));
     }
 
     notes
@@ -310,87 +319,18 @@ pub fn winter_half_text() -> String {
     )
 }
 
-fn comfortable_share(hours: &[u32]) -> f64 {
+/// The share of a month's daytime hours with no thermal stress.
+fn no_stress_share(hours: &[u32]) -> f64 {
     let total: u32 = hours.iter().sum();
     if total == 0 {
         return 0.0;
     }
-    hours[COMFORTABLE_BAND] as f64 / total as f64
-}
-
-fn month_name(month: u32) -> &'static str {
-    MONTH_NAMES[(month as usize + 11) % 12]
-}
-
-/// [5, 6, 7, 8, 9] -> "May to September", [12, 1, 2] -> "December to
-/// February", [1, 4] -> "January and April".
-fn month_span(months: &[u32]) -> String {
-    let is_run = months.windows(2).all(|pair| pair[1] == pair[0] % 12 + 1);
-    // A run across the new year comes in calendar order: [1, 2, 12].
-    let wraps = !is_run && months.len() > 2 && months.contains(&12) && months.contains(&1);
-    let ordered: Vec<u32> = if wraps {
-        let start = months
-            .iter()
-            .position(|&month| month > months[0] + 1)
-            .unwrap_or(0);
-        months[start..]
-            .iter()
-            .chain(&months[..start])
-            .copied()
-            .collect()
-    } else {
-        months.to_vec()
-    };
-    let is_ordered_run = ordered.windows(2).all(|pair| pair[1] == pair[0] % 12 + 1);
-
-    let names: Vec<&str> = ordered.iter().map(|&month| month_name(month)).collect();
-    match names.as_slice() {
-        [] => String::new(),
-        [only] => only.to_string(),
-        [first, .., last] if is_ordered_run && names.len() > 2 => format!("{first} to {last}"),
-        [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
-    }
-}
-
-/// ["a", "b", "c"] -> "a, b or c".
-fn list(items: &[String]) -> String {
-    match items {
-        [] => String::new(),
-        [only] => only.clone(),
-        [rest @ .., last] => format!("{} or {last}", rest.join(", ")),
-    }
-}
-
-/// A run of months as "from May to September", anything else as "in January and April".
-fn during(months: &[u32]) -> String {
-    let span = month_span(months);
-    if span.contains(" to ") {
-        format!("from {span}")
-    } else {
-        format!("in {span}")
-    }
-}
-
-fn capitalised(text: &str) -> String {
-    let mut characters = text.chars();
-    match characters.next() {
-        Some(first) => first.to_uppercase().chain(characters).collect(),
-        None => String::new(),
-    }
+    hours[NO_STRESS] as f64 / total as f64
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn month_runs_read_as_a_span_and_gaps_as_a_list() {
-        assert_eq!(month_span(&[5, 6, 7, 8, 9]), "May to September");
-        assert_eq!(month_span(&[1, 2, 12]), "December to February");
-        assert_eq!(month_span(&[1, 4]), "January and April");
-        assert_eq!(month_span(&[1, 2]), "January and February");
-        assert_eq!(month_span(&[7]), "July");
-    }
 
     #[test]
     fn the_winter_half_runs_from_october_to_march() {

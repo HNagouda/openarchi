@@ -15,7 +15,7 @@ use super::map::{draw, Bounds, MapSpec, SheetDrawing};
 use super::svg::{escape, layer_attributes};
 use super::typeset::{Kind, Typesetter};
 use super::RenderInput;
-use crate::catalog::builtin_diagrams;
+use crate::catalog::{builtin_diagrams, find_plate, plate_id};
 use crate::diagram::Diagram;
 use crate::{Error, Result};
 
@@ -39,7 +39,8 @@ pub fn render(
 ) -> Result<SheetDrawing> {
     let look = input.look;
     let view = &look.view;
-    let plates = plate_diagrams(&view.plates, &look.diagram_id)?;
+    let own_plate = plate_id(&look.diagram_id, look.variant.as_deref());
+    let plates = plate_diagrams(&view.plates, &own_plate)?;
     let unit = typesetter.unit;
     let ink = &input.theme.palette.ink;
 
@@ -198,15 +199,11 @@ fn plate_diagrams(ids: &[String], fallback: &str) -> Result<Vec<Diagram>> {
     wanted
         .into_iter()
         .map(|id| {
-            catalog
-                .iter()
-                .find(|diagram| diagram.id == id)
-                .cloned()
-                .ok_or_else(|| {
-                    Error::Invalid(format!(
-                        "explode plate {id:?} is not a diagram; use an id from list_diagrams"
-                    ))
-                })
+            find_plate(&catalog, id).ok_or_else(|| {
+                Error::Invalid(format!(
+                    "explode plate {id:?} is not a diagram; use an id from list_diagrams"
+                ))
+            })
         })
         .collect()
 }

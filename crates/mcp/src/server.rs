@@ -23,7 +23,7 @@ use crate::inputs::{
     SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
-use crate::resolve::{find_diagram, find_theme, with_render_input};
+use crate::resolve::{check_plate, chosen_diagram, find_theme, with_render_input};
 use crate::summary::summarize;
 use crate::text::edited_sheet;
 use crate::user_themes::save_user_theme;
@@ -144,7 +144,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "List the diagrams a project can show. Each diagram answers one question about the site (what is built, how old, how tall, what use) and lists the layers it draws. Pass an id to set_look as diagram_id."
+        description = "List the diagrams a project can show, in the order and groups the app shows them. Each diagram answers one question about the site (what is built, how old, how tall, what use) and lists the layers it draws. Some diagrams have `variants` that colour another layer or measure for the same question, such as NO2, PM10 and PM2.5 for air quality; a diagram with variants takes its layers and classes from the chosen one, the first by default. Pass an id to set_look as diagram_id, and a variant id as variant."
     )]
     async fn list_diagrams(&self) -> CallToolResult {
         reply(blocking(|| Ok(catalog::builtin_diagrams())).await)
@@ -180,26 +180,24 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id, theme_id, sheet fields, per-layer overrides, the view (plan, axonometric with buildings standing up, or explode with several diagrams stacked as plates) and the sun's date and time for the sun path and shadow diagrams. Returns the whole new look. Earlier versions stay in the project's backups."
+        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id and its variant, theme_id, sheet fields, per-layer overrides, the view (plan, axonometric with buildings standing up, or explode with several diagrams stacked as plates) and the sun's date and time for the sun path and shadow diagrams. Returns the whole new look. Earlier versions stay in the project's backups."
     )]
     async fn set_look(&self, Parameters(input): Parameters<SetLook>) -> CallToolResult {
         let result = self
             .with_library(move |library| {
-                if let Some(diagram_id) = &input.diagram_id {
-                    find_diagram(diagram_id)?;
-                }
                 if let Some(theme_id) = &input.theme_id {
                     find_theme(&library.themes_dir(), theme_id)?;
                 }
                 let plates = input.view.as_ref().and_then(|view| view.plates.as_ref());
                 for plate in plates.into_iter().flatten() {
-                    find_diagram(plate)?;
+                    check_plate(plate)?;
                 }
 
                 let mut project = library.load(&input.id).map_err(text)?;
+                let diagram = chosen_diagram(&project.look, input.diagram_id, input.variant)?;
                 project.look = updated_look(
                     &project.look,
-                    input.diagram_id,
+                    Some(diagram),
                     input.theme_id,
                     input.sheet,
                     input.overrides,
@@ -309,7 +307,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Get the site analysis: location (address, municipality, province, coordinates), a site summary (area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use, shares of green, water and paved ground, and facilities, shops and transit stops within a walk when the walk was fetched), the climate from a PVGIS typical year (monthly temperature, humidity, global and direct sun, outdoor comfort hours per band, wind roses by season, direct sun by direction), and 30 years of monthly rain from the nearest KNMI station. Each section comes with design notes: short rule-based advice for the architect. Climate and rain need the network the first time; if one cannot be fetched it is left out and named in `warnings`. The site must have been fetched first."
+        description = "Get the site analysis: location (address, municipality, province, coordinates), a site summary (area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use, shares of green, water and paved ground, and facilities, shops and transit stops within a walk when the walk was fetched), the climate from a PVGIS typical year (monthly temperature, humidity, global and direct sun, outdoor comfort as the UTCI (Universal Thermal Climate Index) with daytime hours per stress category for a person in the sun and in the shade, named in `comfort_categories` and explained in `comfort_method`, wind roses by season, direct sun by direction), and 30 years of monthly rain from the nearest KNMI station. Each section comes with design notes: short rule-based advice for the architect. Climate and rain need the network the first time; if one cannot be fetched it is left out and named in `warnings`. The site must have been fetched first."
     )]
     async fn get_analysis(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self

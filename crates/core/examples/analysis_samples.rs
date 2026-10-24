@@ -1,5 +1,6 @@
 //! Renders the analysis of the Westermarkt fixture in every theme, as one
-//! SVG and PNG page per theme, for looking at the charts while working on them.
+//! SVG and PNG page per theme and as the A4 PDF the app exports, for looking
+//! at the charts and pages while working on them.
 //!
 //! cargo run --release -p openarchi-core --example analysis_samples   # writes target/analysis-samples/
 //!
@@ -10,9 +11,9 @@
 use std::fs;
 use std::path::Path;
 
-use openarchi_core::analysis::{self, report_svg, section_svg, PARTS};
+use openarchi_core::analysis::{self, report_pages, report_svg, section_svg, PARTS};
 use openarchi_core::catalog::builtin_themes;
-use openarchi_core::export::svg_to_png;
+use openarchi_core::export::{svg_pages_to_pdf, svg_to_png};
 use openarchi_core::scene::Scene;
 use openarchi_core::sources::cache::TileCache;
 
@@ -51,6 +52,9 @@ fn main() {
         let png = svg_to_png(&svg, PNG_WIDTH_PX).expect("rasterise the page");
         fs::write(out_dir.join(format!("{}.svg", theme.id)), &svg).expect("write the SVG");
         fs::write(out_dir.join(format!("{}.png", theme.id)), png).expect("write the PNG");
+        let pages = report_pages(&sections, &failures, &theme, "Westermarkt").expect("lay out A4");
+        let pdf = svg_pages_to_pdf(&pages, "Westermarkt").expect("make the PDF");
+        fs::write(out_dir.join(format!("{}-a4.pdf", theme.id)), pdf).expect("write the PDF");
 
         // One page per section as well, small enough to look at one by one.
         let section_dir = out_dir.join(&theme.id);

@@ -1,6 +1,7 @@
 {
   "id": "open-space",
   "name": "Open space",
+  "group": "Context and built form",
   "description": "The inverse figure-ground: streets, squares, green and water become the figure.",
   "layers": [
     "unpaved",

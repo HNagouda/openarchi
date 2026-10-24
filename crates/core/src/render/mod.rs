@@ -69,9 +69,15 @@ pub struct RenderInput<'a> {
     pub look: &'a Look,
 }
 
-/// The full sheet as an SVG document, sized in millimetres.
+/// The full sheet as an SVG document, sized in millimetres. A diagram with
+/// variants is drawn as the look's variant.
 pub fn render_svg(input: &RenderInput) -> Result<String> {
     let look = input.look;
+    let drawn = input.diagram.drawn_as(look.variant.as_deref());
+    let input = &RenderInput {
+        diagram: &drawn,
+        ..*input
+    };
     if look.sheet.scale == 0 {
         return Err(crate::Error::Invalid(
             "scale must be at least 1, as in 1:2500".to_string(),

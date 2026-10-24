@@ -104,6 +104,8 @@ export type SunMoment = { month: number; day: number; hour: number; minute: numb
 
 export type Look = {
   diagram_id: string;
+  /** One of the diagram's variants; null or missing draws its first. */
+  variant?: string | null;
   theme_id: string;
   sheet: Sheet;
   overrides: Partial<Record<Layer, LayerOverride>>;
@@ -145,7 +147,10 @@ export type Theme = {
 export type Diagram = {
   id: string;
   name: string;
+  /** The heading the diagram column lists it under. */
+  group: string;
   description: string;
+  /** Empty when the diagram has variants; each variant names its own. */
   layers: Layer[];
   emphasis: Layer | null;
   mute_others: boolean;
@@ -153,6 +158,19 @@ export type Diagram = {
   solar?: "sun_path" | "shadow" | null;
   /** Zooms the plan out to the walk band of this many minutes. */
   walk_minutes?: number | null;
+  /** Other layers or measures for the same question; the first is the default. */
+  variants: Variant[];
+};
+
+export type Variant = {
+  id: string;
+  /** The short label on the switch: "PM10". */
+  name: string;
+  /** The sheet title when it is drawn: "Air quality, PM10". */
+  title: string;
+  description: string;
+  layers: Layer[];
+  emphasis: Layer | null;
 };
 
 export type Catalog = {

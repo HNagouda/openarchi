@@ -73,6 +73,10 @@ pub struct SetLook {
     pub id: String,
     /// A diagram id from list_diagrams.
     pub diagram_id: Option<String>,
+    /// One of the diagram's variants from list_diagrams, like "pm25" for
+    /// air-quality. Kept while the diagram stays the same; a new diagram
+    /// without a variant starts on its first.
+    pub variant: Option<String>,
     /// A theme id from list_themes.
     pub theme_id: Option<String>,
     /// Only the sheet fields you pass change.
@@ -98,6 +102,7 @@ pub struct ViewInput {
     pub tilt_deg: Option<f64>,
     /// Diagram ids from list_diagrams to stack in the explode view, top plate
     /// first, like ["building-use", "building-age", "landscape", "context"].
+    /// A diagram with variants is drawn as its first; "air-quality:pm25" picks one.
     pub plates: Option<Vec<String>>,
     /// True packs the explode plates close together like a stack of sheets.
     pub stacking: Option<bool>,

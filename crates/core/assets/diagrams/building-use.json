@@ -1,6 +1,7 @@
 {
   "id": "building-use",
   "name": "Building use",
+  "group": "Context and built form",
   "description": "What the buildings are used for, from the BAG register.",
   "layers": [
     "water",

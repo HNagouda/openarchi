@@ -432,14 +432,14 @@
 
 .toasts {
   position: fixed;
-  left: 0;
+  left: var(--toast-left, 0px);
   right: var(--toast-right, 0px);
-  bottom: var(--toast-bottom, 24px);
+  bottom: 24px;
   display: flex;
   justify-content: center;
   pointer-events: none;
   z-index: 100;
-  transition: right var(--medium) var(--ease);
+  transition: left var(--medium) var(--ease), right var(--medium) var(--ease);
 }
 
 .toast {

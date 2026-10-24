@@ -1,5 +1,5 @@
-// The main workspace: the sheet in the middle, the inspector on the right,
-// and the series of diagrams along the bottom.
+// The main workspace: the diagrams on the left, the sheet in the middle and
+// the inspector on the right.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -9,6 +9,7 @@ import { closeProject, errorText, onLibraryChanged, reloadProject, renameProject
 import { usePlainKeys } from "../lib/keys";
 import { shortcutLabel } from "../lib/platform";
 import { readPreference, writePreference } from "../lib/storage";
+import { chosenVariant, drawnName } from "../lib/diagrams";
 import type { Catalog, Palette, ProjectView } from "../lib/types";
 import { useLookHistory } from "../lib/history";
 import { Button } from "../ui/Button";
@@ -17,7 +18,7 @@ import { Problem } from "../ui/Problem";
 import { useToast } from "../ui/Toasts";
 import { Canvas, type CanvasControls } from "./Canvas";
 import { ExportDialog } from "./ExportDialog";
-import { Filmstrip } from "./Filmstrip";
+import { DiagramColumn } from "./DiagramColumn";
 import { Inspector } from "./inspector/Inspector";
 import { useAutosave } from "./useAutosave";
 import { usePreview } from "./usePreview";
@@ -43,6 +44,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const look = history.look;
   const [revision, setRevision] = useState(0);
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
+  const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
   const [isExportOpen, setExportOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const canvas = useRef<CanvasControls>(null);
@@ -57,11 +59,31 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const diagrams = catalog?.diagrams ?? [];
   const themes = catalog?.themes ?? [];
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
+  const variant = diagram ? chosenVariant(diagram, look.variant) : null;
+  const diagramName = diagram ? drawnName(diagram, look.variant) : "";
+  const sheetCount = diagrams.reduce((count, entry) => count + Math.max(1, entry.variants.length), 0);
   const theme = themes.find((entry) => entry.id === look.theme_id);
   const swatches = theme ? paletteSwatches(theme.palette) : [];
   const textTool = useTextTool(look, history, canvas, preview.svg, !isExportOpen && isReady);
 
-  const selectDiagram = (diagram_id: string) => history.change({ ...look, diagram_id });
+  // A new diagram starts on its first variant.
+  const selectDiagram = (diagram_id: string) => {
+    if (diagram_id !== look.diagram_id) history.change({ ...look, diagram_id, variant: null });
+  };
+  const selectVariant = (variantId: string) => history.change({ ...look, variant: variantId });
+
+  const stepDiagram = (direction: 1 | -1) => {
+    const index = diagrams.findIndex((entry) => entry.id === look.diagram_id);
+    const next = diagrams[index + direction];
+    if (next) selectDiagram(next.id);
+  };
+
+  const stepVariant = (direction: 1 | -1) => {
+    if (!diagram || !variant) return;
+    const index = diagram.variants.indexOf(variant);
+    const next = diagram.variants[index + direction];
+    if (next) selectVariant(next.id);
+  };
 
   const stepTheme = (direction: 1 | -1) => {
     if (themes.length === 0) return;
@@ -73,6 +95,11 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const toggleInspector = () => {
     setInspectorOpen(!isInspectorOpen);
     writePreference("inspectorOpen", !isInspectorOpen);
+  };
+
+  const toggleDiagrams = () => {
+    setDiagramsOpen(!isDiagramsOpen);
+    writePreference("diagramsOpen", !isDiagramsOpen);
   };
 
   const leave = async () => {
@@ -138,16 +165,17 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     };
   }, []);
 
-  // Toasts sit centred on the workspace, not the whole window.
+  // Toasts sit centred on the sheet, between the two columns. A narrow window
+  // lays the diagram column over the sheet, so the toast does not move for it there.
   useEffect(() => {
     const root = document.documentElement.style;
     root.setProperty("--toast-right", isInspectorOpen ? "var(--inspector-width)" : "0px");
-    root.setProperty("--toast-bottom", "calc(var(--filmstrip-height) + 20px)");
+    root.setProperty("--toast-left", isDiagramsOpen ? "var(--diagram-column-pushes)" : "0px");
     return () => {
       root.removeProperty("--toast-right");
-      root.removeProperty("--toast-bottom");
+      root.removeProperty("--toast-left");
     };
-  }, [isInspectorOpen]);
+  }, [isInspectorOpen, isDiagramsOpen]);
 
   useCommandHandler((id) => {
     if (id === "undo") {
@@ -166,9 +194,10 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     if (id === "zoom-out") canvas.current?.zoomOut();
     if (id === "zoom-fit") canvas.current?.fit();
     if (id === "inspector") toggleInspector();
+    if (id === "diagrams") toggleDiagrams();
     if (id === "add-text" && isReady) textTool.addText();
     if (id === "home") leave();
-    return ["zoom-in", "zoom-out", "zoom-fit", "inspector", "home", "add-text"].includes(id);
+    return ["zoom-in", "zoom-out", "zoom-fit", "inspector", "diagrams", "home", "add-text"].includes(id);
   });
 
   usePlainKeys((key, event) => {
@@ -179,6 +208,18 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     if (key === "[") stepTheme(-1);
     if (key === "]") stepTheme(1);
     if (key.toLowerCase() === "i" && !event.repeat) toggleInspector();
+    if (key.toLowerCase() === "d" && !event.repeat) toggleDiagrams();
+    // With a text box selected the arrows nudge it instead; see useTextTool.
+    const steps: Record<string, () => void> = {
+      ArrowUp: () => stepDiagram(-1),
+      ArrowDown: () => stepDiagram(1),
+      ArrowLeft: () => stepVariant(-1),
+      ArrowRight: () => stepVariant(1),
+    };
+    if (steps[key] && textTool.selectedId === null) {
+      event.preventDefault();
+      steps[key]();
+    }
   }, !isExportOpen);
 
   const saveText = { saved: "Saved", pending: "Edited", saving: "Saving…", failed: "Not saved" }[autosave.status];
@@ -187,9 +228,10 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     <div className="sheet-step">
       <header className="topbar" data-tauri-drag-region>
         <Button icon="back" tip="All projects" shortcut="mod+shift+h" onClick={leave} />
+        <Button icon="sidebarLeft" tip="Diagrams" shortcut="d" isActive={isDiagramsOpen} onClick={toggleDiagrams} />
         <div className="topbar-title" data-tauri-drag-region>
           <EditableText className="project-name" value={project.name} onCommit={rename} />
-          {diagram && <span className="topbar-crumb">{diagram.name}</span>}
+          {diagram && <span className="topbar-crumb">{diagramName}</span>}
         </div>
         <div className="topbar-spacer" data-tauri-drag-region />
         <span className={autosave.status === "failed" ? "save-status is-failed" : "save-status"}>{saveText}</span>
@@ -208,6 +250,16 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
 
       <PaletteSwatches.Provider value={swatches}>
       <div className="sheet-body">
+        <div className={isDiagramsOpen ? "diagram-slot is-open" : "diagram-slot"}>
+          <DiagramColumn
+            diagrams={diagrams}
+            selectedId={look.diagram_id}
+            variantId={look.variant}
+            thumbnails={thumbnails}
+            onSelect={selectDiagram}
+            onVariant={selectVariant}
+          />
+        </div>
         <div className="sheet-main">
           <div className="canvas-wrap">
             <Canvas
@@ -225,7 +277,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
                     selectedId={textTool.selectedId}
                     editingId={textTool.editingId}
                     drag={textTool.drag}
-                    diagramName={diagram?.name ?? ""}
+                    diagramName={diagramName}
                     onLook={history.change}
                     onSeal={history.seal}
                     onEditEnd={() => textTool.setEditingId(null)}
@@ -249,7 +301,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               <Button icon="zoomIn" tip="Zoom in" shortcut="mod+=" tipSide="above" onClick={() => canvas.current?.zoomIn()} />
             </div>
           </div>
-          <Filmstrip diagrams={diagrams} selectedId={look.diagram_id} thumbnails={thumbnails} onSelect={selectDiagram} />
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
           {catalog && <Inspector catalog={catalog} project={project} look={look} onLook={history.change} onSeal={history.seal} />}
@@ -258,7 +309,13 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       </PaletteSwatches.Provider>
 
       {isExportOpen && diagram && (
-        <ExportDialog look={look} diagramName={diagram.name} diagramCount={diagrams.length} onClose={() => setExportOpen(false)} />
+        <ExportDialog
+          look={look}
+          diagramName={diagramName}
+          variantId={variant?.id ?? null}
+          sheetCount={sheetCount}
+          onClose={() => setExportOpen(false)}
+        />
       )}
     </div>
   );

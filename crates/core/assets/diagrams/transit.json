@@ -1,6 +1,7 @@
 {
   "id": "transit",
   "name": "Transit",
+  "group": "Movement and places",
   "description": "Bus, tram, metro and train stops within a 10 minute walk, with the lines that call there.",
   "layers": [
     "water",

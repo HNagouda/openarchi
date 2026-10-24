@@ -113,7 +113,7 @@ pub async fn render_preview(state: State<'_, Shared>, look: Look) -> Result<Stri
     .await
 }
 
-/// A PNG of the open project in `look`, for the filmstrip.
+/// A PNG of the open project in `look`, for the diagram column.
 #[tauri::command]
 pub async fn render_thumbnail(
     state: State<'_, Shared>,

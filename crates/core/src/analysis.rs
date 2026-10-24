@@ -11,17 +11,23 @@
 //! The same sections feed the inspector, the SVG and PDF export, and the
 //! assistant's `get_analysis`, so all three always say the same thing.
 
+mod a4;
+mod a4_blocks;
 mod charts;
 mod climate;
+mod comfort;
+mod comfort_chart;
 mod figure;
 mod location;
 mod locator;
 mod notes;
 mod page;
+mod radiant;
 mod rain;
 mod roses;
 mod sections;
 mod summary;
+mod utci;
 
 use std::time::SystemTime;
 
@@ -36,6 +42,7 @@ use crate::sources::{knmi, pvgis};
 use crate::theme::Theme;
 use crate::{Error, Result};
 
+pub use a4::report_pages;
 pub use climate::Climate;
 pub use figure::Figure;
 pub use location::Location;

@@ -14,6 +14,7 @@ export type CommandId =
   | "zoom-out"
   | "zoom-fit"
   | "inspector"
+  | "diagrams"
   | "home"
   | "tour"
   | "assistant"

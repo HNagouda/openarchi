@@ -25,6 +25,16 @@ What changed in each version of openarchi, newest first.
 - Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
 - Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
 
+### Diagram column
+
+- The diagrams moved from the filmstrip along the bottom to a column on the left of the sheet, grouped under Context and built form, Movement and places, Environment, People, and Sun and shade. Each one shows a small picture in the current palette and its name, and the one on the sheet is marked.
+- Air quality is one diagram with a switch between NO₂, PM10 and PM2.5, and Noise is one diagram with a switch between road traffic and all sources. The switch sits under the selected diagram, and ← and → flip between the measures. That brings the column from 24 entries to 21.
+- ↑ and ↓ step through every diagram, not only the first nine that 1 to 9 reach. With a text box selected the arrows still nudge the text.
+- D, the button next to the back arrow and View > Toggle Diagrams show or hide the column, and the app remembers the choice. In a window narrower than 1000 px the column lies over the sheet instead of squeezing it.
+- Exporting the whole series writes one file per measure, such as `westermarkt-air-quality-pm10.pdf`, so the series still holds every sheet it held before.
+- Projects saved on PM10, PM2.5, traffic noise or noise from all sources open on the same measure of the folded diagram, and so do explode plates. A plate can now show any one measure, like Air quality, PM2.5.
+- For assistants, `list_diagrams` gives each diagram its `group` and `variants`, `set_look` takes a `variant`, and plates take `"air-quality:pm25"`. The old ids still work in `set_look`.
+
 ### Places, transit and walking
 
 - Four new diagrams from OpenStreetMap. Business shows shops, food and drink, offices, hotels and services on the site. Facilities shows education, culture, civic buildings and places of worship, health care, sport and play, car parking and bicycle parking. Transit shows the bus, tram, metro and train stops within a 10 minute walk, each named with the bus, tram, metro and ferry lines that call there. Train stations show their name only, without service numbers. Walkability shows how far you get on foot in 5, 10 and 15 minutes, with the facilities inside each band.
@@ -44,10 +54,19 @@ What changed in each version of openarchi, newest first.
 - Climate comes from a PVGIS typical year for the site: monthly temperature with the mean daily low and high, outdoor comfort as hours per month from cold to hot, wind roses for each season, monthly sun on a flat roof and towards the sun, where the direct sun comes from in winter and summer, and humidity.
 - Rain is thirty years of monthly totals and rain days from the nearest of thirty KNMI stations, named on the chart with its distance.
 - Each section ends with a few design notes written from fixed rules, such as which side the winter wind comes from and what that means for entrances, when outdoor space is comfortable, and how long a 10 m building's shadow is at midwinter noon.
-- The comfort chart uses the UTCI stress bands on air temperature alone, and says so: sun, wind and humidity change how warm it feels.
 - Charts are drawn in the sheet's palette and change with it. Export one section or the whole analysis as an SVG or PDF page.
 - Climate and rain are fetched once per site and kept with the other downloaded data. Location and site appear at once; climate and rain show their own loading and error state, and the rest of the analysis works without them.
 - Assistants can read the numbers and the notes with the new `get_analysis` tool.
+
+### Outdoor comfort and the A4 report
+
+- Outdoor comfort is now the real UTCI (Universal Thermal Climate Index), the felt temperature that counts sun, wind and humidity as well as the air. It uses the operational polynomial of Bröde et al. (2012), the one the official UTCI software, Ladybug Tools and pythermalcomfort use, and is checked against pythermalcomfort's published validation table.
+- The sun's share comes from the SolarCal model of ASHRAE Standard 55, Appendix C: a standing person on open ground, sun over the shoulder, with the long-wave radiation of the sky from the PVGIS year making clear nights and winter days feel colder.
+- The comfort section shows two charts, in the sun and in the shade, with daytime hours in the ten UTCI stress categories from extreme cold to extreme heat. The caption names the method and every assumption.
+- For the Westermarkt, summer days are mostly free of thermal stress in sun or shade, and nine in ten winter daytime hours in the shade bring moderate or strong cold stress.
+- The comfort notes read from the new numbers: the months that are comfortable in the sun, how many hours a year sunshine takes out of cold stress, how cold winter stays even in the sun, and how many hours bring heat stress in the sun against the shade.
+- The whole analysis exports as a PDF of A4 pages: a title on the first page, a running header with the project and the address, page numbers, sections kept whole on one page, figures beside their notes, and the data credits with licences and links on the last page. One section, or the whole analysis as SVG, still exports as one page.
+- `get_analysis` gives the comfort hours in the sun and in the shade per month, the names of the ten categories, and the method in one sentence.
 
 ### Noise, air, flood and people
 
