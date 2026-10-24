@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in openarchi does not work the way it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Draw a 300 m circle around Westermarkt 20, Amsterdam
+        2. Pick building age and the Midnight theme
+        3. Export as PDF
+  - type: input
+    id: version
+    attributes:
+      label: openarchi version
+      description: The release you downloaded, or "dev build" with its date.
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      placeholder: macOS 26.1, or Windows 11 24H2
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or exported files
+      description: Drag images or exports in here if they help show the problem. If an assistant was driving openarchi over MCP, say which one.

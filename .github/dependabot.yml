@@ -1,0 +1,33 @@
+version: 2
+
+# Weekly, and one pull request per ecosystem, so updates arrive as three
+# reviewable batches instead of a steady trickle. They target dev, because
+# main only takes merges from dev.
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  # The npm ecosystem also handles pnpm, and reads app/pnpm-lock.yaml.
+  - package-ecosystem: npm
+    directory: /app
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: dev
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
