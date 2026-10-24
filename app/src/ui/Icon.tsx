@@ -40,6 +40,7 @@ const PATHS: Record<string, string> = {
   alignLeft: "M2.5 4h11M2.5 7h7M2.5 10h11M2.5 13h7",
   alignCentre: "M2.5 4h11M4.5 7h7M2.5 10h11M4.5 13h7",
   alignRight: "M2.5 4h11M6.5 7h7M2.5 10h11M6.5 13h7",
+  report: "M4 1.5h5.5L12.5 4.5v10h-8.5zM9.5 1.5v3h3M6 8h4.5M6 10.5h4.5M6 13h2.5",
 };
 
 export type IconName = keyof typeof PATHS;

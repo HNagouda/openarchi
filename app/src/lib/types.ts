@@ -217,6 +217,7 @@ export type ProjectView = {
   warnings: string[];
   credits: Credit[];
   layers_present: Layer[];
+  reports: Report[];
 };
 
 export type Place = { label: string; kind: string; location: LonLat };
@@ -259,3 +260,28 @@ export type AnalysisSection = {
   credits: Credit[];
   warnings: string[];
 };
+
+// crates/core/src/report.rs
+export type RatiosStyle = "bars" | "pie" | "table";
+export type BlockContent =
+  | { kind: "ratios"; group: string; style: RatiosStyle }
+  | { kind: "analysis_figure"; section: string; figure: string }
+  | { kind: "analysis_facts"; section: string }
+  | { kind: "analysis_notes"; section: string }
+  | { kind: "sheet"; diagram_id: string; variant?: string | null }
+  | { kind: "text"; text: string; style: TextStyle };
+/** A box on the page in millimetres from its top-left corner, and what it shows. */
+export type ReportBlock = { id: string; x_mm: number; y_mm: number; width_mm: number; height_mm: number; content: BlockContent };
+/** Blocks are drawn in order, so the last lies on top. */
+export type ReportPage = { id: string; paper: Paper; landscape: boolean; blocks: ReportBlock[] };
+export type Report = {
+  id: string;
+  name: string;
+  /** The palette the blocks are drawn in; null follows the sheet's. */
+  theme_id: string | null;
+  /** "@paper", another palette role, or "#RRGGBB". */
+  background: string;
+  show_page_numbers: boolean;
+  pages: ReportPage[];
+};
+export type ReportFormat = "pdf" | "svg" | "png";

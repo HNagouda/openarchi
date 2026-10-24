@@ -6,6 +6,7 @@
 mod inputs;
 mod look;
 mod palettes;
+mod reports;
 mod resolve;
 mod server;
 mod sheet_inputs;

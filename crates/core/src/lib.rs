@@ -19,6 +19,7 @@ pub mod pin;
 pub mod project;
 pub mod ratios;
 pub mod render;
+pub mod report;
 pub mod scene;
 pub mod selection;
 pub mod sheet;

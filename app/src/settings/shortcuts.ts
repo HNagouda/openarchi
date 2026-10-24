@@ -63,4 +63,20 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
       { label: "Fit the sheet", keys: ["mod+0"] },
     ],
   },
+  {
+    title: "Report",
+    items: [
+      { label: "Finish editing a text block, a new line with Shift", keys: ["enter"] },
+      { label: "Nudge the selected block, by 10 mm with Shift", keys: ["←", "→"] },
+      { label: "Duplicate the selected block", keys: ["mod+d"] },
+      { label: "Bring forward or send backward", keys: ["mod+]", "mod+["] },
+      { label: "Delete the selected block", keys: ["delete"] },
+      { label: "Deselect", keys: ["escape"] },
+      { label: "Undo", keys: ["mod+z"] },
+      { label: "Redo", keys: ["mod+shift+z"] },
+      { label: "Export", keys: ["mod+e"] },
+      { label: "Zoom in or out", keys: ["mod+=", "mod+-"] },
+      { label: "Fit the pages", keys: ["mod+0"] },
+    ],
+  },
 ];

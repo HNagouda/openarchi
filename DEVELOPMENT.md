@@ -31,6 +31,7 @@ crates/core/            the library: no window, no async
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
+  src/report.rs         reports: pages of blocks that point at ratios, analysis, sheets or text, drawn in a theme
   src/export/           SVG -> PDF and PNG, scene -> DXF
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
   src/palette.rs        a user's palette: a few swatches turned into a whole theme, with a contrast check
@@ -44,7 +45,7 @@ crates/core/            the library: no window, no async
 crates/mcp/             openarchi-mcp, a stdio MCP server over the core
 app/                    the desktop app
   src-tauri/            Tauri commands, each a thin call into the core
-  src/                  React front end, one folder per screen: home, site, sheet, settings, tour
+  src/                  React front end, one folder per screen: home, site, sheet, report, settings, tour
 scripts/mcp.sh          call any MCP tool from the shell
 ```
 
@@ -74,6 +75,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new kind of tab in the sheet workspace | a `TabKind` in `app/src/sheet/tabs/TabBar.tsx` |
 | A new export format | `crates/core/src/export/` |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs`, the rule in `notes.rs` |
+| A new kind of report block | a `Content` variant in `crates/core/src/report.rs`, drawn in `report/draw.rs`, offered in `app/src/report/library.ts` |
 | A new assistant tool | `crates/mcp/src/server.rs` |
 | A screen or control | `app/src/<screen>/`, with the Tauri command in `app/src-tauri/src/commands/` |
 

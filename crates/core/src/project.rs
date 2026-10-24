@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
 use crate::pin::Pin;
+use crate::report::Report;
 use crate::scene::{Layer, Scene};
 use crate::sheet::Sheet;
 use crate::theme::LayerOverride;
@@ -41,6 +42,10 @@ pub struct Project {
     pub scene: Option<Scene>,
     /// The first sheet. Projects from before sheets had tabs have only this one.
     pub look: Look,
+    /// Pages the user laid out from the project's charts, analysis and sheets.
+    /// Older projects have none.
+    #[serde(default)]
+    pub reports: Vec<Report>,
     /// Every sheet after the first, in tab order.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub more_sheets: Vec<Look>,

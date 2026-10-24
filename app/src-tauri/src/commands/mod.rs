@@ -4,5 +4,6 @@ pub mod library;
 pub mod palettes;
 pub mod ratios;
 pub mod render;
+pub mod report;
 pub mod sheets;
 pub mod site;

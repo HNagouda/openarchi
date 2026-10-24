@@ -32,11 +32,14 @@ export function useCommandHandler(handler: CommandHandler) {
   const latest = useRef(handler);
   latest.current = handler;
 
+  // A screen opened over another, like the report editor over the sheet,
+  // hands the commands back to the one below when it closes.
   useEffect(() => {
     const forward: CommandHandler = (id) => latest.current(id);
+    const below = slot.current;
     slot.current = forward;
     return () => {
-      if (slot.current === forward) slot.current = null;
+      if (slot.current === forward) slot.current = below;
     };
   }, [slot]);
 }

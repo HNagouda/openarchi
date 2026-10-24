@@ -1,7 +1,9 @@
 //! Writes what the app's dev-only IPC mock serves: the catalog, the
-//! Westermarkt fixture's area and layers, and every diagram in every theme as
-//! an SVG preview and a PNG thumbnail. One palette made from a few swatches
-//! stands in for the user's own, with what the palette editor asks for. With it the front end runs in a plain
+//! Westermarkt fixture's area and layers, every diagram in every theme as
+//! an SVG preview and a PNG thumbnail, the ratios and analysis, and the report
+//! blocks drawn from them. One palette made from a few swatches stands in for
+//! the user's own, with what the palette editor asks for. With it the front
+//! end runs in a plain
 //! browser, which is how the screenshots in docs/screenshots are taken.
 //!
 //! cargo run --release -p openarchi-core --example app_fixtures   # writes app/dev-fixtures/
@@ -17,6 +19,7 @@ use openarchi_core::palette::{self, PaletteCheck, PaletteDraft, RoleChoice};
 use openarchi_core::project::Look;
 use openarchi_core::ratios;
 use openarchi_core::render::{render_svg, RenderInput};
+use openarchi_core::report::{block_svg, Block, Content, RatiosStyle, ReportData};
 use openarchi_core::scene::{Layer, Scene};
 use openarchi_core::sheet::Sheet;
 use openarchi_core::sources::cache::TileCache;
@@ -30,6 +33,20 @@ const RECORDED_ANALYSIS: &str = "tests/fixtures/analysis-cache/tiles-v1";
 /// Noise, air, flood, slope, population and dwellings for the inner 120 m of
 /// the same site, so the environment diagrams have something to show.
 const ENVIRONMENT_FIXTURE: &str = "tests/fixtures/westerkerk-environment.scene.json";
+/// The starting block sizes of app/src/report/library.ts, so a mock block
+/// fills its box the way a drawn one does.
+const CHART_WIDTH_MM: f64 = 120.0;
+const FIGURE_WIDTH_MM: f64 = 90.0;
+const RATIOS_HEADER_MM: f64 = 7.1;
+const BAR_ROW_MM: f64 = 7.6;
+const TABLE_ROW_MM: f64 = 5.4;
+const PIE_ROW_MM: f64 = 5.0;
+const PIE_DIAMETER_MM: f64 = 43.0;
+const FACTS_WIDTH_MM: f64 = 170.0;
+const FACTS_HEADER_MM: f64 = 9.9;
+const FACT_ROW_MM: f64 = 10.0;
+const FACT_COLUMNS: usize = 4;
+const NOTES_SIZE_MM: (f64, f64) = (90.0, 70.0);
 /// Wide enough for a gallery card on a Retina screen.
 const THUMBNAIL_WIDTH_PX: u32 = 560;
 /// The user's own palette in the mock: five colours from a palette generator.
@@ -51,7 +68,9 @@ fn main() {
     add_environment(&mut scene, environment);
     write_catalog(&scene, &out_dir);
     write_palette(&out_dir);
-    write_analysis(&scene, &out_dir);
+    let (_cache_dir, cache) = recorded_cache();
+    write_analysis(&scene, &cache, &out_dir);
+    write_report_blocks(&scene, &cache, &out_dir);
 
     let sheet = Sheet {
         title: "Westermarkt".to_string(),
@@ -206,11 +225,9 @@ fn write_explode_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
     }
 }
 
-/// Every analysis part in every theme, as `get_analysis` returns it, from the
-/// answers recorded in tests/fixtures/analysis-cache, so no service is asked.
-fn write_analysis(scene: &Scene, out_dir: &Path) {
-    let folder = out_dir.join("analysis");
-    fs::create_dir_all(&folder).expect("create the analysis folder");
+/// A cache holding the answers recorded in tests/fixtures/analysis-cache, so
+/// no service is asked.
+fn recorded_cache() -> (tempfile::TempDir, TileCache) {
     let cache_dir = tempfile::TempDir::new().expect("a temporary cache");
     let cache = TileCache::at(cache_dir.path());
     let recorded = Path::new(env!("CARGO_MANIFEST_DIR")).join(RECORDED_ANALYSIS);
@@ -240,10 +257,18 @@ fn write_analysis(scene: &Scene, out_dir: &Path) {
         }
     }
 
+    (cache_dir, cache)
+}
+
+/// Every analysis part in every theme, as `get_analysis` returns it.
+fn write_analysis(scene: &Scene, cache: &TileCache, out_dir: &Path) {
+    let folder = out_dir.join("analysis");
+    fs::create_dir_all(&folder).expect("create the analysis folder");
+
     for theme in fixture_themes() {
         for part in PARTS {
             let sections =
-                analysis::part(part, scene, &theme, &cache).expect("draw the analysis part");
+                analysis::part(part, scene, &theme, cache).expect("draw the analysis part");
             let part_name = serde_json::to_value(part).expect("a part name");
             let file = folder.join(format!(
                 "{}--{}.json",
@@ -310,4 +335,81 @@ fn write_catalog(scene: &Scene, out_dir: &Path) {
         serde_json::to_string(&fixture).expect("serialise the fixture"),
     )
     .expect("write the fixture");
+}
+
+/// Every ratios group in every chart style, and the facts and notes of every
+/// analysis section, in every theme, as `render_report_block` draws them at
+/// the size the library starts them at: "ratios-land_use-bars--paper.svg",
+/// "figure-wind-wind-roses--paper.svg", "facts-site--paper.svg",
+/// "notes-wind--paper.svg". Sheets are not written: the mock takes them from
+/// the previews.
+fn write_report_blocks(scene: &Scene, cache: &TileCache, out_dir: &Path) {
+    let folder = out_dir.join("report-blocks");
+    fs::create_dir_all(&folder).expect("create the report blocks folder");
+    let look = Look::default();
+    let diagrams = builtin_diagrams();
+    for theme in fixture_themes() {
+        let computed = ratios::compute(scene, &theme).expect("compute the ratios");
+        let mut blocks = Vec::new();
+        for group in &computed.groups {
+            let rows = group.rows.len() as f64;
+            let styles = [
+                ("bars", RatiosStyle::Bars, rows * BAR_ROW_MM),
+                (
+                    "pie",
+                    RatiosStyle::Pie,
+                    PIE_DIAMETER_MM.max(rows * PIE_ROW_MM),
+                ),
+                ("table", RatiosStyle::Table, rows * TABLE_ROW_MM),
+            ];
+            for (name, style, rows_mm) in styles {
+                let content = Content::Ratios {
+                    group: group.id.clone(),
+                    style,
+                };
+                let size = (CHART_WIDTH_MM, RATIOS_HEADER_MM + rows_mm);
+                blocks.push((format!("ratios-{}-{name}", group.id), content, size));
+            }
+        }
+        for part in PARTS {
+            for section in analysis::part(part, scene, &theme, cache).expect("draw the part") {
+                for figure in &section.figures {
+                    let content = Content::AnalysisFigure {
+                        section: section.id.clone(),
+                        figure: figure.id.clone(),
+                    };
+                    let height = FIGURE_WIDTH_MM * figure.height_mm / figure.width_mm;
+                    let name = format!("figure-{}-{}", section.id, figure.id);
+                    blocks.push((name, content, (FIGURE_WIDTH_MM, height)));
+                }
+                let rows = section.facts.len().div_ceil(FACT_COLUMNS) as f64;
+                let facts = Content::AnalysisFacts {
+                    section: section.id.clone(),
+                };
+                let size = (FACTS_WIDTH_MM, FACTS_HEADER_MM + rows * FACT_ROW_MM);
+                blocks.push((format!("facts-{}", section.id), facts, size));
+                let notes = Content::AnalysisNotes {
+                    section: section.id.clone(),
+                };
+                blocks.push((format!("notes-{}", section.id), notes, NOTES_SIZE_MM));
+            }
+        }
+
+        let contents: Vec<&Content> = blocks.iter().map(|(_, content, _)| content).collect();
+        let data = ReportData::gather(scene, &look, &[], &diagrams, &theme, cache, contents)
+            .expect("gather the report data");
+        for (name, content, (width_mm, height_mm)) in &blocks {
+            let block = Block {
+                id: "block-1".to_string(),
+                x_mm: 0.0,
+                y_mm: 0.0,
+                width_mm: *width_mm,
+                height_mm: *height_mm,
+                content: content.clone(),
+            };
+            let svg = block_svg(&block, &data).expect("draw the block");
+            fs::write(folder.join(format!("{name}--{}.svg", theme.id)), svg)
+                .expect("write the block");
+        }
+    }
 }

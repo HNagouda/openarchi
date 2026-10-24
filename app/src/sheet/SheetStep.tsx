@@ -2,10 +2,9 @@
 // its tabs underneath, and the inspector on the right.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Navigate } from "../App";
 import { useCommandHandler } from "../lib/commands";
-import { closeProject, errorText, onLibraryChanged, reloadProject, renameProject } from "../lib/ipc";
+import { closeProject, errorText, renameProject } from "../lib/ipc";
 import { usePlainKeys } from "../lib/keys";
 import { shortcutLabel } from "../lib/platform";
 import { readPreference, writePreference } from "../lib/storage";
@@ -34,10 +33,9 @@ import { usePinTool } from "./pins/usePinTool";
 import { SelectionDialog } from "./selection/SelectionDialog";
 import { SheetTabs } from "./tabs/SheetTabs";
 import { useTabKeys } from "./tabs/useTabKeys";
-import { saveWorkbook, useWorkbook, workbookOf } from "./tabs/useWorkbook";
-
-// File events come in bursts; read the project once they settle.
-const RELOAD_DELAY_MS = 400;
+import { saveWorkbook, useWorkbook } from "./tabs/useWorkbook";
+import { useProjectSync } from "./useProjectSync";
+import { ReportsWorkspace } from "../report/ReportsWorkspace";
 
 type Props = {
   project: ProjectView;
@@ -57,6 +55,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
   const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
   const [isExportOpen, setExportOpen] = useState(false);
+  // The report editor opens over the sheet until reports become a sheet tab.
+  const [isReportsOpen, setReportsOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const canvas = useRef<CanvasControls>(null);
   const toast = useToast();
@@ -75,7 +75,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const sheetCount = diagrams.reduce((count, entry) => count + Math.max(1, entry.variants.length), 0);
   const theme = themes.find((entry) => entry.id === look.theme_id);
   const swatches = theme ? paletteSwatches(theme.palette) : [];
-  const isEditable = !isExportOpen && !isAreaOpen && isReady;
+  const isEditable = !isExportOpen && !isAreaOpen && !isReportsOpen && isReady;
   const textTool = useTextTool(look, { change: history.changeLook, seal: history.seal }, canvas, preview.svg, isEditable);
   const plateDrag = usePlateDrag(look, { change: history.changeLook }, preview.svg);
   const pinTool = usePinTool({
@@ -86,7 +86,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     isEnabled: isEditable,
     onRefused: (message) => toast(message),
   });
-  useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isAreaOpen);
+  useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isAreaOpen && !isReportsOpen);
 
   // A new diagram starts on its first variant.
   const selectDiagram = (diagram_id: string) => {
@@ -139,54 +139,15 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     }
   };
 
-  // An assistant edited this project through the MCP server: show its version,
-  // unless the user is mid-edit, in which case their next save wins and the
-  // assistant's version stays in the backups.
-  const latest = useRef({ autosave, history, project });
-  latest.current = { autosave, history, project };
-  useEffect(() => {
-    let timer = 0;
-    const reload = async () => {
-      const { autosave: saving, history: undo } = latest.current;
-      if (saving.hasUnsaved) {
-        toast("An assistant changed this project while you were editing. Your version was kept.");
-        return;
-      }
-      try {
-        const fresh = await reloadProject();
-        const before = latest.current.history.book;
-        const freshBook = workbookOf(fresh);
-        saving.markSaved(freshBook);
-        undo.replace(freshBook);
-        setProject(fresh);
-        setRevision((value) => value + 1);
-        toast("Updated by assistant", {
-          action: { label: "Undo", run: () => latest.current.history.replace(before) },
-        });
-      } catch (error) {
-        toast(`Couldn't load the assistant's changes. ${errorText(error)}`, { isError: true });
-      }
-    };
-    const unlisten = onLibraryChanged((id) => {
-      if (id !== latest.current.project.id) return;
-      window.clearTimeout(timer);
-      timer = window.setTimeout(reload, RELOAD_DELAY_MS);
-    });
-    return () => {
-      window.clearTimeout(timer);
-      unlisten.then((stop) => stop());
-    };
-  }, [toast]);
-
-  // Write the last change before the window closes.
-  useEffect(() => {
-    const unlisten = getCurrentWindow().onCloseRequested(async () => {
-      await latest.current.autosave.flush();
-    });
-    return () => {
-      unlisten.then((stop) => stop());
-    };
-  }, []);
+  useProjectSync({
+    projectId: project.id,
+    autosave,
+    history,
+    onReloaded: (fresh) => {
+      setProject(fresh);
+      setRevision((value) => value + 1);
+    },
+  });
 
   // Toasts sit centred on the sheet, between the two columns. A narrow window
   // lays the diagram column over the sheet, so the toast does not move for it there.
@@ -245,13 +206,14 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       event.preventDefault();
       steps[key]();
     }
-  }, !isExportOpen && !isAreaOpen);
+  }, !isExportOpen && !isAreaOpen && !isReportsOpen);
 
   const saveText = { saved: "Saved", pending: "Edited", saving: "Saving…", failed: "Not saved" }[autosave.status];
 
   return (
     <div className="sheet-step">
-      <header className="topbar" data-tauri-drag-region>
+      {/* Under the report editor the sheet is out of reach of Tab and the screen reader. */}
+      <header className="topbar" data-tauri-drag-region inert={isReportsOpen}>
         <Button icon="back" tip="All projects" shortcut="mod+shift+h" onClick={leave} />
         <Button icon="sidebarLeft" tip="Diagrams" shortcut="d" isActive={isDiagramsOpen} onClick={toggleDiagrams} />
         <div className="topbar-title" data-tauri-drag-region>
@@ -264,6 +226,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
         <span className="topbar-divider" />
         <Button icon="text" tip="Add text" shortcut="t" disabled={!isReady} onClick={textTool.addText} />
+        <Button icon="report" tip="Lay out a report of this site" disabled={!catalog} onClick={() => setReportsOpen(true)}>
+          Reports
+        </Button>
         <Button icon="map" tip="Draw the site again" onClick={() => navigate.editSite(project)}>
           Edit site
         </Button>
@@ -274,7 +239,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       </header>
 
       <PaletteSwatches.Provider value={swatches}>
-      <div className="sheet-body">
+      <div className="sheet-body" inert={isReportsOpen}>
         <div className={isDiagramsOpen ? "diagram-slot is-open" : "diagram-slot"}>
           <DiagramColumn
             diagrams={diagrams}
@@ -375,6 +340,16 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         </div>
       </div>
       </PaletteSwatches.Provider>
+
+      {isReportsOpen && catalog && (
+        <ReportsWorkspace
+          // Sheet blocks follow the first sheet, as the core draws them.
+          project={{ ...project, look: book.sheets[0] }}
+          catalog={catalog}
+          onClose={() => setReportsOpen(false)}
+          onSaved={(reports) => setProject((current) => ({ ...current, reports }))}
+        />
+      )}
 
       {isExportOpen && diagram && (
         <ExportDialog

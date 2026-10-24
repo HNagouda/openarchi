@@ -1,5 +1,5 @@
-// Undo as a stack of whole snapshots: of one `Look`, or of every sheet and pin
-// of a project together.
+// Undo as a stack of whole snapshots: of one `Look`, of every sheet and pin
+// of a project together, or of a project's reports.
 //
 // A slider drag sends many changes with the same merge key; they replace the
 // newest snapshot instead of stacking, so the drag undoes in one step. `seal`
@@ -36,7 +36,8 @@ export function useHistory<T>(initial: T) {
     mergeKey.current = null;
     setHistory((current) => {
       const previous = current.past[current.past.length - 1];
-      if (!previous) return current;
+      // Checked against undefined, not falsiness, so any snapshot type works.
+      if (previous === undefined) return current;
       return { past: current.past.slice(0, -1), present: previous, future: [current.present, ...current.future] };
     });
   }, []);
@@ -44,9 +45,9 @@ export function useHistory<T>(initial: T) {
   const redo = useCallback(() => {
     mergeKey.current = null;
     setHistory((current) => {
-      const next = current.future[0];
-      if (!next) return current;
-      return { past: [...current.past, current.present], present: next, future: current.future.slice(1) };
+      if (current.future.length === 0) return current;
+      const [next, ...rest] = current.future;
+      return { past: [...current.past, current.present], present: next, future: rest };
     });
   }, []);
 

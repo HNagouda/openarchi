@@ -6,9 +6,10 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { chosenVariant } from "../lib/diagrams";
-import type { Area, Catalog, Credit, Layer, Look, Pin, ProjectSummary, ProjectView, Sheet, SunMoment, View } from "../lib/types";
+import type { Area, Catalog, Credit, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
 import { answerPalette, withPaletteEdits } from "./mockPalettes";
 import { withMockPins } from "./mockPins";
+import { mockBackdrop, mockBlockFixture, mockTextBlock } from "./mockReports";
 
 const FIXTURES = "/dev-fixtures";
 const MAX_AREA_M2 = 4_000_000;
@@ -75,6 +76,7 @@ let openPins: Pin[] = [];
 // The fixtures are drawn at the default scale; a sheet framing part of the site pretends to zoom in.
 const MOCK_SCALE = 2500;
 const MOCK_SELECTION_SCALE = 1000;
+let openReports: Report[] = [];
 
 function view(project: ProjectSummary): ProjectView {
   return {
@@ -90,6 +92,7 @@ function view(project: ProjectSummary): ProjectView {
     warnings: [],
     credits: fixture.credits,
     layers_present: fixture.layers_present,
+    reports: openReports,
   };
 }
 
@@ -157,9 +160,32 @@ async function answer(command: string, args: Args) {
     if (isSlow) await new Promise((resolve) => setTimeout(resolve, SLOW_PART_MS));
     return fetch(`${FIXTURES}/analysis/${args.part}--${args.themeId}.json`).then((response) => response.json());
   }
+  if (command === "save_reports") {
+    openReports = args.reports as Report[];
+    return new Date().toISOString();
+  }
+  if (command === "render_report_block") return reportBlock(args.themeId as string, args.block as ReportBlock);
+  if (command === "render_report_backdrop") {
+    const report = args.report as Report;
+    const theme = fixture.catalog.themes.find((entry) => entry.id === (report.theme_id ?? openLook.theme_id));
+    return theme ? mockBackdrop(report, args.index as number, theme) : null;
+  }
+  if (command === "report_file_name") return `westermarkt.${args.format}`;
   if (command === "analysis_file_name") return args.sectionId ? `westermarkt-${args.sectionId}.svg` : "westermarkt-analysis.pdf";
   // Saves, renames, window theme and the like: nothing to show for them here.
   return null;
+}
+
+/** A block as the core would draw it, from the fixtures: sheets from the previews, the rest from report-blocks. */
+async function reportBlock(themeId: string, block: ReportBlock): Promise<string> {
+  const content = block.content;
+  const theme = fixture.catalog.themes.find((entry) => entry.id === themeId);
+  if (content.kind === "text") return theme ? mockTextBlock(block, theme) : "";
+  if (content.kind === "sheet") {
+    const shown = { ...openLook, diagram_id: content.diagram_id, variant: content.variant ?? null, theme_id: themeId };
+    return fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
+  }
+  return fetch(`${FIXTURES}/report-blocks/${mockBlockFixture(content)}--${themeId}.svg`).then((response) => response.text());
 }
 
 mockWindows("main");

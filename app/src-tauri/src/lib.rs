@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use openarchi_core::library::Library;
 use tauri::Manager;
 
-use crate::commands::{analysis, export, library, palettes, ratios, render, sheets, site};
+use crate::commands::{analysis, export, library, palettes, ratios, render, report, sheets, site};
 use crate::guard::{calm, text};
 use crate::state::AppState;
 
@@ -74,6 +74,11 @@ pub fn run() {
             analysis::get_analysis,
             analysis::analysis_file_name,
             analysis::export_analysis,
+            report::save_reports,
+            report::render_report_block,
+            report::render_report_backdrop,
+            report::report_file_name,
+            report::export_report,
             palettes::import_palette,
             palettes::check_palette,
             palettes::render_palette_preview,

@@ -166,6 +166,7 @@ impl Library {
             area,
             scene: None,
             look: Look::default(),
+            reports: Vec::new(),
             more_sheets: Vec::new(),
             pins: Vec::new(),
         };

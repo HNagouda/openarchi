@@ -36,6 +36,8 @@ use crate::Result;
 pub use chart::{chart_svg, ChartStyle};
 // Shared with the analysis, so both write areas and counts the same way.
 pub(crate) use chart::{area_text, grouped};
+// Shared with report blocks, which draw one group at a time.
+pub(crate) use chart::{slice_path, total_text, value_text};
 pub use csv::to_csv;
 
 /// What the ground is used for, and the layers each class sums, in one place.

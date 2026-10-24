@@ -36,7 +36,7 @@ const WESTERKERK_ENVIRONMENT: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 26] = [
+const TOOLS: [&str; 28] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -52,6 +52,8 @@ const TOOLS: [&str; 26] = [
     "get_analysis",
     "get_environment",
     "export",
+    "list_reports",
+    "export_report",
     "create_theme",
     "import_palette",
     "list_user_palettes",
@@ -634,6 +636,67 @@ fn get_environment_gives_noise_flood_and_people_with_their_years() {
     assert!(environment["flood_max_depth_m"].as_f64().unwrap() > 0.0);
     assert!(environment["residents"].as_f64().unwrap() > 0.0);
     assert_eq!(environment["noise_year"], json!(2022));
+}
+
+#[test]
+fn a_report_laid_out_in_the_app_is_listed_and_exports_as_a_pdf() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+    let library = Library::at(server.library.path()).unwrap();
+    let mut project = library.load(&id).unwrap();
+    let scene: Scene =
+        serde_json::from_str(&std::fs::read_to_string(WESTERMARKT_SCENE).unwrap()).unwrap();
+    project.scene = Some(scene);
+    project.reports = serde_json::from_value(json!([{
+        "id": "report-1",
+        "name": "Westermarkt",
+        "show_page_numbers": true,
+        "pages": [
+            { "id": "page-1", "paper": "a4", "landscape": false, "blocks": [
+                { "id": "block-1", "x_mm": 20.0, "y_mm": 20.0, "width_mm": 170.0, "height_mm": 120.0,
+                  "content": { "kind": "sheet", "diagram_id": "figure-ground" } },
+            ] },
+            { "id": "page-2", "paper": "a3", "landscape": true, "blocks": [
+                { "id": "block-2", "x_mm": 20.0, "y_mm": 20.0, "width_mm": 120.0, "height_mm": 80.0,
+                  "content": { "kind": "ratios", "group": "land_use", "style": "bars" } },
+                { "id": "block-3", "x_mm": 150.0, "y_mm": 20.0, "width_mm": 120.0, "height_mm": 30.0,
+                  "content": { "kind": "text", "text": "Notes for the client" } },
+            ] },
+        ],
+    }]))
+    .unwrap();
+    library.save(&mut project).unwrap();
+
+    let listed = server.call_ok("list_reports", json!({ "id": id }));
+    assert_eq!(listed["reports"][0]["id"], json!("report-1"));
+    assert_eq!(listed["reports"][0]["page_count"], json!(2));
+    assert_eq!(
+        listed["reports"][0]["background"],
+        Value::Null,
+        "only what an assistant needs is listed"
+    );
+
+    let path = server.library.path().join("westermarkt-report.pdf");
+    let written = server.call_ok(
+        "export_report",
+        json!({ "id": id, "report_id": "report-1", "path": path }),
+    );
+    assert_eq!(written["pages"], json!(2));
+    let pdf = std::fs::read(&path).unwrap();
+    let text = String::from_utf8_lossy(&pdf);
+    assert!(text.starts_with("%PDF"));
+    assert!(text.contains("/Count 2"));
+
+    let again = server.call_err(
+        "export_report",
+        json!({ "id": id, "report_id": "report-1", "path": path }),
+    );
+    assert!(again.contains("overwrite"), "{again}");
+    let unknown = server.call_err(
+        "export_report",
+        json!({ "id": id, "report_id": "report-9", "path": path, "overwrite": true }),
+    );
+    assert!(unknown.contains("report-1"), "{unknown}");
 }
 
 #[test]
