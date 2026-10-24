@@ -10,6 +10,7 @@ import { Toggle } from "../ui/Toggle";
 import { clampTo, deletePage, findBlock, MIN_BLOCK_MM, pageSize, setPaper, tidy, updateBlock } from "./edits";
 import { LayerList } from "./LayerList";
 import { RATIOS_STYLES, ratiosHeight } from "./library";
+import type { TextKind } from "./textBlocks";
 
 // The papers a report page offers, in one place.
 const PAPERS: { value: Paper; label: string }[] = [
@@ -35,6 +36,8 @@ type Props = {
   onChange: (report: Report, mergeKey?: string) => void;
   onSeal: () => void;
   onSelect: (id: string | null) => void;
+  /** Puts a new text on the current page. */
+  onAddText: (kind: TextKind) => void;
   onDuplicate: () => void;
   onRestack: (steps: number) => void;
   onDelete: () => void;
@@ -83,6 +86,14 @@ export function ReportInspector(props: Props) {
         aside={<Button icon="trash" tip="Delete this page" disabled={report.pages.length <= 1} onClick={() => onChange(deletePage(report, pageIndex))} />}
       >
         <div className="sheet-fields">
+          <div className="report-add-text">
+            <Button icon="text" variant="secondary" tip="Under the last block" onClick={() => props.onAddText("heading")}>
+              Add heading
+            </Button>
+            <Button icon="text" variant="secondary" tip="Under the last block" shortcut="t" onClick={() => props.onAddText("body")}>
+              Add text
+            </Button>
+          </div>
           <Segmented label="Paper" value={page.paper} options={PAPERS} onChange={(paper) => onChange(setPaper(report, pageIndex, paper, page.landscape))} />
           <Segmented
             label="Orientation"

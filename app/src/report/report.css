@@ -45,12 +45,33 @@
   display: flex;
 }
 
+/* The library and the inspector, each with a draggable inner edge. */
+.report-column-slot {
+  position: relative;
+  flex: none;
+  display: flex;
+  min-height: 0;
+}
+
+/* While a column edge is dragged, the pages do not react to the pointer. */
+.is-resizing-columns .report-main {
+  pointer-events: none;
+}
+
 /* * ==== inspector ==== */
 
-.report-inspector {
+/* Both classes, so this width wins over the sheet inspector's whichever stylesheet loads last. */
+.report-inspector.inspector {
   flex: none;
+  width: var(--report-inspector-width);
   border-left: 1px solid var(--line);
   background: var(--bg);
+}
+
+.report-add-text {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
 }
 
 .report-box-fields {

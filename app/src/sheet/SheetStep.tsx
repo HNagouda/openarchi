@@ -36,6 +36,7 @@ import { useTabKeys } from "./tabs/useTabKeys";
 import { saveWorkbook, useWorkbook } from "./tabs/useWorkbook";
 import { useProjectSync } from "./useProjectSync";
 import { ReportsWorkspace } from "../report/ReportsWorkspace";
+import { useLibraryPreviews } from "../report/previews/useLibraryPreviews";
 
 type Props = {
   project: ProjectView;
@@ -64,6 +65,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const isReady = catalog !== null && project.has_scene;
   const preview = usePreview(look, book.pins, revision, isReady);
   const thumbnails = useThumbnails(look, catalog?.diagrams ?? [], revision, isReady);
+  // The report library, gathered in the background so it is ready when Reports opens.
+  const libraryPreviews = useLibraryPreviews(project, book.sheets[0].theme_id, isReady);
   const reportSaveError = useCallback((message: string) => toast(`Couldn't save. ${message}`, { isError: true }), [toast]);
   const autosave = useAutosave(book, saveWorkbook, reportSaveError);
 
@@ -346,6 +349,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           // Sheet blocks follow the first sheet, as the core draws them.
           project={{ ...project, look: book.sheets[0] }}
           catalog={catalog}
+          previews={libraryPreviews}
+          sheetThumbnails={look === book.sheets[0] ? thumbnails : undefined}
           onClose={() => setReportsOpen(false)}
           onSaved={(reports) => setProject((current) => ({ ...current, reports }))}
         />

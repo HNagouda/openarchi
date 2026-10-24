@@ -9,7 +9,8 @@
 
 .report-stack {
   position: absolute;
-  inset: 0;
+  /* Clear of the rulers along the top and left (RULER_PX in rulers/Rulers.tsx). */
+  inset: 20px 0 0 20px;
   overflow: auto;
   display: flex;
   flex-direction: column;
