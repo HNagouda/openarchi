@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use openarchi_core::catalog;
+use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use openarchi_core::report::{
     self, backdrop_svg, block_svg, Block, Content, Report, ReportData, ReportFormat,
@@ -130,10 +131,11 @@ fn with_data<'c, T>(
 ) -> Result<T, String> {
     let scene = open_scene(state)?;
     let look = open_look(state)?;
+    let pins = open_pins(state)?;
     let diagrams = catalog::builtin_diagrams();
     let cache = state.library()?.tile_cache();
-    let data =
-        ReportData::gather(&scene, &look, &diagrams, theme, &cache, contents).map_err(text)?;
+    let data = ReportData::gather(&scene, &look, &pins, &diagrams, theme, &cache, contents)
+        .map_err(text)?;
     work(&data).map_err(text)
 }
 
@@ -141,5 +143,12 @@ fn open_look(state: &AppState) -> Result<Look, String> {
     lock(&state.open)
         .as_ref()
         .map(|open| open.project.look.clone())
+        .ok_or_else(|| "No project is open.".to_string())
+}
+
+fn open_pins(state: &AppState) -> Result<Vec<Pin>, String> {
+    lock(&state.open)
+        .as_ref()
+        .map(|open| open.project.pins.clone())
         .ok_or_else(|| "No project is open.".to_string())
 }

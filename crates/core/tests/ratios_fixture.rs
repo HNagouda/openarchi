@@ -178,7 +178,7 @@ fn csv_has_a_line_per_row_and_the_site_totals() {
     let csv = ratios::to_csv(&ratios);
     let rows: usize = ratios.groups.iter().map(|group| group.rows.len()).sum();
     assert_eq!(csv.lines().count(), 1 + 4 + rows);
-    assert!(csv.starts_with("group,class,value,unit,share_percent\nSite,Site area,"));
+    assert!(csv.starts_with("group,class,value,unit,share_percent,source\nSite,Site area,"));
 }
 
 #[test]
@@ -195,6 +195,18 @@ fn both_chart_styles_render_parseable_svg_with_a_layer_per_group() {
             );
         }
     }
+}
+
+#[test]
+fn every_group_names_its_source() {
+    let ratios = ratios_in("paper");
+    for group in &ratios.groups {
+        assert!(!group.source.is_empty(), "{} has no source line", group.id);
+    }
+    assert_eq!(
+        group(&ratios, "land_use").source,
+        "Buildings from BAG, the ground from BGT."
+    );
 }
 
 /// Prints the numbers, for checking them by eye: `cargo test ratios -- --nocapture`.

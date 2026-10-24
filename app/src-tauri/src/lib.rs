@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use openarchi_core::library::Library;
 use tauri::Manager;
 
-use crate::commands::{analysis, export, library, ratios, render, report, site};
+use crate::commands::{analysis, export, library, palettes, ratios, render, report, sheets, site};
 use crate::guard::{calm, text};
 use crate::state::AppState;
 
@@ -56,6 +56,8 @@ pub fn run() {
             render::render_preview,
             render::render_thumbnail,
             render::project_thumbnail,
+            sheets::save_sheets,
+            sheets::fitting_scale,
             site::search_places,
             site::measure_area,
             site::fetch_site,
@@ -77,6 +79,14 @@ pub fn run() {
             report::render_report_backdrop,
             report::report_file_name,
             report::export_report,
+            palettes::import_palette,
+            palettes::check_palette,
+            palettes::render_palette_preview,
+            palettes::palette_draft,
+            palettes::save_palette,
+            palettes::rename_palette,
+            palettes::delete_palette,
+            palettes::restore_palette,
         ])
         .run(tauri::generate_context!())
         .expect("openarchi could not start its window");

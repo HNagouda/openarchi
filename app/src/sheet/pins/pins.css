@@ -1,0 +1,113 @@
+/* Pins: the palette in the tab bar, the marker following a drag, and the selection on the sheet. */
+
+.pin-palette {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px;
+  border-radius: var(--radius-l);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.pin-palette-item,
+.pin-icon-choice {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--brand);
+  cursor: grab;
+  touch-action: none;
+}
+
+.pin-palette-item:hover:not(:disabled),
+.pin-icon-choice:hover {
+  background: var(--hover);
+}
+
+.pin-palette-item:disabled {
+  color: var(--text-3);
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pin-palette-item:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.pin-icon-choice {
+  cursor: default;
+}
+
+.pin-icon-choice.is-active {
+  background: var(--accent-soft);
+}
+
+.pin-ghost {
+  position: fixed;
+  z-index: 60;
+  color: var(--brand);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.pin-ghost.is-standing {
+  transform: translate(-50%, -100%);
+}
+
+/* Pins on the sheet can be picked up and moved. */
+.paper g[data-pin] {
+  cursor: move;
+}
+
+.pin-outline {
+  position: absolute;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.pin-toolbar-slot {
+  position: absolute;
+  white-space: nowrap;
+}
+
+.pin-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  animation: fade-in var(--fast) var(--ease);
+  cursor: default;
+}
+
+.pin-toolbar .toolbar-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--line-strong);
+}
+
+.pin-label-field {
+  position: absolute;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: 2px solid var(--focus);
+}

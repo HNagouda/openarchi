@@ -7,6 +7,7 @@
 
 use crate::analysis::{self, Part, Section};
 use crate::diagram::Diagram;
+use crate::pin::Pin;
 use crate::project::Look;
 use crate::ratios::{self, Group, Ratios};
 use crate::scene::Scene;
@@ -20,6 +21,9 @@ pub struct ReportData<'a> {
     pub scene: &'a Scene,
     /// The project's look. Sheet blocks keep its paper, view, sun and text.
     pub look: &'a Look,
+    /// The project's pins. Sheet blocks show them, as every sheet does unless
+    /// its look hides them.
+    pub pins: &'a [Pin],
     pub diagrams: &'a [Diagram],
     /// The palette the report is drawn in.
     pub theme: &'a Theme,
@@ -35,6 +39,7 @@ impl<'a> ReportData<'a> {
     pub fn gather<'c>(
         scene: &'a Scene,
         look: &'a Look,
+        pins: &'a [Pin],
         diagrams: &'a [Diagram],
         theme: &'a Theme,
         cache: &TileCache,
@@ -62,6 +67,7 @@ impl<'a> ReportData<'a> {
         Ok(ReportData {
             scene,
             look,
+            pins,
             diagrams,
             theme,
             ratios,

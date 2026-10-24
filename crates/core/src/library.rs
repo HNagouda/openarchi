@@ -17,6 +17,7 @@
 
 mod files;
 mod migrate;
+mod themes;
 
 use std::cmp::Reverse;
 use std::fs;
@@ -166,6 +167,8 @@ impl Library {
             scene: None,
             look: Look::default(),
             reports: Vec::new(),
+            more_sheets: Vec::new(),
+            pins: Vec::new(),
         };
         project.look.sheet.title = project.name.clone();
         project.look.sheet.frame = frame_for(&project.area);

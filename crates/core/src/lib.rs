@@ -5,6 +5,7 @@
 
 pub mod analysis;
 pub mod area;
+pub mod attribution;
 pub mod catalog;
 pub mod crs;
 pub mod diagram;
@@ -13,11 +14,14 @@ pub mod error;
 pub mod export;
 pub mod geocode;
 pub mod library;
+pub mod palette;
+pub mod pin;
 pub mod project;
 pub mod ratios;
 pub mod render;
 pub mod report;
 pub mod scene;
+pub mod selection;
 pub mod sheet;
 pub mod site;
 pub mod sources;

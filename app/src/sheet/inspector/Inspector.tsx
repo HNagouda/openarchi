@@ -18,10 +18,11 @@ type Props = {
   look: Look;
   onLook: (next: Look, mergeKey?: string) => void;
   onSeal: () => void;
+  onCatalogChanged: () => Promise<unknown> | void;
 };
 
 /** The right-hand panel. Every control edits the look, and every edit can be undone. */
-export function Inspector({ catalog, project, look, onLook, onSeal }: Props) {
+export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogChanged }: Props) {
   const [tab, setTab] = useState<Tab>(() => readPreference<Tab>("inspectorTab", "style"));
   const diagram = catalog.diagrams.find((entry) => entry.id === look.diagram_id);
   const theme = catalog.themes.find((entry) => entry.id === look.theme_id);
@@ -45,11 +46,17 @@ export function Inspector({ catalog, project, look, onLook, onSeal }: Props) {
           onChange={changeTab}
         />
       </div>
-      {tab === "ratios" && <RatiosPanel project={project} themeId={look.theme_id} />}
+      {tab === "ratios" && <RatiosPanel project={project} themeId={look.theme_id} selection={look.selection} />}
       {tab === "analysis" && <AnalysisPanel project={project} themeId={look.theme_id} />}
       {tab === "style" && (
         <>
-          <ThemeSection themes={catalog.themes} selectedId={look.theme_id} onSelect={(theme_id) => onLook({ ...look, theme_id })} />
+          <ThemeSection
+            themes={catalog.themes}
+            selectedId={look.theme_id}
+            onSelect={(theme_id) => onLook({ ...look, theme_id })}
+            look={look}
+            onCatalogChanged={onCatalogChanged}
+          />
           {diagram && theme && (
             <LayersSection
               diagram={drawnDiagram(diagram, look.variant)}

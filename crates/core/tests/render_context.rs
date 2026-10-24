@@ -18,6 +18,7 @@ fn svg_of(scene: &Scene, look: &Look, theme_id: &str) -> String {
         diagram: &diagram,
         theme: &theme,
         look,
+        pins: &[],
     })
     .expect("render")
 }
@@ -138,6 +139,7 @@ fn the_dxf_puts_the_neighbourhood_on_its_own_layers_only_when_shown() {
             diagram: &diagram,
             theme: &theme,
             look: &look,
+            pins: &[],
         };
         export(&input, ExportFormat::Dxf, 300, &path).unwrap();
         let dxf = std::fs::read_to_string(&path).unwrap();

@@ -56,8 +56,16 @@ fn main() {
         .into_iter()
         .filter(|theme| PALETTES.contains(&theme.id.as_str()))
     {
-        let data = ReportData::gather(&scene, &look, &diagrams, &theme, &cache, contents.clone())
-            .expect("gather the report's data");
+        let data = ReportData::gather(
+            &scene,
+            &look,
+            &[],
+            &diagrams,
+            &theme,
+            &cache,
+            contents.clone(),
+        )
+        .expect("gather the report's data");
         let stem = out_dir.join(format!("westermarkt--{}", theme.id));
         export(
             &report,

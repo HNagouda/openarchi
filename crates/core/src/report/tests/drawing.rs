@@ -178,7 +178,7 @@ fn a_three_page_report_exports_as_one_pdf_and_a_png_per_page() {
         .pages
         .iter()
         .flat_map(|page| page.blocks.iter().map(|block| &block.content));
-    let data = ReportData::gather(&scene, &look, &diagrams, &theme, &cache, contents).unwrap();
+    let data = ReportData::gather(&scene, &look, &[], &diagrams, &theme, &cache, contents).unwrap();
     let folder = TempDir::new().unwrap();
 
     let pdf = export(
@@ -206,4 +206,31 @@ fn a_three_page_report_exports_as_one_pdf_and_a_png_per_page() {
         .map(|path| path.file_name().unwrap().to_string_lossy().to_string())
         .collect();
     assert_eq!(names, vec!["r-1.png", "r-2.png", "r-3.png"]);
+}
+
+#[test]
+fn a_sheet_block_shows_the_projects_pins() {
+    let scene = westermarkt();
+    let look = Look::default();
+    let diagrams = builtin_diagrams();
+    let theme = theme("paper");
+    let (_folder, cache) = recorded_cache();
+    let pins = [crate::pin::Pin {
+        id: "pin-1".to_string(),
+        icon: crate::pin::PinIcon::Star,
+        label: "Entrance".to_string(),
+        x: scene.origin.0,
+        y: scene.origin.1,
+    }];
+    let report = report(vec![page(
+        "page-1",
+        vec![block("block-1", 10.0, 10.0, 180.0, 120.0, sheet("context"))],
+    )]);
+    let contents = [&report.pages[0].blocks[0].content];
+
+    let data =
+        ReportData::gather(&scene, &look, &pins, &diagrams, &theme, &cache, contents).unwrap();
+    let svg = page_svg(&report, 0, &data).unwrap();
+
+    assert!(svg.contains(r#"data-pin="pin-1""#));
 }

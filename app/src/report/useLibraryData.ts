@@ -35,7 +35,7 @@ export function useLibraryData(themeId: string, isEnabled: boolean): LibraryData
       if (!isCancelled) setProblems((current) => [...current, `${what}: ${errorText(reason)}`]);
     };
 
-    getRatios(themeId)
+    getRatios(themeId, null)
       .then((found) => !isCancelled && setRatios(found))
       .catch((reason) => complain("Ratios", reason))
       .finally(settle);

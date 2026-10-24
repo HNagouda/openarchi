@@ -4,7 +4,8 @@ use std::fmt::Write;
 
 use super::{Ratios, Unit};
 
-const HEADER: &str = "group,class,value,unit,share_percent";
+// The source column repeats per row, so every row still says where it came from once filtered.
+const HEADER: &str = "group,class,value,unit,share_percent,source";
 const SITE_GROUP: &str = "Site";
 
 /// Site totals first, then every group's rows. Areas are whole square metres
@@ -12,42 +13,50 @@ const SITE_GROUP: &str = "Site";
 pub fn to_csv(ratios: &Ratios) -> String {
     let mut out = String::new();
     let _ = writeln!(out, "{HEADER}");
-    let _ = writeln!(out, "{SITE_GROUP},Site area,{:.0},m2,", ratios.site_area_m2);
     let _ = writeln!(
         out,
-        "{SITE_GROUP},Buildings,{},buildings,",
+        "{SITE_GROUP},Site area,{:.0},m2,,",
+        ratios.site_area_m2
+    );
+    let _ = writeln!(
+        out,
+        "{SITE_GROUP},Buildings,{},buildings,,",
         ratios.building_count
     );
     let _ = writeln!(
         out,
-        "{SITE_GROUP},Building coverage,{:.3},ratio,",
+        "{SITE_GROUP},Building coverage,{:.3},ratio,,",
         ratios.coverage
     );
     let _ = writeln!(
         out,
-        "{SITE_GROUP},Floor area ratio,{:.2},ratio,",
+        "{SITE_GROUP},Floor area ratio,{:.2},ratio,,",
         ratios.floor_area_ratio
     );
     if let Some(ratio) = ratios.bag_floor_area_ratio {
-        let _ = writeln!(out, "{SITE_GROUP},Floor area ratio (BAG),{ratio:.2},ratio,");
+        let _ = writeln!(
+            out,
+            "{SITE_GROUP},Floor area ratio (BAG),{ratio:.2},ratio,,"
+        );
     }
     if let Some(dwellings) = ratios.dwellings {
-        let _ = writeln!(out, "{SITE_GROUP},Dwellings,{dwellings},dwellings,");
+        let _ = writeln!(out, "{SITE_GROUP},Dwellings,{dwellings},dwellings,,");
     }
     if let Some(residents) = ratios.residents {
-        let _ = writeln!(out, "{SITE_GROUP},Residents,{residents:.0},residents,");
+        let _ = writeln!(out, "{SITE_GROUP},Residents,{residents:.0},residents,,");
     }
 
     for group in &ratios.groups {
         for row in &group.rows {
             let _ = writeln!(
                 out,
-                "{},{},{:.0},{},{:.1}",
+                "{},{},{:.0},{},{:.1},{}",
                 field(&group.title),
                 field(&row.label),
                 row.value,
                 unit_name(group.unit),
-                row.share * 100.0
+                row.share * 100.0,
+                field(&group.source)
             );
         }
     }

@@ -86,8 +86,16 @@ pub fn export_pdf(library: &Library, input: ExportReport) -> Result<Value, Strin
         .iter()
         .flat_map(|page| page.blocks.iter().map(|block| &block.content));
     let cache = library.tile_cache();
-    let data = ReportData::gather(scene, &project.look, &diagrams, &theme, &cache, contents)
-        .map_err(|error| error.to_string())?;
+    let data = ReportData::gather(
+        scene,
+        &project.look,
+        &project.pins,
+        &diagrams,
+        &theme,
+        &cache,
+        contents,
+    )
+    .map_err(|error| error.to_string())?;
     report::export(report, &data, ReportFormat::Pdf, PDF_DPI, &path)
         .map_err(|error| error.to_string())?;
 

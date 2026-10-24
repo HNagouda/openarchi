@@ -10,7 +10,7 @@ import { useCommandHandler } from "../lib/commands";
 import { useHistory } from "../lib/history";
 import { saveReports } from "../lib/ipc";
 import type { Catalog, ProjectView, Report } from "../lib/types";
-import { useSaving } from "../sheet/useAutosave";
+import { useAutosave } from "../sheet/useAutosave";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { Problem } from "../ui/Problem";
@@ -29,7 +29,7 @@ type Props = {
 
 export function ReportsWorkspace({ project, catalog, onClose, onSaved }: Props) {
   const history = useHistory<Report[]>(project.reports);
-  const reports = history.value;
+  const reports = history.present;
   const [openId, setOpenId] = useState<string | null>(reports[0]?.id ?? null);
   const [isExportOpen, setExportOpen] = useState(false);
   const zoom = useRef<ZoomControls>(null);
@@ -43,7 +43,7 @@ export function ReportsWorkspace({ project, catalog, onClose, onSaved }: Props) 
     [onSaved],
   );
   const reportError = useCallback((message: string) => toast(`Couldn't save the report. ${message}`, { isError: true }), [toast]);
-  const saving = useSaving(reports, write, reportError);
+  const saving = useAutosave(reports, write, reportError);
   const report = reports.find((entry) => entry.id === openId) ?? reports[0] ?? null;
 
   const changeReport = (next: Report, mergeKey?: string) => {

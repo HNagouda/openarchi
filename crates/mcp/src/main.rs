@@ -5,9 +5,12 @@
 
 mod inputs;
 mod look;
+mod palettes;
 mod reports;
 mod resolve;
 mod server;
+mod sheet_inputs;
+mod sheets;
 mod summary;
 mod text;
 mod user_themes;

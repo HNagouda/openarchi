@@ -208,6 +208,7 @@ pub fn render(
         north_deg: unit_view.north_angle_deg(),
         is_foreshortened: true,
         title_name: TITLE.to_string(),
+        ground: unit_view.scaled_to(mm_per_m).moved_to(plate_centre(0)),
     })
 }
 

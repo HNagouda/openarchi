@@ -10,7 +10,7 @@ use openarchi_core::area::Area;
 use openarchi_core::export::{self, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
-use openarchi_core::{analysis, catalog, environment, geocode, ratios, site, walk};
+use openarchi_core::{analysis, catalog, environment, geocode, ratios, selection, site, walk};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -23,6 +23,7 @@ use crate::inputs::{
     SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
+use crate::palettes::{self, ImportPalette};
 use crate::reports::{self, ExportReport};
 use crate::resolve::{check_plate, chosen_diagram, find_theme, with_render_input};
 use crate::summary::summarize;
@@ -51,7 +52,8 @@ site-analysis diagrams (figure-ground, building age, heights, uses, green and wa
 A typical session: search_places to find the site, create_project with an area around \
 it, fetch_site to download the site data, list_diagrams and list_themes, set_look to \
 choose and tune the style, edit_text to style, move or add text on the sheet, \
-render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
+add_sheet for more sheet tabs (each with its own look, and optionally a sub-selection \
+of the site), add_pin to mark landmarks on every sheet, render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
 numbers behind it (land use, building use, coverage, floor area ratio), get_analysis \
 for the location, climate and design notes, export to \
 write a file, and list_reports and export_report for the multi-page reports the \
@@ -70,7 +72,7 @@ impl OpenArchi {
     pub fn new(library_root: PathBuf) -> Self {
         OpenArchi {
             library_root,
-            tool_router: Self::tool_router(),
+            tool_router: Self::tool_router() + Self::sheet_tools(),
         }
     }
 
@@ -196,9 +198,10 @@ impl OpenArchi {
                 }
 
                 let mut project = library.load(&input.id).map_err(text)?;
-                let diagram = chosen_diagram(&project.look, input.diagram_id, input.variant)?;
-                project.look = updated_look(
-                    &project.look,
+                let look = project.sheet_mut(input.tab.unwrap_or(1)).map_err(text)?;
+                let diagram = chosen_diagram(look, input.diagram_id, input.variant)?;
+                *look = updated_look(
+                    look,
                     Some(diagram),
                     input.theme_id,
                     input.sheet,
@@ -206,8 +209,9 @@ impl OpenArchi {
                     input.view,
                     input.sun,
                 )?;
+                let look = look.clone();
                 library.save(&mut project).map_err(text)?;
-                Ok(project.look)
+                Ok(look)
             })
             .await;
         reply(result)
@@ -220,11 +224,12 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let mut project = library.load(&input.id).map_err(text)?;
-                let (sheet, text_id) = edited_sheet(&project.look.sheet, input)?;
-                project.look.sheet = sheet;
+                let look = project.sheet_mut(input.tab.unwrap_or(1)).map_err(text)?;
+                let (sheet, text_id) = edited_sheet(&look.sheet, input)?;
+                look.sheet = sheet.clone();
                 library.save(&mut project).map_err(text)?;
 
-                let sheet = &project.look.sheet;
+                let sheet = &sheet;
                 let (width, height) = sheet.size_mm();
                 Ok(json!({
                     "text_id": text_id,
@@ -248,7 +253,7 @@ impl OpenArchi {
             .clamp(MIN_PREVIEW_WIDTH_PX, MAX_PREVIEW_WIDTH_PX);
         let result = self
             .with_library(move |library| {
-                with_render_input(library, &input.id, |render| {
+                with_render_input(library, &input.id, input.tab.unwrap_or(1), |render| {
                     export::render_png(render, width_px)
                 })
             })
@@ -276,9 +281,12 @@ impl OpenArchi {
                         input.id
                     ));
                 };
-                let theme_id = input.theme_id.unwrap_or(project.look.theme_id.clone());
+                let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
+                let theme_id = input.theme_id.unwrap_or(look.theme_id.clone());
                 let theme = find_theme(&library.themes_dir(), &theme_id)?;
-                ratios::compute(scene, &theme).map_err(text)
+                let scene =
+                    selection::framed_or_whole(scene, look.selection.as_ref()).map_err(text)?;
+                ratios::compute(&scene, &theme).map_err(text)
             })
             .await;
         reply(result)
@@ -369,7 +377,7 @@ impl OpenArchi {
         let dpi = input.dpi.unwrap_or(DEFAULT_EXPORT_DPI);
         let result = self
             .with_library(move |library| {
-                with_render_input(library, &input.id, |render| {
+                with_render_input(library, &input.id, input.tab.unwrap_or(1), |render| {
                     export::export(render, format, dpi, &path)
                 })?;
                 Ok(json!({ "path": path, "format": format }))
@@ -416,6 +424,26 @@ impl OpenArchi {
     }
 
     #[tool(
+        description = "Import a palette from what a palette generator exports or copies (hex codes, JSON, an SVG of swatches, an XML palette, or a link ending in dash-joined codes) and save it as a theme. The colours fill the roles by a fixed rule: the lightest quiet swatch is the paper (a colourful one is softened to a pale tint), the darkest is the ink, the darkest that stands out from the paper is the buildings, the most colourful is the accent, and the swatches nearest blue and green are water and green. Returns the id, each role with the swatch it came from and why, and warnings where text or buildings fall below the WCAG contrast ratios. save=false only checks."
+    )]
+    async fn import_palette(&self, Parameters(input): Parameters<ImportPalette>) -> CallToolResult {
+        reply(
+            self.with_library(move |library| palettes::import(library, input))
+                .await,
+        )
+    }
+
+    #[tool(
+        description = "List the palettes the user made or imported, with their swatches. Built-in themes are in list_themes."
+    )]
+    async fn list_user_palettes(&self) -> CallToolResult {
+        reply(
+            self.with_library(|library| Ok(palettes::list_user(library)))
+                .await,
+        )
+    }
+
+    #[tool(
         description = "Move a project to Recently Deleted. Nothing is lost: restore_project brings it back with its backups."
     )]
     async fn delete_project(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
@@ -443,7 +471,7 @@ impl OpenArchi {
     }
 
     /// Opens the library on the blocking pool and runs `work` with it.
-    async fn with_library<T: Send + 'static>(
+    pub(crate) async fn with_library<T: Send + 'static>(
         &self,
         work: impl FnOnce(&Library) -> Result<T, String> + Send + 'static,
     ) -> Result<T, String> {
@@ -509,7 +537,7 @@ fn overview(project: &Project) -> Value {
 /// Pretty JSON on success, the plain message on failure. Tool failures are
 /// results with `is_error` set rather than protocol errors, because clients
 /// show those to the assistant, which can then fix its call.
-fn reply<T: Serialize>(result: Result<T, String>) -> CallToolResult {
+pub(crate) fn reply<T: Serialize>(result: Result<T, String>) -> CallToolResult {
     let json = result.and_then(|value| serde_json::to_string_pretty(&value).map_err(text));
     match json {
         Ok(json) => CallToolResult::success(vec![ContentBlock::text(json)]),
@@ -521,6 +549,6 @@ fn failure(message: String) -> CallToolResult {
     CallToolResult::error(vec![ContentBlock::text(message)])
 }
 
-fn text(error: impl std::fmt::Display) -> String {
+pub(crate) fn text(error: impl std::fmt::Display) -> String {
     error.to_string()
 }

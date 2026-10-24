@@ -1,30 +1,25 @@
-// Saves the look, or a project's reports, a moment after the last change. The
-// library keeps a backup of every earlier version, so saving often is safe.
+// Saves a moment after the last change. The library keeps a backup of every
+// earlier version, so saving often is safe.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { errorText, saveLook } from "../lib/ipc";
-import type { Look } from "../lib/types";
+import { errorText } from "../lib/ipc";
 
 // Long enough that a slider drag saves once, at the end.
 const SAVE_DELAY_MS = 700;
 
 export type SaveStatus = "saved" | "pending" | "saving" | "failed";
 
-export function useAutosave(look: Look, onError: (message: string) => void) {
-  return useSaving(look, saveLook, onError);
-}
-
-/** Writes `value` with `write` a moment after it last changed. */
-export function useSaving<T>(value: T, write: (value: T) => Promise<unknown>, onError: (message: string) => void) {
+/** Writes `value` with `write` once it settles; `write` is read when the save runs, so it may change. */
+export function useAutosave<T>(value: T, write: (value: T) => Promise<unknown>, onError: (message: string) => void) {
   const [status, setStatus] = useState<SaveStatus>("saved");
   const savedKey = useRef(JSON.stringify(value));
-  const latestValue = useRef(value);
+  const latest = useRef({ value, write });
   const timer = useRef(0);
-  latestValue.current = value;
+  latest.current = { value, write };
 
   const save = useCallback(async () => {
     window.clearTimeout(timer.current);
-    const target = latestValue.current;
+    const target = latest.current.value;
     const key = JSON.stringify(target);
     if (key === savedKey.current) {
       setStatus("saved");
@@ -32,14 +27,14 @@ export function useSaving<T>(value: T, write: (value: T) => Promise<unknown>, on
     }
     setStatus("saving");
     try {
-      await write(target);
+      await latest.current.write(target);
       savedKey.current = key;
-      setStatus(JSON.stringify(latestValue.current) === key ? "saved" : "pending");
+      setStatus(JSON.stringify(latest.current.value) === key ? "saved" : "pending");
     } catch (error) {
       setStatus("failed");
       onError(errorText(error));
     }
-  }, [onError, write]);
+  }, [onError]);
 
   const key = JSON.stringify(value);
   useEffect(() => {

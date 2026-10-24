@@ -95,6 +95,7 @@ fn sheet(
         diagram,
         theme: data.theme,
         look: &look,
+        pins: data.pins,
     };
     let svg = render_svg(&input)?;
     let (width, height) = look.sheet.size_mm();

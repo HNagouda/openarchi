@@ -27,6 +27,7 @@ fn westermarkt_renders_in_every_diagram_and_theme() {
                 diagram: &diagram,
                 theme: &theme,
                 look: &look,
+                pins: &[],
             })
             .unwrap_or_else(|error| panic!("{} in {}: {error}", diagram.id, theme.id));
             usvg::Tree::from_str(&svg, &options)
@@ -48,6 +49,7 @@ fn westermarkt_building_use_legend_names_the_buildings_bag_cannot_place() {
         diagram: &diagram,
         theme: &theme,
         look: &Look::default(),
+        pins: &[],
     })
     .expect("render");
 

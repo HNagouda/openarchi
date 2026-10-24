@@ -25,6 +25,15 @@ What changed in each version of openarchi, newest first.
 - Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
 - Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
 
+### Sheet tabs and pins
+
+- A project holds several sheets, each a tab along the bottom of the workspace with its own diagram, palette, view and text. The + adds one, a double-click renames it, dragging reorders it, and the menu on the open tab duplicates or deletes it. Deleting says so with an Undo, and every tab change undoes like any other edit.
+- Ctrl+Tab and Ctrl+Shift+Tab, or Ctrl+PageDown and Ctrl+PageUp, step through the tabs, and on a Mac ⌘⌥→ and ⌘⌥← do too.
+- A sheet can show part of the site. The Whole site button in the tab bar opens a map with the same circle, rectangle and polygon tools as the site itself; the sheet then clips to that area at the largest round scale it fits, and its ratios describe only that area. With the neighbourhood on, the rest of the site is drawn muted around it.
+- Landmarks can be pinned. Drag a pin, star, flag, dot or numbered marker from the tab bar onto the sheet, type its label, and it shows on every sheet, in plan, axonometric and explode views, in the palette's accent colour. Click a pin to change its marker or delete it, drag it to move it, and the eye in the tab bar hides the pins on one sheet. Pins export to DXF on their own OA-PINS layer.
+- Assistants can list and add sheets and list, add, move and remove pins, and work on any tab.
+- Projects made before tabs open as one sheet, unchanged.
+
 ### Diagram column
 
 - The diagrams moved from the filmstrip along the bottom to a column on the left of the sheet, grouped under Context and built form, Movement and places, Environment, People, and Sun and shade. Each one shows a small picture in the current palette and its name, and the one on the sheet is marked.
@@ -144,6 +153,18 @@ Sheets can now show the site in three dimensions and the sun over it.
 ### Assistants
 
 - `set_look` takes `view` and `sun`, so an assistant can switch views, pick the plates and set the moment for the sun diagrams.
+
+### Your own palettes
+
+- New under the palette menu makes a palette of your own from a few colours. Pick each swatch on a hue wheel with a saturation square inside it, or paste what a palette generator exports: hex codes, a link with the colours in it, or its SVG, JSON or XML file, dropped or chosen. Two to ten swatches; drag one along the row to reorder it, and Delete removes it.
+- openarchi gives every swatch a job by one plain rule: the lightest colour becomes the paper (softened to a pale tint when it is colourful), the darkest the ink, the most colourful the accent, and the colours nearest to blue and green the water and green. Each role says which swatch it took and why, and a click pins it to another swatch instead. Everything else a sheet needs, the ramps, categories and every layer, is mixed from those roles.
+- The editor checks contrast as you go and names the colours that read badly, with their ratio against the WCAG 2.1 thresholds: 4.5:1 for text, 3:1 for buildings and the site outline.
+- The open sheet is drawn live in the palette while you edit it, and ⌘Z inside the editor undoes your last change to the palette.
+- Duplicate starts a palette from the current one. A copy of a built-in palette keeps its hand-made look until you change a colour.
+- Your palettes sit under the built-in eight in the menu and work on every diagram, view and the neighbourhood. Rename one in place, edit it again later with its swatches and pins, or delete it: it moves to Recently Deleted, and Undo in the toast brings it back.
+- Copy a palette's swatches as JSON, CSV or a hex list, to use them elsewhere.
+- Assistants can import a palette with `import_palette` and list yours with `list_user_palettes`.
+- Every ratio group says under its title where its numbers come from, with the edition year where it is known, and the ratios CSV has a source column.
 
 ### Neighbourhood
 

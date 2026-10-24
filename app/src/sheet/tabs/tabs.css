@@ -1,0 +1,178 @@
+/* The sheet tabs under the canvas, and the pin and area tools beside them. */
+
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  height: 36px;
+  padding: 0 8px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  user-select: none;
+}
+
+.tab-strip {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sheet-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+  max-width: 220px;
+  margin-top: -1px;
+  border-top: 2px solid transparent;
+  color: var(--text-2);
+  transition: background var(--fast) var(--ease);
+}
+
+.sheet-tab:hover {
+  background: var(--hover);
+}
+
+.sheet-tab.is-active {
+  border-top-color: var(--accent);
+  background: var(--surface-raised);
+  color: var(--text);
+  box-shadow: 1px 0 0 var(--line), -1px 0 0 var(--line);
+}
+
+.sheet-tab.is-dragged {
+  z-index: 1;
+  opacity: 0.85;
+  background: var(--surface-raised);
+  box-shadow: var(--float-shadow);
+  transition: none;
+}
+
+.sheet-tab.drop-before::before,
+.sheet-tab.drop-after::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.sheet-tab.drop-before::before {
+  left: -1px;
+}
+
+.sheet-tab.drop-after::after {
+  right: -1px;
+}
+
+.sheet-tab-button {
+  overflow: hidden;
+  height: 100%;
+  padding: 0 14px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.sheet-tab.is-active .sheet-tab-button {
+  padding-right: 4px;
+  font-weight: 500;
+}
+
+.sheet-tab-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+  border-radius: var(--radius);
+}
+
+.sheet-tab-more {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text-3);
+}
+
+.sheet-tab-more:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.sheet-tab-field {
+  height: 24px;
+  margin: 0 6px;
+  padding: 0 6px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  outline: 2px solid var(--focus);
+}
+
+.tab-add {
+  align-self: center;
+  margin-left: 4px;
+}
+
+.tab-bar-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.tab-menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.tab-menu {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 4px;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+}
+
+.tab-menu button {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+}
+
+.tab-menu button:hover:not(:disabled) {
+  background: var(--hover);
+}
+
+.tab-menu button:disabled {
+  color: var(--text-3);
+}
+
+.tab-menu .is-danger:not(:disabled) {
+  color: var(--danger);
+}

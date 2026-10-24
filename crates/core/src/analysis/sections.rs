@@ -11,6 +11,7 @@ use super::locator::locator;
 use super::notes;
 use super::rain::{Rain, RAIN_DAY_MM};
 use super::roses;
+use super::source_lines;
 use super::summary::{land_use, SiteSummary, FACILITY_WALK_MIN, TRANSIT_WALK_MIN};
 use super::utci::NO_STRESS;
 use super::{Fact, Section, SectionNotes};
@@ -54,7 +55,7 @@ pub fn location(location: &Location, theme: &Theme) -> Result<Section> {
         figures: vec![locator(location, &paint)],
         caption: None,
         notes: Vec::new(),
-        source: "Nearest registered address from the PDOK Locatieserver; boundaries from Kadaster and CBS.".to_string(),
+        source: source_lines::location(),
         credits: location::credits(),
         warnings: location.warnings.clone(),
     })
@@ -107,7 +108,7 @@ pub fn site(
         figures,
         caption: Some("Ground cover inside the site, as in the Ratios tab. Paved is streets, paths and paved squares.".to_string()),
         notes: notes::site_notes(summary),
-        source: "BAG buildings, BGT ground and AHN heights already in the project.".to_string(),
+        source: source_lines::site(summary),
         credits,
         warnings: Vec::new(),
     })
@@ -160,10 +161,7 @@ fn surroundings_facts(summary: &SiteSummary, facts: &mut Vec<Fact>) {
 /// Temperature, outdoor comfort, wind, sun and humidity.
 pub fn climate(climate: &Climate, warnings: Vec<String>, theme: &Theme) -> Result<Vec<Section>> {
     let paint = Paint::new(theme)?;
-    let source = format!(
-        "PVGIS typical year from {}–{} weather, for {:.2}° N, {:.2}° E.",
-        climate.first_year, climate.last_year, climate.location.lat, climate.location.lon
-    );
+    let source = climate_source(climate);
     let section = |id: &str, title: &str, facts, figures, caption: String, notes| Section {
         id: id.to_string(),
         title: title.to_string(),
@@ -207,6 +205,7 @@ pub fn climate_notes(climate: &Climate) -> Vec<SectionNotes> {
     .into_iter()
     .map(|(section, notes)| SectionNotes {
         section: section.to_string(),
+        source: climate_source(climate),
         notes,
     })
     .collect()
@@ -234,10 +233,24 @@ pub fn rain(rain: &Rain, warnings: Vec<String>, theme: &Theme) -> Result<Section
             rain.station.name, rain.distance_km, rain.first_year, rain.last_year
         )),
         notes: notes::rain_notes(rain),
-        source: format!("KNMI daily data, station {} {}.", rain.station.id, rain.station.name),
+        source: rain_source(rain),
         credits: vec![knmi::credit()],
         warnings,
     })
+}
+
+pub fn climate_source(climate: &Climate) -> String {
+    format!(
+        "PVGIS typical year from {}–{} weather, for {:.2}° N, {:.2}° E.",
+        climate.first_year, climate.last_year, climate.location.lat, climate.location.lon
+    )
+}
+
+pub fn rain_source(rain: &Rain) -> String {
+    format!(
+        "KNMI daily data, station {} {}.",
+        rain.station.id, rain.station.name
+    )
 }
 
 fn temperature_facts(climate: &Climate) -> Vec<Fact> {

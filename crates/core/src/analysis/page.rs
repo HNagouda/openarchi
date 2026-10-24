@@ -146,6 +146,19 @@ pub fn report_svg(
 
 fn write_section(out: &mut String, section: &Section, y: f64, paint: &Paint) -> f64 {
     let mut y = write_heading(out, &section.title, y, paint);
+    // Where the numbers come from, right under the title, as in the inspector.
+    y = paragraph(
+        out,
+        &section.source,
+        MARGIN_MM,
+        y,
+        CONTENT_MM,
+        SMALL_MM,
+        SMALL_LINE_MM,
+        &paint.secondary,
+        paint,
+    );
+    y += BLOCK_GAP_MM / 2.0;
 
     for (index, fact) in section.facts.iter().enumerate() {
         let column = index % FACT_COLUMNS;
@@ -238,18 +251,8 @@ fn write_section(out: &mut String, section: &Section, y: f64, paint: &Paint) -> 
             paint,
         );
     }
-    y += BLOCK_GAP_MM / 2.0;
-    paragraph(
-        out,
-        &section.source,
-        MARGIN_MM,
-        y,
-        CONTENT_MM,
-        SMALL_MM,
-        SMALL_LINE_MM,
-        &paint.secondary,
-        paint,
-    )
+
+    y
 }
 
 fn write_heading(out: &mut String, title: &str, y: f64, paint: &Paint) -> f64 {
