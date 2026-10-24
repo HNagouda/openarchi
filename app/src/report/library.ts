@@ -1,11 +1,12 @@
 // What the report library offers: every block the project can draw, grouped
-// as the panel lists them, each with the size it starts at on a page.
+// as the panel lists them, each with the size it starts at on a page. Text is
+// not here: the inspector adds it to the current page.
 
-import type { AnalysisSection, BlockContent, Diagram, Ratios, RatioGroup, RatiosStyle, Sheet, TextStyle } from "../lib/types";
+import type { AnalysisSection, BlockContent, Diagram, Ratios, RatioGroup, RatiosStyle, Sheet } from "../lib/types";
 import { PAPER_MM } from "./edits";
 import type { Size } from "./geometry";
 
-export type LibraryGroup = "Ratios" | "Analysis" | "Sheets" | "Text";
+export type LibraryGroup = "Ratios" | "Analysis" | "Sheets";
 
 export type LibraryItem = {
   key: string;
@@ -42,13 +43,6 @@ export const RATIOS_STYLES: { value: RatiosStyle; label: string }[] = [
   { value: "bars", label: "Bars" },
   { value: "pie", label: "Pie" },
   { value: "table", label: "Table" },
-];
-
-// The text blocks the library starts from.
-const TEXT_PRESETS: { key: string; label: string; text: string; style: TextStyle; size: Size }[] = [
-  { key: "heading", label: "Heading", text: "Heading", style: { size_pt: 24, bold: true }, size: { width: 170, height: 14 } },
-  { key: "body", label: "Body text", text: "Write about the site here.", style: { size_pt: 10 }, size: { width: 120, height: 30 } },
-  { key: "caption", label: "Caption", text: "Caption", style: { size_pt: 7, italic: true }, size: { width: 80, height: 8 } },
 ];
 
 export function ratiosItems(ratios: Ratios): LibraryItem[] {
@@ -120,16 +114,5 @@ export function sheetItems(diagrams: Diagram[], sheet: Sheet): LibraryItem[] {
     detail: diagram.group,
     content: { kind: "sheet", diagram_id: diagram.id, variant: null },
     size: { width: SHEET_WIDTH_MM, height: SHEET_WIDTH_MM / ratio },
-  }));
-}
-
-export function textItems(): LibraryItem[] {
-  return TEXT_PRESETS.map((preset) => ({
-    key: `text-${preset.key}`,
-    group: "Text",
-    label: preset.label,
-    detail: `${preset.style.size_pt} pt`,
-    content: { kind: "text", text: preset.text, style: preset.style },
-    size: preset.size,
   }));
 }

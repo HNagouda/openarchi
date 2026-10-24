@@ -11,7 +11,7 @@ import "./columns.css";
 
 const KEY_STEP_PX = 16;
 const KEY_STEP_LARGE_PX = 64;
-// Neither column takes more than this share of the window, so the sheet keeps at least 40 %.
+// Neither column takes more than this share of the window, so the sheet or the report pages keep at least 40 %.
 const MAX_WINDOW_SHARE = 0.3;
 // Turns off the slide-open animation while dragging, so the column keeps up with the pointer.
 const RESIZING_CLASS = "is-resizing-columns";
@@ -45,10 +45,28 @@ export const INSPECTOR_COLUMN: Column = {
   edge: "left",
 };
 
+export const REPORT_LIBRARY_COLUMN: Column = {
+  label: "Blocks column width",
+  cssVariable: "--report-library-width",
+  preference: "reportLibraryWidth",
+  min: 200,
+  max: 440,
+  edge: "right",
+};
+
+export const REPORT_INSPECTOR_COLUMN: Column = {
+  label: "Report inspector width",
+  cssVariable: "--report-inspector-width",
+  preference: "reportInspectorWidth",
+  min: 280,
+  max: 720,
+  edge: "left",
+};
+
 export function ColumnResizer({ column }: { column: Column }) {
   const [width, setWidth] = useState<number | null>(() => readPreference<number | null>(column.preference, null));
 
-  // Set while the sheet is open and taken off after, so the site step keeps its own panel width.
+  // Set while the column is on screen and taken off after, so the site step keeps its own panel width.
   useLayoutEffect(() => {
     if (width === null) return;
     const root = document.documentElement.style;

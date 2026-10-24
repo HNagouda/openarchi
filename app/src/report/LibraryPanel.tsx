@@ -1,30 +1,41 @@
 // The library on the left of the report editor: every block the project can
-// draw, under Ratios, Analysis, Sheets and Text. Drag one onto a page, or
-// click it (or press Return on it) to add it to the middle of the current page.
+// draw, under Ratios, Analysis and Sheets, each with a small picture of
+// itself. Drag one onto a page, or click it (or press Return on it) to add it
+// to the middle of the current page.
 
-import { useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { Icon } from "../ui/Icon";
 import type { LibraryGroup, LibraryItem } from "./library";
 import "./library.css";
 
 // Every group, in the order the panel lists them.
-const GROUPS: LibraryGroup[] = ["Ratios", "Analysis", "Sheets", "Text"];
+const GROUPS: LibraryGroup[] = ["Ratios", "Analysis", "Sheets"];
 // A press that moves less than this is a click, not a drag.
 const DRAG_START_PX = 4;
 
 type Drag = { item: LibraryItem; startX: number; startY: number; x: number; y: number; isMoving: boolean };
 
+/** Where a drag from the library is on screen, so the editor can show where the block would land. */
+export type LibraryDrag = { item: LibraryItem; clientX: number; clientY: number };
+
 type Props = {
   items: LibraryItem[];
+  /** Item key -> the block as an SVG document, drawn by the core. */
+  pictures: Record<string, string>;
+  /** Item key -> a sheet thumbnail as an image URL. */
   thumbnails: Record<string, string>;
+  /** The palette's paper, behind every picture, so a picture's own margins disappear into it. */
+  paper: string;
   isLoading: boolean;
   problems: string[];
   onAdd: (item: LibraryItem) => void;
   /** Dropped at a point on screen; the editor finds the page under it. */
   onDrop: (item: LibraryItem, clientX: number, clientY: number) => void;
+  /** Every move of a drag, and null when it ends. */
+  onDragOver: (drag: LibraryDrag | null) => void;
 };
 
-export function LibraryPanel({ items, thumbnails, isLoading, problems, onAdd, onDrop }: Props) {
+export function LibraryPanel({ items, pictures, thumbnails, paper, isLoading, problems, onAdd, onDrop, onDragOver }: Props) {
   const [filter, setFilter] = useState("");
   const [drag, setDrag] = useState<Drag | null>(null);
   const words = filter.trim().toLowerCase();
@@ -39,7 +50,9 @@ export function LibraryPanel({ items, thumbnails, isLoading, problems, onAdd, on
   const move = (event: ReactPointerEvent) => {
     if (!drag) return;
     const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
-    setDrag({ ...drag, x: event.clientX, y: event.clientY, isMoving: drag.isMoving || distance > DRAG_START_PX });
+    const isMoving = drag.isMoving || distance > DRAG_START_PX;
+    setDrag({ ...drag, x: event.clientX, y: event.clientY, isMoving });
+    if (isMoving) onDragOver({ item: drag.item, clientX: event.clientX, clientY: event.clientY });
   };
 
   const end = (event: ReactPointerEvent) => {
@@ -47,10 +60,16 @@ export function LibraryPanel({ items, thumbnails, isLoading, problems, onAdd, on
     if (drag.isMoving) onDrop(drag.item, event.clientX, event.clientY);
     else onAdd(drag.item);
     setDrag(null);
+    onDragOver(null);
+  };
+
+  const cancel = () => {
+    setDrag(null);
+    onDragOver(null);
   };
 
   return (
-    <nav className="report-library" aria-label="Blocks">
+    <nav className="report-library" aria-label="Blocks" style={{ "--library-paper": paper } as CSSProperties}>
       <header className="report-panel-header">
         <span className="report-panel-title">Blocks</span>
         {isLoading && <span className="report-library-loading" aria-label="Loading" />}
@@ -75,10 +94,10 @@ export function LibraryPanel({ items, thumbnails, isLoading, problems, onAdd, on
                   onPointerDown={(event) => start(item, event)}
                   onPointerMove={move}
                   onPointerUp={end}
-                  onPointerCancel={() => setDrag(null)}
+                  onPointerCancel={cancel}
                   onKeyDown={(event) => event.key === "Enter" && onAdd(item)}
                 >
-                  <ItemPicture item={item} thumbnail={thumbnails[item.key]} />
+                  <ItemPicture svg={item.svg ?? pictures[item.key]} thumbnail={thumbnails[item.key]} group={item.group} />
                   <span className="library-label">
                     <span className="library-name">{item.label}</span>
                     <span className="library-detail">{item.detail}</span>
@@ -103,9 +122,9 @@ export function LibraryPanel({ items, thumbnails, isLoading, problems, onAdd, on
   );
 }
 
-/** The figure itself when the data has one, the sheet's thumbnail, or a quiet glyph. */
-function ItemPicture({ item, thumbnail }: { item: LibraryItem; thumbnail?: string }) {
-  if (item.svg) return <span className="library-thumb" dangerouslySetInnerHTML={{ __html: item.svg }} />;
+/** The block drawn by the core, the sheet's thumbnail, or a quiet glyph until either arrives. */
+function ItemPicture({ svg, thumbnail, group }: { svg?: string; thumbnail?: string; group: LibraryGroup }) {
+  if (svg) return <span className="library-thumb" dangerouslySetInnerHTML={{ __html: svg }} />;
   if (thumbnail) {
     return (
       <span className="library-thumb">
@@ -113,6 +132,6 @@ function ItemPicture({ item, thumbnail }: { item: LibraryItem; thumbnail?: strin
       </span>
     );
   }
-  const glyph = { Ratios: "▤", Analysis: "≡", Sheets: "◯", Text: "Aa" }[item.group];
+  const glyph = { Ratios: "▤", Analysis: "≡", Sheets: "◯" }[group];
   return <span className="library-thumb library-glyph">{glyph}</span>;
 }

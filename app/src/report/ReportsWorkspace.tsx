@@ -17,17 +17,22 @@ import { Problem } from "../ui/Problem";
 import { useToast } from "../ui/Toasts";
 import { newReport } from "./edits";
 import { ExportReportDialog } from "./ExportReportDialog";
+import type { LibraryPreviews } from "./previews/libraryPreviews";
 import { ReportEditor, type ZoomControls } from "./ReportEditor";
 
 type Props = {
   project: ProjectView;
   catalog: Catalog;
+  /** The library's data and pictures, gathered by the sheet while it was open. */
+  previews: LibraryPreviews;
+  /** The sheet's diagram thumbnails, when they show the first sheet. */
+  sheetThumbnails?: Record<string, string>;
   onClose: () => void;
   /** The reports as last saved, so the sheet can hand them back when this opens again. */
   onSaved: (reports: Report[]) => void;
 };
 
-export function ReportsWorkspace({ project, catalog, onClose, onSaved }: Props) {
+export function ReportsWorkspace({ project, catalog, previews, sheetThumbnails, onClose, onSaved }: Props) {
   const history = useHistory<Report[]>(project.reports);
   const reports = history.present;
   const [openId, setOpenId] = useState<string | null>(reports[0]?.id ?? null);
@@ -84,7 +89,10 @@ export function ReportsWorkspace({ project, catalog, onClose, onSaved }: Props) 
   return (
     <div className="reports-workspace">
       <header className="topbar" data-tauri-drag-region>
-        <Button icon="back" tip="Back to the sheet" onClick={close} />
+        {/* Labelled, unlike the sheet's back button: this screen lies over the sheet and needs an obvious way out. */}
+        <Button icon="back" className="reports-back" tip="Back to the sheet" shortcut="escape" onClick={close}>
+          Sheet
+        </Button>
         <div className="topbar-title" data-tauri-drag-region>
           <span className="project-name">{project.name}</span>
           {report && <EditableText className="topbar-crumb report-name" value={report.name} onCommit={(name) => changeReport({ ...report, name })} />}
@@ -111,7 +119,18 @@ export function ReportsWorkspace({ project, catalog, onClose, onSaved }: Props) 
       </header>
 
       {report && project.has_scene ? (
-        <ReportEditor key={report.id} project={project} catalog={catalog} report={report} onChange={changeReport} onSeal={history.seal} controls={zoom} />
+        <ReportEditor
+          key={report.id}
+          project={project}
+          catalog={catalog}
+          report={report}
+          previews={previews}
+          sheetThumbnails={sheetThumbnails}
+          onChange={changeReport}
+          onSeal={history.seal}
+          onLeave={close}
+          controls={zoom}
+        />
       ) : (
         <div className="canvas-message reports-empty">
           {project.has_scene ? (

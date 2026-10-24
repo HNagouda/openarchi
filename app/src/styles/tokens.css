@@ -80,6 +80,9 @@
   --diagram-column-width: 232px;
   /* How far the open diagram column pushes the sheet over. */
   --diagram-column-pushes: var(--diagram-column-width);
+  /* The report editor's columns start as wide as the sheet's and resize on their own. */
+  --report-library-width: var(--diagram-column-width);
+  --report-inspector-width: var(--inspector-width);
 
   color-scheme: light;
 }

@@ -397,11 +397,11 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Write one of a project's reports as a PDF with a page per report page, drawn from the project's current data in the report's palette. Refuses to replace an existing file unless overwrite is true. The site must have been fetched first."
+        description = "Write one of a project's reports, drawn from the project's current data in the report's palette: a PDF with a page per report page (the default), or an SVG or PNG per page. Refuses to replace existing files unless overwrite is true. The site must have been fetched first."
     )]
     async fn export_report(&self, Parameters(input): Parameters<ExportReport>) -> CallToolResult {
         reply(
-            self.with_library(move |library| reports::export_pdf(library, input))
+            self.with_library(move |library| reports::export(library, input))
                 .await,
         )
     }

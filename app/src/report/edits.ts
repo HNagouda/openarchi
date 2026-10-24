@@ -91,18 +91,21 @@ export function addBlock(
   at: { x: number; y: number },
 ): [Report, string] {
   const id = nextId("block", blockIds(report));
-  const page = pageSize(report.pages[index]);
+  const rect = placedRect(pageSize(report.pages[index]), size, at);
+  const block: ReportBlock = { id, x_mm: rect.x, y_mm: rect.y, width_mm: rect.width, height_mm: rect.height, content };
+  return [withPage(report, index, (entry) => ({ ...entry, blocks: [...entry.blocks, block] })), id];
+}
+
+/** The box a block of `size` gets centred on `at`, no bigger than the page and kept on it. */
+export function placedRect(page: { width: number; height: number }, size: { width: number; height: number }, at: { x: number; y: number }) {
   const width = Math.min(size.width, page.width);
   const height = Math.min(size.height, page.height);
-  const block: ReportBlock = {
-    id,
-    x_mm: tidy(clampTo(at.x - width / 2, 0, page.width - width)),
-    y_mm: tidy(clampTo(at.y - height / 2, 0, page.height - height)),
-    width_mm: tidy(width),
-    height_mm: tidy(height),
-    content,
+  return {
+    x: tidy(clampTo(at.x - width / 2, 0, page.width - width)),
+    y: tidy(clampTo(at.y - height / 2, 0, page.height - height)),
+    width: tidy(width),
+    height: tidy(height),
   };
-  return [withPage(report, index, (entry) => ({ ...entry, blocks: [...entry.blocks, block] })), id];
 }
 
 export function updateBlock(report: Report, id: string, patch: Partial<ReportBlock>): Report {

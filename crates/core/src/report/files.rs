@@ -47,13 +47,8 @@ pub fn export(
         return Ok(vec![path.to_path_buf()]);
     }
 
-    let mut written = Vec::with_capacity(pages.len());
-    for (index, svg) in pages.iter().enumerate() {
-        let target = if pages.len() == 1 {
-            path.to_path_buf()
-        } else {
-            numbered(path, index + 1, format)
-        };
+    let targets = output_paths(report, format, path);
+    for ((index, svg), target) in pages.iter().enumerate().zip(&targets) {
         let bytes = match format {
             ReportFormat::Png => {
                 let (width_mm, _) = report.pages[index].size_mm();
@@ -62,11 +57,21 @@ pub fn export(
             }
             _ => svg.clone().into_bytes(),
         };
-        write(&target, &bytes)?;
-        written.push(target);
+        write(target, &bytes)?;
     }
 
-    Ok(written)
+    Ok(targets)
+}
+
+/// The files `export` writes for `report` at `path`, so a caller can check
+/// them before anything is written.
+pub fn output_paths(report: &Report, format: ReportFormat, path: &Path) -> Vec<PathBuf> {
+    if format == ReportFormat::Pdf || report.pages.len() == 1 {
+        return vec![path.to_path_buf()];
+    }
+    (1..=report.pages.len())
+        .map(|number| numbered(path, number, format))
+        .collect()
 }
 
 /// "report.svg" and 2 -> "report-2.svg".

@@ -179,7 +179,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 
 ### Reports
 
-- Reports in the sheet's top bar opens a report editor over the sheet. A report is pages you lay out yourself from the project's ratios, analysis charts, facts and design notes, whole sheets in any diagram, and your own headings, body text and captions.
+- Reports in the sheet's top bar opens a report editor over the sheet. A report is pages you lay out yourself from the project's ratios, analysis charts, facts and design notes, whole sheets in any diagram, and your own headings and text.
 - The library on the left lists every block the project can draw. Drag one onto a page, or click it to add it to the middle of the current page. On the page, drag a block to move it, with snap lines to the page and the other blocks, and drag its handles to resize it. The inspector takes exact positions and sizes in millimetres.
 - Every block is drawn live from the project's data in the report's palette, which follows the sheet's unless you pick another. Changing the palette or fetching the site again redraws the whole report.
 - Ratios blocks switch between bars, a pie and a table. Sheet blocks switch diagram and measure. Double-click a text block to edit its words, and the bar above it sets the font, size, weight, alignment and colour, as on the sheet.
@@ -187,7 +187,16 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The arrow keys nudge the selected block by 1 mm (with ⇧ by 10 mm), ⌘D duplicates it, ⌘] and ⌘[ bring it forward or send it back, and Delete removes it. ⌘Z undoes every change to a report, including adding and deleting whole reports.
 - Export writes one PDF of every page, or an SVG or a PNG per page. The SVG keeps each block as a named layer. A report can show page numbers and lie on the palette's paper, its ground colour or plain white.
 - Reports are saved in the project as you go. Projects from before open with none.
-- For assistants, `list_reports` lists a project's reports with each page's paper and blocks, and `export_report` writes one as a PDF.
+- For assistants, `list_reports` lists a project's reports with each page's paper and blocks, and `export_report` writes one as a PDF, or as an SVG or PNG per page.
+
+### Report editor
+
+- Millimetre rulers run along the top and the left of the pages, as in a word processor, and follow zoom and scroll. They measure from the corner of the current page and mark the selected block's extent on both.
+- While a block is moved, resized or dragged in from the library, its extent lights up on both rulers and a label under it gives its position and size in millimetres. A block from the library shows a dashed outline of where it will land before you let go.
+- Headings and text are no longer in the library. Add heading and Add text in the page section of the inspector, or **T**, put one across the current page under the last block, selected and ready to type. Reports with text blocks from before open as they were.
+- The library shows a real picture of every block: ratios charts, facts and design notes as well as the analysis charts and sheets. The pictures sit on the palette's paper, so charts of every proportion read as small pages instead of slivers. They are drawn in the background while you work on the sheet, one at a time and after the preview, so the library is full when you open it.
+- The library and the inspector resize by dragging their inner edge, as on the sheet, and keep their widths. Double-click an edge to put it back.
+- The way back to the sheet is a labelled Sheet button at the top left, and **Esc** with nothing selected.
 
 ### A calmer palette editor
 

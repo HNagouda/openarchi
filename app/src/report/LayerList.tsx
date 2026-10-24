@@ -24,7 +24,7 @@ export function LayerList({ report, pageIndex, selectedId, onChange, onSelect }:
   const list = useRef<HTMLOListElement>(null);
   const [drag, setDrag] = useState<{ from: number; to: number; startY: number; isMoving: boolean } | null>(null);
 
-  if (rows.length === 0) return <p className="field-note">Drag blocks from the left onto the page.</p>;
+  if (rows.length === 0) return <p className="field-note">Drag blocks from the left onto the page, or add a heading or text.</p>;
 
   const rowAt = (clientY: number) => {
     const items = [...(list.current?.children ?? [])];
