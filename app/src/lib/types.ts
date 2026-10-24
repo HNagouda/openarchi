@@ -39,7 +39,9 @@ export type Layer =
   | "pm25"
   | "flood"
   | "slope"
-  | "population";
+  | "population"
+  | "block"
+  | "sun_hours";
 
 export type Paper = "a4" | "a3" | "a2" | "a1" | "a0" | "square";
 export type Frame = "circle" | "square" | "area";
@@ -168,8 +170,8 @@ export type Diagram = {
   layers: Layer[];
   emphasis: Layer | null;
   mute_others: boolean;
-  /** A computed sun drawing on top of the layers. */
-  solar?: "sun_path" | "shadow" | null;
+  /** A computed sun drawing on top of the layers; sun_hours uses the date only. */
+  solar?: "sun_path" | "shadow" | "sun_hours" | null;
   /** Zooms the plan out to the walk band of this many minutes. */
   walk_minutes?: number | null;
   /** Other layers or measures for the same question; the first is the default. */
@@ -246,6 +248,8 @@ export type Ratios = {
   site_area_m2: number;
   building_count: number;
   coverage: number;
+  /** Footprint times estimated floors, summed, in m². */
+  gross_floor_area_m2: number;
   floor_area_ratio: number;
   /** BAG floor area over site area; null when the site has no BAG units. */
   bag_floor_area_ratio: number | null;
