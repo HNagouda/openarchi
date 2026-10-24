@@ -13,4 +13,5 @@ pub mod contours;
 pub mod grid;
 pub mod heights;
 pub mod http;
+pub mod osm;
 pub mod pdok;

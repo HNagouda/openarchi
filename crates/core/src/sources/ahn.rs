@@ -74,6 +74,7 @@ pub fn credit() -> Credit {
         name: "Actueel Hoogtebestand Nederland (AHN), via PDOK".to_string(),
         license: "CC0 1.0".to_string(),
         url: "https://www.ahn.nl".to_string(),
+        layers: Vec::new(),
     }
 }
 

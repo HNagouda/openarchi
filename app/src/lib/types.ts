@@ -26,7 +26,12 @@ export type Layer =
   | "bridge"
   | "tree"
   | "parcel"
-  | "contour";
+  | "contour"
+  | "business"
+  | "facility"
+  | "transit_stop"
+  | "walk_path"
+  | "walk_band";
 
 export type Paper = "a4" | "a3" | "a2" | "a1" | "a0" | "square";
 export type Frame = "circle" | "square" | "area";
@@ -138,6 +143,8 @@ export type Diagram = {
   mute_others: boolean;
   /** A computed sun drawing on top of the layers. */
   solar?: "sun_path" | "shadow" | null;
+  /** Zooms the plan out to the walk band of this many minutes. */
+  walk_minutes?: number | null;
 };
 
 export type Catalog = {
@@ -155,7 +162,7 @@ export type ProjectSummary = {
   look: Look | null;
 };
 
-export type Credit = { name: string; license: string; url: string };
+export type Credit = { name: string; license: string; url: string; layers?: Layer[] };
 
 export type ProjectView = {
   id: string;
@@ -179,7 +186,7 @@ export type Progress = { step: string; done: number; total: number };
 export type ExportFormat = "svg" | "pdf" | "png" | "dxf";
 
 // crates/core/src/ratios.rs
-export type RatioUnit = "square_metres" | "buildings" | "parcels";
+export type RatioUnit = "square_metres" | "buildings" | "parcels" | "places" | "stops";
 export type RatioRow = { label: string; value: number; share: number; fill: string };
 export type RatioGroup = { id: string; title: string; unit: RatioUnit; total: number; rows: RatioRow[]; note: string | null };
 export type Ratios = {

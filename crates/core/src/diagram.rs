@@ -43,6 +43,11 @@ pub struct Diagram {
     /// building heights and the site's position.
     #[serde(default)]
     pub solar: Option<Solar>,
+    /// Zooms a plan out to the walk band of this many minutes, draws the walk
+    /// bands up to it, and shows only the places within it. Needs a scene
+    /// with a walk; without one the diagram stays at the site.
+    #[serde(default)]
+    pub walk_minutes: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,6 +74,8 @@ pub enum Attribute {
     YearBuilt,
     UseClass,
     HeightM,
+    /// The group of a business, facility or transit stop: "food_drink", "tram".
+    Group,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

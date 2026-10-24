@@ -35,6 +35,7 @@ pub fn credit() -> Credit {
         license: "Public Domain Mark 1.0".to_string(),
         url: "https://www.pdok.nl/introductie/-/article/basisregistratie-adressen-en-gebouwen-ba-1"
             .to_string(),
+        layers: Vec::new(),
     }
 }
 

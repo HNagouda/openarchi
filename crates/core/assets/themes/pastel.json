@@ -152,6 +152,41 @@
       "stroke_mm": 0.05,
       "shadow_mm": 0.45,
       "pattern": null
+    },
+    "walk_band": {
+      "fill": "@accent",
+      "stroke": "@accent",
+      "stroke_mm": 0.25,
+      "opacity": 0.13,
+      "pattern": null
+    },
+    "walk_path": {
+      "fill": null,
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "opacity": 0.3,
+      "pattern": null
+    },
+    "facility": {
+      "fill": "@accent",
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "radius_mm": 0.9,
+      "pattern": null
+    },
+    "business": {
+      "fill": "@accent",
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "radius_mm": 0.9,
+      "pattern": null
+    },
+    "transit_stop": {
+      "fill": "@ink",
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "radius_mm": 1.25,
+      "pattern": null
     }
   }
 }

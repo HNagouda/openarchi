@@ -10,7 +10,7 @@ use openarchi_core::area::Area;
 use openarchi_core::export::{self, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
-use openarchi_core::{catalog, geocode, ratios, site};
+use openarchi_core::{catalog, geocode, ratios, site, walk};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -278,6 +278,30 @@ impl OpenArchi {
                 let theme_id = input.theme_id.unwrap_or(project.look.theme_id.clone());
                 let theme = find_theme(&library.themes_dir(), &theme_id)?;
                 ratios::compute(scene, &theme).map_err(text)
+            })
+            .await;
+        reply(result)
+    }
+
+    #[tool(
+        description = "Get the site's 15 minute neighbourhood: for walks of 5, 10 and 15 minutes from the site centre at 1.4 m/s over the OpenStreetMap footpath network, how many businesses, facilities and transit stops lie within reach, by group (food_drink, shop, education, health, tram, bus and so on). Counts are cumulative, so the 10 minute counts include the 5 minute ones. The site must have been fetched first, with OpenStreetMap reachable."
+    )]
+    async fn get_neighbourhood(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
+        let result = self
+            .with_library(move |library| {
+                let project = library.load(&input.id).map_err(text)?;
+                let Some(scene) = &project.scene else {
+                    return Err(format!(
+                        "project '{}' has no site data yet; call fetch_site first",
+                        input.id
+                    ));
+                };
+                walk::neighbourhood(scene).ok_or_else(|| {
+                    format!(
+                        "project '{}' has no walk data: OpenStreetMap was not reached when the site was fetched; call fetch_site again",
+                        input.id
+                    )
+                })
             })
             .await;
         reply(result)

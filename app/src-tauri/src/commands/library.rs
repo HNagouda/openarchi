@@ -33,7 +33,12 @@ pub fn view_of(open: &OpenProject) -> ProjectView {
     let scene: Option<&Scene> = open.scene.as_deref();
     let mut layers_present: Vec<Layer> = Vec::new();
     if let Some(scene) = scene {
-        for feature in &scene.features {
+        // The walk reaches past the site, so its layers count as present too.
+        let walk_features = scene
+            .walk
+            .iter()
+            .flat_map(|walk| walk.bands.iter().chain(&walk.paths).chain(&walk.places));
+        for feature in scene.features.iter().chain(walk_features) {
             if !layers_present.contains(&feature.layer) {
                 layers_present.push(feature.layer);
             }
