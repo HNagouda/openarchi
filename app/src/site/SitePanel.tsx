@@ -1,11 +1,15 @@
 // The panel beside the map: what was drawn, how big it is, and the fetch.
 
+import type { ReactNode } from "react";
 import { formatArea } from "../lib/format";
 import type { Area, AreaSize, Progress } from "../lib/types";
 import { Button, Keys } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
+import { Icon } from "../ui/Icon";
 import { NumberField } from "../ui/NumberField";
 import { Problem } from "../ui/Problem";
+import { Segmented } from "../ui/Segmented";
+import type { Shape } from "./shapes";
 
 // The largest circle that stays under the core's 4 km² limit is about 1128 m.
 const MIN_RADIUS_M = 25;
@@ -23,15 +27,35 @@ type Props = {
   area: Area | null;
   size: AreaSize | null;
   onRadius: (radius: number) => void;
+  onRadiusSeal: () => void;
+  onShape: (shape: Shape) => void;
+  onDelete: () => void;
   fetch: FetchState;
   onFetch: () => void;
   onCancel: () => void;
   isEditing: boolean;
 };
 
-const SHAPE_NAMES = { circle: "Circle", rectangle: "Rectangle", polygon: "Polygon" };
+const SHAPE_OPTIONS: { value: Shape; label: ReactNode; tip: string }[] = [
+  { value: "circle", label: <Icon name="circle" />, tip: "Circle" },
+  { value: "rectangle", label: <Icon name="rectangle" />, tip: "Rectangle" },
+  { value: "polygon", label: <Icon name="polygon" />, tip: "Polygon" },
+];
 
-export function SitePanel({ name, onName, area, size, onRadius, fetch, onFetch, onCancel, isEditing }: Props) {
+export function SitePanel({
+  name,
+  onName,
+  area,
+  size,
+  onRadius,
+  onRadiusSeal,
+  onShape,
+  onDelete,
+  fetch,
+  onFetch,
+  onCancel,
+  isEditing,
+}: Props) {
   const isTooLarge = size !== null && size.m2 > size.max_m2;
   const isOutside = size !== null && !size.in_netherlands;
   const canFetch = area !== null && !isTooLarge && fetch.state !== "running";
@@ -61,9 +85,10 @@ export function SitePanel({ name, onName, area, size, onRadius, fetch, onFetch, 
         </div>
       ) : (
         <div className="site-facts">
-          <div className="fact-row">
+          <div className="shape-row">
             <span className="field-label">Shape</span>
-            <span>{SHAPE_NAMES[area.kind]}</span>
+            <Segmented label="Shape" value={area.kind} options={SHAPE_OPTIONS} onChange={onShape} />
+            <Button icon="trash" tip="Delete the shape" shortcut="delete" tipSide="left" onClick={onDelete} />
           </div>
           {area.kind === "circle" && (
             <div className="fact-block">
@@ -76,6 +101,7 @@ export function SitePanel({ name, onName, area, size, onRadius, fetch, onFetch, 
                 step={RADIUS_STEP_M}
                 unit="m"
                 onChange={onRadius}
+                onSeal={onRadiusSeal}
               />
             </div>
           )}

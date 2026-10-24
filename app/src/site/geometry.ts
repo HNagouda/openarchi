@@ -20,7 +20,7 @@ export function distanceM(from: LonLat, to: LonLat): number {
 }
 
 /** The point `distance` metres from `from` along `bearing` degrees. */
-function destination(from: LonLat, distance: number, bearing: number): LonLat {
+export function destination(from: LonLat, distance: number, bearing: number): LonLat {
   const angle = distance / EARTH_RADIUS_M;
   const heading = toRadians(bearing);
   const lat1 = toRadians(from.lat);

@@ -2,7 +2,7 @@
 // that turns the drawing into a scene.
 
 import { useEffect, useRef, useState } from "react";
-import { AttributionControl, Map as MapLibreMap, NavigationControl } from "maplibre-gl";
+import { AttributionControl, Map as MapLibreMap } from "maplibre-gl";
 import type { Navigate } from "../App";
 import { useIsDark } from "../lib/appearance";
 import { useCommandHandler } from "../lib/commands";
@@ -20,7 +20,7 @@ import {
   onFetchProgress,
   renameProject,
 } from "../lib/ipc";
-import { usePlainKeys } from "../lib/keys";
+import { isTyping, usePlainKeys } from "../lib/keys";
 import type { Area, AreaSize, Place, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
 import { useToast } from "../ui/Toasts";
@@ -28,11 +28,19 @@ import { bounds } from "./geometry";
 import { ADDRESS_ZOOM, NETHERLANDS_CENTER, NETHERLANDS_ZOOM, PLACE_ZOOM, addSiteLayers, styleFor } from "./mapStyle";
 import { SearchBox } from "./SearchBox";
 import { SitePanel, type FetchState } from "./SitePanel";
+import { convertArea, type Shape } from "./shapes";
+import { useAreaHistory } from "./useAreaHistory";
 import { useDrawing, type Tool } from "./useDrawing";
+import { useEditing } from "./useEditing";
 
 // Kinds the geocoder uses for a single address, which deserve a close zoom.
 const ADDRESS_KINDS = ["adres", "address", "postcode"];
 const FIT_PADDING_PX = 80;
+const RESET_VIEW_MS = 600;
+// Each drag or slider sends many changes under one of these keys; the history
+// folds them into one undo step until the gesture is sealed.
+const DRAW_MERGE_KEY = "draw";
+const RADIUS_MERGE_KEY = "radius";
 const NO_FETCH = -1;
 const STARTING = -2;
 
@@ -44,6 +52,17 @@ const TOOLS: { tool: Tool; icon: "back" | "circle" | "rectangle" | "polygon"; ti
   { tool: "polygon", icon: "polygon", tip: "Polygon", key: "p" },
 ];
 
+/** The hint at the bottom of the map for what the mouse does right now. */
+function statusFor(tool: Tool, pointCount: number, selected: Area | null): string | null {
+  if (tool === "polygon" && pointCount < 3) return "Click each corner of the site";
+  if (tool === "polygon") return "Click the first corner or press Return to finish";
+  if (tool === "circle") return "Drag from the centre outwards";
+  if (tool === "rectangle") return "Drag from one corner to the opposite one";
+  if (selected?.kind === "polygon") return "Drag a corner to move it, or a dot between corners to add one";
+  if (selected) return "Drag to move, or drag a handle to resize";
+  return null;
+}
+
 function brandColour() {
   return getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#e0572a";
 }
@@ -52,7 +71,10 @@ export function SiteStep({ project, navigate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapLibreMap | null>(null);
   const [tool, setTool] = useState<Tool>(project ? "pan" : "circle");
-  const [area, setArea] = useState<Area | null>(project?.area ?? null);
+  const history = useAreaHistory(project?.area ?? null);
+  const area = history.area;
+  const [isPicked, setPicked] = useState(false);
+  const isSelected = isPicked && area !== null;
   const [size, setSize] = useState<AreaSize | null>(null);
   const [name, setName] = useState(project?.name ?? "");
   const [fetch, setFetch] = useState<FetchState>({ state: "idle" });
@@ -77,7 +99,6 @@ export function SiteStep({ project, navigate }: Props) {
       dragRotate: false,
     });
     created.addControl(new AttributionControl({ compact: true }), "bottom-left");
-    created.addControl(new NavigationControl({ showCompass: false }), "bottom-left");
     created.on("style.load", () => addSiteLayers(created, brandColour()));
     if (project) created.fitBounds(bounds(project.area), { padding: FIT_PADDING_PX, duration: 0 });
     setMap(created);
@@ -104,7 +125,19 @@ export function SiteStep({ project, navigate }: Props) {
     };
   }, [area]);
 
-  const drawing = useDrawing({ map, tool, area, onArea: setArea, onDone: () => setTool("pan") });
+  const drawing = useDrawing({
+    map,
+    tool,
+    area,
+    onArea: (drawn) => history.change(drawn, DRAW_MERGE_KEY),
+    onDone: () => {
+      history.seal();
+      setPicked(true);
+      setTool("pan");
+    },
+  });
+
+  useEditing({ map, tool, area, isSelected, onSelect: setPicked, onChange: history.change, onSeal: history.seal });
 
   const handleProgress = (event: FetchProgressEvent) => {
     if (generation.current === STARTING) early.current.progress.push(event);
@@ -195,15 +228,38 @@ export function SiteStep({ project, navigate }: Props) {
   };
 
   const setRadius = (radius: number) => {
-    if (area?.kind === "circle") setArea({ ...area, radius_m: radius });
+    if (area?.kind === "circle") history.change({ ...area, radius_m: radius }, RADIUS_MERGE_KEY);
+  };
+
+  const changeShape = (shape: Shape) => {
+    if (area) history.change(convertArea(area, shape));
+  };
+
+  const deleteArea = () => {
+    history.change(null);
+    setPicked(false);
+  };
+
+  // Back to the drawn site, or to the whole country when nothing is drawn yet.
+  const resetView = () => {
+    if (!map) return;
+    if (area) {
+      map.fitBounds(bounds(area), { padding: FIT_PADDING_PX, duration: RESET_VIEW_MS, bearing: 0, pitch: 0 });
+      return;
+    }
+    map.flyTo({ center: NETHERLANDS_CENTER, zoom: NETHERLANDS_ZOOM, duration: RESET_VIEW_MS, bearing: 0, pitch: 0 });
   };
 
   useCommandHandler((id) => {
-    if (id === "home") {
-      leave();
-      return true;
-    }
-    return false;
+    // In a text field, undo belongs to the typing, so the window passes it on.
+    if ((id === "undo" || id === "redo") && isTyping(document.activeElement)) return false;
+    if (id === "undo") history.undo();
+    if (id === "redo") history.redo();
+    if (id === "zoom-in") map?.zoomIn();
+    if (id === "zoom-out") map?.zoomOut();
+    if (id === "zoom-fit") resetView();
+    if (id === "home") leave();
+    return ["undo", "redo", "zoom-in", "zoom-out", "zoom-fit", "home"].includes(id);
   });
 
   usePlainKeys((key, event) => {
@@ -213,26 +269,24 @@ export function SiteStep({ project, navigate }: Props) {
     if (lower === "p") setTool("polygon");
     if (lower === "h" || lower === "v") setTool("pan");
     if (key === "Enter" && tool === "polygon") drawing.finishPolygon();
-    if (key === "Backspace" && tool === "polygon") {
+    const isDeleteKey = key === "Backspace" || key === "Delete";
+    if (isDeleteKey && tool === "polygon") {
       drawing.removeLastPoint();
+      event.preventDefault();
+    }
+    // Holding the key down must not delete the next thing too.
+    if (isDeleteKey && tool === "pan" && isSelected && !event.repeat) {
+      deleteArea();
       event.preventDefault();
     }
     if (key === "Escape") {
       drawing.cancel();
       setTool("pan");
+      setPicked(false);
     }
   });
 
-  const statusText =
-    tool === "polygon"
-      ? drawing.pointCount < 3
-        ? "Click each corner of the site"
-        : "Click the first corner or press Return to finish"
-      : tool === "circle"
-        ? "Drag from the centre outwards"
-        : tool === "rectangle"
-          ? "Drag from one corner to the opposite one"
-          : null;
+  const statusText = statusFor(tool, drawing.pointCount, isSelected ? area : null);
 
   return (
     <div className="site-step">
@@ -243,6 +297,8 @@ export function SiteStep({ project, navigate }: Props) {
         </div>
         <div className="topbar-spacer" data-tauri-drag-region />
         <span className="topbar-subtle">Netherlands only for now</span>
+        <Button icon="undo" tip="Undo" shortcut="mod+z" disabled={!history.canUndo} onClick={history.undo} />
+        <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
       </header>
 
       <div className="site-body">
@@ -264,6 +320,11 @@ export function SiteStep({ project, navigate }: Props) {
             </div>
           </div>
           {statusText && <div className="draw-status">{statusText}</div>}
+          <div className="map-zoom">
+            <Button icon="zoomOut" tip="Zoom out" shortcut="mod+-" tipSide="above" onClick={() => map?.zoomOut()} />
+            <Button icon="fit" tip={area ? "Fit the site" : "Show the Netherlands"} shortcut="mod+0" tipSide="above" onClick={resetView} />
+            <Button icon="zoomIn" tip="Zoom in" shortcut="mod+=" tipSide="above" onClick={() => map?.zoomIn()} />
+          </div>
           {drawing.live && (
             <div className="live-label tabular" style={{ left: drawing.live.x + 14, top: drawing.live.y + 14 }}>
               {drawing.live.text}
@@ -277,6 +338,9 @@ export function SiteStep({ project, navigate }: Props) {
           area={area}
           size={size}
           onRadius={setRadius}
+          onRadiusSeal={history.seal}
+          onShape={changeShape}
+          onDelete={deleteArea}
           fetch={fetch}
           onFetch={() => {
             startFetch().catch((error) => toast(errorText(error), { isError: true }));

@@ -183,18 +183,23 @@
 }
 
 /* MapLibre's own controls, made to match the chrome. */
-.maplibregl-ctrl-group {
-  border-radius: 8px !important;
-  background: var(--surface-raised) !important;
-  box-shadow: var(--pop-shadow) !important;
+/* Zoom and fit, in the same pill as the sheet's zoom control. */
+.map-zoom {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
 }
 
-.maplibregl-ctrl-group button + button {
-  border-top: 1px solid var(--line) !important;
-}
-
-:root[data-appearance="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
-  filter: invert(1);
+.map-zoom .button-icon {
+  width: 26px;
+  height: 26px;
 }
 
 .maplibregl-ctrl-attrib {
@@ -268,6 +273,20 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px;
+}
+
+.shape-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shape-row .field-label {
+  flex: 1;
+}
+
+.shape-row .segment {
+  width: 32px;
 }
 
 .fact-row {

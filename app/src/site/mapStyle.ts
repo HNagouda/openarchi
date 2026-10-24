@@ -23,6 +23,10 @@ export const PLACE_ZOOM = 13;
 
 export const SITE_SOURCE = "site";
 export const DRAFT_SOURCE = "draft";
+export const HANDLE_SOURCE = "handles";
+export const SITE_FILL_LAYER = "site-fill";
+// Corners draw above the mid-edge handles, so a corner wins where the two overlap on a short edge.
+export const HANDLE_LAYERS = ["handles-mid", "handles"];
 
 /** Adds the drawn site and the polygon draft on top of the basemap. Safe to call after every style load. */
 export function addSiteLayers(map: MapLibreMap, brand: string) {
@@ -30,8 +34,9 @@ export function addSiteLayers(map: MapLibreMap, brand: string) {
   const empty: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
   map.addSource(SITE_SOURCE, { type: "geojson", data: empty });
   map.addSource(DRAFT_SOURCE, { type: "geojson", data: empty });
+  map.addSource(HANDLE_SOURCE, { type: "geojson", data: empty });
 
-  map.addLayer({ id: "site-fill", type: "fill", source: SITE_SOURCE, paint: { "fill-color": brand, "fill-opacity": 0.09 } });
+  map.addLayer({ id: SITE_FILL_LAYER, type: "fill", source: SITE_SOURCE, paint: { "fill-color": brand, "fill-opacity": 0.09 } });
   map.addLayer({
     id: "site-line",
     type: "line",
@@ -57,5 +62,19 @@ export function addSiteLayers(map: MapLibreMap, brand: string) {
       "circle-stroke-color": brand,
       "circle-stroke-width": 1.5,
     },
+  });
+  map.addLayer({
+    id: "handles-mid",
+    type: "circle",
+    source: HANDLE_SOURCE,
+    filter: ["==", ["get", "role"], "mid"],
+    paint: { "circle-radius": 3.5, "circle-color": brand, "circle-opacity": 0.55, "circle-stroke-color": "#ffffff", "circle-stroke-width": 1 },
+  });
+  map.addLayer({
+    id: "handles",
+    type: "circle",
+    source: HANDLE_SOURCE,
+    filter: ["!=", ["get", "role"], "mid"],
+    paint: { "circle-radius": 5, "circle-color": "#ffffff", "circle-stroke-color": brand, "circle-stroke-width": 1.5 },
   });
 }
