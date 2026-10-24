@@ -49,6 +49,7 @@ fn walk_scene() -> Scene {
         paths: vec![],
         places: vec![
             place(Layer::Facility, "education", (300.0, 300.0), 6.0),
+            place(Layer::Facility, "bicycle_parking", (50.0, 300.0), 3.0),
             tram,
             place(Layer::TransitStop, "bus", (-900.0, 0.0), 14.0),
         ],
@@ -120,4 +121,12 @@ fn the_neighbourhood_counts_what_lies_within_each_band() {
 
     assert_eq!((education(0), education(1)), (0, 1));
     assert_eq!((trams(0), trams(1), trams(2)), (0, 1, 1));
+    // Bicycle parking is counted as parking, never as a facility.
+    let band = &neighbourhood.bands[0];
+    assert_eq!(band.parking[1].group, "bicycle_parking");
+    assert_eq!(band.parking[1].count, 1);
+    assert!(band
+        .facilities
+        .iter()
+        .all(|group| group.group != "bicycle_parking"));
 }

@@ -97,6 +97,9 @@ pub struct Attributes {
     /// Minutes on foot from the site centre; for a walk band, the band's limit.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub walk_min: Option<f64>,
+    /// How many bikes or cars a parking place holds, where it is mapped.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub capacity: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

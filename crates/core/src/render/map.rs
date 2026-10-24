@@ -42,7 +42,7 @@ const LIGHT_SHEET_LUMINANCE: f64 = 0.5;
 const DARK_MASSING_LUMINANCE: f64 = 0.4;
 /// How far a dark building fill moves towards the paper colour.
 const MASSING_LIGHTEN: f64 = 0.82;
-const MERGED_LABEL: &str = "Larger symbol: several places together";
+const MERGED_LABEL: &str = "Larger symbol: several places, or a big bicycle park";
 /// Room around the furthest walk band, so its edge does not touch the frame.
 const WALK_FRAME_MARGIN: f64 = 1.04;
 /// Scale denominators a fitted axonometric snaps to, so the note reads like a real scale.

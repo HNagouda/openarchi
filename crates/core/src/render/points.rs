@@ -40,6 +40,9 @@ const LABEL_HALO_MM: f64 = 0.55;
 /// Lines listed under a stop's name before the rest are cut.
 const MAX_LABEL_LINES: usize = 8;
 const LINE_SEPARATOR: &str = " · ";
+const BICYCLE_PARKING: &str = "bicycle_parking";
+/// A row of stands holds about this many bikes, so it weighs as one place.
+const BIKES_PER_WEIGHT: f64 = 20.0;
 
 pub struct PointLayer<'a> {
     pub resolved: &'a ResolvedLayer,
@@ -160,7 +163,7 @@ pub fn write(out: &mut String, layer: &PointLayer) -> DrawnPoints {
     DrawnPoints {
         drawn,
         lines,
-        has_merged: marks.iter().any(|mark| mark.members.len() > 1),
+        has_merged: marks.iter().any(|mark| mark_radius(mark, radius) > radius),
     }
 }
 
@@ -217,7 +220,19 @@ fn merged_marks<'a>(
 
 /// The radius of a mark: its area grows with the places it stands for.
 fn mark_radius(mark: &Mark, radius: f64) -> f64 {
-    radius * (mark.members.len() as f64).sqrt().min(MAX_GROWTH)
+    let weight: f64 = mark.members.iter().map(|member| weight(member)).sum();
+    radius * weight.sqrt().min(MAX_GROWTH)
+}
+
+/// How much one place adds to its symbol: one, or for a bicycle park with a
+/// mapped capacity, one per `BIKES_PER_WEIGHT` bikes, so a station's bicycle
+/// park of 2,000 bikes outweighs a single rack.
+fn weight(place: &Feature) -> f64 {
+    let is_bicycle_parking = place.attributes.group.as_deref() == Some(BICYCLE_PARKING);
+    match place.attributes.capacity {
+        Some(capacity) if is_bicycle_parking => (f64::from(capacity) / BIKES_PER_WEIGHT).max(1.0),
+        _ => 1.0,
+    }
 }
 
 fn shape(mark: &Mark) -> Shape {
@@ -348,5 +363,23 @@ mod tests {
     fn boxes_that_only_touch_do_not_overlap() {
         assert!(!overlaps(&[0.0, 0.0, 1.0, 1.0], &[1.0, 0.0, 2.0, 1.0]));
         assert!(overlaps(&[0.0, 0.0, 1.0, 1.0], &[0.5, 0.5, 2.0, 2.0]));
+    }
+
+    #[test]
+    fn a_big_bicycle_park_weighs_more_than_a_rack_and_other_places_weigh_one() {
+        let place = |group: &str, capacity: Option<u32>| Feature {
+            layer: Layer::Facility,
+            geometry: Geometry::Point(geo::Point::new(0.0, 0.0)),
+            attributes: crate::scene::Attributes {
+                group: Some(group.to_string()),
+                capacity,
+                ..Default::default()
+            },
+        };
+
+        assert_eq!(weight(&place(BICYCLE_PARKING, Some(2000))), 100.0);
+        assert_eq!(weight(&place(BICYCLE_PARKING, Some(8))), 1.0);
+        assert_eq!(weight(&place(BICYCLE_PARKING, None)), 1.0);
+        assert_eq!(weight(&place("parking", Some(400))), 1.0);
     }
 }
