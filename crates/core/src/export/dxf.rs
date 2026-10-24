@@ -219,7 +219,7 @@ fn write_polygon(
     }
 }
 
-fn write_polyline(
+pub(super) fn write_polyline(
     out: &mut String,
     line: &LineString<f64>,
     layer: &str,
@@ -307,17 +307,17 @@ fn extent(scene: &Scene) -> (f64, f64, f64, f64) {
     )
 }
 
-fn section(out: &mut String, name: &str) {
+pub(super) fn section(out: &mut String, name: &str) {
     group(out, 0, "SECTION");
     group(out, 2, name);
 }
 
 /// One group code and its value, the two-line unit DXF is made of.
-fn group(out: &mut String, code: u16, value: &str) {
+pub(super) fn group(out: &mut String, code: u16, value: &str) {
     let _ = write!(out, "{code:>3}\n{value}\n");
 }
 
 /// Millimetre precision: RD New metres to three decimals.
-fn coordinate(out: &mut String, x: f64, y: f64, z: f64) {
+pub(super) fn coordinate(out: &mut String, x: f64, y: f64, z: f64) {
     let _ = write!(out, " 10\n{x:.3}\n 20\n{y:.3}\n 30\n{z:.3}\n");
 }

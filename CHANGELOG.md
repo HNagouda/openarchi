@@ -98,6 +98,17 @@ What changed in each version of openarchi, newest first.
 - When RIVM or CBS cannot be asked which year is newest, the site arrives with the last year they named and a warning that it may not be the newest.
 - Asking takes about a second, once a day; every other fetch that day reuses the answer.
 
+### Laser cutting
+
+- The export sheet has a Laser choice: files a laser cutter takes directly, for a physical site model of the sheet. A sheet that frames part of the site makes a model of that part only.
+- Pick the model's scale (1:500, 1:1000, 1:2500 or any other; it starts from the sheet's scale when that is a usual model scale, else 1:1000), the board (2 mm board, 3 mm MDF or any thickness), the laser bed (600 × 400, 900 × 600, 1000 × 600 mm or your own) and which parts to cut: the base plate, the buildings, and contour lines on the plate when the site has them.
+- The base plate is the site boundary, with roads, water, green and every building footprint scored on it, so you know where to glue. A plate larger than the bed is cut into equal tiles along straight lines, engraved T1, T2 and on.
+- Each building is a stack of identical footprint pieces, one per board thickness of its height: 12 m at 1:1000 in 2 mm board is six pieces. Every piece is engraved with an id like B12·3/5, and the plate engraves B12 at its footprint. Ids run north to south in rows and west to east within a row.
+- Outlines are simplified to 0.2 mm on the model, finer than a laser cuts cleanly. Buildings narrower than 2 mm on the model are left out of the pieces but still scored on the plate. Pieces are turned to lie square on the bed, packed with a 2 mm gap and a 5 mm margin, and the same site always packs the same way.
+- One SVG per bed, sized in real millimetres with no transforms: cuts are pure red (#FF0000) hairlines, scores pure blue (#0000FF) hairlines, holes cut before outlines. DXF writes the same with CUT and ENGRAVE layers.
+- Before you choose a folder the dialog says what the files will hold: beds, pieces, square metres of board, the plate's size and tiles, and how many buildings were left out or had no measured height.
+- Assistants can do the same with `export_laser`, which takes the same settings and can report the summary without writing.
+
 ### Plates and layout
 
 - Plates in the explode view are reordered by dragging: by the grip in the inspector's plate list, where the other rows slide aside to show where it lands. Dragging the plates on the sheet itself was slow and is gone. Alt+↑ and Alt+↓ move a focused row in the list. Each move is one undo step.

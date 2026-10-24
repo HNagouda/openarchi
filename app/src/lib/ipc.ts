@@ -11,6 +11,9 @@ import type {
   Catalog,
   ChartStyle,
   ExportFormat,
+  LaserExport,
+  LaserSettings,
+  LaserSummary,
   Look,
   Pin,
   Place,
@@ -58,6 +61,9 @@ export const exportSheet = (look: Look, pins: Pin[], format: ExportFormat, dpi: 
   invoke<string>("export_sheet", { look, pins, format, dpi, path });
 export const exportSeries = (look: Look, pins: Pin[], format: ExportFormat, dpi: number, folder: string) =>
   invoke<string[]>("export_series", { look, pins, format, dpi, folder });
+export const laserSummary = (look: Look, settings: LaserSettings) => invoke<LaserSummary>("laser_summary", { look, settings });
+export const exportLaser = (look: Look, settings: LaserSettings, folder: string) =>
+  invoke<LaserExport>("export_laser", { look, settings, folder });
 export const revealPath = (path: string) => invoke<void>("reveal_path", { path });
 export const openLink = (url: string) => invoke<void>("open_link", { url });
 

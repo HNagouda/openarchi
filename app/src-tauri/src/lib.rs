@@ -12,7 +12,9 @@ use std::sync::{Arc, Mutex};
 use openarchi_core::library::Library;
 use tauri::Manager;
 
-use crate::commands::{analysis, export, library, palettes, ratios, render, report, sheets, site};
+use crate::commands::{
+    analysis, export, laser, library, palettes, ratios, render, report, sheets, site,
+};
 use crate::guard::{calm, text};
 use crate::state::AppState;
 
@@ -68,6 +70,8 @@ pub fn run() {
             export::export_series,
             export::reveal_path,
             export::open_link,
+            laser::laser_summary,
+            laser::export_laser,
             ratios::get_ratios,
             ratios::ratios_file_name,
             ratios::export_ratios,

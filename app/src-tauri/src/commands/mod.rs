@@ -1,5 +1,6 @@
 pub mod analysis;
 pub mod export;
+pub mod laser;
 pub mod library;
 pub mod palettes;
 pub mod ratios;

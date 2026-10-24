@@ -4,6 +4,7 @@
 //! stdout carries the protocol, so anything for a person goes to stderr.
 
 mod inputs;
+mod laser;
 mod look;
 mod palettes;
 mod reports;

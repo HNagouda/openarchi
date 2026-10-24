@@ -727,6 +727,19 @@
   gap: 18px;
 }
 
+/* What the laser files will hold, read before choosing a folder. */
+.laser-summary {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.45;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .export-error {
   margin: 0;
   padding: 8px 10px;
