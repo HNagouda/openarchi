@@ -221,6 +221,23 @@
   color: var(--text-2);
 }
 
+/* The scale bar as a drawn rule with end ticks, on the same floating pill as the zoom control,
+   so it reads on aerial photos and on the plain map alike. MapLibre sets its width inline. */
+.maplibregl-ctrl-bottom-left .maplibregl-ctrl-scale {
+  margin-bottom: 4px;
+  padding: 0 6px 1px;
+  border: 1.5px solid var(--text);
+  border-top: 0;
+  border-radius: 0 0 1px 1px;
+  background: var(--surface-raised);
+  box-shadow: var(--float-shadow);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* MapLibre draws the collapsed attribution "i" as a black image, invisible on a dark map. */
 :root[data-appearance="dark"] .maplibregl-ctrl-attrib-button {
   filter: invert(1);
