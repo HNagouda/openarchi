@@ -82,6 +82,7 @@ export function RatiosPanel({ project, themeId, selection = null }: Props) {
       {ratios && <Summary ratios={ratios} />}
       {ratios?.groups.map((group) => (
         <Section key={group.id} id={`ratios.${group.id}`} title={group.title} aside={<span className="tabular">{totalText(group)}</span>}>
+          {group.source && <p className="ratios-source">{group.source}</p>}
           {style === "bar" ? <Bars group={group} /> : <Pie group={group} />}
           {group.note && <p className="inspector-note">{group.note}</p>}
         </Section>

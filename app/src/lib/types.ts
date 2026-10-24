@@ -231,7 +231,16 @@ export type ExportFormat = "svg" | "pdf" | "png" | "dxf";
 // crates/core/src/ratios.rs
 export type RatioUnit = "square_metres" | "buildings" | "parcels" | "places" | "stops";
 export type RatioRow = { label: string; value: number; share: number; fill: string };
-export type RatioGroup = { id: string; title: string; unit: RatioUnit; total: number; rows: RatioRow[]; note: string | null };
+export type RatioGroup = {
+  id: string;
+  title: string;
+  unit: RatioUnit;
+  total: number;
+  rows: RatioRow[];
+  note: string | null;
+  /** Where the numbers come from, shown under the title: "Buildings from BAG, the ground from BGT." */
+  source: string;
+};
 export type Ratios = {
   site_area_m2: number;
   building_count: number;
