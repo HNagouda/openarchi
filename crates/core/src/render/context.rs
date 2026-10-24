@@ -11,10 +11,11 @@ use std::fmt::Write;
 
 use super::color;
 use super::drawing::{layer_slug, Canvas};
-use super::geometry::{mm, paper_shapes, PaperShapes, Projection};
+use super::geometry::{decimal, mm, paper_shapes, PaperShapes, Projection};
 use super::layout::Rect;
 use super::svg::{layer_attributes, paint_attributes};
 use crate::scene::{Feature, Layer, Scene};
+use crate::sheet::Sheet;
 use crate::theme::{LayerStyle, Theme};
 use crate::Result;
 
@@ -39,6 +40,8 @@ pub struct ContextArea {
 pub struct Neighbourhood<'a> {
     pub features: &'a [Feature],
     pub clip_id: String,
+    /// The sheet's `context_opacity`, 0 to 1.
+    pub opacity: f64,
     area: ContextArea,
 }
 
@@ -46,18 +49,19 @@ impl<'a> Neighbourhood<'a> {
     /// `None` when the sheet hides the neighbourhood or the scene has none.
     pub fn of(
         scene: &'a Scene,
-        is_shown: bool,
+        sheet: &Sheet,
         area: Option<ContextArea>,
         scope: &str,
     ) -> Option<Neighbourhood<'a>> {
         let area = area?;
-        if !is_shown || scene.context.is_empty() {
+        if !sheet.show_context || sheet.context_opacity <= 0.0 || scene.context.is_empty() {
             return None;
         }
 
         Some(Neighbourhood {
             features: &scene.context,
             clip_id: format!("{scope}context-clip"),
+            opacity: sheet.context_opacity,
             area,
         })
     }
@@ -106,9 +110,10 @@ impl<'a> Neighbourhood<'a> {
 
         let _ = write!(
             out,
-            r#"<g {} clip-path="url(#{})" fill-rule="evenodd">"#,
+            r#"<g {} clip-path="url(#{})" fill-rule="evenodd"{}>"#,
             layer_attributes(&format!("{}context", canvas.scope), LABEL),
-            self.clip_id
+            self.clip_id,
+            self.opacity_attribute()
         );
         if self.area.reach_m.is_some() {
             let _ = write!(out, r#"<g clip-path="url(#{}-reach)">"#, self.clip_id);
@@ -138,6 +143,15 @@ impl<'a> Neighbourhood<'a> {
         out.push_str("</g>\n");
 
         Ok(())
+    }
+
+    /// ` opacity="0.4"`, or nothing at full opacity, so the usual sheet stays byte for byte the same.
+    pub fn opacity_attribute(&self) -> String {
+        if self.opacity < 1.0 {
+            format!(r#" opacity="{}""#, decimal(self.opacity))
+        } else {
+            String::new()
+        }
     }
 
     /// The buildings, for a tilted view to stand up among the site's own.

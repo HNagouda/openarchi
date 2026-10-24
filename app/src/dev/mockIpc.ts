@@ -30,6 +30,7 @@ const SHEET: Sheet = {
   show_scale_bar: true,
   show_credits: true,
   show_context: true,
+  context_opacity: 1,
   title_style: {},
   subtitle_style: {},
   title_position: null,

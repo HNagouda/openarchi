@@ -83,14 +83,17 @@ pub struct Neighbours<'a> {
     pub features: Vec<&'a Feature>,
     pub roof: String,
     pub clip_id: &'a str,
+    /// ` opacity="…"` for every neighbour, or empty at full opacity.
+    pub opacity: String,
 }
 
 enum Kind<'a> {
     Building {
         polygon: &'a Polygon<f64>,
         roof: String,
-        /// A neighbour is clipped to the drawing zone; the site's own buildings stand free.
-        clip_id: Option<&'a str>,
+        /// A neighbour is clipped to the drawing zone and may be see-through;
+        /// the site's own buildings stand free: `(clip id, opacity attribute)`.
+        neighbour: Option<(&'a str, &'a str)>,
     },
     Tree {
         at: (f64, f64),
@@ -129,7 +132,7 @@ pub fn write(
                     kind: Kind::Building {
                         polygon,
                         roof: roof.clone(),
-                        clip_id: None,
+                        neighbour: None,
                     },
                     height,
                 });
@@ -143,7 +146,7 @@ pub fn write(
                     kind: Kind::Building {
                         polygon,
                         roof: neighbours.roof.clone(),
-                        clip_id: Some(neighbours.clip_id),
+                        neighbour: Some((neighbours.clip_id, neighbours.opacity.as_str())),
                     },
                     height: building_height(feature).0,
                 });
@@ -189,10 +192,11 @@ pub fn write(
             Kind::Building {
                 polygon,
                 roof,
-                clip_id,
-            } => match clip_id {
-                Some(clip_id) => {
-                    let _ = write!(out, r#"<g clip-path="url(#{clip_id})">"#);
+                neighbour,
+            } => match neighbour {
+                Some((clip_id, opacity)) => {
+                    // Each neighbour fades as one, so its own walls never show through its roof.
+                    let _ = write!(out, r#"<g clip-path="url(#{clip_id})"{opacity}>"#);
                     write_building(
                         out,
                         polygon,

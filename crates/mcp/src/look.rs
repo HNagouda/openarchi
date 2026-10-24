@@ -77,6 +77,13 @@ fn updated_sun(sun: &SunMoment, changes: SunInput) -> Result<SunMoment, String> 
 }
 
 fn updated_sheet(sheet: &Sheet, changes: SheetInput) -> Result<Sheet, String> {
+    if let Some(opacity) = changes.context_opacity {
+        if !(0.0..=1.0).contains(&opacity) {
+            return Err(format!(
+                "context_opacity runs from 0 to 1, like 0.4, got {opacity}"
+            ));
+        }
+    }
     if changes.scale == Some(0) {
         return Err(
             "scale is the denominator, like 2500 for 1:2500, so it cannot be 0".to_string(),
@@ -95,6 +102,7 @@ fn updated_sheet(sheet: &Sheet, changes: SheetInput) -> Result<Sheet, String> {
         show_scale_bar: changes.show_scale_bar.unwrap_or(sheet.show_scale_bar),
         show_credits: changes.show_credits.unwrap_or(sheet.show_credits),
         show_context: changes.show_context.unwrap_or(sheet.show_context),
+        context_opacity: changes.context_opacity.unwrap_or(sheet.context_opacity),
         // Text style, position and text boxes change through edit_text.
         title_style: sheet.title_style.clone(),
         subtitle_style: sheet.subtitle_style.clone(),

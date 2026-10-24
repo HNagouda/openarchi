@@ -159,6 +159,9 @@ pub struct SheetInput {
     /// The neighbourhood around the site: buildings, roads, water and green
     /// outside the boundary, drawn muted in the palette. Not in the legend.
     pub show_context: Option<bool>,
+    /// How much of the neighbourhood shows through, 0 to 1. 1 is the usual
+    /// muted look; lower lets the ground show through it.
+    pub context_opacity: Option<f64>,
 }
 
 /// "square" is 300 × 300 mm, for social posts and portfolios.

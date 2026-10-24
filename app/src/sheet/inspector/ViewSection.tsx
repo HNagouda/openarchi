@@ -14,6 +14,10 @@ const MODES: { value: ViewMode; label: string; tip: string }[] = [
 ];
 
 const MAX_ROTATION = 355;
+/** Below this the neighbourhood is all but gone; the toggle hides it outright. */
+const MIN_CONTEXT_OPACITY = 0.1;
+const CONTEXT_OPACITY_STEP = 0.05;
+const PERCENT = 100;
 const ROTATION_STEP = 5;
 /** Sun dates are taken in one year by the core, so the date field only needs a placeholder year. */
 const PLACEHOLDER_YEAR = 2026;
@@ -27,7 +31,7 @@ type Props = {
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
-/** Plan, axonometric or explode, whether the neighbourhood shows, and the sun's date and time where it shows. */
+/** Plan, axonometric or explode, whether the neighbourhood shows and how strongly, and the sun's date and time where it shows. */
 export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const view = look.view;
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
@@ -41,6 +45,23 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
         <Segmented label="View" value={view.mode} options={MODES} onChange={(mode) => onLook(withView(look, { mode }))} />
         {/* The neighbourhood around the site, and around a sheet's smaller area the rest of the site too. */}
         <Toggle label="Neighbourhood" isOn={look.sheet.show_context} onChange={(show_context) => onLook(withSheet(look, { show_context }))} />
+        {look.sheet.show_context && (
+          <div className="field-stack">
+            <span className="field-label">Neighbourhood opacity</span>
+            <NumberField
+              label="Neighbourhood opacity"
+              value={look.sheet.context_opacity}
+              min={MIN_CONTEXT_OPACITY}
+              max={1}
+              step={CONTEXT_OPACITY_STEP}
+              unit="%"
+              display={(value) => String(Math.round(value * PERCENT))}
+              read={(typed) => typed / PERCENT}
+              onChange={(context_opacity) => onLook(withSheet(look, { context_opacity }), "context_opacity")}
+              onSeal={onSeal}
+            />
+          </div>
+        )}
 
         {isTilted && (
           <div className="field-stack">

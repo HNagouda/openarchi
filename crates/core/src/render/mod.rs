@@ -101,6 +101,12 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
             "scale must be at least 1, as in 1:2500".to_string(),
         ));
     }
+    if !(0.0..=1.0).contains(&look.sheet.context_opacity) {
+        return Err(crate::Error::Invalid(format!(
+            "context_opacity must be between 0 and 1, got {}",
+            look.sheet.context_opacity
+        )));
+    }
     if let Some(problem) = look.sun.problem() {
         return Err(crate::Error::Invalid(format!("sun: {problem}")));
     }

@@ -284,6 +284,24 @@ fn set_look_changes_only_the_passed_sheet_fields() {
 }
 
 #[test]
+fn set_look_fades_the_neighbourhood_and_refuses_an_opacity_past_one() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let faded = server.call_ok(
+        "set_look",
+        json!({ "id": id, "sheet": { "context_opacity": 0.4 } }),
+    );
+    let refused = server.call(
+        "set_look",
+        json!({ "id": id, "sheet": { "context_opacity": 40 } }),
+    );
+
+    assert_eq!(faded["sheet"]["context_opacity"], json!(0.4));
+    assert_eq!(refused["isError"], json!(true));
+}
+
+#[test]
 fn set_look_turns_the_neighbourhood_off_and_on() {
     let mut server = Server::start();
     let id = server.create_westermarkt();

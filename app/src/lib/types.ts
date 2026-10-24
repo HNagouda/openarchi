@@ -57,6 +57,8 @@ export type Sheet = {
   show_credits: boolean;
   /** The neighbourhood around the site, drawn muted outside the boundary. */
   show_context: boolean;
+  /** 0 to 1: how much of the neighbourhood shows through. 1 is its usual muted look. */
+  context_opacity: number;
   title_style: TextStyle;
   subtitle_style: TextStyle;
   title_position: Position | null;

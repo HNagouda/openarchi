@@ -353,7 +353,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         clip_id: frame.clip_id(),
         scope,
     };
-    let neighbourhood = Neighbourhood::of(scene, look.sheet.show_context, spec.context, scope);
+    let neighbourhood = Neighbourhood::of(scene, &look.sheet, spec.context, scope);
 
     let mut defs = String::new();
     frame.write_defs(&mut defs);
@@ -464,6 +464,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
             features: neighbourhood.buildings(),
             roof: context::roof(&massing::theme_fill(theme), theme),
             clip_id: &neighbourhood.clip_id,
+            opacity: neighbourhood.opacity_attribute(),
         });
         solid::write(
             &mut body,

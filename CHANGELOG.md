@@ -178,6 +178,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 - A fetch also downloads the neighbourhood: 250 to 500 m around the site, depending on its size. It reuses the tiles along the site's edge and runs alongside the OpenStreetMap request, so a fetch takes about as long as before.
 - DXF exports put the neighbourhood on layers of its own, `OA-CONTEXT-BUILDING`, `OA-CONTEXT-ROAD` and so on, in grey.
 - `set_look` takes `sheet.show_context`.
+- Neighbourhood opacity, a slider under the Neighbourhood toggle, lets the ground show through the neighbourhood from 100 % down to 10 %, so it can sit further back behind the site. In the axonometric each neighbour fades as one block, so its walls never show through its own roof. It is one undo step per drag, and `set_look` takes it as `sheet.context_opacity`, from 0 to 1.
 
 ### Reports
 

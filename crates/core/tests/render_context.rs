@@ -76,6 +76,47 @@ fn a_hidden_neighbourhood_is_not_drawn() {
 }
 
 #[test]
+fn a_faded_neighbourhood_is_drawn_see_through_and_a_full_one_is_unchanged() {
+    let full = svg_of(&scene_with_neighbourhood(), &look(), "paper");
+    let mut faded_look = look();
+    faded_look.sheet.context_opacity = 0.4;
+    let faded = svg_of(&scene_with_neighbourhood(), &faded_look, "paper");
+
+    assert!(faded.contains(r#"clip-path="url(#context-clip)" fill-rule="evenodd" opacity="0.4""#));
+    assert!(!full.contains(r#"opacity="0.4""#));
+    assert_eq!(full, svg_of(&scene_with_neighbourhood(), &look(), "paper"));
+}
+
+#[test]
+fn standing_neighbours_fade_with_the_neighbourhood() {
+    let mut look = look_in(ViewMode::Axonometric);
+    look.sheet.context_opacity = 0.25;
+    let svg = svg_of(&scene_with_neighbourhood(), &look, "paper");
+    let solids = &svg[svg.find(r#"id="solids""#).expect("a solids group")..];
+    assert_eq!(
+        solids
+            .matches(r#"<g clip-path="url(#context-clip)" opacity="0.25">"#)
+            .count(),
+        3
+    );
+}
+
+#[test]
+fn an_opacity_past_one_is_refused() {
+    let mut look = look();
+    look.sheet.context_opacity = 1.5;
+    let (diagram, theme) = (diagram("context"), theme("paper"));
+    let result = render_svg(&RenderInput {
+        scene: &scene_with_neighbourhood(),
+        diagram: &diagram,
+        theme: &theme,
+        look: &look,
+        pins: &[],
+    });
+    assert!(result.is_err());
+}
+
+#[test]
 fn the_rest_of_the_site_around_a_smaller_area_follows_the_neighbourhood_toggle() {
     let mut look = look();
     look.selection = Some(Area::Circle {

@@ -23,6 +23,10 @@ pub struct Sheet {
     /// On for new sheets; projects from before it open without it.
     #[serde(default)]
     pub show_context: bool,
+    /// How much of the neighbourhood shows through, 0 to 1. At 1 it is drawn
+    /// in its usual muted colours; lower lets the ground show through it.
+    #[serde(default = "full_context_opacity")]
+    pub context_opacity: f64,
     /// How the title and subtitle are set. Every field left empty follows the theme.
     #[serde(default)]
     pub title_style: TextStyle,
@@ -142,6 +146,10 @@ pub struct TextBox {
 pub const TITLE_ID: &str = "title";
 pub const SUBTITLE_ID: &str = "subtitle";
 
+fn full_context_opacity() -> f64 {
+    1.0
+}
+
 impl Sheet {
     /// Width and height in millimetres, turned for landscape. Square paper never turns.
     pub fn size_mm(&self) -> (f64, f64) {
@@ -217,6 +225,7 @@ impl Default for Sheet {
             show_scale_bar: true,
             show_credits: true,
             show_context: true,
+            context_opacity: 1.0,
             title_style: TextStyle::default(),
             subtitle_style: TextStyle::default(),
             title_position: None,
