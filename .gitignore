@@ -1,0 +1,8 @@
+target/
+node_modules/
+dist/
+.DS_Store
+.claude/
+.vscode/
+# Throwaway libraries used when running the app or the MCP server in tests.
+.scratch/

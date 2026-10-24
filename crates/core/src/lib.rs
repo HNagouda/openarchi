@@ -1,0 +1,22 @@
+//! Everything openarchi does without a window: fetch a site, style it, export it.
+//!
+//! The app and the MCP server are thin shells over this crate, so a site looks
+//! the same whether a person or an assistant asked for it.
+
+pub mod area;
+pub mod catalog;
+pub mod crs;
+pub mod diagram;
+pub mod error;
+pub mod export;
+pub mod geocode;
+pub mod library;
+pub mod project;
+pub mod render;
+pub mod scene;
+pub mod sheet;
+pub mod site;
+pub mod sources;
+pub mod theme;
+
+pub use error::{Error, Result};
