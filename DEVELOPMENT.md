@@ -41,7 +41,7 @@ crates/core/            the library: no window, no async
   src/selection.rs      a sheet's sub-selection: the scene cut to a smaller area
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
-  examples/             fetch_site and render_samples, for working on data and looks
+  examples/             fetch_site, render_samples and render_timing, for working on data, looks and speed
 crates/mcp/             openarchi-mcp, a stdio MCP server over the core
 app/                    the desktop app
   src-tauri/            Tauri commands, each a thin call into the core
@@ -99,6 +99,13 @@ cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
 cargo run --release -p openarchi-core --example palette_samples  # every diagram in a palette made from swatches, target/render-samples/palette/
 cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, and the A4 PDF, target/analysis-samples/
+```
+
+When the app feels slow, time it before changing anything. `render_timing` loads a saved project and prints, per diagram, how long the preview takes to draw, how large its SVG is and how long its thumbnail takes. The SVG size matters as much as the time: the app parses and paints every byte on every change.
+
+```sh
+cargo run --release -p openarchi-core --example render_timing -- <library folder> <project id>
+VIEW=axonometric SELECT_RADIUS=150 DUMP_DIR=.scratch/svgs cargo run --release -p openarchi-core --example render_timing -- <library folder> <project id>
 ```
 
 To work on the front end in a plain browser, render the fixtures once and start Vite on its own. Outside Tauri, `app/src/dev/mockIpc.ts` answers every command from those fixtures, so the gallery, the sheet and the site step all work without the Rust side. This is how the screenshots in `docs/screenshots/` are taken. The mock is loaded only in dev, so it never reaches a release build.
