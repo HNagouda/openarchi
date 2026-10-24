@@ -4,6 +4,7 @@ import { NumberField } from "../../ui/NumberField";
 import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
 import { Toggle } from "../../ui/Toggle";
+import { plateName, plateOptions } from "../../lib/diagrams";
 import { withPlateMoved, withSun, withView } from "./lookEdits";
 
 const MODES: { value: ViewMode; label: string; tip: string }[] = [
@@ -32,8 +33,7 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
   const isTilted = view.mode !== "plan";
   const hasSun = view.mode === "axonometric" || Boolean(diagram?.solar);
-  const nameOf = (id: string) => diagrams.find((entry) => entry.id === id)?.name ?? id;
-  const unused = diagrams.filter((entry) => !view.plates.includes(entry.id));
+  const unused = plateOptions(diagrams).filter((entry) => !view.plates.includes(entry.id));
 
   return (
     <Section id="view" title="View">
@@ -61,7 +61,7 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
             <span className="field-label">Plates, top first</span>
             {view.plates.map((id, index) => (
               <div key={id} className="layer-row">
-                <span className="layer-main">{nameOf(id)}</span>
+                <span className="layer-main">{plateName(diagrams, id)}</span>
                 <Button icon="chevronUp" tip="Move up" disabled={index === 0} onClick={() => onLook(withPlateMoved(look, index, -1))} />
                 <Button
                   icon="chevronDown"

@@ -13,7 +13,7 @@ Draw a site, and get a whole series of clean, styled diagrams ready for a board 
 [![License: GPL v3](https://img.shields.io/github/license/HNagouda/openarchi?color=blue)](LICENSE)
 ![macOS and Windows](https://img.shields.io/badge/macOS%20%7C%20Windows-lightgrey)
 
-<img src="docs/screenshots/workspace-light.png" alt="The openarchi workspace showing a building age diagram of Domplein, Utrecht, with the inspector and a filmstrip of every diagram" width="900">
+<img src="docs/screenshots/workspace-light.png" alt="The openarchi workspace showing a building age diagram of Westermarkt, Amsterdam, with the diagram column and the inspector" width="900">
 
 </div>
 
@@ -27,7 +27,7 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 
 ## What it does
 
-- **Twenty-four diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, landscape, movement, parcels, sun path, shadow, business, facilities, transit, walkability, traffic noise, noise from all sources, air quality (NO₂, PM10 and PM2.5), flood depth, slope, population and dwellings. Each one answers one question, and the filmstrip at the bottom shows the whole series at once.
+- **Twenty-one diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, parcels, movement, transit, walkability, business, facilities, landscape, slope, flood depth, noise (road traffic or all sources), air quality (NO₂, PM10 or PM2.5), population, dwellings, sun path and shadow. Each one answers one question, and the column on the left lists the whole series in its groups.
 - **The neighbourhood on foot.** Walk times of 5, 10 and 15 minutes from the site over the real footpath network, with the schools, shops, health care and transit stops within reach.
 - **A site analysis with design notes.** Where the site is, what is on it, and its climate: temperature, outdoor comfort, wind roses by season, sun and humidity from a typical year, and thirty years of rain from the nearest weather station. Under each chart a few plain sentences say what it means for a design, and every chart exports as SVG or PDF in the sheet's palette.
 - **The site in three dimensions.** An axonometric view stands every building up at its measured height, lit by the sun at the date and time you choose, and an explode view stacks several diagrams as plates so you can read them against each other.
@@ -75,7 +75,7 @@ You only need to do this once. Each release also lists `SHA256SUMS.txt`, to chec
 
 1. **Draw a site.** Press ⌘N, search for an address, and draw a circle, rectangle or polygon around it (C, R or P). Sites can be up to 4 km².
 2. **Fetch it.** openarchi downloads the buildings, surfaces, parcels and terrain for that area. A 300 m circle takes a few seconds.
-3. **Pick a diagram and a palette.** Keys 1 to 9 switch diagrams, and [ and ] step through palettes. The sheet updates as you go.
+3. **Pick a diagram and a palette.** Pick a diagram in the column on the left, or press 1 to 9 or ↑ and ↓. [ and ] step through palettes. The sheet updates as you go.
 4. **Export.** Press ⌘E for this diagram or the whole series, as SVG, PDF, PNG or DXF.
 
 The first time you open openarchi, a short tour walks through this. Help > Show Tour opens it again.
@@ -87,11 +87,11 @@ On Windows, Ctrl takes the place of ⌘.
 - **⌘N** starts a new project, **⌘O** or **Return** opens the selected one, and **Delete** moves it to Recently Deleted.
 - **C**, **R** and **P** draw a circle, rectangle or polygon. **Return** finishes a polygon and **Esc** stops drawing.
 - Click a drawn site to select it, then drag it to move it or drag a handle to resize it. **Delete** removes it.
-- **1 to 9** switch diagrams, and **[** and **]** step through palettes.
+- **1 to 9** jump to the first nine diagrams, **↑** and **↓** step through all of them, **←** and **→** switch a diagram's measure (NO₂, PM10 or PM2.5 for air quality), and **[** and **]** step through palettes.
 - **T** adds a text box. With a text selected, **Return** edits it, the arrow keys nudge it (with **⇧** by 10 mm) and **Delete** removes a text box.
 - **⌘Z** undoes the last change to the site or the sheet and **⇧⌘Z** redoes it (**Ctrl+Y** also redoes on Windows).
 - **⌘=** and **⌘−** zoom the map or the sheet, and **⌘0** fits the site or the sheet back in the window.
-- **⌘E** exports and **I** hides or shows the inspector.
+- **⌘E** exports, **D** hides or shows the diagram column and **I** the inspector.
 - **⌘,** opens settings and **⌘/** lists every shortcut.
 
 ## Where the data comes from

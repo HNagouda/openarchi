@@ -1,12 +1,12 @@
-// Filmstrip pictures: every diagram in the current theme and sheet, rendered
+// Diagram column pictures: every diagram in the current theme and sheet, rendered
 // one at a time in the background after the preview has had its turn.
 
 import { useEffect, useState } from "react";
 import { renderThumbnail } from "../lib/ipc";
 import type { Diagram, Look } from "../lib/types";
 
-// Thumbnails are about 120 px wide; twice that keeps them sharp on Retina.
-const THUMBNAIL_WIDTH_PX = 260;
+// Thumbnails are about 64 px wide in the column; twice that keeps them sharp on Retina.
+const THUMBNAIL_WIDTH_PX = 160;
 // Let the preview render first after a change.
 const START_DELAY_MS = 450;
 
@@ -14,8 +14,8 @@ const START_DELAY_MS = 450;
 export function useThumbnails(look: Look, diagrams: Diagram[], revision: number, isEnabled: boolean) {
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
 
-  // Everything but the diagram: the strip only changes when this changes.
-  const { diagram_id: _ignored, ...shared } = look;
+  // Everything but the diagram and its variant: the pictures only change when this changes.
+  const { diagram_id: _diagram, variant: _variant, ...shared } = look;
   const key = JSON.stringify(shared);
 
   useEffect(() => {
@@ -26,9 +26,10 @@ export function useThumbnails(look: Look, diagrams: Diagram[], revision: number,
       for (const diagram of diagrams) {
         if (isCancelled) return;
         try {
-          // An explode view stacks the same plates whatever the diagram, so each frame shows its plan.
+          // An explode view stacks the same plates whatever the diagram, so each picture shows its plan.
+          // A diagram with variants is shown as its first.
           const view = look.view.mode === "explode" ? { ...look.view, mode: "plan" as const } : look.view;
-          const url = await renderThumbnail({ ...look, diagram_id: diagram.id, view }, THUMBNAIL_WIDTH_PX);
+          const url = await renderThumbnail({ ...look, diagram_id: diagram.id, variant: null, view }, THUMBNAIL_WIDTH_PX);
           if (!isCancelled) setThumbnails((current) => ({ ...current, [diagram.id]: url }));
         } catch {
           // A diagram that cannot render keeps its placeholder; the preview reports the error.

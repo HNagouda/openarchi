@@ -25,6 +25,16 @@ What changed in each version of openarchi, newest first.
 - Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
 - Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
 
+### Diagram column
+
+- The diagrams moved from the filmstrip along the bottom to a column on the left of the sheet, grouped under Context and built form, Movement and places, Environment, People, and Sun and shade. Each one shows a small picture in the current palette and its name, and the one on the sheet is marked.
+- Air quality is one diagram with a switch between NO₂, PM10 and PM2.5, and Noise is one diagram with a switch between road traffic and all sources. The switch sits under the selected diagram, and ← and → flip between the measures. That brings the column from 24 entries to 21.
+- ↑ and ↓ step through every diagram, not only the first nine that 1 to 9 reach. With a text box selected the arrows still nudge the text.
+- D, the button next to the back arrow and View > Toggle Diagrams show or hide the column, and the app remembers the choice. In a window narrower than 1000 px the column lies over the sheet instead of squeezing it.
+- Exporting the whole series writes one file per measure, such as `westermarkt-air-quality-pm10.pdf`, so the series still holds every sheet it held before.
+- Projects saved on PM10, PM2.5, traffic noise or noise from all sources open on the same measure of the folded diagram, and so do explode plates. A plate can now show any one measure, like Air quality, PM2.5.
+- For assistants, `list_diagrams` gives each diagram its `group` and `variants`, `set_look` takes a `variant`, and plates take `"air-quality:pm25"`. The old ids still work in `set_look`.
+
 ### Places, transit and walking
 
 - Four new diagrams from OpenStreetMap. Business shows shops, food and drink, offices, hotels and services on the site. Facilities shows education, culture, civic buildings and places of worship, health care, sport and play, car parking and bicycle parking. Transit shows the bus, tram, metro and train stops within a 10 minute walk, each named with the bus, tram, metro and ferry lines that call there. Train stations show their name only, without service numbers. Walkability shows how far you get on foot in 5, 10 and 15 minutes, with the facilities inside each band.

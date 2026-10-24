@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { drawnName } from "../lib/diagrams";
 import { formatModified, formatScale } from "../lib/format";
 import { projectThumbnail } from "../lib/ipc";
 import type { Catalog, Look, ProjectSummary } from "../lib/types";
@@ -95,6 +96,6 @@ export function ProjectCard({ project, diagrams, isSelected, isOpening, onSelect
 function printLine(look: Look, diagrams: Catalog["diagrams"]): string {
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
   const paper = look.sheet.paper === "square" ? "Square" : look.sheet.paper.toUpperCase();
-  const parts = [diagram?.name, formatScale(look.sheet.scale), paper];
+  const parts = [diagram && drawnName(diagram, look.variant), formatScale(look.sheet.scale), paper];
   return parts.filter(Boolean).join(" · ");
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { readPreference, writePreference } from "../../lib/storage";
 import type { Catalog, Look, ProjectView } from "../../lib/types";
 import { Segmented } from "../../ui/Segmented";
+import { drawnDiagram } from "../../lib/diagrams";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { LayersSection } from "./LayersSection";
 import { RatiosPanel } from "./RatiosPanel";
@@ -51,7 +52,7 @@ export function Inspector({ catalog, project, look, onLook, onSeal }: Props) {
           <ThemeSection themes={catalog.themes} selectedId={look.theme_id} onSelect={(theme_id) => onLook({ ...look, theme_id })} />
           {diagram && theme && (
             <LayersSection
-              diagram={diagram}
+              diagram={drawnDiagram(diagram, look.variant)}
               theme={theme}
               look={look}
               labels={catalog.layers}

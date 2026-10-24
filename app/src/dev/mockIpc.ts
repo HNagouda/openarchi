@@ -5,6 +5,7 @@
 
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { chosenVariant } from "../lib/diagrams";
 import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Sheet, SunMoment, View } from "../lib/types";
 
 const FIXTURES = "/dev-fixtures";
@@ -81,7 +82,15 @@ function view(project: ProjectSummary): ProjectView {
   };
 }
 
-const picture = (lookToShow: Look) => `${FIXTURES}/thumbs/${lookToShow.diagram_id}--${lookToShow.theme_id}.png`;
+/** The fixture a look shows: "air-quality-pm10--paper", a variant named as app_fixtures writes it. */
+function fixtureName(shown: Look) {
+  const diagram = fixture.catalog.diagrams.find((entry) => entry.id === shown.diagram_id);
+  const variant = diagram ? chosenVariant(diagram, shown.variant) : null;
+  const drawing = variant ? `${shown.diagram_id}-${variant.id}` : shown.diagram_id;
+  return `${drawing}--${shown.theme_id}`;
+}
+
+const picture = (lookToShow: Look) => `${FIXTURES}/thumbs/${fixtureName(lookToShow)}.png`;
 
 function circleArea(area: Area) {
   return area.kind === "circle" ? Math.PI * area.radius_m * area.radius_m : 0;
@@ -107,7 +116,7 @@ async function answer(command: string, args: Args) {
   }
   if (command === "render_preview") {
     const shown = args.look as Look;
-    return fetch(`${FIXTURES}/previews/${shown.diagram_id}--${shown.theme_id}.svg`).then((response) => response.text());
+    return fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
   }
   if (command === "render_thumbnail") return picture(args.look as Look);
   if (command === "search_places") {
