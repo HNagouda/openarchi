@@ -139,7 +139,7 @@ PVGIS from the EU Joint Research Centre has no key and no commercial restriction
 {"time(UTC)": "20210101:1200", "T2m": 4.13, "RH": 92.15, "G(h)": 208.0, "Gb(n)": 402.73, "Gd(h)": 102.0, "IR(h)": 257.6, "WS10m": 2.41, "WD10m": 239.0, "SP": 100620.0}
 ```
 
-That is temperature, relative humidity, global horizontal (GHI), direct normal (DNI) and diffuse radiation, wind speed and wind direction, which covers the temperature chart, the outdoor comfort chart, the wind rose by season, humidity, solar radiation and the radiation rose in one call. `MRcalc` with `horirrad=1&mr_dni=1` gives monthly GHI and DNI per year (0.70 s; December 2023: `H(h)_m` 15.47 kWh/m², `Hb(n)_m` 18.53). PVGIS has no precipitation or snow.
+That is temperature, relative humidity, global horizontal (GHI), direct normal (DNI) and diffuse radiation, long-wave sky radiation (`IR(h)`), wind speed and wind direction, which covers the temperature chart, the outdoor comfort chart (UTCI needs all of air temperature, humidity, wind at 10 m, the three short-wave parts and `IR(h)`), the wind rose by season, humidity, solar radiation and the radiation rose in one call. `MRcalc` with `horirrad=1&mr_dni=1` gives monthly GHI and DNI per year (0.70 s; December 2023: `H(h)_m` 15.47 kWh/m², `Hb(n)_m` 18.53). PVGIS has no precipitation or snow.
 
 KNMI's daily station data needs no key either:
 

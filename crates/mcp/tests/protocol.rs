@@ -457,6 +457,27 @@ fn get_analysis_returns_location_climate_and_notes_from_the_cache() {
     let report = server.call_ok("get_analysis", json!({ "id": id }));
     assert_eq!(report["location"]["municipality"], json!("Amsterdam"));
     assert_eq!(report["climate"]["months"].as_array().unwrap().len(), 12);
+    // Outdoor comfort is the UTCI, hours per stress category in the sun and in the shade.
+    let categories = report["climate"]["comfort_categories"].as_array().unwrap();
+    assert_eq!(categories.len(), 10);
+    assert_eq!(categories[5], json!("No thermal stress"));
+    assert!(report["climate"]["comfort_method"]
+        .as_str()
+        .unwrap()
+        .contains("UTCI"));
+    let july = &report["climate"]["months"][6];
+    for exposure in ["comfort_sun_hours", "comfort_shade_hours"] {
+        let hours: Vec<u64> = july[exposure]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|hours| hours.as_u64().unwrap())
+            .collect();
+        assert_eq!(hours.len(), 10);
+        // 31 days from 8:00 to 22:00, mostly free of thermal stress.
+        assert_eq!(hours.iter().sum::<u64>(), 31 * 14);
+        assert!(hours[5] * 2 > 31 * 14, "{exposure}: {hours:?}");
+    }
     assert!(report["summary"]["coverage"].as_f64().unwrap() > 0.0);
     let sections: Vec<&str> = report["notes"]
         .as_array()
