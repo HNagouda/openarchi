@@ -34,7 +34,9 @@ crates/core/            the library: no window, no async
   src/export/           SVG -> PDF and PNG, scene -> DXF
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
   src/catalog/          finding a diagram by id, and the old ids of diagrams folded into variants
-  src/project.rs        one site plus the look the user chose
+  src/project.rs        one site plus its sheets (looks) and pins
+  src/pin.rs            landmarks in RD New metres, shown on every sheet
+  src/selection.rs      a sheet's sub-selection: the scene cut to a smaller area
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
   examples/             fetch_site and render_samples, for working on data and looks
@@ -66,6 +68,8 @@ scripts/mcp.sh          call any MCP tool from the shell
 | Another measure for an existing diagram | a variant in that diagram's JSON; a diagram folded into another keeps its old id in `catalog/lookup.rs` |
 | A new theme | a JSON file in `crates/core/assets/themes/`, listed in `catalog.rs` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
+| Something drawn on top of every view, like pins | a module in `crates/core/src/render/`, placed with `SheetDrawing::ground` |
+| A new kind of tab in the sheet workspace | a `TabKind` in `app/src/sheet/tabs/TabBar.tsx` |
 | A new export format | `crates/core/src/export/` |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs`, the rule in `notes.rs` |
 | A new assistant tool | `crates/mcp/src/server.rs` |
