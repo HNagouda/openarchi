@@ -155,6 +155,18 @@ Sheets can now show the site in three dimensions and the sun over it.
 - DXF exports put the neighbourhood on layers of its own, `OA-CONTEXT-BUILDING`, `OA-CONTEXT-ROAD` and so on, in grey.
 - `set_look` takes `sheet.show_context`.
 
+### Reports
+
+- Reports in the sheet's top bar opens a report editor over the sheet. A report is pages you lay out yourself from the project's ratios, analysis charts, facts and design notes, whole sheets in any diagram, and your own headings, body text and captions.
+- The library on the left lists every block the project can draw. Drag one onto a page, or click it to add it to the middle of the current page. On the page, drag a block to move it, with snap lines to the page and the other blocks, and drag its handles to resize it. The inspector takes exact positions and sizes in millimetres.
+- Every block is drawn live from the project's data in the report's palette, which follows the sheet's unless you pick another. Changing the palette or fetching the site again redraws the whole report.
+- Ratios blocks switch between bars, a pie and a table. Sheet blocks switch diagram and measure. Double-click a text block to edit its words, and the bar above it sets the font, size, weight, alignment and colour, as on the sheet.
+- Pages are A4 to A1, portrait or landscape, each on its own. Drag a page by its number to move it, or use the arrows in its header. The blocks of a page are listed top first in the inspector, and dragging a row restacks it.
+- The arrow keys nudge the selected block by 1 mm (with ⇧ by 10 mm), ⌘D duplicates it, ⌘] and ⌘[ bring it forward or send it back, and Delete removes it. ⌘Z undoes every change to a report, including adding and deleting whole reports.
+- Export writes one PDF of every page, or an SVG or a PNG per page. The SVG keeps each block as a named layer. A report can show page numbers and lie on the palette's paper, its ground colour or plain white.
+- Reports are saved in the project as you go. Projects from before open with none.
+- For assistants, `list_reports` lists a project's reports with each page's paper and blocks, and `export_report` writes one as a PDF.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.
