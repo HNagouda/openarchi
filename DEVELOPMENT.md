@@ -18,7 +18,7 @@ crates/core/            the library: no window, no async
   src/scene.rs          a fetched site: every feature in RD New metres, and the Layer list
   src/site.rs           build_scene: fetch every tile, join, clip
   src/site/             the drawn boundary, and fetching tiles from the cache or PDOK
-  src/sources/          one module per data service (BGT, BAG, BRK, AHN), shared paging,
+  src/sources/          one module per data service (BGT, BAG, BRK, AHN, OpenStreetMap), shared paging,
                         the 250 m tile grid and the tile cache
   src/crs.rs            WGS84 to RD New and back
   src/geocode.rs        address search through PDOK Locatieserver
@@ -27,6 +27,7 @@ crates/core/            the library: no window, no async
   src/sheet.rs          paper, scale, frame and furniture
   src/view.rs           plan, axonometric or explode, and the moment the sun is drawn for
   src/sun.rs            where the sun stands, from the site's position and a Dutch clock time
+  src/walk.rs           walk bands from the site centre and the 15 minute neighbourhood
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/export/           SVG -> PDF and PNG, scene -> DXF

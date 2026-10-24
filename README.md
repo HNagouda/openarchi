@@ -27,7 +27,8 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 
 ## What it does
 
-- **Eleven diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, landscape, movement, parcels, sun path and shadow. Each one answers one question, and the filmstrip at the bottom shows the whole series at once.
+- **Fifteen diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, landscape, movement, parcels, sun path, shadow, business, facilities, transit and walkability. Each one answers one question, and the filmstrip at the bottom shows the whole series at once.
+- **The neighbourhood on foot.** Walk times of 5, 10 and 15 minutes from the site over the real footpath network, with the schools, shops, health care and transit stops within reach.
 - **The site in three dimensions.** An axonometric view stands every building up at its measured height, lit by the sun at the date and time you choose, and an explode view stacks several diagrams as plates so you can read them against each other.
 - **Palettes that keep a series together.** Eight built-in palettes (Paper, Ink, Mono, Polder, Blueprint, Terracotta, Midnight, Pastel) restyle every diagram at once, so a set of sheets reads as one family. Tweak any layer's fill, line or opacity on top.
 - **Real data, cleanly drawn.** Buildings with year built, use and height, road surfaces at their true width, water, green, trees, parcels and terrain contours, from the Dutch government's open registers.
@@ -95,6 +96,8 @@ On Windows, Ctrl takes the place of ⌘.
 ## Where the data comes from
 
 Everything comes from open Dutch government data through [PDOK](https://www.pdok.nl): the large-scale topography map (BGT) for road surfaces, water, green and trees, the building register (BAG) for footprints, year built and use, the cadastral map (BRK) for parcels, and the national elevation model (AHN) for building heights and contours. BGT, BAG and AHN are public domain. BRK is CC BY 4.0, which is why every sheet prints its credits by default.
+
+Businesses, facilities, transit stops and the footpath network come from [OpenStreetMap](https://www.openstreetmap.org/copyright) through the Overpass API, in one query per site. That data is © OpenStreetMap contributors under the ODbL 1.0, and every sheet that shows it says so.
 
 ## Questions
 
