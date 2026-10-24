@@ -60,7 +60,10 @@ pub struct SheetDrawing {
     /// The scale the drawing is actually at, which a tilted view may have reduced to fit.
     pub scale: u32,
     pub north_deg: f64,
-    pub has_scale_bar: bool,
+    /// A tilted view, where only lengths running left to right across the
+    /// paper are at `scale`: depth shortens with the tilt and heights rise
+    /// with it. The scale note says so.
+    pub is_foreshortened: bool,
     pub title_name: String,
 }
 
@@ -116,7 +119,7 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
         mm_per_m: projection.mm_per_m,
         scale,
         north_deg: 0.0,
-        has_scale_bar: true,
+        is_foreshortened: false,
         title_name: input.diagram.name.clone(),
     })
 }
@@ -171,13 +174,13 @@ pub fn axonometric(
         mm_per_m,
         scale,
         north_deg: projection.north_angle_deg(),
-        has_scale_bar: true,
+        is_foreshortened: true,
         title_name: input.diagram.name.clone(),
     })
 }
 
 /// The sheet's own scale when the drawing fits at it, or the nearest round scale that does.
-fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
+pub(super) fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
     let needed = 1000.0 / fitting_mm_per_m;
     if sheet_scale as f64 >= needed {
         return sheet_scale;

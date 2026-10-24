@@ -42,7 +42,7 @@ const OSM_ARGUMENT: &str = "osm";
 const OSM_DIAGRAMS: [&str; 4] = ["business", "facility", "transit", "walkability"];
 
 /// The view samples: file name, diagram, theme and view mode.
-const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 9] = [
+const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 11] = [
     (
         "axo--building-height--paper",
         "building-height",
@@ -75,6 +75,13 @@ const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 9] = [
         "midnight",
         ViewMode::Explode,
     ),
+    (
+        "explode--blueprint",
+        "context",
+        "blueprint",
+        ViewMode::Explode,
+    ),
+    ("explode--pastel", "context", "pastel", ViewMode::Explode),
     ("sun-path--paper", "sun-path", "paper", ViewMode::Plan),
     ("shadow--paper", "shadow", "paper", ViewMode::Plan),
 ];
