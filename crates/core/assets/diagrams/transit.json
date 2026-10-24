@@ -1,0 +1,51 @@
+{
+  "id": "transit",
+  "name": "Transit",
+  "description": "Bus, tram, metro and train stops within a 10 minute walk, with the lines that call there.",
+  "layers": [
+    "water",
+    "building",
+    "walk_band",
+    "walk_path",
+    "transit_stop"
+  ],
+  "emphasis": "transit_stop",
+  "mute_others": true,
+  "highlight": [
+    "water",
+    "walk_band",
+    "walk_path"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "transit_stop",
+    "attribute": "group",
+    "title": "Transit stops",
+    "scheme": {
+      "kind": "categorical",
+      "categories": [
+        {
+          "value": "train",
+          "label": "Train"
+        },
+        {
+          "value": "metro",
+          "label": "Metro"
+        },
+        {
+          "value": "tram",
+          "label": "Tram"
+        },
+        {
+          "value": "bus",
+          "label": "Bus"
+        },
+        {
+          "value": "ferry",
+          "label": "Ferry"
+        }
+      ]
+    }
+  },
+  "walk_minutes": 10
+}

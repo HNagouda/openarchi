@@ -129,7 +129,7 @@ fn numeric_value(feature: &Feature, attribute: Attribute) -> Option<f64> {
     match attribute {
         Attribute::YearBuilt => feature.attributes.year_built.map(f64::from),
         Attribute::HeightM => feature.attributes.height_m,
-        Attribute::UseClass => None,
+        Attribute::UseClass | Attribute::Group => None,
     }
 }
 
@@ -140,6 +140,7 @@ fn text_value(feature: &Feature, attribute: Attribute) -> Option<String> {
             .use_class
             .clone()
             .filter(|value| !value.trim().is_empty()),
+        Attribute::Group => feature.attributes.group.clone(),
         Attribute::YearBuilt => feature.attributes.year_built.map(|year| year.to_string()),
         Attribute::HeightM => feature.attributes.height_m.map(|height| height.to_string()),
     }

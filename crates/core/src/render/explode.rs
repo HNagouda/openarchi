@@ -108,6 +108,7 @@ pub fn render(
             scope: format!("plate-{}-", index + 1),
             has_volume: false,
             is_plate: true,
+            reach_m: None,
         };
         let map = draw(input, &spec, typesetter)?;
         defs.push_str(&map.defs);
