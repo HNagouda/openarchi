@@ -97,7 +97,6 @@ export function SheetSection({ look, onLook, onSeal }: Props) {
           <Toggle label="North arrow" isOn={sheet.show_north_arrow} onChange={(show_north_arrow) => onLook(withSheet(look, { show_north_arrow }))} />
           <Toggle label="Scale bar" isOn={sheet.show_scale_bar} onChange={(show_scale_bar) => onLook(withSheet(look, { show_scale_bar }))} />
           <Toggle label="Credits" isOn={sheet.show_credits} onChange={(show_credits) => onLook(withSheet(look, { show_credits }))} />
-          <Toggle label="Neighbourhood" isOn={sheet.show_context} onChange={(show_context) => onLook(withSheet(look, { show_context }))} />
         </div>
       </div>
     </Section>
