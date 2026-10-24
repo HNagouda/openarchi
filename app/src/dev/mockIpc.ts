@@ -154,7 +154,7 @@ async function answer(command: string, args: Args) {
   return null;
 }
 
-/** A block as the core would draw it, from the fixtures: sheets from the previews, figures from the analysis. */
+/** A block as the core would draw it, from the fixtures: sheets from the previews, the rest from report-blocks. */
 async function reportBlock(themeId: string, block: ReportBlock): Promise<string> {
   const content = block.content;
   const theme = fixture.catalog.themes.find((entry) => entry.id === themeId);
@@ -162,12 +162,6 @@ async function reportBlock(themeId: string, block: ReportBlock): Promise<string>
   if (content.kind === "sheet") {
     const shown = { ...openLook, diagram_id: content.diagram_id, variant: content.variant ?? null, theme_id: themeId };
     return fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
-  }
-  if (content.kind === "analysis_figure") {
-    const part = { location: "location", site: "site", rain: "rain" }[content.section] ?? "climate";
-    const sections: { id: string; figures: { id: string; svg: string }[] }[] = await fetch(`${FIXTURES}/analysis/${part}--${themeId}.json`).then((response) => response.json());
-    const figure = sections.find((section) => section.id === content.section)?.figures.find((entry) => entry.id === content.figure);
-    return figure?.svg ?? "";
   }
   return fetch(`${FIXTURES}/report-blocks/${mockBlockFixture(content)}--${themeId}.svg`).then((response) => response.text());
 }

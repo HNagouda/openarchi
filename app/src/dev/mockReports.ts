@@ -15,9 +15,10 @@ const NUMBER_RIGHT_MM = 12;
 const NUMBER_BOTTOM_MM = 8;
 const NUMBER_MM = 2.5;
 
-/** "ratios-land_use-bars", "facts-site", "notes-wind", as app_fixtures names them. */
+/** "ratios-land_use-bars", "figure-wind-wind-roses", "facts-site", "notes-wind", as app_fixtures names them. */
 export function mockBlockFixture(content: BlockContent): string {
   if (content.kind === "ratios") return `ratios-${content.group}-${content.style}`;
+  if (content.kind === "analysis_figure") return `figure-${content.section}-${content.figure}`;
   if (content.kind === "analysis_facts") return `facts-${content.section}`;
   if (content.kind === "analysis_notes") return `notes-${content.section}`;
   return "missing";
