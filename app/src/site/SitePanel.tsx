@@ -1,15 +1,18 @@
-// The panel beside the map: what was drawn, how big it is, and the fetch.
+// The panel beside the map: finding the place, the tools to draw it, what was
+// drawn, how big it is, and the fetch.
 
 import type { ReactNode } from "react";
 import { formatArea } from "../lib/format";
-import type { Area, AreaSize, Progress } from "../lib/types";
-import { Button, Keys } from "../ui/Button";
+import type { Area, AreaSize, Place, Progress } from "../lib/types";
+import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { Icon } from "../ui/Icon";
 import { NumberField } from "../ui/NumberField";
 import { Problem } from "../ui/Problem";
 import { Segmented } from "../ui/Segmented";
+import { SearchBox } from "./SearchBox";
 import type { Shape } from "./shapes";
+import type { Tool } from "./useDrawing";
 
 // The largest circle that stays under the core's 4 km² limit is about 1128 m.
 const MIN_RADIUS_M = 25;
@@ -22,6 +25,10 @@ export type FetchState =
   | { state: "failed"; error: string };
 
 type Props = {
+  onPick: (place: Place) => void;
+  /** The drawing tool in hand; picking it again puts it down. */
+  tool: Tool;
+  onTool: (tool: Tool) => void;
   name: string;
   onName: (name: string) => void;
   area: Area | null;
@@ -36,6 +43,12 @@ type Props = {
   isEditing: boolean;
 };
 
+const TOOLS: { tool: Tool; icon: "circle" | "rectangle" | "polygon"; label: string; tip: string; key: string }[] = [
+  { tool: "circle", icon: "circle", label: "Circle", tip: "Drag out from the centre", key: "c" },
+  { tool: "rectangle", icon: "rectangle", label: "Rectangle", tip: "Drag corner to corner", key: "r" },
+  { tool: "polygon", icon: "polygon", label: "Polygon", tip: "Click each corner", key: "p" },
+];
+
 const SHAPE_OPTIONS: { value: Shape; label: ReactNode; tip: string }[] = [
   { value: "circle", label: <Icon name="circle" />, tip: "Circle" },
   { value: "rectangle", label: <Icon name="rectangle" />, tip: "Rectangle" },
@@ -43,6 +56,9 @@ const SHAPE_OPTIONS: { value: Shape; label: ReactNode; tip: string }[] = [
 ];
 
 export function SitePanel({
+  onPick,
+  tool,
+  onTool,
   name,
   onName,
   area,
@@ -68,21 +84,28 @@ export function SitePanel({
         <EditableText className="site-name" value={name} placeholder="Untitled site" onCommit={onName} />
       </div>
 
-      {area === null ? (
-        <div className="site-hint">
-          <p>Search for a place, then draw the site.</p>
-          <ul className="hint-keys">
-            <li>
-              <Keys shortcut="c" /> Circle from its centre
-            </li>
-            <li>
-              <Keys shortcut="r" /> Rectangle corner to corner
-            </li>
-            <li>
-              <Keys shortcut="p" /> Polygon, click each corner
-            </li>
-          </ul>
+      <div className="site-find">
+        <SearchBox onPick={onPick} />
+        {/* Drawing replaces the site; Shape below changes the one already drawn. */}
+        <span className="field-label">{area === null ? "Draw" : "Draw again"}</span>
+        <div className="draw-tools" role="toolbar" aria-label="Drawing tools">
+          {TOOLS.map((entry) => (
+            <Button
+              key={entry.tool}
+              icon={entry.icon}
+              tip={entry.tip}
+              shortcut={entry.key}
+              isActive={tool === entry.tool}
+              onClick={() => onTool(entry.tool)}
+            >
+              {entry.label}
+            </Button>
+          ))}
         </div>
+      </div>
+
+      {area === null ? (
+        <p className="site-hint">Search for a place, then pick a shape and draw the site on the map.</p>
       ) : (
         <div className="site-facts">
           <div className="shape-row">

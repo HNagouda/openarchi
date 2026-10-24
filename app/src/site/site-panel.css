@@ -1,0 +1,211 @@
+/* The panel beside the map: search, draw tools, facts and the fetch. */
+
+/* * ==== side panel ==== */
+
+.site-panel {
+  width: var(--inspector-width);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.site-panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.site-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.site-find {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.site-find .search {
+  margin-bottom: 6px;
+}
+
+/* Three equal tools under the search, so the shape you draw with is never hidden on the map. */
+.draw-tools {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.draw-tools .button {
+  padding: 0 6px;
+  font-size: 12.5px;
+}
+
+.draw-tools .button.is-active {
+  background: var(--strong);
+  color: var(--text-on-strong);
+}
+
+.site-hint {
+  margin: 0;
+  padding: 16px;
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+.site-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.shape-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shape-row .field-label {
+  flex: 1;
+}
+
+.shape-row .segment {
+  width: 32px;
+}
+
+.fact-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.fact-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.area-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.area-value.is-over {
+  color: var(--brand);
+}
+
+.area-meter {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.area-meter-fill {
+  height: 100%;
+  background: var(--text-2);
+  transition: width var(--medium) var(--ease);
+}
+
+.area-meter-fill.is-over {
+  background: var(--brand);
+}
+
+.area-caption {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.site-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+.site-panel-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.site-panel-foot .problem {
+  box-shadow: none;
+  padding: 0;
+  background: transparent;
+}
+
+.button.wide {
+  width: 100%;
+  height: 32px;
+}
+
+.fetch-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fetch-progress-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.fetch-count {
+  color: var(--text-3);
+}
+
+.progress-track {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--strong);
+  transition: width 300ms var(--ease);
+}
+
+:root[data-appearance="dark"] .progress-fill {
+  background: var(--accent);
+}
+
+.progress-fill.is-waiting {
+  animation: waiting 1.2s var(--ease) infinite;
+}
+
+@keyframes waiting {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}

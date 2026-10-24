@@ -26,7 +26,6 @@ import { Button } from "../ui/Button";
 import { useToast } from "../ui/Toasts";
 import { bounds } from "./geometry";
 import { ADDRESS_ZOOM, NETHERLANDS_CENTER, NETHERLANDS_ZOOM, PLACE_ZOOM, addSiteLayers, styleFor } from "./mapStyle";
-import { SearchBox } from "./SearchBox";
 import { SitePanel, type FetchState } from "./SitePanel";
 import { convertArea, type Shape } from "./shapes";
 import { useAreaHistory } from "./useAreaHistory";
@@ -47,12 +46,6 @@ const NO_FETCH = -1;
 const STARTING = -2;
 
 type Props = { project: ProjectView | null; navigate: Navigate };
-
-const TOOLS: { tool: Tool; icon: "back" | "circle" | "rectangle" | "polygon"; tip: string; key: string }[] = [
-  { tool: "circle", icon: "circle", tip: "Circle", key: "c" },
-  { tool: "rectangle", icon: "rectangle", tip: "Rectangle", key: "r" },
-  { tool: "polygon", icon: "polygon", tip: "Polygon", key: "p" },
-];
 
 /** The hint at the bottom of the map for what the mouse does right now. */
 function statusFor(tool: Tool, pointCount: number, selected: Area | null): string | null {
@@ -308,21 +301,6 @@ export function SiteStep({ project, navigate }: Props) {
       <div className="site-body">
         <div className="map-wrap">
           <div ref={container} className="map" />
-          <div className="map-overlay-top">
-            <SearchBox onPick={pickPlace} />
-            <div className="tool-palette" role="toolbar" aria-label="Drawing tools">
-              {TOOLS.map((entry) => (
-                <Button
-                  key={entry.tool}
-                  icon={entry.icon}
-                  tip={entry.tip}
-                  shortcut={entry.key}
-                  isActive={tool === entry.tool}
-                  onClick={() => setTool(tool === entry.tool ? "pan" : entry.tool)}
-                />
-              ))}
-            </div>
-          </div>
           {statusText && <div className="draw-status">{statusText}</div>}
           <div className="map-zoom">
             <Button icon="zoomOut" tip="Zoom out" shortcut="mod+-" tipSide="above" onClick={() => map?.zoomOut()} />
@@ -337,6 +315,9 @@ export function SiteStep({ project, navigate }: Props) {
         </div>
 
         <SitePanel
+          onPick={pickPlace}
+          tool={tool}
+          onTool={(next) => setTool(tool === next ? "pan" : next)}
           name={name}
           onName={rename}
           area={area}
