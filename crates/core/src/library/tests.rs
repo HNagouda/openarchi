@@ -183,6 +183,17 @@ fn list_is_sorted_newest_first() {
 }
 
 #[test]
+fn list_carries_each_project_look() {
+    let (_folder, library) = library();
+    let mut project = library.create("Westermarkt", westermarkt()).unwrap();
+    save_with_title(&library, &mut project, "Building age");
+
+    let listed = library.list().unwrap();
+
+    assert_eq!(listed[0].look.as_ref(), Some(&project.look));
+}
+
+#[test]
 fn corrupt_file_is_listed_with_an_error_and_the_rest_still_list() {
     let (folder, library) = library();
     let good = library.create("Westermarkt", westermarkt()).unwrap();

@@ -22,6 +22,8 @@ struct SummaryFields {
     modified: String,
     #[serde(default)]
     scene: Option<IgnoredAny>,
+    #[serde(default)]
+    look: Option<Value>,
 }
 
 /// A save writes here first and renames over the real file when complete.
@@ -77,6 +79,9 @@ pub(super) fn summarize(path: &Path) -> Result<ProjectSummary> {
         name: fields.name,
         modified: fields.modified,
         has_scene: fields.scene.is_some(),
+        // Summaries skip migration to stay fast, so a look in an older shape
+        // is left out rather than failing the whole entry.
+        look: fields.look.and_then(|look| serde_json::from_value(look).ok()),
         error: None,
     })
 }
@@ -87,6 +92,7 @@ pub(super) fn unreadable(path: &Path, file_time: SystemTime, error: Error) -> Pr
         name: file_stem(path),
         modified: humantime::format_rfc3339_nanos(file_time).to_string(),
         has_scene: false,
+        look: None,
         error: Some(error.to_string()),
     }
 }

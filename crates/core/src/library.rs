@@ -72,6 +72,9 @@ pub struct ProjectSummary {
     pub name: String,
     pub modified: String,
     pub has_scene: bool,
+    /// The diagram, theme and sheet, so a gallery card can print its scale and paper.
+    #[serde(default)]
+    pub look: Option<Look>,
     /// Set when the file cannot be read. The project still shows in the list,
     /// so the user can see it exists and restore a backup.
     #[serde(default)]
