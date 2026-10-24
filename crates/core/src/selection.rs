@@ -5,14 +5,16 @@
 //! exactly like a whole site, so there is no second renderer to drift, the
 //! drawing zooms to the area, and the ratios describe it. The walk is kept
 //! whole, because it starts at the site centre and never stopped at the site
-//! edge either.
+//! edge either. The rest of the site joins the neighbourhood, so a zoomed-in
+//! sheet shows it muted around the area rather than a blank gap before the ring.
 
 use std::borrow::Cow;
+use std::collections::BTreeSet;
 
-use geo::{Area as _, BooleanOps, Coord, MapCoords, Polygon};
+use geo::{Area as _, BooleanOps, Contains, Coord, MapCoords, Polygon};
 
 use crate::area::Area;
-use crate::scene::{Feature, Scene};
+use crate::scene::{Feature, Layer, Scene};
 use crate::site::boundary_in_rd;
 use crate::sources::clip::{self, Clipped};
 use crate::{Error, Result};
@@ -47,6 +49,7 @@ pub fn framed(scene: &Scene, selection: &Area) -> Result<Scene> {
     let mut framed = scene.clone();
     framed.area = selection.clone();
     framed.features = clipped(&scene.features, &boundary);
+    framed.context = surroundings(scene, &boundary);
     framed.boundary = boundary;
     Ok(framed)
 }
@@ -73,6 +76,21 @@ fn clipped(features: &[Feature], boundary: &Polygon<f64>) -> Vec<Feature> {
     }
 
     kept
+}
+
+/// The neighbourhood of a framed sheet: the ring around the site, and every
+/// site feature of the ring's layers that reaches outside `boundary`. A scene
+/// fetched without a neighbourhood keeps none, as its whole-site sheets do.
+fn surroundings(scene: &Scene, boundary: &Polygon<f64>) -> Vec<Feature> {
+    let layers: BTreeSet<Layer> = scene.context.iter().map(|feature| feature.layer).collect();
+    let mut around = scene.context.clone();
+    for feature in &scene.features {
+        if layers.contains(&feature.layer) && !boundary.contains(&feature.geometry) {
+            around.push(feature.clone());
+        }
+    }
+
+    around
 }
 
 #[cfg(test)]
@@ -116,7 +134,7 @@ mod tests {
             measured: Default::default(),
             walk: None,
             editions: Default::default(),
-            context: Vec::new(),
+            context: vec![tree(300.0, 0.0)],
         }
     }
 
@@ -150,6 +168,13 @@ mod tests {
     fn a_selection_outside_the_site_is_a_readable_error() {
         let error = framed(&site(), &circle_at(500.0, 0.0, 30.0)).unwrap_err();
         assert!(error.to_string().contains("outside the fetched site"));
+    }
+
+    #[test]
+    fn the_rest_of_the_site_joins_the_neighbourhood() {
+        let framed = framed(&site(), &circle_at(0.0, 0.0, 30.0)).unwrap();
+        // The ring's own tree, and the site's tree in the corner, outside the selection.
+        assert_eq!(framed.context.len(), 2);
     }
 
     #[test]
