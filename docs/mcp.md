@@ -81,6 +81,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `get_neighbourhood` | Counts the businesses, facilities, car and bicycle parking, and transit stops within a 5, 10 and 15 minute walk of the site, by group |
 | `get_analysis` | Gives the site analysis: address, municipality and province, a site summary, the climate from a PVGIS typical year (temperature, outdoor comfort as UTCI hours per stress category in the sun and in the shade, wind by season, sun, humidity), 30 years of rain from the nearest KNMI station, and design notes for each section; with `tab`, the site summary of that sheet's smaller area, while location, climate and rain stay on the whole site |
 | `export` | Writes SVG, PDF, PNG or DXF |
+| `export_laser` | Writes laser cutting files for a site model of a sheet, one SVG or DXF per laser bed, with the same settings and defaults as the app's Laser export; `check_only` returns the summary (beds, pieces, board area, buildings left out) without writing |
 | `list_reports` | Lists the reports laid out in the app, with each page's paper and the blocks placed on it |
 | `export_report` | Writes one report as a PDF with a page per report page, or as an SVG or PNG per page, drawn from the project's current data |
 | `create_theme` | Saves a new theme, which the app picks up too |

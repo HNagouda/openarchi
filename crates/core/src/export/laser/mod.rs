@@ -39,6 +39,14 @@ const MAX_THICKNESS_MM: f64 = 20.0;
 const MIN_BED_MM: f64 = 100.0;
 const MAX_BED_MM: f64 = 3000.0;
 const MM2_PER_M2: f64 = 1_000_000.0;
+/// The scales site models are usually built at. A sheet drawn at one of
+/// them gives the model its scale; any other starts at `DEFAULT_SCALE`.
+const MODEL_SCALES: [u32; 5] = [200, 500, 1000, 2000, 2500];
+const DEFAULT_SCALE: u32 = 1000;
+/// Grey board, the usual material of a model workshop.
+pub const DEFAULT_THICKNESS_MM: f64 = 2.0;
+/// The bed of the most common small laser cutters in schools.
+pub const DEFAULT_BED_MM: (f64, f64) = (600.0, 400.0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -150,6 +158,20 @@ struct Plan {
     summary: LaserSummary,
 }
 
+/// The scale a model of a sheet drawn at `sheet_scale` starts at.
+pub fn default_scale(sheet_scale: u32) -> u32 {
+    if MODEL_SCALES.contains(&sheet_scale) {
+        sheet_scale
+    } else {
+        DEFAULT_SCALE
+    }
+}
+
+/// "westermarkt-laser-2.svg" for the second bed.
+pub fn file_name(stem: &str, number: usize, format: LaserFormat) -> String {
+    format!("{stem}-laser-{number}.{}", format.extension())
+}
+
 /// What exporting `settings` would write, without writing it.
 pub fn summarize(
     scene: &Scene,
@@ -175,10 +197,7 @@ pub fn export(
     let mut files = Vec::new();
     for (index, sheet) in plan.sheets.iter().enumerate() {
         let number = index + 1;
-        let path: PathBuf = folder.join(format!(
-            "{stem}-laser-{number}.{}",
-            settings.format.extension()
-        ));
+        let path: PathBuf = folder.join(file_name(stem, number, settings.format));
         let title = format!(
             "{stem}, laser sheet {number} of {}, 1:{}, {} mm board",
             plan.sheets.len(),

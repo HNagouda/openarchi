@@ -56,7 +56,7 @@ add_sheet for more sheet tabs (each with its own look, and optionally a sub-sele
 of the site), add_pin to mark landmarks on every sheet, render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
 numbers behind it (land use, building use, coverage, floor area ratio), get_analysis \
 for the location, climate and design notes, export to \
-write a file, and list_reports and export_report for the multi-page reports the \
+write a file, export_laser for laser cutting files of a physical site model, and list_reports and export_report for the multi-page reports the \
 user laid out in the app. Projects live in the same library as the openarchi app, so the user sees every \
 project you make there. delete_project moves a project to Recently Deleted and \
 restore_project brings it back.";
@@ -72,7 +72,7 @@ impl OpenArchi {
     pub fn new(library_root: PathBuf) -> Self {
         OpenArchi {
             library_root,
-            tool_router: Self::tool_router() + Self::sheet_tools(),
+            tool_router: Self::tool_router() + Self::sheet_tools() + Self::laser_tools(),
         }
     }
 
