@@ -11,6 +11,7 @@ What changed in each version of openarchi, newest first.
 - ⌘Z and ⇧⌘Z undo and redo every change to the site: drawing, moving, resizing, deleting and typing a radius.
 - Switch a drawn site between circle, rectangle and polygon. It keeps its centre and its size across.
 - A fit button and ⌘0 bring the map back to the drawn site.
+- The place search and the Circle, Rectangle and Polygon tools sit at the top of the side panel instead of floating over the map, so they never cover the site you are drawing. The tools are named, and C, R and P still pick them.
 
 ### Looks
 

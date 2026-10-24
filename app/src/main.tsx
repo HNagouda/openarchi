@@ -7,6 +7,7 @@ import "./styles/ui.css";
 import "./ui/colorPicker.css";
 import "./home/home.css";
 import "./site/site.css";
+import "./site/site-panel.css";
 import "./sheet/sheet.css";
 import "./sheet/text/text.css";
 import "./tour/tour.css";
