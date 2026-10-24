@@ -41,6 +41,11 @@ pub struct Scene {
     /// appears. Scenes from before this field get the years then pinned in code.
     #[serde(default = "crate::site::years_before_editions_were_kept")]
     pub editions: BTreeMap<Layer, i32>,
+    /// Buildings, roads, water and green around the site, outside the
+    /// boundary, drawn muted so the site reads in its neighbourhood. Never
+    /// counted in ratios, legends or analysis. Empty for scenes fetched before it.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context: Vec<Feature>,
 }
 
 impl Scene {

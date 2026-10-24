@@ -208,6 +208,12 @@ OSM storeys are too sparse to rely on: of 1,197 buildings within 300 m of the tw
 
 PDOK's administrative boundaries, CC BY 4.0 with credit "Kadaster". `https://api.pdok.nl/kadaster/bestuurlijkegebieden/ogc/v1/collections/gemeentegebied/items?bbox=5.4900,51.4478,5.4916,51.4488` took 0.13 s and returned Eindhoven (`GM0772`, province `Noord-Brabant`) as a 135,201 byte polygon. `landgebied` (the Netherlands) is 1,439,726 bytes in 0.39 s, which is worth bundling with the app at reduced detail instead of fetching each time. `provinciegebied` is also there.
 
+## How cheaply can the neighbourhood around a site get building heights?
+
+The neighbourhood drawn around a site needs a height per building for the axonometric, but not a roof shape, so 0.5 m AHN cells would be wasted on it. The PDOK AHN WCS takes the WCS 2.0 scaling parameter. Asking for one 250 m tile of `dsm_05m` at `x(120500,120750)`, `y(487500,487750)` returned 705,149 bytes at full resolution in 0.24 s, and with `scaleFactor=0.25` a 125 x 125 cell GeoTIFF of 2 m cells, 50,519 bytes, in 0.13 s. `dtm_05m` scaled the same way was 30,073 bytes. openarchi fetches the neighbourhood's heights this way and caches them as `ahn-dsm_05m-coarse` and `ahn-dtm_05m-coarse`, apart from the full-resolution tiles of the site.
+
+The neighbourhood's buildings, roads, water and green come from the same BAG `pand` and BGT `wegdeel`, `waterdeel` and `begroeidterreindeel` collections as the site, in the same 250 m tiles, so the tiles along the site's edge are fetched once for both. For the 648 m circle at the TU/e campus in Eindhoven (1.32 km²) on an empty cache, that adds 468 tile requests to the 799 the site already makes. Over three runs the tiles finished after 10.3 to 11.7 s without the neighbourhood and 15.5 to 18.0 s with it, while the one Overpass request, which runs alongside them, took 29.7 to 73.6 s and set the total either way.
+
 ## What can be computed locally instead of fetched?
 
 AHN `dsm_05m` and `dtm_05m` plus BAG footprints already cover a lot, and computing them avoids new services entirely:

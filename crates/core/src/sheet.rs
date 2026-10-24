@@ -19,6 +19,10 @@ pub struct Sheet {
     pub show_scale_bar: bool,
     /// Data sources and licenses in small print. Required by CC BY sources, so on by default.
     pub show_credits: bool,
+    /// The neighbourhood around the site, drawn muted outside the boundary.
+    /// On for new sheets; projects from before it open without it.
+    #[serde(default)]
+    pub show_context: bool,
     /// How the title and subtitle are set. Every field left empty follows the theme.
     #[serde(default)]
     pub title_style: TextStyle,
@@ -212,6 +216,7 @@ impl Default for Sheet {
             show_north_arrow: true,
             show_scale_bar: true,
             show_credits: true,
+            show_context: true,
             title_style: TextStyle::default(),
             subtitle_style: TextStyle::default(),
             title_position: None,

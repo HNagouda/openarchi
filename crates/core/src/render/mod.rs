@@ -7,6 +7,7 @@
 
 mod classify;
 mod color;
+mod context;
 mod drawing;
 mod explode;
 mod fonts;
@@ -15,7 +16,9 @@ mod furniture;
 mod geometry;
 mod layout;
 mod legend;
+mod lighting;
 mod map;
+mod massing;
 mod order;
 mod patterns;
 mod points;

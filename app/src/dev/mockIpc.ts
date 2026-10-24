@@ -26,6 +26,7 @@ const SHEET: Sheet = {
   show_north_arrow: true,
   show_scale_bar: true,
   show_credits: true,
+  show_context: true,
   title_style: {},
   subtitle_style: {},
   title_position: null,

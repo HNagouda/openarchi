@@ -19,6 +19,7 @@
 
 use std::fmt::Write;
 
+use super::context::ContextArea;
 use super::frame::ground_outline;
 use super::geometry::{decimal, ground_centre, mm, Projection};
 use super::layout::Layout;
@@ -42,6 +43,8 @@ const DOT_RADIUS: f64 = 0.55;
 const LINE_MM: f64 = 0.15;
 const GUIDE_DASH: &str = "0.2 1";
 const GUIDE_OPACITY: f64 = 0.6;
+/// How far the bottom plate's neighbourhood reaches, as a multiple of the plate's own reach.
+const NEIGHBOURHOOD_REACH: f64 = 1.6;
 
 pub fn render(
     input: &RenderInput,
@@ -59,10 +62,20 @@ pub fn render(
     // The plate outline at 1 mm per metre, centred on the paper origin.
     let centre = ground_centre(&input.scene.boundary);
     let unit_view = Projection::tilted(centre, 1.0, view.rotation_deg, view.tilt_deg).flat();
-    let outline: Vec<(f64, f64)> = ground_outline(look.sheet.frame, input.scene, centre)
-        .into_iter()
-        .map(|(x, y)| unit_view.to_paper(x, y))
+    let ground = ground_outline(look.sheet.frame, input.scene, centre);
+    let outline: Vec<(f64, f64)> = ground
+        .iter()
+        .map(|&(x, y)| unit_view.to_paper(x, y))
         .collect();
+    let plate_reach_m = ground
+        .iter()
+        .map(|&(x, y)| ((x - centre.0).powi(2) + (y - centre.1).powi(2)).sqrt())
+        .fold(0.0, f64::max);
+    // Only the bottom plate stands in the neighbourhood; the plates above would only cover it.
+    let bottom_context = ContextArea {
+        zone: layout.drawing,
+        reach_m: Some(plate_reach_m * NEIGHBOURHOOD_REACH),
+    };
     let mut bounds = Bounds::default();
     for &point in &outline {
         bounds.add(point);
@@ -123,6 +136,7 @@ pub fn render(
             has_volume: false,
             is_plate: true,
             reach_m: None,
+            context: (index == plates.len() - 1).then_some(bottom_context),
         };
         let map = draw(input, &spec, typesetter)?;
         defs.push_str(&map.defs);
