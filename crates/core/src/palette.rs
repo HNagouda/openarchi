@@ -70,6 +70,10 @@ pub struct PaletteDraft {
     /// The type of the theme it was duplicated from; Inter otherwise.
     #[serde(default)]
     pub typography: Option<Typography>,
+    /// The id of the theme it was duplicated from, so an unchanged copy keeps
+    /// that theme's hand-made look; see `check_copy`.
+    #[serde(default)]
+    pub based_on: Option<String>,
 }
 
 /// The theme a draft becomes, how each role was filled, and what reads badly.
@@ -94,6 +98,36 @@ pub fn check(draft: &PaletteDraft, id: &str) -> Result<PaletteCheck> {
     })
 }
 
+/// Like `check`, for a draft duplicated from `base`. While its swatches and
+/// pins are still the ones `draft_from(base)` gave it, the theme is a copy of
+/// `base` under the new id and name: a built-in theme's hand-tuned roads,
+/// ramps and categories are worth more than mixed ones. Any change switches
+/// to the mixed theme.
+pub fn check_copy(draft: &PaletteDraft, id: &str, base: &Theme) -> Result<PaletteCheck> {
+    let mixed = check(draft, id)?;
+    let untouched = draft_from(base, &draft.name);
+    let is_unchanged = base.source.is_none()
+        && untouched.swatches == draft.swatches
+        && untouched.roles == draft.roles;
+    if !is_unchanged {
+        return Ok(mixed);
+    }
+
+    let theme = Theme {
+        id: id.to_string(),
+        name: mixed.theme.name.clone(),
+        author: mixed.theme.author.clone(),
+        source: mixed.theme.source.clone(),
+        ..base.clone()
+    };
+    let warnings = contrast_warnings(&theme);
+    Ok(PaletteCheck {
+        theme,
+        roles: mixed.roles,
+        warnings,
+    })
+}
+
 /// A draft holding `theme`'s main colours, each pinned to its role, so
 /// duplicating a built-in palette starts from what it looks like.
 pub fn draft_from(theme: &Theme, name: &str) -> PaletteDraft {
@@ -103,6 +137,7 @@ pub fn draft_from(theme: &Theme, name: &str) -> PaletteDraft {
             swatches: source.swatches.clone(),
             roles: source.roles.clone(),
             typography: Some(theme.typography.clone()),
+            based_on: Some(theme.id.clone()),
         };
     }
 
@@ -128,6 +163,7 @@ pub fn draft_from(theme: &Theme, name: &str) -> PaletteDraft {
         swatches,
         roles,
         typography: Some(theme.typography.clone()),
+        based_on: Some(theme.id.clone()),
     }
 }
 

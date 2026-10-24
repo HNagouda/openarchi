@@ -78,6 +78,8 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `get_analysis` | Gives the site analysis: address, municipality and province, a site summary, the climate from a PVGIS typical year (temperature, outdoor comfort as UTCI hours per stress category in the sun and in the shade, wind by season, sun, humidity), 30 years of rain from the nearest KNMI station, and design notes for each section |
 | `export` | Writes SVG, PDF, PNG or DXF |
 | `create_theme` | Saves a new theme, which the app picks up too |
+| `import_palette` | Turns a palette generator's export (hex codes, JSON, SVG swatches, XML or a link) into a theme, with the roles it chose and any contrast warnings |
+| `list_user_palettes` | Lists the palettes the user made or imported, with their swatches |
 | `delete_project`, `restore_project` | Moves a project to Recently Deleted and back |
 
 ## What is a variant?

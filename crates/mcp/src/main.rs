@@ -5,6 +5,7 @@
 
 mod inputs;
 mod look;
+mod palettes;
 mod resolve;
 mod server;
 mod summary;

@@ -42,6 +42,7 @@ fn main() {
         swatches: parse(&text).expect("read the palette"),
         roles: RoleChoice::default(),
         typography: None,
+        based_on: None,
     };
     let checked = check(&draft, PALETTE_ID).expect("build the theme");
     for role in &checked.roles {

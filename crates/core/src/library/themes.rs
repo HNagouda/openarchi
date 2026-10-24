@@ -147,6 +147,7 @@ mod tests {
             swatches: parse("f79f79, f7d08a, e3f09b, 87b6a7, 5b5941").unwrap(),
             roles: RoleChoice::default(),
             typography: None,
+            based_on: None,
         };
         check(&draft, id).unwrap().theme
     }

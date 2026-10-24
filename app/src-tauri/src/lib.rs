@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use openarchi_core::library::Library;
 use tauri::Manager;
 
-use crate::commands::{analysis, export, library, ratios, render, site};
+use crate::commands::{analysis, export, library, palettes, ratios, render, site};
 use crate::guard::{calm, text};
 use crate::state::AppState;
 
@@ -72,6 +72,14 @@ pub fn run() {
             analysis::get_analysis,
             analysis::analysis_file_name,
             analysis::export_analysis,
+            palettes::import_palette,
+            palettes::check_palette,
+            palettes::render_palette_preview,
+            palettes::palette_draft,
+            palettes::save_palette,
+            palettes::rename_palette,
+            palettes::delete_palette,
+            palettes::restore_palette,
         ])
         .run(tauri::generate_context!())
         .expect("openarchi could not start its window");

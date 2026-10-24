@@ -9,6 +9,7 @@ fn draft(text: &str) -> PaletteDraft {
         swatches: parse(text).unwrap(),
         roles: RoleChoice::default(),
         typography: None,
+        based_on: None,
     }
 }
 
@@ -138,4 +139,23 @@ fn a_saved_palette_opens_again_with_its_swatches_and_pins() {
     let again = draft_from(&theme, "Five");
     assert_eq!(again.swatches, pinned.swatches);
     assert_eq!(again.roles, pinned.roles);
+}
+
+#[test]
+fn an_unchanged_copy_keeps_the_builtin_look_and_a_changed_one_is_mixed() {
+    let paper = builtin_themes()
+        .into_iter()
+        .find(|theme| theme.id == "paper")
+        .unwrap();
+    let copy = draft_from(&paper, "Paper, mine");
+    let kept = check_copy(&copy, "paper-mine", &paper).unwrap().theme;
+    assert_eq!(kept.layers, paper.layers);
+    assert_eq!(kept.ramp, paper.ramp);
+    assert_eq!(kept.name, "Paper, mine");
+
+    let mut changed = copy.clone();
+    changed.swatches[0].hex = "#FFFFFF".to_string();
+    let mixed = check_copy(&changed, "paper-mine", &paper).unwrap().theme;
+    assert_eq!(mixed.palette.paper, "#FFFFFF");
+    assert_ne!(mixed.layers, paper.layers);
 }
