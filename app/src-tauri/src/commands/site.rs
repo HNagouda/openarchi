@@ -4,6 +4,7 @@ use std::f64::consts::PI;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
+use geo::orient::{Direction, Orient};
 use geo::{GeodesicArea, LineString, Polygon};
 use openarchi_core::area::{Area, LonLat, MAX_AREA_M2};
 use openarchi_core::geocode::{self, Place};
@@ -51,9 +52,11 @@ pub async fn search_places(query: String) -> Result<Vec<Place>, String> {
     blocking(move || geocode::search(&query, SEARCH_LIMIT).map_err(text)).await
 }
 
+/// Counterclockwise whichever way it was drawn: on a sphere a clockwise ring
+/// encloses the rest of the earth, which made a 4 km² polygon measure 510 million.
 fn ring(points: &[LonLat]) -> Polygon<f64> {
     let coords: Vec<(f64, f64)> = points.iter().map(|point| (point.lon, point.lat)).collect();
-    Polygon::new(LineString::from(coords), vec![])
+    Polygon::new(LineString::from(coords), vec![]).orient(Direction::Default)
 }
 
 fn corner_points(area: &Area) -> Vec<LonLat> {
@@ -170,3 +173,45 @@ pub async fn current_project(state: State<'_, Shared>) -> Result<ProjectView, St
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// About 2 km by 2 km around Eindhoven, corners in the given order.
+    fn square(clockwise: bool) -> Area {
+        let mut points = vec![
+            LonLat {
+                lon: 5.46,
+                lat: 51.43,
+            },
+            LonLat {
+                lon: 5.4888,
+                lat: 51.43,
+            },
+            LonLat {
+                lon: 5.4888,
+                lat: 51.448,
+            },
+            LonLat {
+                lon: 5.46,
+                lat: 51.448,
+            },
+        ];
+        if clockwise {
+            points.reverse();
+        }
+        Area::Polygon { points }
+    }
+
+    #[test]
+    fn a_polygon_measures_the_same_whichever_way_it_was_drawn() {
+        let counterclockwise = measure_area(square(false)).m2;
+        let clockwise = measure_area(square(true)).m2;
+
+        assert!(
+            (3.9e6..4.1e6).contains(&counterclockwise),
+            "{counterclockwise}"
+        );
+        assert!((clockwise - counterclockwise).abs() < 1.0, "{clockwise}");
+    }
+}
