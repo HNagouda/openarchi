@@ -1,8 +1,14 @@
+import { useState } from "react";
+import { readPreference, writePreference } from "../../lib/storage";
 import type { Catalog, Look, ProjectView } from "../../lib/types";
+import { Segmented } from "../../ui/Segmented";
 import { DiagramSection } from "./DiagramSection";
 import { LayersSection } from "./LayersSection";
+import { RatiosPanel } from "./RatiosPanel";
 import { SheetSection } from "./SheetSection";
 import { ThemeSection } from "./ThemeSection";
+
+type Tab = "style" | "ratios";
 
 type Props = {
   catalog: Catalog;
@@ -15,30 +21,52 @@ type Props = {
 
 /** The right-hand panel. Every control edits the look, and every edit can be undone. */
 export function Inspector({ catalog, project, look, thumbnails, onLook, onSeal }: Props) {
+  const [tab, setTab] = useState<Tab>(() => readPreference<Tab>("inspectorTab", "style"));
   const diagram = catalog.diagrams.find((entry) => entry.id === look.diagram_id);
   const theme = catalog.themes.find((entry) => entry.id === look.theme_id);
 
+  const changeTab = (next: Tab) => {
+    setTab(next);
+    writePreference("inspectorTab", next);
+  };
+
   return (
     <aside className="inspector">
-      <DiagramSection
-        diagrams={catalog.diagrams}
-        selectedId={look.diagram_id}
-        thumbnails={thumbnails}
-        onSelect={(diagram_id) => onLook({ ...look, diagram_id })}
-      />
-      <ThemeSection themes={catalog.themes} selectedId={look.theme_id} onSelect={(theme_id) => onLook({ ...look, theme_id })} />
-      {diagram && theme && (
-        <LayersSection
-          diagram={diagram}
-          theme={theme}
-          look={look}
-          labels={catalog.layers}
-          layersPresent={project.layers_present}
-          onLook={onLook}
-          onSeal={onSeal}
+      <div className="inspector-tabs">
+        <Segmented
+          label="Inspector"
+          value={tab}
+          options={[
+            { value: "style", label: "Style" },
+            { value: "ratios", label: "Ratios", tip: "How the site divides up, in numbers" },
+          ]}
+          onChange={changeTab}
         />
+      </div>
+      {tab === "ratios" && <RatiosPanel project={project} themeId={look.theme_id} />}
+      {tab === "style" && (
+        <>
+          <DiagramSection
+            diagrams={catalog.diagrams}
+            selectedId={look.diagram_id}
+            thumbnails={thumbnails}
+            onSelect={(diagram_id) => onLook({ ...look, diagram_id })}
+          />
+          <ThemeSection themes={catalog.themes} selectedId={look.theme_id} onSelect={(theme_id) => onLook({ ...look, theme_id })} />
+          {diagram && theme && (
+            <LayersSection
+              diagram={diagram}
+              theme={theme}
+              look={look}
+              labels={catalog.layers}
+              layersPresent={project.layers_present}
+              onLook={onLook}
+              onSeal={onSeal}
+            />
+          )}
+          <SheetSection look={look} onLook={onLook} onSeal={onSeal} />
+        </>
       )}
-      <SheetSection look={look} onLook={onLook} onSeal={onSeal} />
     </aside>
   );
 }

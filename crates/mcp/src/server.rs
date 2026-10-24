@@ -10,7 +10,7 @@ use openarchi_core::area::Area;
 use openarchi_core::export::{self, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
-use openarchi_core::{catalog, geocode, site};
+use openarchi_core::{catalog, geocode, ratios, site};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -19,7 +19,8 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::inputs::{
-    CreateProject, CreateTheme, Export, ListThemes, ProjectId, RenderPreview, SearchPlaces, SetLook,
+    CreateProject, CreateTheme, Export, GetRatios, ListThemes, ProjectId, RenderPreview,
+    SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
 use crate::resolve::{find_diagram, find_theme, with_render_input};
@@ -47,8 +48,9 @@ const INSTRUCTIONS: &str = "openarchi turns a site in the Netherlands into style
 site-analysis diagrams (figure-ground, building age, heights, uses, green and water). \
 A typical session: search_places to find the site, create_project with an area around \
 it, fetch_site to download the site data, list_diagrams and list_themes, set_look to \
-choose and tune the style, render_preview to look at the sheet, and export to write a \
-file. Projects live in the same library as the openarchi app, so the user sees every \
+choose and tune the style, render_preview to look at the sheet, get_ratios for the \
+numbers behind it (land use, building use, coverage, floor area ratio), and export to \
+write a file. Projects live in the same library as the openarchi app, so the user sees every \
 project you make there. delete_project moves a project to Recently Deleted and \
 restore_project brings it back.";
 
@@ -224,6 +226,27 @@ impl OpenArchi {
             )]),
             Err(message) => CallToolResult::error(vec![ContentBlock::text(message)]),
         }
+    }
+
+    #[tool(
+        description = "Get the site's ratios: how it divides up, as groups of shares that each add up to 100 %. Land use and transport are by area in m² inside the site; building use, floors, height, year built and footprint by number of buildings; building coverage and floor area ratio by number of parcels; green and water by area. Each row has label, value, share (0 to 1) and fill, the theme colour the diagrams use for it. Also returns the site area, building count, and overall coverage and floor area ratio. Floors are estimated from roof height at 3 m per floor. The site must have been fetched first."
+    )]
+    async fn get_ratios(&self, Parameters(input): Parameters<GetRatios>) -> CallToolResult {
+        let result = self
+            .with_library(move |library| {
+                let project = library.load(&input.id).map_err(text)?;
+                let Some(scene) = &project.scene else {
+                    return Err(format!(
+                        "project '{}' has no site data yet; call fetch_site first",
+                        input.id
+                    ));
+                };
+                let theme_id = input.theme_id.unwrap_or(project.look.theme_id.clone());
+                let theme = find_theme(&library.themes_dir(), &theme_id)?;
+                ratios::compute(scene, &theme).map_err(text)
+            })
+            .await;
+        reply(result)
     }
 
     #[tool(

@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use openarchi_core::library::Library;
 use tauri::Manager;
 
-use crate::commands::{export, library, render, site};
+use crate::commands::{export, library, ratios, render, site};
 use crate::guard::{calm, text};
 use crate::state::AppState;
 
@@ -66,6 +66,9 @@ pub fn run() {
             export::export_series,
             export::reveal_path,
             export::open_link,
+            ratios::get_ratios,
+            ratios::ratios_file_name,
+            ratios::export_ratios,
         ])
         .run(tauri::generate_context!())
         .expect("openarchi could not start its window");

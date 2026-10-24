@@ -12,7 +12,7 @@ use crate::guard::blocking;
 use crate::state::{lock, Shared};
 
 /// "Westermarkt, Amsterdam" -> "westermarkt-amsterdam".
-fn slug(name: &str) -> String {
+pub fn slug(name: &str) -> String {
     let mut slug = String::new();
     for letter in name.to_lowercase().chars() {
         if letter.is_alphanumeric() {

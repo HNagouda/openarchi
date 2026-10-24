@@ -22,6 +22,7 @@ crates/core/            the library: no window, no async
   src/theme.rs          how a sheet looks
   src/sheet.rs          paper, scale, frame and furniture
   src/render/           scene + diagram + theme + sheet -> SVG
+  src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/export/           SVG -> PDF and PNG, scene -> DXF
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
   src/project.rs        one site plus the look the user chose

@@ -12,6 +12,7 @@ pub mod export;
 pub mod geocode;
 pub mod library;
 pub mod project;
+pub mod ratios;
 pub mod render;
 pub mod scene;
 pub mod sheet;

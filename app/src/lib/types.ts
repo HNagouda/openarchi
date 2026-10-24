@@ -136,3 +136,16 @@ export type AreaSize = { m2: number; max_m2: number; in_netherlands: boolean };
 export type Progress = { step: string; done: number; total: number };
 
 export type ExportFormat = "svg" | "pdf" | "png" | "dxf";
+
+// crates/core/src/ratios.rs
+export type RatioUnit = "square_metres" | "buildings" | "parcels";
+export type RatioRow = { label: string; value: number; share: number; fill: string };
+export type RatioGroup = { id: string; title: string; unit: RatioUnit; total: number; rows: RatioRow[]; note: string | null };
+export type Ratios = {
+  site_area_m2: number;
+  building_count: number;
+  coverage: number;
+  floor_area_ratio: number;
+  groups: RatioGroup[];
+};
+export type ChartStyle = "bar" | "pie";

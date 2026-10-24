@@ -143,6 +143,14 @@ pub struct RenderPreview {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetRatios {
+    /// The project id.
+    pub id: String,
+    /// Theme whose colours the rows take, like "paper". Defaults to the project's own theme.
+    pub theme_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct Export {
     /// The project id.
     pub id: String,

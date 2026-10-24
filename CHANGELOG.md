@@ -23,6 +23,14 @@ What changed in each version of openarchi, newest first.
 - Every layer row shows a chevron, the same one the section headers use, so it is clear the row opens to its fill, line and opacity. The eye to hide a layer sits at the end of the row.
 - Themes are picked from a compact menu, like choosing a font: the closed control shows the current theme and its colours, and the open menu lists every theme with its colours, your own themes in their own group. [ and ] still step through them.
 
+### Ratios
+
+- The inspector has a Ratios view next to Style: how the site divides up, as bars or pies. Land use and transport by area, building use, floors, height, year built and footprint by building, building coverage and floor area ratio by parcel, and green and water by type.
+- Classes are fixed, so two sites compare directly, and height and year built use the same classes as their diagrams. Colours come from the current theme, so the numbers match the sheet.
+- Floors are estimated from building height at 3 m per floor.
+- Export the ratios as a CSV table or as an SVG page of charts in the sheet's theme.
+- Assistants can read the same numbers with the `get_ratios` tool.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

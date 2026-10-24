@@ -1,0 +1,155 @@
+/* The inspector's Ratios view. Row colours come from the sheet theme; the
+   chrome around them uses the app tokens like every other panel. */
+
+.inspector-tabs {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ratios-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ratios-toolbar .segmented {
+  flex: 1;
+}
+
+.ratios-empty {
+  padding: 12px 16px;
+}
+
+.ratios-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--line);
+}
+
+.ratios-summary > div {
+  padding: 10px 16px;
+  background: var(--bg);
+}
+
+.ratios-summary dt {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.ratios-summary dd {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ratio-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ratio-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ratio-row-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+/* A hairline keeps a swatch in the paper colour visible on the panel. */
+.ratio-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.ratio-label {
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ratio-share {
+  flex: none;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.ratio-value {
+  flex: none;
+  margin-left: auto;
+  color: var(--text-3);
+}
+
+.ratio-track {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.ratio-bar {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: width var(--medium) var(--ease);
+}
+
+.ratio-pie {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.ratio-pie svg {
+  flex: none;
+  width: 64px;
+  height: 64px;
+}
+
+.ratio-pie .ratio-rows {
+  flex: 1;
+  gap: 6px;
+}
+
+/* Next to a pie the legend is narrow, so long labels wrap rather than lose their ends. */
+.ratio-pie .ratio-row-text {
+  align-items: flex-start;
+  line-height: 1.35;
+}
+
+.ratio-pie .ratio-label {
+  white-space: normal;
+}
+
+.ratio-pie .ratio-swatch {
+  margin-top: 3px;
+}
+
+/* The panel background between slices, so neighbours in similar shades stay apart. */
+.ratio-slice {
+  stroke: var(--bg);
+  stroke-width: 1.2;
+}

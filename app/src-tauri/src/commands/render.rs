@@ -76,7 +76,7 @@ pub fn with_input<T>(
     work(&input).map_err(text)
 }
 
-fn open_scene(state: &AppState) -> Result<Arc<Scene>, String> {
+pub fn open_scene(state: &AppState) -> Result<Arc<Scene>, String> {
     match lock(&state.open).as_ref() {
         Some(open) => match &open.scene {
             Some(scene) => Ok(scene.clone()),

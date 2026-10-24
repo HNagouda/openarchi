@@ -7,12 +7,14 @@ import type {
   Area,
   AreaSize,
   Catalog,
+  ChartStyle,
   ExportFormat,
   Look,
   Place,
   Progress,
   ProjectSummary,
   ProjectView,
+  Ratios,
 } from "./types";
 
 export const libraryPath = () => invoke<string>("library_path");
@@ -70,3 +72,9 @@ export function errorText(error: unknown): string {
 
 export const exportFileName = (diagramId: string, format: ExportFormat) =>
   invoke<string>("export_file_name", { diagramId, format });
+
+export const getRatios = (themeId: string) => invoke<Ratios>("get_ratios", { themeId });
+export const ratiosFileName = () => invoke<string>("ratios_file_name");
+/** CSV or SVG, by the extension of `path`. */
+export const exportRatios = (themeId: string, style: ChartStyle, path: string) =>
+  invoke<string>("export_ratios", { themeId, style, path });

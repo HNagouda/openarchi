@@ -32,6 +32,11 @@ use crate::Result;
 pub(crate) use color::{is_hex, role, ROLES};
 pub(crate) use drawing::layer_slug;
 pub(crate) use fonts::{is_bundled as is_bundled_font, BUNDLED as BUNDLED_FONTS};
+// Shared with ratios, so its rows take the same classes and colours as the diagrams.
+pub(crate) use classify::{build as build_classes, class_of};
+pub(crate) use color::{mix, resolve as resolve_colour, sample_ramp};
+pub(crate) use fonts::Face;
+pub(crate) use svg::{escape, layer_attributes};
 
 use drawing::{pattern_id, write_layer};
 use frame::FrameShape;

@@ -8,14 +8,22 @@
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
+use openarchi_core::library::Library;
+use openarchi_core::scene::Scene;
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
 /// The newest protocol version that still starts with an initialize handshake.
 const PROTOCOL_VERSION: &str = "2025-11-25";
 
+/// The core's recorded Westermarkt scene, so a test can have a fetched site offline.
+const WESTERMARKT_SCENE: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../core/tests/fixtures/westermarkt.scene.json"
+);
+
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 13] = [
+const TOOLS: [&str; 14] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -25,6 +33,7 @@ const TOOLS: [&str; 13] = [
     "list_themes",
     "set_look",
     "render_preview",
+    "get_ratios",
     "export",
     "create_theme",
     "delete_project",
@@ -294,6 +303,46 @@ fn preview_before_a_fetch_says_to_fetch_first() {
 
     let message = server.call_err("render_preview", json!({ "id": id }));
     assert!(message.contains("fetch_site"), "{message}");
+}
+
+#[test]
+fn ratios_before_a_fetch_say_to_fetch_first() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let message = server.call_err("get_ratios", json!({ "id": id }));
+    assert!(message.contains("fetch_site"), "{message}");
+}
+
+#[test]
+fn get_ratios_returns_groups_that_add_up_in_the_requested_theme() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+    let library = Library::at(server.library.path()).unwrap();
+    let mut project = library.load(&id).unwrap();
+    let scene: Scene =
+        serde_json::from_str(&std::fs::read_to_string(WESTERMARKT_SCENE).unwrap()).unwrap();
+    project.scene = Some(scene);
+    library.save(&mut project).unwrap();
+
+    let ratios = server.call_ok("get_ratios", json!({ "id": id, "theme_id": "midnight" }));
+
+    assert!(ratios["building_count"].as_u64().unwrap() > 1000);
+    let groups = ratios["groups"].as_array().unwrap();
+    let land_use = groups
+        .iter()
+        .find(|group| group["id"] == json!("land_use"))
+        .unwrap();
+    assert_eq!(land_use["unit"], json!("square_metres"));
+    let shares: f64 = land_use["rows"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| row["share"].as_f64().unwrap())
+        .sum();
+    assert!((shares - 1.0).abs() < 1e-9, "{shares}");
+    let message = server.call_err("get_ratios", json!({ "id": id, "theme_id": "nope" }));
+    assert!(message.contains("list_themes"), "{message}");
 }
 
 #[test]
