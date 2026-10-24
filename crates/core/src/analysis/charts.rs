@@ -6,7 +6,7 @@
 
 use std::fmt::Write;
 
-use super::climate::{Climate, COMFORT_EDGES_C, COMFORT_LABELS};
+use super::climate::Climate;
 use super::figure::{
     figure, legend, line, percent, rect, text, ticks, Figure, MonthAxes, Paint, HAIRLINE_MM,
     INSET_MM, LINE_MM, SMALL_MM, WIDTH_MM,
@@ -20,7 +20,7 @@ const AXIS_LABEL_MM: f64 = 9.0;
 const PLOT_HEIGHT_MM: f64 = 34.0;
 /// Space above the plot for the labels over the bars.
 const HEADROOM_MM: f64 = 4.5;
-const LEGEND_GAP_MM: f64 = 3.2;
+pub(super) const LEGEND_GAP_MM: f64 = 3.2;
 
 /// The temperatures the bar colours run between, light end to strong end:
 /// a cold Dutch winter month to a warm summer one.
@@ -29,7 +29,7 @@ const WARM_MEAN_C: f64 = 20.0;
 const TEMPERATURE_STEP_C: f64 = 5.0;
 /// A daily range bar takes this share of its month's column.
 const RANGE_BAR_SHARE: f64 = 0.4;
-const STACK_BAR_SHARE: f64 = 0.62;
+pub(super) const STACK_BAR_SHARE: f64 = 0.62;
 const PAIR_BAR_SHARE: f64 = 0.36;
 
 const HUMIDITY_FLOOR_PCT: f64 = 50.0;
@@ -112,41 +112,6 @@ pub fn temperature(climate: &Climate, paint: &Paint) -> Figure {
     ];
     let height = legend(&mut out, axes.left, bottom + LEGEND_GAP_MM, &items, paint) + INSET_MM;
     figure("temperature", height, out, paint)
-}
-
-pub fn comfort(climate: &Climate, paint: &Paint) -> Figure {
-    let axes = axes(0.0, 100.0);
-    let mut out = String::new();
-    let bottom = axes.draw(&mut out, &[0.0, 50.0, 100.0], " %", paint);
-    let colours = comfort_colours(paint);
-
-    let width = axes.column_width() * STACK_BAR_SHARE;
-    for (index, month) in climate.months.iter().enumerate() {
-        let total: u32 = month.comfort_hours.iter().sum();
-        let mut cumulative = 0.0;
-        for (band, hours) in month.comfort_hours.iter().enumerate() {
-            let share = *hours as f64 / total.max(1) as f64 * 100.0;
-            let top = axes.y(cumulative + share);
-            rect(
-                &mut out,
-                axes.x(index) - width / 2.0,
-                top,
-                width,
-                axes.y(cumulative) - top,
-                &colours[band],
-            );
-            cumulative += share;
-        }
-    }
-
-    let items: Vec<(String, String)> = COMFORT_LABELS
-        .iter()
-        .zip(comfort_ranges())
-        .zip(&colours)
-        .map(|((label, range), colour)| (format!("{label} {range}"), colour.clone()))
-        .collect();
-    let height = legend(&mut out, axes.left, bottom + LEGEND_GAP_MM, &items, paint) + INSET_MM;
-    figure("comfort", height, out, paint)
 }
 
 pub fn humidity(climate: &Climate, paint: &Paint) -> Figure {
@@ -351,36 +316,13 @@ pub fn ground(land_use: &Group, paint: &Paint) -> Figure {
     figure("ground", height, out, paint)
 }
 
-/// Cold to hot: two greys in the theme's tint for the cold side, then green,
-/// the ramp and the accent for the warm side, so comfortable stands out in the middle.
-pub fn comfort_colours(paint: &Paint) -> Vec<String> {
-    vec![
-        paint.ink_at(0.75),
-        paint.ink_at(0.45),
-        // Green pulled a fifth towards ink, so a dark theme's deep green still reads.
-        paint.visible(&mix(&paint.green, &paint.ink, 0.2), &paint.ramp_at(0.2)),
-        paint.ramp_at(0.4),
-        paint.accent.clone(),
-    ]
-}
-
 /// Water pulled a quarter towards ink, so pale water still reads as a bar.
 pub fn rain_colour(paint: &Paint) -> String {
     paint.visible(&mix(&paint.water, &paint.ink, 0.25), &paint.ramp_at(0.6))
 }
 
-fn comfort_ranges() -> Vec<String> {
-    let edges = COMFORT_EDGES_C;
-    vec![
-        format!("below {:.0} °C", edges[0]),
-        format!("{:.0}–{:.0}", edges[0], edges[1]),
-        format!("{:.0}–{:.0}", edges[1], edges[2]),
-        format!("{:.0}–{:.0}", edges[2], edges[3]),
-        format!("{:.0} °C and up", edges[3]),
-    ]
-}
-
-fn axes(min: f64, max: f64) -> MonthAxes {
+/// The plot area every month chart shares, for values from `min` to `max`.
+pub(super) fn axes(min: f64, max: f64) -> MonthAxes {
     MonthAxes {
         left: INSET_MM + AXIS_LABEL_MM,
         right: WIDTH_MM - INSET_MM,

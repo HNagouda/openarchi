@@ -6,20 +6,11 @@ use std::collections::BTreeMap;
 
 use serde::Serialize;
 
+use super::comfort::{self, month_comfort, MonthComfort};
+use super::utci::STRESS_LABELS;
 use crate::area::LonLat;
 use crate::sources::pvgis::{Hour, Tmy};
 use crate::sun::{position_utc, STANDARD_OFFSET_HOURS};
-
-/// Comfort band edges in °C, from the UTCI assessment scale (Bröde et al.
-/// 2012, "Deriving the operational procedure for the Universal Thermal
-/// Climate Index", Int J Biometeorol 56: 481–494): below 0 moderate cold stress
-/// and worse, 0 to 9 slight cold stress, 9 to 26 no thermal stress, 26 to 32
-/// moderate heat stress, 32 and up strong heat stress. UTCI is a felt
-/// temperature that adds wind, sun and humidity; here the edges are applied
-/// to air temperature alone, which is the simplification the chart states.
-pub const COMFORT_EDGES_C: [f64; 4] = [0.0, 9.0, 26.0, 32.0];
-pub const COMFORT_LABELS: [&str; 5] = ["Cold", "Cool", "Comfortable", "Warm", "Hot"];
-pub const COMFORTABLE_BAND: usize = 2;
 
 /// The hours people use outdoor space, in Dutch winter time: 8:00 to 22:00.
 pub const DAY_START_HOUR: u32 = 8;
@@ -63,6 +54,12 @@ pub struct Climate {
     pub last_year: i32,
     /// January first.
     pub months: Vec<MonthClimate>,
+    /// How the comfort hours were worked out, in one sentence.
+    pub comfort_method: String,
+    /// The UTCI stress categories the comfort hours count, coldest first.
+    pub comfort_categories: Vec<String>,
+    /// Daytime hours outside the range the UTCI polynomial was fitted over.
+    pub comfort_outside_range_hours: u32,
     pub wind: Vec<WindRose>,
     /// Direct sun by the direction it comes from, north first.
     pub sun: Vec<SunSector>,
@@ -81,8 +78,10 @@ pub struct MonthClimate {
     pub global_kwh_m2: f64,
     /// Direct normal irradiation (DNI) over the month.
     pub direct_normal_kwh_m2: f64,
-    /// Hours from 8:00 to 22:00 in each band of `COMFORT_LABELS`.
-    pub comfort_hours: Vec<u32>,
+    /// Hours from 8:00 to 22:00 in each of `comfort_categories`, for a person in the sun.
+    pub comfort_sun_hours: Vec<u32>,
+    /// The same for a person in the shade.
+    pub comfort_shade_hours: Vec<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -122,9 +121,14 @@ pub struct SunSector {
 }
 
 pub fn from_tmy(tmy: &Tmy) -> Climate {
-    let months = (1..=12)
-        .map(|month| month_climate(month, &hours_in(tmy, &[month])))
-        .collect();
+    let mut months = Vec::new();
+    let mut outside_range_hours = 0;
+    for month in 1..=12 {
+        let hours = hours_in(tmy, &[month]);
+        let comfort = daytime_comfort(&hours, tmy);
+        outside_range_hours += comfort.outside_range_hours;
+        months.push(month_climate(month, &hours, comfort));
+    }
     let wind = SEASONS
         .iter()
         .map(|(season, months, members)| wind_rose(season, months, &hours_in(tmy, members)))
@@ -136,6 +140,12 @@ pub fn from_tmy(tmy: &Tmy) -> Climate {
         first_year: tmy.first_year,
         last_year: tmy.last_year,
         months,
+        comfort_method: comfort::METHOD.to_string(),
+        comfort_categories: STRESS_LABELS
+            .iter()
+            .map(|label| label.to_string())
+            .collect(),
+        comfort_outside_range_hours: outside_range_hours,
         wind,
         sun: sun_sectors(tmy),
     }
@@ -163,7 +173,7 @@ fn hours_in(tmy: &Tmy, months: &[u32]) -> Vec<Hour> {
         .collect()
 }
 
-fn month_climate(month: u32, hours: &[Hour]) -> MonthClimate {
+fn month_climate(month: u32, hours: &[Hour], comfort: MonthComfort) -> MonthClimate {
     let count = hours.len().max(1) as f64;
     let mean = |value: fn(&Hour) -> f64| hours.iter().map(value).sum::<f64>() / count;
 
@@ -178,11 +188,6 @@ fn month_climate(month: u32, hours: &[Hour]) -> MonthClimate {
     }
     let day_count = days.len().max(1) as f64;
 
-    let mut comfort_hours = vec![0; COMFORT_LABELS.len()];
-    for hour in hours.iter().filter(|hour| is_daytime(hour)) {
-        comfort_hours[band_of(hour.temperature_c, &COMFORT_EDGES_C)] += 1;
-    }
-
     MonthClimate {
         month,
         mean_c: mean(|hour| hour.temperature_c),
@@ -195,8 +200,18 @@ fn month_climate(month: u32, hours: &[Hour]) -> MonthClimate {
             .map(|hour| hour.direct_normal_w_m2)
             .sum::<f64>()
             / WH_PER_KWH,
-        comfort_hours,
+        comfort_sun_hours: comfort.sun_hours,
+        comfort_shade_hours: comfort.shade_hours,
     }
+}
+
+fn daytime_comfort(hours: &[Hour], tmy: &Tmy) -> MonthComfort {
+    let daytime: Vec<Hour> = hours
+        .iter()
+        .filter(|hour| is_daytime(hour))
+        .copied()
+        .collect();
+    month_comfort(&daytime, tmy.location, tmy.irradiance_offset_hours)
 }
 
 fn is_daytime(hour: &Hour) -> bool {
@@ -279,6 +294,8 @@ mod tests {
             humidity_pct: 80.0,
             global_w_m2: 100.0,
             direct_normal_w_m2: 0.0,
+            diffuse_w_m2: 100.0,
+            infrared_w_m2: 300.0,
             wind_m_s: wind.0,
             wind_from_deg: wind.1,
         }
@@ -286,9 +303,9 @@ mod tests {
 
     #[test]
     fn bands_count_the_edges_a_value_has_passed() {
-        assert_eq!(band_of(-2.0, &COMFORT_EDGES_C), 0);
-        assert_eq!(band_of(9.0, &COMFORT_EDGES_C), 2);
-        assert_eq!(band_of(35.0, &COMFORT_EDGES_C), 4);
+        assert_eq!(band_of(1.0, &WIND_EDGES_M_S), 0);
+        assert_eq!(band_of(3.4, &WIND_EDGES_M_S), 2);
+        assert_eq!(band_of(12.0, &WIND_EDGES_M_S), 4);
     }
 
     #[test]
@@ -300,20 +317,18 @@ mod tests {
     }
 
     #[test]
-    fn a_month_has_daily_extremes_and_daytime_comfort_hours() {
+    fn a_month_has_daily_extremes() {
         let hours = vec![
             hour(1, 1, 3, 2.0, (2.0, 0.0)),
             hour(1, 1, 12, 8.0, (2.0, 0.0)),
             hour(1, 2, 3, 4.0, (2.0, 0.0)),
             hour(1, 2, 12, 12.0, (2.0, 0.0)),
         ];
-        let month = month_climate(1, &hours);
+        let month = month_climate(1, &hours, MonthComfort::default());
         assert_eq!(month.mean_c, 6.5);
         assert_eq!(month.mean_daily_max_c, 10.0);
         assert_eq!(month.mean_daily_min_c, 3.0);
         assert_eq!(month.global_kwh_m2, 0.4);
-        // 3:00 UTC is 4:00 local, outside the day; the noon hours are cool and comfortable.
-        assert_eq!(month.comfort_hours, vec![0, 1, 1, 0, 0]);
     }
 
     #[test]
