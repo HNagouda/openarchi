@@ -1,0 +1,157 @@
+{
+  "format_version": 1,
+  "id": "pastel",
+  "name": "Pastel",
+  "author": "openarchi",
+  "description": "Soft powder colours on cream, light enough for a presentation board.",
+  "palette": {
+    "paper": "#FBF8F3",
+    "ground": "#F2ECE4",
+    "figure": "#57546E",
+    "accent": "#E5806F",
+    "water": "#C3DCE7",
+    "green": "#D3E4C4",
+    "ink": "#4B4860",
+    "muted": "#ECE6DF",
+    "unknown": "#DAD7D2"
+  },
+  "ramp": [
+    "#F6E7C8",
+    "#F2CBA8",
+    "#E8A9A0",
+    "#C98DAA",
+    "#9B7FAE",
+    "#6A6593"
+  ],
+  "categories": [
+    "#F4D88E",
+    "#EE8E7E",
+    "#8DB3DE",
+    "#BBA2DC",
+    "#F5B99E",
+    "#9ECB95",
+    "#86CFC9",
+    "#B5A9A1",
+    "#D5DE8C",
+    "#7F7AA3",
+    "#D8CBBB",
+    "#BDB7B0"
+  ],
+  "typography": {
+    "family": "Inter",
+    "uppercase_labels": false
+  },
+  "layers": {
+    "unpaved": {
+      "fill": "#EADFCE",
+      "stroke": "#EADFCE",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "paved": {
+      "fill": "#F7F2EC",
+      "stroke": "#F7F2EC",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "yard": {
+      "fill": "#EDE6DB",
+      "stroke": "#EDE6DB",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "green": {
+      "fill": "@green",
+      "stroke": "@green",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "verge": {
+      "fill": "#DCE8CF",
+      "stroke": "#DCE8CF",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water_bank": {
+      "fill": "#E2E6E2",
+      "stroke": "#E2E6E2",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water": {
+      "fill": "@water",
+      "stroke": "@water",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "rail_area": {
+      "fill": "#E0D9D0",
+      "stroke": "#E0D9D0",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "road": {
+      "fill": "#D2C9C1",
+      "stroke": "#D2C9C1",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "parking": {
+      "fill": "#E8E2DA",
+      "stroke": "#E8E2DA",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "cycleway": {
+      "fill": "#F2BFAF",
+      "stroke": "#F2BFAF",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "footpath": {
+      "fill": "#FCFAF6",
+      "stroke": "#FCFAF6",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "bridge": {
+      "fill": "#D2C9C1",
+      "stroke": "@ink",
+      "stroke_mm": 0.1,
+      "pattern": null
+    },
+    "rail_track": {
+      "fill": null,
+      "stroke": "#6F6A80",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "contour": {
+      "fill": null,
+      "stroke": "#DDD3C6",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "parcel": {
+      "fill": null,
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "opacity": 0.8,
+      "pattern": null
+    },
+    "tree": {
+      "fill": "#A9C79A",
+      "opacity": 0.8,
+      "radius_mm": 1.0,
+      "stroke": null,
+      "pattern": null
+    },
+    "building": {
+      "fill": "@figure",
+      "stroke": "@figure",
+      "stroke_mm": 0.05,
+      "shadow_mm": 0.45,
+      "pattern": null
+    }
+  }
+}

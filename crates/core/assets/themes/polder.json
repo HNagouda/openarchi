@@ -1,0 +1,157 @@
+{
+  "format_version": 1,
+  "id": "polder",
+  "name": "Polder",
+  "author": "openarchi",
+  "description": "Soft Dutch greens and greys, brick-red buildings, a mustard line.",
+  "palette": {
+    "paper": "#EEF0EA",
+    "ground": "#E0E5DB",
+    "figure": "#8A3A2D",
+    "accent": "#C9952B",
+    "water": "#A7BEC2",
+    "green": "#AFC096",
+    "ink": "#2B3430",
+    "muted": "#D9DFD3",
+    "unknown": "#C6C8C4"
+  },
+  "ramp": [
+    "#E9E3C9",
+    "#D9C08F",
+    "#C9965E",
+    "#B26B44",
+    "#8E4434",
+    "#5C2A26"
+  ],
+  "categories": [
+    "#E7C982",
+    "#B8473A",
+    "#577DA0",
+    "#87679F",
+    "#D88B6A",
+    "#5E9466",
+    "#4F9A9A",
+    "#776F68",
+    "#9DB45A",
+    "#3C3B4F",
+    "#B4A68E",
+    "#9B9C96"
+  ],
+  "typography": {
+    "family": "Inter",
+    "uppercase_labels": false
+  },
+  "layers": {
+    "unpaved": {
+      "fill": "#D8DACA",
+      "stroke": "#D8DACA",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "paved": {
+      "fill": "#E8EBE4",
+      "stroke": "#E8EBE4",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "yard": {
+      "fill": "#D8DFCF",
+      "stroke": "#D8DFCF",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "green": {
+      "fill": "@green",
+      "stroke": "@green",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "verge": {
+      "fill": "#C3D0B2",
+      "stroke": "#C3D0B2",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water_bank": {
+      "fill": "#CDD6CC",
+      "stroke": "#CDD6CC",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water": {
+      "fill": "@water",
+      "stroke": "@water",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "rail_area": {
+      "fill": "#C9CEC6",
+      "stroke": "#C9CEC6",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "road": {
+      "fill": "#ADB6AC",
+      "stroke": "#ADB6AC",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "parking": {
+      "fill": "#D3D9CF",
+      "stroke": "#D3D9CF",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "cycleway": {
+      "fill": "#D7A190",
+      "stroke": "#D7A190",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "footpath": {
+      "fill": "#F0F2EC",
+      "stroke": "#F0F2EC",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "bridge": {
+      "fill": "#ADB6AC",
+      "stroke": "@ink",
+      "stroke_mm": 0.1,
+      "pattern": null
+    },
+    "rail_track": {
+      "fill": null,
+      "stroke": "#3F4743",
+      "stroke_mm": 0.16,
+      "pattern": null
+    },
+    "contour": {
+      "fill": null,
+      "stroke": "#B7C1AC",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "parcel": {
+      "fill": null,
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "opacity": 0.8,
+      "pattern": null
+    },
+    "tree": {
+      "fill": "#7F9A68",
+      "opacity": 0.75,
+      "radius_mm": 1.0,
+      "stroke": null,
+      "pattern": null
+    },
+    "building": {
+      "fill": "@figure",
+      "stroke": "#6E2D23",
+      "stroke_mm": 0.06,
+      "shadow_mm": 0.5,
+      "pattern": null
+    }
+  }
+}

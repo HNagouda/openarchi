@@ -1,0 +1,15 @@
+{
+  "id": "parcels",
+  "name": "Parcels",
+  "description": "Cadastral parcels over the built fabric: who owns which piece of ground.",
+  "layers": [
+    "water",
+    "building",
+    "parcel"
+  ],
+  "emphasis": "parcel",
+  "mute_others": true,
+  "highlight": [],
+  "as_figure": [],
+  "classify": null
+}

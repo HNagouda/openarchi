@@ -1,0 +1,28 @@
+{
+  "id": "movement",
+  "name": "Movement",
+  "description": "How people move through the site: roads, cycleways, footpaths and rail.",
+  "layers": [
+    "water",
+    "building",
+    "parking",
+    "rail_area",
+    "footpath",
+    "cycleway",
+    "road",
+    "bridge",
+    "rail_track"
+  ],
+  "emphasis": "road",
+  "mute_others": true,
+  "highlight": [
+    "water",
+    "rail_area",
+    "footpath",
+    "cycleway",
+    "bridge",
+    "rail_track"
+  ],
+  "as_figure": [],
+  "classify": null
+}

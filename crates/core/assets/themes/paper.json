@@ -1,0 +1,157 @@
+{
+  "format_version": 1,
+  "id": "paper",
+  "name": "Paper",
+  "author": "openarchi",
+  "description": "Warm off-white with charcoal buildings and one terracotta line.",
+  "palette": {
+    "paper": "#F4F1EA",
+    "ground": "#E8E2D5",
+    "figure": "#2D2A26",
+    "accent": "#C2532E",
+    "water": "#B4C3C7",
+    "green": "#C4CBAA",
+    "ink": "#2D2A26",
+    "muted": "#E1DBCE",
+    "unknown": "#C9C7C2"
+  },
+  "ramp": [
+    "#F1DDB4",
+    "#E6B983",
+    "#D48F5E",
+    "#B9663F",
+    "#8E4630",
+    "#5A2C22"
+  ],
+  "categories": [
+    "#E2BF73",
+    "#C4523A",
+    "#5D7EA4",
+    "#8D6BA6",
+    "#DB8F6D",
+    "#6F9A68",
+    "#4E9E9C",
+    "#7B7068",
+    "#A8B85A",
+    "#3E3A4E",
+    "#B7A48B",
+    "#A09A92"
+  ],
+  "typography": {
+    "family": "Source Serif 4",
+    "uppercase_labels": false
+  },
+  "layers": {
+    "unpaved": {
+      "fill": "#DED5C2",
+      "stroke": "#DED5C2",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "paved": {
+      "fill": "#EDE8DE",
+      "stroke": "#EDE8DE",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "yard": {
+      "fill": "#E2DBCC",
+      "stroke": "#E2DBCC",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "green": {
+      "fill": "@green",
+      "stroke": "@green",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "verge": {
+      "fill": "#D1D6BB",
+      "stroke": "#D1D6BB",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water_bank": {
+      "fill": "#D6D3C4",
+      "stroke": "#D6D3C4",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water": {
+      "fill": "@water",
+      "stroke": "@water",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "rail_area": {
+      "fill": "#D3CBBC",
+      "stroke": "#D3CBBC",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "road": {
+      "fill": "#BAB1A2",
+      "stroke": "#BAB1A2",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "parking": {
+      "fill": "#DBD4C6",
+      "stroke": "#DBD4C6",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "cycleway": {
+      "fill": "#DCA48C",
+      "stroke": "#DCA48C",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "footpath": {
+      "fill": "#F3EFE8",
+      "stroke": "#F3EFE8",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "bridge": {
+      "fill": "#BAB1A2",
+      "stroke": "@ink",
+      "stroke_mm": 0.1,
+      "pattern": null
+    },
+    "rail_track": {
+      "fill": null,
+      "stroke": "#4F4942",
+      "stroke_mm": 0.16,
+      "pattern": null
+    },
+    "contour": {
+      "fill": null,
+      "stroke": "#C9BFAD",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "parcel": {
+      "fill": null,
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "opacity": 0.8,
+      "pattern": null
+    },
+    "tree": {
+      "fill": "#8E9F74",
+      "opacity": 0.7,
+      "radius_mm": 1.0,
+      "stroke": null,
+      "pattern": null
+    },
+    "building": {
+      "fill": "@figure",
+      "stroke": "@figure",
+      "stroke_mm": 0.05,
+      "shadow_mm": 0.55,
+      "pattern": null
+    }
+  }
+}

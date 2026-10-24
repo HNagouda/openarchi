@@ -1,0 +1,69 @@
+{
+  "id": "building-use",
+  "name": "Building use",
+  "description": "What the buildings are used for, from the BAG register.",
+  "layers": [
+    "water",
+    "building"
+  ],
+  "emphasis": "building",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "building",
+    "attribute": "use_class",
+    "title": "Building use",
+    "scheme": {
+      "kind": "categorical",
+      "categories": [
+        {
+          "value": "woonfunctie",
+          "label": "Residential"
+        },
+        {
+          "value": "winkelfunctie",
+          "label": "Retail"
+        },
+        {
+          "value": "kantoorfunctie",
+          "label": "Office"
+        },
+        {
+          "value": "bijeenkomstfunctie",
+          "label": "Assembly"
+        },
+        {
+          "value": "logiesfunctie",
+          "label": "Hotels and lodging"
+        },
+        {
+          "value": "onderwijsfunctie",
+          "label": "Education"
+        },
+        {
+          "value": "gezondheidszorgfunctie",
+          "label": "Healthcare"
+        },
+        {
+          "value": "industriefunctie",
+          "label": "Industry"
+        },
+        {
+          "value": "sportfunctie",
+          "label": "Sport"
+        },
+        {
+          "value": "celfunctie",
+          "label": "Detention"
+        },
+        {
+          "value": "overige gebruiksfunctie",
+          "label": "Other use"
+        }
+      ]
+    }
+  }
+}

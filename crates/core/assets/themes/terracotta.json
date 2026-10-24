@@ -1,0 +1,157 @@
+{
+  "format_version": 1,
+  "id": "terracotta",
+  "name": "Terracotta",
+  "author": "openarchi",
+  "description": "Sand ground, clay-red buildings and sage green, set in a serif.",
+  "palette": {
+    "paper": "#F1E7DA",
+    "ground": "#E7D7C3",
+    "figure": "#BC6039",
+    "accent": "#2E2723",
+    "water": "#A6B9B5",
+    "green": "#B4B58C",
+    "ink": "#3A2C25",
+    "muted": "#E1D2BE",
+    "unknown": "#CFC6BC"
+  },
+  "ramp": [
+    "#F0DDBE",
+    "#E2B98A",
+    "#CC8E5E",
+    "#AF6542",
+    "#86432D",
+    "#55291E"
+  ],
+  "categories": [
+    "#E0B771",
+    "#9E3F2C",
+    "#5B7896",
+    "#83678F",
+    "#D7896A",
+    "#6E8E5E",
+    "#4D8E8A",
+    "#7A6B60",
+    "#A5AE58",
+    "#3D3640",
+    "#BCA88E",
+    "#A29789"
+  ],
+  "typography": {
+    "family": "Source Serif 4",
+    "uppercase_labels": false
+  },
+  "layers": {
+    "unpaved": {
+      "fill": "#DCC9AF",
+      "stroke": "#DCC9AF",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "paved": {
+      "fill": "#EEE3D5",
+      "stroke": "#EEE3D5",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "yard": {
+      "fill": "#E1D1BB",
+      "stroke": "#E1D1BB",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "green": {
+      "fill": "@green",
+      "stroke": "@green",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "verge": {
+      "fill": "#CDCAA6",
+      "stroke": "#CDCAA6",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water_bank": {
+      "fill": "#D8D0BF",
+      "stroke": "#D8D0BF",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water": {
+      "fill": "@water",
+      "stroke": "@water",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "rail_area": {
+      "fill": "#D2BFA8",
+      "stroke": "#D2BFA8",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "road": {
+      "fill": "#C1AA90",
+      "stroke": "#C1AA90",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "parking": {
+      "fill": "#DCCAB5",
+      "stroke": "#DCCAB5",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "cycleway": {
+      "fill": "#D99C80",
+      "stroke": "#D99C80",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "footpath": {
+      "fill": "#F5EDE3",
+      "stroke": "#F5EDE3",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "bridge": {
+      "fill": "#C1AA90",
+      "stroke": "@ink",
+      "stroke_mm": 0.1,
+      "pattern": null
+    },
+    "rail_track": {
+      "fill": null,
+      "stroke": "#4E4038",
+      "stroke_mm": 0.16,
+      "pattern": null
+    },
+    "contour": {
+      "fill": null,
+      "stroke": "#CDBBA2",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "parcel": {
+      "fill": null,
+      "stroke": "@ink",
+      "stroke_mm": 0.12,
+      "opacity": 0.8,
+      "pattern": null
+    },
+    "tree": {
+      "fill": "#8F9566",
+      "opacity": 0.75,
+      "radius_mm": 1.0,
+      "stroke": null,
+      "pattern": null
+    },
+    "building": {
+      "fill": "@figure",
+      "stroke": "#9A4A2B",
+      "stroke_mm": 0.06,
+      "shadow_mm": 0.6,
+      "pattern": null
+    }
+  }
+}

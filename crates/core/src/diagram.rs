@@ -5,11 +5,14 @@
 //! this, later steps winning:
 //!
 //! 1. the theme's style for the layer,
-//! 2. if `mute_others` is set and the layer is neither `emphasis` nor the
-//!    classified layer: fill and stroke become `@muted`, patterns are dropped,
-//! 3. for the classified layer: fill comes from the theme's ramp or categories,
+//! 2. if `mute_others` is set and the layer is not `emphasis`, not in
+//!    `highlight`, not in `as_figure` and not the classified layer: fill and
+//!    stroke become `@muted`, patterns and shadows are dropped,
+//! 3. for layers in `as_figure`: fill and stroke become `@figure`, patterns,
+//!    dashes and shadows are dropped, so the layers fuse into one solid figure,
+//! 4. for the classified layer: fill comes from the theme's ramp or categories,
 //!    and features with no value get `@unknown`,
-//! 4. the user's layer overrides.
+//! 5. the user's layer overrides.
 
 use serde::{Deserialize, Serialize};
 
@@ -27,6 +30,14 @@ pub struct Diagram {
     /// The layer the eye should land on.
     pub emphasis: Option<Layer>,
     pub mute_others: bool,
+    /// More layers that keep their theme colours when `mute_others` is set,
+    /// for diagrams about a group of layers (green and water, the road network).
+    #[serde(default)]
+    pub highlight: Vec<Layer>,
+    /// Layers drawn as one solid figure, for an inverse figure-ground where the
+    /// open space is the subject.
+    #[serde(default)]
+    pub as_figure: Vec<Layer>,
     pub classify: Option<Classify>,
 }
 

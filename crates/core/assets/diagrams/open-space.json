@@ -1,0 +1,37 @@
+{
+  "id": "open-space",
+  "name": "Open space",
+  "description": "The inverse figure-ground: streets, squares, green and water become the figure.",
+  "layers": [
+    "unpaved",
+    "paved",
+    "green",
+    "verge",
+    "water_bank",
+    "water",
+    "rail_area",
+    "road",
+    "parking",
+    "cycleway",
+    "footpath",
+    "bridge"
+  ],
+  "emphasis": null,
+  "mute_others": false,
+  "highlight": [],
+  "as_figure": [
+    "unpaved",
+    "paved",
+    "green",
+    "verge",
+    "water_bank",
+    "water",
+    "rail_area",
+    "road",
+    "parking",
+    "cycleway",
+    "footpath",
+    "bridge"
+  ],
+  "classify": null
+}

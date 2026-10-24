@@ -1,0 +1,171 @@
+{
+  "format_version": 1,
+  "id": "ink",
+  "name": "Ink",
+  "author": "openarchi",
+  "description": "White hairlines on near-black, like a technical linework plate.",
+  "palette": {
+    "paper": "#131417",
+    "ground": "#131417",
+    "figure": "#F2F1EE",
+    "accent": "#F06A45",
+    "water": "#7D93A6",
+    "green": "#7E9070",
+    "ink": "#ECEAE6",
+    "muted": "#3A3C42",
+    "unknown": "#4E5056"
+  },
+  "ramp": [
+    "#3A3530",
+    "#5C4A3B",
+    "#8A6343",
+    "#BA824B",
+    "#E3AA5E",
+    "#FFD991"
+  ],
+  "categories": [
+    "#E9D7A6",
+    "#F0805F",
+    "#7FA7D9",
+    "#B596D6",
+    "#F2B091",
+    "#9BC48E",
+    "#77C7C2",
+    "#A39A90",
+    "#D1DE7E",
+    "#8B86A8",
+    "#CDBFAE",
+    "#8E8A84"
+  ],
+  "typography": {
+    "family": "IBM Plex Mono",
+    "uppercase_labels": true
+  },
+  "layers": {
+    "unpaved": {
+      "fill": null,
+      "stroke": "#4A4B50",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "paved": {
+      "fill": null,
+      "stroke": "#55565C",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "yard": {
+      "fill": null,
+      "stroke": "#3F4045",
+      "stroke_mm": 0.05,
+      "pattern": null
+    },
+    "green": {
+      "fill": null,
+      "stroke": "#6E7F62",
+      "stroke_mm": 0.07,
+      "pattern": {
+        "kind": "dots",
+        "spacing_mm": 1.1,
+        "radius_mm": 0.11,
+        "color": "#7E9070"
+      }
+    },
+    "verge": {
+      "fill": null,
+      "stroke": "#5E6B55",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "water_bank": {
+      "fill": null,
+      "stroke": "#55636F",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "water": {
+      "fill": null,
+      "stroke": "#7D93A6",
+      "stroke_mm": 0.1,
+      "pattern": {
+        "kind": "hatch",
+        "angle_deg": 45,
+        "spacing_mm": 0.7,
+        "stroke_mm": 0.08,
+        "color": "#7890A6"
+      }
+    },
+    "rail_area": {
+      "fill": null,
+      "stroke": "#55565C",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "road": {
+      "fill": null,
+      "stroke": "#8C8E94",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "parking": {
+      "fill": null,
+      "stroke": "#65666B",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "cycleway": {
+      "fill": null,
+      "stroke": "#B0685A",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "footpath": {
+      "fill": null,
+      "stroke": "#76777C",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "bridge": {
+      "fill": null,
+      "stroke": "#C9C8C4",
+      "stroke_mm": 0.12,
+      "pattern": null
+    },
+    "rail_track": {
+      "fill": null,
+      "stroke": "#C9C8C4",
+      "stroke_mm": 0.15,
+      "dash_mm": [
+        0.9,
+        0.5
+      ],
+      "pattern": null
+    },
+    "contour": {
+      "fill": null,
+      "stroke": "#5C564C",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "parcel": {
+      "fill": null,
+      "stroke": "#ECEAE6",
+      "stroke_mm": 0.1,
+      "opacity": 0.8,
+      "pattern": null
+    },
+    "tree": {
+      "fill": null,
+      "stroke": "#9DB08C",
+      "stroke_mm": 0.1,
+      "radius_mm": 0.9,
+      "pattern": null
+    },
+    "building": {
+      "fill": "#1E2024",
+      "stroke": "@figure",
+      "stroke_mm": 0.16,
+      "pattern": null
+    }
+  }
+}

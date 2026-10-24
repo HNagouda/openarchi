@@ -1,0 +1,171 @@
+{
+  "format_version": 1,
+  "id": "blueprint",
+  "name": "Blueprint",
+  "author": "openarchi",
+  "description": "White linework on Prussian blue, with a yellow site line.",
+  "palette": {
+    "paper": "#1C3D6E",
+    "ground": "#1F4478",
+    "figure": "#EAF0F8",
+    "accent": "#F4C64E",
+    "water": "#2B5A92",
+    "green": "#2A5A6E",
+    "ink": "#EAF0F8",
+    "muted": "#36598A",
+    "unknown": "#4A6A98"
+  },
+  "ramp": [
+    "#2C568F",
+    "#4C77AE",
+    "#7499C6",
+    "#A0BCDD",
+    "#CCDCEF",
+    "#FFFFFF"
+  ],
+  "categories": [
+    "#F4D58A",
+    "#F28B74",
+    "#9CC7F2",
+    "#C6A8EA",
+    "#F7B79A",
+    "#A9D9A0",
+    "#8EE0D8",
+    "#B8BEC8",
+    "#E3EC94",
+    "#7D8FB8",
+    "#D6DCE6",
+    "#8FA3C2"
+  ],
+  "typography": {
+    "family": "IBM Plex Mono",
+    "uppercase_labels": true
+  },
+  "layers": {
+    "unpaved": {
+      "fill": null,
+      "stroke": "#5D7FB0",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "paved": {
+      "fill": null,
+      "stroke": "#6688B8",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "yard": {
+      "fill": null,
+      "stroke": "#4E71A3",
+      "stroke_mm": 0.05,
+      "pattern": null
+    },
+    "green": {
+      "fill": null,
+      "stroke": "#9FC2D9",
+      "stroke_mm": 0.07,
+      "pattern": {
+        "kind": "dots",
+        "spacing_mm": 1.1,
+        "radius_mm": 0.1,
+        "color": "#9FC2D9"
+      }
+    },
+    "verge": {
+      "fill": null,
+      "stroke": "#7FA2C8",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "water_bank": {
+      "fill": null,
+      "stroke": "#6C8FBF",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "water": {
+      "fill": null,
+      "stroke": "#C7D8EE",
+      "stroke_mm": 0.1,
+      "pattern": {
+        "kind": "hatch",
+        "angle_deg": 45,
+        "spacing_mm": 0.7,
+        "stroke_mm": 0.08,
+        "color": "#A3C0E4"
+      }
+    },
+    "rail_area": {
+      "fill": null,
+      "stroke": "#6688B8",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "road": {
+      "fill": null,
+      "stroke": "#B9CBE6",
+      "stroke_mm": 0.09,
+      "pattern": null
+    },
+    "parking": {
+      "fill": null,
+      "stroke": "#7D9CC8",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "cycleway": {
+      "fill": null,
+      "stroke": "#F3B4A0",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "footpath": {
+      "fill": null,
+      "stroke": "#8EABD3",
+      "stroke_mm": 0.06,
+      "pattern": null
+    },
+    "bridge": {
+      "fill": null,
+      "stroke": "#EAF0F8",
+      "stroke_mm": 0.12,
+      "pattern": null
+    },
+    "rail_track": {
+      "fill": null,
+      "stroke": "#EAF0F8",
+      "stroke_mm": 0.15,
+      "dash_mm": [
+        0.9,
+        0.5
+      ],
+      "pattern": null
+    },
+    "contour": {
+      "fill": null,
+      "stroke": "#6C8FBF",
+      "stroke_mm": 0.07,
+      "pattern": null
+    },
+    "parcel": {
+      "fill": null,
+      "stroke": "#EAF0F8",
+      "stroke_mm": 0.1,
+      "opacity": 0.8,
+      "pattern": null
+    },
+    "tree": {
+      "fill": null,
+      "stroke": "#C3DCEA",
+      "stroke_mm": 0.1,
+      "radius_mm": 0.9,
+      "pattern": null
+    },
+    "building": {
+      "fill": "#3466A6",
+      "stroke": "@figure",
+      "stroke_mm": 0.18,
+      "pattern": null
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "id": "building-age",
+  "name": "Building age",
+  "description": "When the buildings were built, in the periods that shaped Dutch cities.",
+  "layers": [
+    "water",
+    "building"
+  ],
+  "emphasis": "building",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "building",
+    "attribute": "year_built",
+    "title": "Year built",
+    "scheme": {
+      "kind": "sequential",
+      "breaks": [
+        1900,
+        1945,
+        1970,
+        1990,
+        2010
+      ],
+      "labels": [
+        "Before 1900",
+        "1900–1945",
+        "1945–1970",
+        "1970–1990",
+        "1990–2010",
+        "2010 and later"
+      ]
+    }
+  }
+}

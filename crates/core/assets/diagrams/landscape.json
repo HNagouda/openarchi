@@ -1,0 +1,25 @@
+{
+  "id": "landscape",
+  "name": "Landscape",
+  "description": "Green, trees and water, with the built fabric pushed back.",
+  "layers": [
+    "yard",
+    "verge",
+    "green",
+    "water_bank",
+    "water",
+    "contour",
+    "tree",
+    "building"
+  ],
+  "emphasis": "green",
+  "mute_others": true,
+  "highlight": [
+    "verge",
+    "water_bank",
+    "water",
+    "tree"
+  ],
+  "as_figure": [],
+  "classify": null
+}

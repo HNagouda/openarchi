@@ -1,0 +1,15 @@
+{
+  "id": "figure-ground",
+  "name": "Figure-ground",
+  "description": "Built mass against open space, the classic Nolli reading of the city.",
+  "layers": [
+    "building"
+  ],
+  "emphasis": "building",
+  "mute_others": false,
+  "highlight": [],
+  "as_figure": [
+    "building"
+  ],
+  "classify": null
+}

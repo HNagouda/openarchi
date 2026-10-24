@@ -1,0 +1,38 @@
+{
+  "id": "building-height",
+  "name": "Building height",
+  "description": "How tall the buildings are, from the AHN elevation survey.",
+  "layers": [
+    "water",
+    "building"
+  ],
+  "emphasis": "building",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "building",
+    "attribute": "height_m",
+    "title": "Building height",
+    "scheme": {
+      "kind": "sequential",
+      "breaks": [
+        6,
+        10,
+        15,
+        20,
+        30
+      ],
+      "labels": [
+        "Under 6 m",
+        "6–10 m",
+        "10–15 m",
+        "15–20 m",
+        "20–30 m",
+        "30 m and taller"
+      ]
+    }
+  }
+}

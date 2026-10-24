@@ -1,0 +1,156 @@
+{
+  "format_version": 1,
+  "id": "midnight",
+  "name": "Midnight",
+  "author": "openarchi",
+  "description": "Deep navy ground with warm white buildings and a coral line.",
+  "palette": {
+    "paper": "#0F1624",
+    "ground": "#151F33",
+    "figure": "#ECE6DA",
+    "accent": "#F2875A",
+    "water": "#183050",
+    "green": "#24402F",
+    "ink": "#E7E2D8",
+    "muted": "#1F2A41",
+    "unknown": "#4A5468"
+  },
+  "ramp": [
+    "#3A4568",
+    "#535E88",
+    "#6E6E98",
+    "#A0849E",
+    "#D9A07F",
+    "#FFD08A"
+  ],
+  "categories": [
+    "#E6D3A1",
+    "#F07F63",
+    "#78A6D9",
+    "#B394D9",
+    "#F0AE8E",
+    "#8FC287",
+    "#6FC3BD",
+    "#A69B91",
+    "#CEDB7C",
+    "#8A84B0",
+    "#C8BBAA",
+    "#7E879A"
+  ],
+  "typography": {
+    "family": "Inter",
+    "uppercase_labels": true
+  },
+  "layers": {
+    "unpaved": {
+      "fill": "#1B2638",
+      "stroke": "#1B2638",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "paved": {
+      "fill": "#1B2539",
+      "stroke": "#1B2539",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "yard": {
+      "fill": "#172134",
+      "stroke": "#172134",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "green": {
+      "fill": "@green",
+      "stroke": "@green",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "verge": {
+      "fill": "#203A2E",
+      "stroke": "#203A2E",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water_bank": {
+      "fill": "#1A2B42",
+      "stroke": "#1A2B42",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "water": {
+      "fill": "@water",
+      "stroke": "@water",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "rail_area": {
+      "fill": "#283349",
+      "stroke": "#283349",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "road": {
+      "fill": "#303D58",
+      "stroke": "#303D58",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "parking": {
+      "fill": "#222D44",
+      "stroke": "#222D44",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "cycleway": {
+      "fill": "#5A3640",
+      "stroke": "#5A3640",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "footpath": {
+      "fill": "#1E2940",
+      "stroke": "#1E2940",
+      "stroke_mm": 0.15,
+      "pattern": null
+    },
+    "bridge": {
+      "fill": "#303D58",
+      "stroke": "#8A93A8",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "rail_track": {
+      "fill": null,
+      "stroke": "#A3ABBD",
+      "stroke_mm": 0.14,
+      "pattern": null
+    },
+    "contour": {
+      "fill": null,
+      "stroke": "#2B3750",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "parcel": {
+      "fill": null,
+      "stroke": "#E7E2D8",
+      "stroke_mm": 0.1,
+      "opacity": 0.8,
+      "pattern": null
+    },
+    "tree": {
+      "fill": "#4E7A55",
+      "opacity": 0.8,
+      "radius_mm": 1.0,
+      "stroke": null,
+      "pattern": null
+    },
+    "building": {
+      "fill": "@figure",
+      "stroke": "@figure",
+      "stroke_mm": 0.05,
+      "pattern": null
+    }
+  }
+}

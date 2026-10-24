@@ -1,0 +1,29 @@
+{
+  "id": "context",
+  "name": "Context",
+  "description": "The whole site at a glance: buildings, streets, green and water, drawn calmly.",
+  "layers": [
+    "unpaved",
+    "paved",
+    "yard",
+    "green",
+    "verge",
+    "water_bank",
+    "water",
+    "rail_area",
+    "road",
+    "parking",
+    "cycleway",
+    "footpath",
+    "bridge",
+    "rail_track",
+    "contour",
+    "tree",
+    "building"
+  ],
+  "emphasis": "building",
+  "mute_others": false,
+  "highlight": [],
+  "as_figure": [],
+  "classify": null
+}
