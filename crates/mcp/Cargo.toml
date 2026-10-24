@@ -1,0 +1,28 @@
+[package]
+name = "openarchi-mcp"
+description = "An MCP server that lets an assistant search places, build sites and style diagrams in the openarchi library."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "openarchi-mcp"
+path = "src/main.rs"
+
+[dependencies]
+openarchi-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# The official MCP SDK. `transport-io` is the stdio transport that Claude Code
+# and Claude Desktop launch servers with.
+rmcp = { version = "3.7", features = ["server", "macros", "transport-io"] }
+# Tool input schemas. Must be the major version rmcp derives with.
+schemars = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-std"] }
+# PNG previews travel inside MCP image content as base64.
+base64 = "0.22"
+# create_theme checks a draft with the app's theme reader before saving it.
+tempfile = "3"
+
+[dev-dependencies]
+geo = "0.29"

@@ -1,0 +1,83 @@
+# Using openarchi from an assistant
+
+openarchi comes with `openarchi-mcp`, a small program that lets an assistant such as Claude work in your openarchi projects. It speaks the Model Context Protocol (MCP), the standard way assistants connect to tools on your computer. Once it is connected, you can ask for a site analysis in plain words and the assistant does the clicking for you.
+
+## What can I ask for?
+
+Anything you would do in the app, one request at a time or all at once. For example:
+
+> Make a figure-ground of 200 m around Westermarkt 20 in Amsterdam, A3 landscape, and export it as a PDF to my Desktop.
+
+The assistant finds the address, creates a project with a circle around it, downloads the site data, picks the diagram and theme, looks at a preview to check the result, and writes the file. Other things that work well:
+
+- "Which buildings around the Oude Kerk are older than 1700? Show me the building age diagram."
+- "Summarise this site: how many buildings, how tall, what are they used for?"
+- "Design a theme in warm brick and sage tones and use it for all my Rotterdam projects."
+- "Export the Westermarkt project as DXF for AutoCAD."
+
+The assistant can also see the sheet it is working on, because the server renders a preview image for it. That is what lets it fix a cramped title or a colour that does not read before you ever open the file.
+
+## Does it use my real projects?
+
+Yes. The server uses the same library folder as the app, so a project the assistant makes shows up in the app's project list, and it can open the projects you made yourself. Nothing is lost by letting it edit: every save keeps the previous version as a backup, and deleting moves a project to Recently Deleted, where the app or the assistant can bring it back.
+
+The library lives in `~/Library/Application Support/openarchi` on macOS and `%APPDATA%\openarchi` on Windows. Set `OPENARCHI_LIBRARY_DIR` to point the server at a different folder, for example to try it out without touching your projects.
+
+## Where is the program?
+
+In a release, `openarchi-mcp` is shipped next to the app.
+
+#! NOTE[release, mcp] : Decide where openarchi-mcp sits in the macOS bundle and the Windows installer, then put the exact paths here
+
+When you build from source, `cargo build --release -p openarchi-mcp` puts it at `target/release/openarchi-mcp` (`openarchi-mcp.exe` on Windows).
+
+## How do I connect Claude Code?
+
+Run this once, with the full path to the program:
+
+```sh
+claude mcp add openarchi -- /path/to/openarchi-mcp
+```
+
+Start a new Claude Code session and `/mcp` lists openarchi with its tools.
+
+## How do I connect Claude Desktop?
+
+Open Settings, then Developer, then Edit Config. That opens `claude_desktop_config.json`. Add openarchi under `mcpServers` and restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "openarchi": {
+      "command": "/path/to/openarchi-mcp"
+    }
+  }
+}
+```
+
+On Windows, write the path with double backslashes, like `"C:\\Program Files\\openarchi\\openarchi-mcp.exe"`.
+
+## Which tools does the assistant get?
+
+| Tool | What it does |
+| --- | --- |
+| `search_places` | Finds addresses and places in the Netherlands |
+| `list_projects`, `get_project` | Lists projects, and shows one with a summary of its site |
+| `create_project` | Makes a project from a circle, rectangle or polygon |
+| `fetch_site` | Downloads buildings, roads, water, green and terrain into the project |
+| `list_diagrams`, `list_themes` | Shows the diagrams and themes to choose from |
+| `set_look` | Changes the diagram, theme, sheet or single layers |
+| `render_preview` | Renders the sheet as an image the assistant can see |
+| `export` | Writes SVG, PDF, PNG or DXF |
+| `create_theme` | Saves a new theme, which the app picks up too |
+| `delete_project`, `restore_project` | Moves a project to Recently Deleted and back |
+
+## Trying it from a terminal
+
+`scripts/mcp.sh` calls one tool and prints the answer, which is handy when working on the server. It uses `.scratch/library` unless `OPENARCHI_LIBRARY_DIR` says otherwise, and saves preview images under `.scratch/mcp/`.
+
+```sh
+scripts/mcp.sh tools/list
+scripts/mcp.sh list_projects '{}'
+scripts/mcp.sh --release render_preview '{"id": "2026-10-24-westermarkt-3f9a"}'
+```

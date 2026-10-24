@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# A newer push to the same branch makes the older run pointless, so cancel it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Formatting is the same on every platform, so check it once, on the cheapest runner.
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  rust:
+    strategy:
+      # One platform failing should not hide whether the others pass.
+      fail-fast: false
+      matrix:
+        # macOS and Windows are the platforms openarchi ships on. Ubuntu is
+        # here because the core and the MCP server are pure Rust and Linux
+        # runners are the fastest, so it catches most breakage first.
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      # Caches ~/.cargo and target/ per OS and Cargo.lock, which cuts most runs
+      # from a full build of the render and geometry crates to a few minutes.
+      - uses: Swatinem/rust-cache@v2
+
+      # The app crate is left out here: it needs the built frontend
+      # (`frontendDist` in tauri.conf.json) and, on Linux, WebKitGTK. The app
+      # job below builds it.
+      - run: cargo clippy --workspace --exclude openarchi-app --all-targets -- -D warnings
+      # Tests that need the network or unfinished layers are #[ignore]d, so
+      # this run never depends on PDOK being up.
+      - run: cargo test --workspace --exclude openarchi-app
+
+  # * ====================================================================
+  # * === Tauri app build (disabled until the app compiles)
+  # * ====================================================================
+  # To enable: delete the `if: false` line. Then consider dropping
+  # `--exclude openarchi-app` from the rust job's clippy and test steps.
+  app:
+    if: false
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # The workspace target/ lives at the repo root, not under app/.
+          workspaces: ". -> target"
+      # app/package.json has no `packageManager` field, so pin pnpm here.
+      # Once it has one, drop `version` and the action reads it from there.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+      # --frozen-lockfile fails the build if package.json and the lockfile disagree.
+      - run: pnpm install --frozen-lockfile
+      # --no-bundle compiles the app without making installers, which need
+      # signing keys CI does not have.
+      - run: pnpm tauri build --no-bundle
