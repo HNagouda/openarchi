@@ -5,6 +5,7 @@
 
 import { createContext, useEffect, useRef, useState } from "react";
 import { hexToRgb, hsvToRgb, parseHex, readRecentColours, rgbToHex, rgbToHsv, type Hsv, type Rgb } from "./colour";
+import { HueWheel } from "./HueWheel";
 
 /** A colour the picker offers as one click: a theme role like "@accent", or a hex. */
 export type Swatch = { value: string; colour: string; label: string };
@@ -32,9 +33,11 @@ type Props = {
   /** 0 to 1. The opacity slider shows only when both are given. */
   opacity?: number;
   onOpacity?: (opacity: number) => void;
+  /** A hue ring around the square instead of the hue slider, for picking palettes by eye. */
+  hasWheel?: boolean;
 };
 
-export function ColorPicker({ value, onChange, acceptsRoles = false, selected = null, swatches = [], opacity, onOpacity }: Props) {
+export function ColorPicker({ value, onChange, acceptsRoles = false, selected = null, swatches = [], opacity, onOpacity, hasWheel = false }: Props) {
   const [hsv, setHsv] = useState<Hsv>(() => rgbToHsv(hexToRgb(value)));
   const [hexDraft, setHexDraft] = useState(value);
   const [recent] = useState(readRecentColours);
@@ -92,35 +95,46 @@ export function ColorPicker({ value, onChange, acceptsRoles = false, selected = 
   const hueColour = rgbToHex(hsvToRgb({ h: hsv.h, s: 1, v: 1 }));
   const hasOpacity = opacity !== undefined && onOpacity !== undefined;
 
+  const squareView = (
+    <div
+      ref={square}
+      className="color-square"
+      style={{ backgroundColor: hueColour }}
+      tabIndex={0}
+      role="slider"
+      aria-label="Saturation and brightness"
+      aria-valuetext={`Saturation ${Math.round(hsv.s * PERCENT)}%, brightness ${Math.round(hsv.v * PERCENT)}%`}
+      aria-valuenow={Math.round(hsv.s * PERCENT)}
+      onPointerDown={startSquareDrag}
+      onPointerMove={(event) => {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) pickInSquare(event.clientX, event.clientY);
+      }}
+      onKeyDown={moveInSquare}
+    >
+      <span className="color-square-thumb" style={{ left: `${hsv.s * PERCENT}%`, top: `${(1 - hsv.v) * PERCENT}%`, background: value }} />
+    </div>
+  );
+
   return (
     <div className="color-picker">
-      <div
-        ref={square}
-        className="color-square"
-        style={{ backgroundColor: hueColour }}
-        tabIndex={0}
-        role="slider"
-        aria-label="Saturation and brightness"
-        aria-valuetext={`Saturation ${Math.round(hsv.s * PERCENT)}%, brightness ${Math.round(hsv.v * PERCENT)}%`}
-        aria-valuenow={Math.round(hsv.s * PERCENT)}
-        onPointerDown={startSquareDrag}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) pickInSquare(event.clientX, event.clientY);
-        }}
-        onKeyDown={moveInSquare}
-      >
-        <span className="color-square-thumb" style={{ left: `${hsv.s * PERCENT}%`, top: `${(1 - hsv.v) * PERCENT}%`, background: value }} />
-      </div>
-
-      <input
-        className="color-range color-hue"
-        type="range"
-        min={0}
-        max={HUE_MAX}
-        value={Math.round(hsv.h)}
-        aria-label="Hue"
-        onChange={(event) => choose({ ...hsv, h: Number(event.target.value) })}
-      />
+      {hasWheel ? (
+        <HueWheel hue={hsv.h} onHue={(h) => choose({ ...hsv, h })}>
+          {squareView}
+        </HueWheel>
+      ) : (
+        <>
+          {squareView}
+          <input
+            className="color-range color-hue"
+            type="range"
+            min={0}
+            max={HUE_MAX}
+            value={Math.round(hsv.h)}
+            aria-label="Hue"
+            onChange={(event) => choose({ ...hsv, h: Number(event.target.value) })}
+          />
+        </>
+      )}
       {hasOpacity && (
         <input
           className="color-range color-opacity"

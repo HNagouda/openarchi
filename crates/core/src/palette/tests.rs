@@ -159,3 +159,18 @@ fn an_unchanged_copy_keeps_the_builtin_look_and_a_changed_one_is_mixed() {
     assert_eq!(mixed.palette.paper, "#FFFFFF");
     assert_ne!(mixed.layers, paper.layers);
 }
+
+#[test]
+fn a_saved_copy_opened_again_unchanged_keeps_the_builtin_look() {
+    let paper = builtin_themes()
+        .into_iter()
+        .find(|theme| theme.id == "paper")
+        .unwrap();
+    let saved = check_copy(&draft_from(&paper, "Paper, mine"), "paper-mine", &paper)
+        .unwrap()
+        .theme;
+    let reopened = draft_from(&saved, "Paper, mine");
+    let again = check_copy(&reopened, "paper-mine", &saved).unwrap().theme;
+    assert_eq!(again.layers, paper.layers);
+    assert_eq!(again.ramp, paper.ramp);
+}

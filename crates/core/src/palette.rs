@@ -106,9 +106,7 @@ pub fn check(draft: &PaletteDraft, id: &str) -> Result<PaletteCheck> {
 pub fn check_copy(draft: &PaletteDraft, id: &str, base: &Theme) -> Result<PaletteCheck> {
     let mixed = check(draft, id)?;
     let untouched = draft_from(base, &draft.name);
-    let is_unchanged = base.source.is_none()
-        && untouched.swatches == draft.swatches
-        && untouched.roles == draft.roles;
+    let is_unchanged = untouched.swatches == draft.swatches && untouched.roles == draft.roles;
     if !is_unchanged {
         return Ok(mixed);
     }

@@ -1,0 +1,352 @@
+/* The palette editor: a live sheet on the left, the controls on the right. */
+
+.palette-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 470px;
+  gap: 20px;
+  min-height: 0;
+}
+
+/* * ==== live preview ==== */
+
+.palette-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--canvas);
+}
+
+.palette-preview-sheet {
+  width: 100%;
+  box-shadow: var(--paper-shadow);
+  line-height: 0;
+}
+
+/* The core sizes the sheet in millimetres; here it fills the column. */
+.palette-preview-sheet svg {
+  width: 100%;
+  height: auto;
+}
+
+.palette-preview-waiting {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+/* * ==== controls ==== */
+
+.palette-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.palette-pick-and-roles {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+/* * ==== import ==== */
+
+.import-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  margin: -6px;
+  border-radius: var(--radius);
+  transition: background var(--fast) var(--ease);
+}
+
+.import-box.is-over {
+  background: var(--accent-soft);
+}
+
+.import-text {
+  height: auto;
+  min-height: 44px;
+  padding: 6px 8px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.import-file input {
+  display: none;
+}
+
+.import-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* * ==== swatches ==== */
+
+.swatch-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 38px;
+  transition: transform var(--fast) var(--ease), opacity var(--fast) var(--ease);
+}
+
+.swatch-cell.is-moving {
+  opacity: 0.45;
+}
+
+/* Where a dragged swatch will land. */
+.swatch-cell.is-target::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -5px;
+  width: 2px;
+  height: 38px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.swatch-chip {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
+  cursor: grab;
+  touch-action: none;
+}
+
+.swatch-chip:active {
+  cursor: grabbing;
+}
+
+.swatch-cell.is-selected .swatch-chip {
+  box-shadow: inset 0 0 0 1px var(--swatch-edge), 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--accent);
+}
+
+.swatch-chip:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--swatch-edge), 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--focus);
+}
+
+.swatch-hex {
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.swatch-roles {
+  min-height: 12px;
+  color: var(--text-3);
+  font-size: 9.5px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.swatch-remove {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  color: var(--text-2);
+}
+
+.swatch-cell:hover .swatch-remove,
+.swatch-cell.is-selected .swatch-remove {
+  display: inline-flex;
+}
+
+.swatch-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+}
+
+.swatch-add:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* * ==== roles ==== */
+
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.role-row {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  column-gap: 8px;
+  row-gap: 4px;
+}
+
+.role-chip {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-s);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
+}
+
+.role-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.role-name {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.role-paints,
+.role-reason {
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+
+.role-reason {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+}
+
+.role-pins {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.role-auto {
+  height: 18px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: var(--sunken);
+  color: var(--text-2);
+  font-size: 11px;
+}
+
+.role-auto.is-on {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.role-pin {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-s);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
+}
+
+.role-pin.is-on {
+  box-shadow: inset 0 0 0 1px var(--swatch-edge), 0 0 0 2px var(--accent);
+}
+
+/* * ==== warnings and footer ==== */
+
+.palette-warnings {
+  margin: 0;
+  padding: 8px 10px 8px 26px;
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.palette-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.palette-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.palette-copy .field-label {
+  margin-right: 4px;
+}
+
+.palette-footer-gap {
+  flex: 1;
+}
+
+/* A narrow window stacks the preview over the controls. */
+@media (max-width: 1100px) {
+  .palette-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .palette-preview {
+    min-height: 240px;
+  }
+}
+
+/* * ==== under the palette picker ==== */
+
+.palette-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin: 8px 0 0 -8px;
+}
+
+.palette-own {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 12.5px;
+}
