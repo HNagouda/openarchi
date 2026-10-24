@@ -323,3 +323,26 @@ fn zero_scale_is_refused() {
     })
     .is_err());
 }
+
+#[test]
+fn computed_layers_are_drawn_without_being_in_the_scene() {
+    let look = look();
+    let blocks = svg_for("city-block:coverage", "paper", &look);
+    let sun = svg_for("sun-hours", "paper", &look);
+
+    assert!(blocks.contains(r#"id="layer-block""#));
+    // Coloured by coverage, class by class.
+    assert!(blocks.contains(r#"id="block-class-"#));
+    assert!(sun.contains(r#"id="layer-sun-hours""#));
+}
+
+#[test]
+fn the_sun_hours_legend_names_the_sheet_date() {
+    let mut look = look();
+    look.sun.month = 6;
+    look.sun.day = 21;
+    let svg = svg_for("sun-hours", "paper", &look);
+
+    assert!(svg.contains("21 June"));
+    assert!(!svg.contains("{date}"));
+}

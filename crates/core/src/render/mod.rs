@@ -9,6 +9,7 @@ mod classify;
 mod color;
 mod context;
 mod cull;
+mod derived;
 mod drawing;
 mod explode;
 mod fit;
@@ -60,6 +61,9 @@ pub(crate) use classify::{build as build_classes, class_of};
 pub(crate) use color::{mix, resolve as resolve_colour, rgb, sample_ramp};
 pub(crate) use fonts::Face;
 pub use solid::DEFAULT_HEIGHT_M;
+// Shared with the sunlight hours, so they cast exactly the shadows the shadow diagram draws.
+pub(crate) use shadow::{shadow_per_metre, signed_area, tree_shadow_ring};
+pub(crate) use solid::building_height;
 pub(crate) use svg::{escape, layer_attributes};
 // Shared with the analysis pages, which wrap their notes like sheet text.
 pub(crate) use color::luminance;

@@ -9,6 +9,7 @@ use geo::CoordsIter;
 use super::color;
 use super::context::{self, ContextArea, Neighbourhood};
 use super::cull;
+use super::derived;
 use super::drawing::{pattern_id, shadow_colour, write_layer, Canvas, Drawn};
 use super::frame::{ground_outline, FrameShape};
 use super::geometry::{ground_centre, Projection};
@@ -25,7 +26,7 @@ use super::svg::layer_attributes;
 use super::typeset::Typesetter;
 use super::walk_bands::{self, Bands};
 use super::RenderInput;
-use crate::diagram::{Diagram, Solar};
+use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER};
 use crate::scene::{Feature, Layer, Scene};
 use crate::sources::osm;
 use crate::sun::{self, SunPosition};
@@ -338,8 +339,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     }
     let location = sun::site_location(&scene.area);
     let sun = sun::position_at(location, &look.sun);
+    let computed = derived::features(scene, diagram, &look.sun);
     let features = cull::within_frame(
-        features_by_layer(scene, diagram),
+        features_by_layer(scene, &computed, diagram),
         frame.ground_bounds(),
         cull::caster_margin(
             tallest_building(scene).max(solid::TREE_HEIGHT_M),
@@ -483,7 +485,8 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         legend.note = diagram
             .classify
             .as_ref()
-            .and_then(|classify| classify.note_for(scene));
+            .and_then(|classify| classify.note_for(scene))
+            .map(|note| note.replace(DATE_PLACEHOLDER, &look.sun.date_label()));
     }
     add_lines_to_mode_rows(&mut legend, &transit_lines);
     if has_merged_points {
@@ -602,13 +605,17 @@ fn layer_features<'a, 'b>(
     features.get(&layer).map(Vec::as_slice).unwrap_or(&[])
 }
 
-/// The scene's features by layer. A walk diagram takes its places, paths
-/// and bands from the walk instead, which reaches past the site, keeping
-/// only what lies within its minutes.
-fn features_by_layer<'a>(scene: &'a Scene, diagram: &Diagram) -> BTreeMap<Layer, Vec<&'a Feature>> {
+/// The scene's features by layer, with the computed ones. A walk diagram
+/// takes its places, paths and bands from the walk instead, which reaches
+/// past the site, keeping only what lies within its minutes.
+fn features_by_layer<'a>(
+    scene: &'a Scene,
+    computed: &'a [Feature],
+    diagram: &Diagram,
+) -> BTreeMap<Layer, Vec<&'a Feature>> {
     let mut grouped: BTreeMap<Layer, Vec<&Feature>> = BTreeMap::new();
     let walk = diagram.walk_minutes.zip(scene.walk.as_ref());
-    for feature in &scene.features {
+    for feature in scene.features.iter().chain(computed) {
         if walk.is_some() && legend::is_point_layer(feature.layer) {
             continue;
         }

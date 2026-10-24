@@ -1,0 +1,47 @@
+{
+    "id": "sun-hours",
+    "name": "Sunlight hours",
+    "group": "Sun and shade",
+    "description": "How many hours of direct sun the ground gets over the chosen day, with the shadows of the buildings and trees.",
+    "layers": [
+        "sun_hours",
+        "water",
+        "building"
+    ],
+    "emphasis": "sun_hours",
+    "mute_others": true,
+    "highlight": [
+        "water"
+    ],
+    "as_figure": [],
+    "blank": [
+        "building"
+    ],
+    "classify": {
+        "layer": "sun_hours",
+        "attribute": "value",
+        "title": "Hours of direct sun",
+        "note": "On {date}, sun stepped every 10 minutes past building and tree shadows (BRE BR 209 sun-on-ground). BR 209 asks 2 hours on 21 March over half of a garden.",
+        "scheme": {
+            "kind": "sequential",
+            "breaks": [
+                1,
+                2,
+                4,
+                6,
+                8,
+                10
+            ],
+            "labels": [
+                "Under 1 hour",
+                "1–2 hours",
+                "2–4 hours",
+                "4–6 hours",
+                "6–8 hours",
+                "8–10 hours",
+                "10 hours or more"
+            ]
+        }
+    },
+    "solar": "sun_hours"
+}

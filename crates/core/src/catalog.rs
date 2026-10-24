@@ -20,7 +20,7 @@ const THEME_EXTENSION: &str = "json";
 
 /// Built-in diagrams in picker order, in one place. The picker shows them under
 /// their `group` headings, so the diagrams of one group stay together here.
-const BUILTIN_DIAGRAMS: [(&str, &str); 21] = [
+const BUILTIN_DIAGRAMS: [(&str, &str); 24] = [
     // Context and built form.
     ("context", include_str!("../assets/diagrams/context.json")),
     (
@@ -43,7 +43,15 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 21] = [
         "building-height",
         include_str!("../assets/diagrams/building-height.json"),
     ),
+    (
+        "building-floors",
+        include_str!("../assets/diagrams/building-floors.json"),
+    ),
     ("parcels", include_str!("../assets/diagrams/parcels.json")),
+    (
+        "city-block",
+        include_str!("../assets/diagrams/city-block.json"),
+    ),
     // Movement and places.
     ("movement", include_str!("../assets/diagrams/movement.json")),
     ("transit", include_str!("../assets/diagrams/transit.json")),
@@ -77,6 +85,10 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 21] = [
     // Sun and shade.
     ("sun-path", include_str!("../assets/diagrams/sun-path.json")),
     ("shadow", include_str!("../assets/diagrams/shadow.json")),
+    (
+        "sun-hours",
+        include_str!("../assets/diagrams/sun-hours.json"),
+    ),
 ];
 
 /// Built-in themes in picker order, in one place. "paper" is the default look.
