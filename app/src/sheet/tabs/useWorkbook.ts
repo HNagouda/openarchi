@@ -8,7 +8,7 @@ import { errorText, fittingScale, saveSheets } from "../../lib/ipc";
 import { useHistory } from "../../lib/history";
 import type { Area, Look, Pin, ProjectView } from "../../lib/types";
 import { useToast } from "../../ui/Toasts";
-import { sheetName, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
+import { movedTo, sheetName, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
 
 /** The sheets and pins a project view holds; a view from before tabs has only its look. */
 export function workbookOf(project: ProjectView): Workbook {
@@ -36,22 +36,24 @@ export function useWorkbook(project: ProjectView) {
   const latest = useRef({ book, index });
   latest.current = { book, index };
 
-  // After an undo or redo, show the sheet it changed.
-  const stepFrom = useRef<Workbook | null>(null);
+  // After an undo or redo, show the sheet it changed. A step that only
+  // reorders the tabs keeps the sheet that was showing, wherever it lands.
+  const stepFrom = useRef<{ book: Workbook; index: number } | null>(null);
   useEffect(() => {
-    if (!stepFrom.current) return;
-    const changed = changedSheet(stepFrom.current, book);
+    const from = stepFrom.current;
+    if (!from) return;
     stepFrom.current = null;
-    if (changed !== null) setActive(changed);
+    const shown = movedTo(from.book, book, from.index) ?? changedSheet(from.book, book);
+    if (shown !== null) setActive(shown);
   }, [book]);
 
   const undo = useCallback(() => {
-    stepFrom.current = latest.current.book;
+    stepFrom.current = latest.current;
     history.undo();
   }, [history]);
 
   const redo = useCallback(() => {
-    stepFrom.current = latest.current.book;
+    stepFrom.current = latest.current;
     history.redo();
   }, [history]);
 

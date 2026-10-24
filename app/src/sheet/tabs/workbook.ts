@@ -58,6 +58,28 @@ export function withMoved(book: Workbook, from: number, to: number): Workbook {
   return { ...book, sheets };
 }
 
+/** A sheet as its tab shows it, so the same sheet compares equal before and after a move names it. */
+function sheetKey(sheet: Look, index: number): string {
+  return `${sheetName(sheet, index)}\n${JSON.stringify({ ...sheet, name: undefined })}`;
+}
+
+/**
+ * Where sheet `shown` of `before` sits in `after`, when `after` holds the same
+ * sheets in another order, as undoing or redoing a tab move leaves them.
+ * Null for any other change.
+ */
+export function movedTo(before: Workbook, after: Workbook, shown: number): number | null {
+  if (before.sheets.length !== after.sheets.length) return null;
+  const beforeKeys = before.sheets.map(sheetKey);
+  const afterKeys = after.sheets.map(sheetKey);
+  const isSameOrder = beforeKeys.every((key, at) => key === afterKeys[at]);
+  const isSameSheets = [...beforeKeys].sort().join("\n") === [...afterKeys].sort().join("\n");
+  if (isSameOrder || !isSameSheets) return null;
+
+  const to = afterKeys.indexOf(beforeKeys[shown]);
+  return to === -1 ? null : to;
+}
+
 /** "Sheet 3", or the next number no tab already shows. */
 function unusedName(book: Workbook): string {
   const names = book.sheets.map(sheetName);
