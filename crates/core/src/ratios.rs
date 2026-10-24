@@ -90,6 +90,9 @@ pub struct Ratios {
     pub building_count: usize,
     /// Building footprint over site area, 0 to 1.
     pub coverage: f64,
+    /// Estimated gross floor area: footprint times floors, summed, in m².
+    /// Buildings without a height are left out.
+    pub gross_floor_area_m2: f64,
     /// Estimated floor area over site area. Buildings without a height are left out.
     pub floor_area_ratio: f64,
     /// BAG floor area of every unit over site area, next to the estimate
@@ -166,6 +169,7 @@ pub fn compute(scene: &Scene, theme: &Theme) -> Result<Ratios> {
     }
 
     let footprint_m2 = areas.get(&Layer::Building).copied().unwrap_or(0.0);
+    let gross_floor_area_m2 = buildings::floor_area_m2(&buildings);
     let bag_floor_area_m2 = buildings
         .iter()
         .filter_map(|building| building.attributes.floor_area_m2)
@@ -178,7 +182,8 @@ pub fn compute(scene: &Scene, theme: &Theme) -> Result<Ratios> {
         site_area_m2,
         building_count: buildings.len(),
         coverage: footprint_m2 / site_area_m2,
-        floor_area_ratio: buildings::floor_area_m2(&buildings) / site_area_m2,
+        gross_floor_area_m2,
+        floor_area_ratio: gross_floor_area_m2 / site_area_m2,
         bag_floor_area_ratio: bag_floor_area_m2.map(|area| area / site_area_m2),
         dwellings,
         residents: population_in(scene).residents,

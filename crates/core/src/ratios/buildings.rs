@@ -5,27 +5,11 @@ use geo::Area;
 use super::{binned, finish, row, Group, Unit, UNKNOWN_LABEL};
 use crate::catalog;
 use crate::diagram::Classify;
+use crate::floors::{gross_floor_area_m2, STOREY_HEIGHT_M};
 use crate::render::{build_classes, class_of};
 use crate::scene::Feature;
 use crate::theme::Theme;
 use crate::{Error, Result};
-
-/// Floor to floor height used to estimate floors from roof height. Dutch
-/// housing has at least 2.6 m clear plus about 0.4 m of floor, so 3 m. Offices
-/// and old ground floors are taller, but the roof height also includes the
-/// pitched roof, and rounding to the nearest floor evens the two out.
-pub const STOREY_HEIGHT_M: f64 = 3.0;
-
-/// Floor classes by how a building is lived in: houses, walk-up blocks and
-/// canal houses, mid-rise where lifts start, taller blocks, and high-rise.
-const FLOOR_BREAKS: [f64; 4] = [3.0, 5.0, 7.0, 11.0];
-const FLOOR_LABELS: [&str; 5] = [
-    "1–2 floors",
-    "3–4 floors",
-    "5–6 floors",
-    "7–10 floors",
-    "11 floors or more",
-];
 
 /// Footprint classes: sheds and garages, a house, a canal house or villa, a
 /// small apartment building, a block, and halls.
@@ -43,18 +27,22 @@ const FOOTPRINT_LABELS: [&str; 6] = [
 const USE_DIAGRAM: &str = "building-use";
 const AGE_DIAGRAM: &str = "building-age";
 const HEIGHT_DIAGRAM: &str = "building-height";
+const FLOORS_DIAGRAM: &str = "building-floors:floors";
 
 pub fn groups(buildings: &[&Feature], theme: &Theme) -> Result<Vec<Group>> {
-    let floors: Vec<Option<f64>> = buildings
-        .iter()
-        .map(|building| building.attributes.height_m.map(estimated_floors))
-        .collect();
     let footprints: Vec<Option<f64>> = buildings
         .iter()
         .map(|building| Some(building.geometry.unsigned_area()))
         .collect();
-    let floors_note =
-        format!("Floors are estimated from roof height at {STOREY_HEIGHT_M} m per floor.");
+    let mut floors = classified(
+        "floors",
+        buildings,
+        &diagram_classify(FLOORS_DIAGRAM)?,
+        theme,
+    )?;
+    floors.note = Some(format!(
+        "Floors are estimated from roof height at {STOREY_HEIGHT_M} m per floor."
+    ));
 
     Ok(vec![
         classified(
@@ -63,13 +51,7 @@ pub fn groups(buildings: &[&Feature], theme: &Theme) -> Result<Vec<Group>> {
             &diagram_classify(USE_DIAGRAM)?,
             theme,
         )?,
-        finish(
-            "floors",
-            "Floors",
-            Unit::Buildings,
-            binned(&floors, &FLOOR_BREAKS, &FLOOR_LABELS, theme)?,
-            Some(floors_note),
-        ),
+        floors,
         classified(
             "height",
             buildings,
@@ -92,19 +74,11 @@ pub fn groups(buildings: &[&Feature], theme: &Theme) -> Result<Vec<Group>> {
     ])
 }
 
-/// 13.4 m -> 4 floors. Never less than one.
-pub fn estimated_floors(height_m: f64) -> f64 {
-    (height_m / STOREY_HEIGHT_M).round().max(1.0)
-}
-
 /// Footprint times estimated floors, summed. Buildings without a height are left out.
 pub fn floor_area_m2(buildings: &[&Feature]) -> f64 {
     buildings
         .iter()
-        .filter_map(|building| {
-            let floors = estimated_floors(building.attributes.height_m?);
-            Some(building.geometry.unsigned_area() * floors)
-        })
+        .filter_map(|building| gross_floor_area_m2(building))
         .sum()
 }
 
@@ -142,16 +116,4 @@ pub(super) fn diagram_classify(id: &str) -> Result<Classify> {
     catalog::find_plate(&catalog::builtin_diagrams(), id)
         .and_then(|diagram| diagram.classify)
         .ok_or_else(|| Error::Invalid(format!("built-in diagram {id:?} has no classes")))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn floors_round_to_the_nearest_and_never_drop_below_one() {
-        assert_eq!(estimated_floors(13.4), 4.0);
-        assert_eq!(estimated_floors(4.6), 2.0);
-        assert_eq!(estimated_floors(0.4), 1.0);
-    }
 }

@@ -177,7 +177,8 @@ fn csv_has_a_line_per_row_and_the_site_totals() {
     let ratios = ratios_in("paper");
     let csv = ratios::to_csv(&ratios);
     let rows: usize = ratios.groups.iter().map(|group| group.rows.len()).sum();
-    assert_eq!(csv.lines().count(), 1 + 4 + rows);
+    // Header, then site area, buildings, coverage, gross floor area and floor area ratio.
+    assert_eq!(csv.lines().count(), 1 + 5 + rows);
     assert!(csv.starts_with("group,class,value,unit,share_percent,source\nSite,Site area,"));
 }
 

@@ -62,6 +62,18 @@
       "stroke_mm": 0.0,
       "pattern": null
     },
+    "sun_hours": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "block": {
+      "fill": "@figure",
+      "stroke": "@paper",
+      "stroke_mm": 0.3,
+      "pattern": null
+    },
     "flood": {
       "fill": "@muted",
       "stroke": null,

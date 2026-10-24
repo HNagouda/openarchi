@@ -19,6 +19,8 @@ use crate::theme::{Theme, Typography};
 use crate::Result;
 
 pub use colour::{contrast_ratio, lch, Lch};
+// Shared with the catalog, which gives a saved palette the layers added after it.
+pub(crate) use derive::{layer_style, TEMPLATE_THEME};
 pub use parse::{hex_code, parse, MAX_SWATCHES, MIN_SWATCHES};
 pub use roles::{resolve, RoleColour, RESOLVED_ROLES};
 

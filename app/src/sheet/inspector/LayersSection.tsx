@@ -5,11 +5,13 @@ import { ColorField } from "../../ui/ColorField";
 import { Icon } from "../../ui/Icon";
 import { NumberField } from "../../ui/NumberField";
 import { Section } from "../../ui/Section";
-import { swatchColour, withOverride } from "./lookEdits";
+import { mixHex, swatchColour, withOverride } from "./lookEdits";
 
 const MAX_STROKE_MM = 2;
 const STROKE_STEP_MM = 0.05;
 const PERCENT = 100;
+/** How far a blank layer's fill leans from paper towards ink, as BLANK_TINT in crates/core/src/render/style.rs. */
+const BLANK_TINT = 0.08;
 
 type Props = {
   diagram: Diagram;
@@ -48,8 +50,12 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
           const style = theme.layers[layer];
           const isHidden = override.hidden === true;
           const isOpen = expanded === layer;
-          const fill = override.fill ?? swatchColour(style?.fill, theme.palette);
-          const stroke = override.stroke ?? swatchColour(style?.stroke, theme.palette);
+          const isBlank = diagram.blank?.includes(layer) ?? false;
+          const { paper, ink } = theme.palette;
+          const drawnFill = isBlank ? mixHex(paper, ink, BLANK_TINT) : swatchColour(style?.fill, theme.palette);
+          const drawnStroke = isBlank ? ink : swatchColour(style?.stroke, theme.palette);
+          const fill = override.fill ?? drawnFill;
+          const stroke = override.stroke ?? drawnStroke;
           const isEdited = Object.keys(override).some((field) => field !== "hidden");
 
           return (

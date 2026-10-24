@@ -1,0 +1,83 @@
+{
+    "id": "building-floors",
+    "name": "Floors",
+    "group": "Context and built form",
+    "description": "How many floors the buildings have, or how much floor area each holds, estimated from roof height.",
+    "mute_others": true,
+    "highlight": [
+        "water"
+    ],
+    "as_figure": [],
+    "variants": [
+        {
+            "id": "floors",
+            "name": "Floors",
+            "title": "Floors",
+            "description": "Floors per building: the roof height from the AHN elevation survey at 3 m per floor.",
+            "layers": [
+                "water",
+                "building"
+            ],
+            "emphasis": "building",
+            "classify": {
+                "layer": "building",
+                "attribute": "floors",
+                "title": "Floors",
+                "note": "Estimated from roof height at 3 m per floor.",
+                "scheme": {
+                    "kind": "sequential",
+                    "breaks": [
+                        2,
+                        3,
+                        5,
+                        9
+                    ],
+                    "labels": [
+                        "1 floor",
+                        "2 floors",
+                        "3–4 floors",
+                        "5–8 floors",
+                        "9 floors or more"
+                    ]
+                }
+            }
+        },
+        {
+            "id": "floor-area",
+            "name": "Floor area",
+            "title": "Gross floor area",
+            "description": "Gross floor area per building: its footprint times its estimated floors.",
+            "layers": [
+                "water",
+                "building"
+            ],
+            "emphasis": "building",
+            "classify": {
+                "layer": "building",
+                "attribute": "gross_floor_area_m2",
+                "title": "Gross floor area",
+                "note": "Footprint times floors, at 3 m per floor, inside the site.",
+                "scheme": {
+                    "kind": "sequential",
+                    "breaks": [
+                        100,
+                        250,
+                        500,
+                        1000,
+                        2500,
+                        5000
+                    ],
+                    "labels": [
+                        "Under 100 m²",
+                        "100–250 m²",
+                        "250–500 m²",
+                        "500–1,000 m²",
+                        "1,000–2,500 m²",
+                        "2,500–5,000 m²",
+                        "5,000 m² or more"
+                    ]
+                }
+            }
+        }
+    ]
+}

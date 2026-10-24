@@ -9,7 +9,9 @@
 //!    `highlight`, not in `as_figure` and not the classified layer: fill and
 //!    stroke become `@muted`, patterns and shadows are dropped,
 //! 3. for layers in `as_figure`: fill and stroke become `@figure`, patterns,
-//!    dashes and shadows are dropped, so the layers fuse into one solid figure,
+//!    dashes and shadows are dropped, so the layers fuse into one solid figure;
+//!    for layers in `blank`: fill becomes the paper tinted towards ink and the
+//!    edge a fine `@ink` line, so they stand back from a coloured ground without matching a class,
 //! 4. for the classified layer: fill comes from the theme's ramp or categories,
 //!    and features with no value get `@unknown`,
 //! 5. the user's layer overrides.
@@ -24,6 +26,8 @@ use crate::scene::{Layer, Scene};
 
 /// Stands in a legend note for the year of the data.
 const YEAR_PLACEHOLDER: &str = "{year}";
+/// Stands in a legend note for the look's sun date: "21 March".
+pub const DATE_PLACEHOLDER: &str = "{date}";
 /// What a note says when the scene does not know the year of its data.
 const UNKNOWN_YEAR: &str = "year unknown";
 
@@ -52,6 +56,10 @@ pub struct Diagram {
     /// open space is the subject.
     #[serde(default)]
     pub as_figure: Vec<Layer>,
+    /// Layers drawn blank, near the paper colour with a fine ink edge: the
+    /// buildings over hours of sun, where any fill would read as a class.
+    #[serde(default)]
+    pub blank: Vec<Layer>,
     pub classify: Option<Classify>,
     /// A computed sun drawing on top of the layers. Needs no data beyond
     /// building heights and the site's position.
@@ -132,6 +140,9 @@ pub enum Solar {
     SunPath,
     /// Building shadows at the look's date and time.
     Shadow,
+    /// Hours of direct sun on the ground over the look's date. The time of
+    /// day is not used.
+    SunHours,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -191,6 +202,14 @@ pub enum Attribute {
     FloorAreaM2,
     /// The group of a business, facility or transit stop: "food_drink", "tram".
     Group,
+    /// Storeys estimated from roof height, see `floors.rs`.
+    Floors,
+    /// Footprint times estimated storeys, in m².
+    GrossFloorAreaM2,
+    /// A city block's building coverage, 0 to 1.
+    Coverage,
+    /// A city block's gross floor area over its area.
+    FloorSpaceIndex,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -132,6 +132,10 @@ function Summary({ ratios }: { ratios: Ratios }) {
         <dt>Coverage</dt>
         <dd className="tabular">{percent.format(ratios.coverage)}</dd>
       </div>
+      <div data-tip="Footprint times floors, estimated from roof height at 3 m per floor" data-tip-side="above">
+        <dt>Gross floor area</dt>
+        <dd className="tabular">{formatArea(ratios.gross_floor_area_m2)}</dd>
+      </div>
       <div data-tip="Estimated floor area over site area" data-tip-side="above">
         <dt>Floor area ratio</dt>
         <dd className="tabular">{ratio.format(ratios.floor_area_ratio)}</dd>

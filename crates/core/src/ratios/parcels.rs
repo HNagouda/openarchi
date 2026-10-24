@@ -8,8 +8,8 @@ use std::panic::{self, AssertUnwindSafe};
 
 use geo::{Area, BooleanOps, BoundingRect, Geometry, Intersects, MultiPolygon, Rect};
 
-use super::buildings::estimated_floors;
 use super::{binned, finish, row, Group, Row, Unit};
+use crate::floors::estimated_floors;
 use crate::render::resolve_colour;
 use crate::scene::{Feature, Layer, Scene};
 use crate::theme::Theme;

@@ -91,7 +91,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 
 ## What is a variant?
 
-Some diagrams answer one question with a choice of measure. Air quality has the variants `no2`, `pm10` and `pm25`, and noise has `road` and `all`. `list_diagrams` lists them under `variants`, each with its own layers and classes, and a diagram with variants has no layers of its own. `set_look` takes `variant` next to `diagram_id`, like `{"diagram_id": "air-quality", "variant": "pm25"}`. The variant stays while the diagram does, and a new diagram without a variant starts on its first. The ids from before the fold, such as `air-quality-pm10` and `traffic-noise`, still work and land on the variant they became.
+Some diagrams answer one question with a choice of measure. Air quality has the variants `no2`, `pm10` and `pm25`, noise has `road` and `all`, floors has `floors` and `floor-area`, and city blocks has `blocks`, `coverage` and `floor-space`. `list_diagrams` lists them under `variants`, each with its own layers and classes, and a diagram with variants has no layers of its own. `set_look` takes `variant` next to `diagram_id`, like `{"diagram_id": "air-quality", "variant": "pm25"}`. The variant stays while the diagram does, and a new diagram without a variant starts on its first. The ids from before the fold, such as `air-quality-pm10` and `traffic-noise`, still work and land on the variant they became.
 
 ## How does an assistant switch to a tilted view?
 
@@ -99,7 +99,7 @@ Some diagrams answer one question with a choice of measure. Air quality has the 
 
 `sheet.show_context` turns the neighbourhood around the site on or off: the buildings, roads, water and green outside the boundary, drawn greyed in the palette. New projects start with it on, and projects from before it start with it off and have no neighbourhood until their site is fetched again. It never enters the legend, the ratios or the analysis. `sheet.context_opacity`, from 0 to 1, sets how much of it shows through: 1 is the usual greyed look, 0.3 leaves it as a faint trace, the same as the Neighbourhood opacity slider in the app.
 
-`sun` is a day and a Dutch clock time, summer time included. The sun path and shadow diagrams are drawn for it, and the axonometric uses it to light its walls and cast its shadows. It starts at 21 March, 13:00, the equinox near solar noon.
+`sun` is a day and a Dutch clock time, summer time included. The sun path and shadow diagrams are drawn for it, the sunlight hours diagram adds up the whole of its day, and the axonometric uses it to light its walls and cast its shadows. It starts at 21 March, 13:00, the equinox near solar noon.
 
 ```json
 {

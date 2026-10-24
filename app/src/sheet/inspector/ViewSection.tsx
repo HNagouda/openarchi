@@ -37,6 +37,8 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
   const isTilted = view.mode !== "plan";
   const hasSun = view.mode === "axonometric" || Boolean(diagram?.solar);
+  // Hours of sun add up a whole day, so only a tilted view, which is lit at one moment, needs the time.
+  const hasTime = view.mode === "axonometric" || diagram?.solar !== "sun_hours";
   const unused = plateOptions(diagrams).filter((entry) => !view.plates.includes(entry.id));
 
   return (
@@ -120,18 +122,20 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
                 }}
               />
             </div>
-            <div className="field-stack field-narrow">
-              <span className="field-label">Time</span>
-              <input
-                type="time"
-                className="text-input"
-                value={`${pad(look.sun.hour)}:${pad(look.sun.minute)}`}
-                onChange={(event) => {
-                  const [hour, minute] = event.target.value.split(":").map(Number);
-                  if (Number.isFinite(hour) && Number.isFinite(minute)) onLook(withSun(look, { hour, minute }));
-                }}
-              />
-            </div>
+            {hasTime && (
+              <div className="field-stack field-narrow">
+                <span className="field-label">Time</span>
+                <input
+                  type="time"
+                  className="text-input"
+                  value={`${pad(look.sun.hour)}:${pad(look.sun.minute)}`}
+                  onChange={(event) => {
+                    const [hour, minute] = event.target.value.split(":").map(Number);
+                    if (Number.isFinite(hour) && Number.isFinite(minute)) onLook(withSun(look, { hour, minute }));
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

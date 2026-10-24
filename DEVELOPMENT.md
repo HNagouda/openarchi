@@ -28,6 +28,9 @@ crates/core/            the library: no window, no async
   src/view.rs           plan, axonometric or explode, and the moment the sun is drawn for
   src/sun.rs            where the sun stands, from the site's position and a Dutch clock time
   src/walk.rs           walk bands from the site centre and the 15 minute neighbourhood
+  src/floors.rs         floors and gross floor area, estimated from roof height
+  src/blocks.rs         city blocks cut from the street surfaces, with their coverage and floor space
+  src/sunlight.rs       hours of direct sun on a grid over the site; sunlight/ fills the grid
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
@@ -65,6 +68,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new data source or country | a module in `crates/core/src/sources/`, called from `site.rs` |
 | A source published in yearly editions | a function in its source module that asks the service for the newest one, called through `sources/edition.rs` from `site/editions.rs`, with the year in `Scene::editions` and `{year}` in the legend note |
 | A new layer | `Layer` in `scene.rs` (the one list), then a style in every theme |
+| A layer worked out from the scene when drawn, never stored | a module in `crates/core/src/`, called from `render/derived.rs` when a diagram draws its layer |
 | A new raster from a WCS | a `Coverage` in its source module, fetched by `sources/wcs.rs`, turned into bands in `site/environment.rs` with the breaks of the diagram that draws it |
 | A new diagram | a JSON file in `crates/core/assets/diagrams/` with its `group`, listed in `catalog.rs` next to its group |
 | Another measure for an existing diagram | a variant in that diagram's JSON; a diagram folded into another keeps its old id in `catalog/lookup.rs` |

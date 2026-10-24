@@ -112,6 +112,11 @@ impl SunMoment {
 
     /// "21 March, 13:00".
     pub fn label(&self) -> String {
+        format!("{}, {:02}:{:02}", self.date_label(), self.hour, self.minute)
+    }
+
+    /// "21 March".
+    pub fn date_label(&self) -> String {
         const MONTHS: [&str; 12] = [
             "January",
             "February",
@@ -127,7 +132,7 @@ impl SunMoment {
             "December",
         ];
         let month = MONTHS[(self.month.clamp(1, 12) - 1) as usize];
-        format!("{} {month}, {:02}:{:02}", self.day, self.hour, self.minute)
+        format!("{} {month}", self.day)
     }
 }
 

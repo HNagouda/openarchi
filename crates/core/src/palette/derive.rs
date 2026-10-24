@@ -6,16 +6,18 @@
 //! from the new palette with about the share paper.json uses, so roads stay a
 //! little darker than the ground on any palette, light or dark.
 
+use std::collections::BTreeMap;
+
 use super::colour::lch;
 use super::roles::RoleColour;
 use super::{PaletteDraft, PaletteSource};
 use crate::catalog::builtin_themes;
 use crate::render::{is_hex, mix, sample_ramp};
 use crate::scene::Layer;
-use crate::theme::{Palette, Pattern, Theme, Typography, THEME_FORMAT_VERSION};
+use crate::theme::{LayerStyle, Palette, Pattern, Theme, Typography, THEME_FORMAT_VERSION};
 use crate::{Error, Result};
 
-const TEMPLATE_THEME: &str = "paper";
+pub const TEMPLATE_THEME: &str = "paper";
 const AUTHOR: &str = "You";
 const DEFAULT_FAMILY: &str = "Inter";
 
@@ -64,15 +66,9 @@ pub fn theme(draft: &PaletteDraft, id: &str, roles: &[RoleColour]) -> Result<The
         .into_iter()
         .find(|theme| theme.id == TEMPLATE_THEME)
         .ok_or_else(|| Error::Invalid(format!("built-in theme {TEMPLATE_THEME:?} is missing")))?;
-    let mut layers = template.layers.clone();
-    // Fill and stroke of one layer are the same mixed colour, as in the template.
-    for (layer, style) in layers.iter_mut() {
-        if style.fill.as_deref().is_some_and(is_hex) {
-            style.fill = Some(mixed_colour(*layer, &palette)?);
-        }
-        if style.stroke.as_deref().is_some_and(is_hex) {
-            style.stroke = Some(mixed_colour(*layer, &palette)?);
-        }
+    let mut layers = BTreeMap::new();
+    for (layer, style) in &template.layers {
+        layers.insert(*layer, layer_style(*layer, style, &palette)?);
     }
     // A grey water would read as paving, so it is hatched, the way maps draw water in one ink.
     let is_grey_water = roles
@@ -121,6 +117,21 @@ pub fn theme(draft: &PaletteDraft, id: &str, roles: &[RoleColour]) -> Result<The
             roles: draft.roles.clone(),
         }),
     })
+}
+
+/// The template's style for `layer` on this palette: its raw colours mixed
+/// from the palette, its roles kept. Fill and stroke of one layer are the
+/// same mixed colour, as in the template.
+pub fn layer_style(layer: Layer, template: &LayerStyle, palette: &Palette) -> Result<LayerStyle> {
+    let mut style = template.clone();
+    if style.fill.as_deref().is_some_and(is_hex) {
+        style.fill = Some(mixed_colour(layer, palette)?);
+    }
+    if style.stroke.as_deref().is_some_and(is_hex) {
+        style.stroke = Some(mixed_colour(layer, palette)?);
+    }
+
+    Ok(style)
 }
 
 /// The colour of a layer that the template paints in a raw colour, mixed

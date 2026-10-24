@@ -237,6 +237,15 @@ Sheets can now show the site in three dimensions and the sun over it.
 - A palette whose text misses its WCAG ratio on the paper can no longer be saved: Save stays grey and says to fix the text contrast. Faint buildings or a faint accent only warn, since a pale figure can be a deliberate look.
 - The Ratios view now shows the source line under every group's title, and the Analysis tab moved its source line up under each section title to match.
 
+### Floors, blocks and sunlight hours
+
+- Three new diagrams worked out from data every site already has, so they need no new download and work on projects made before them.
+- Floors colours each building by its number of floors, from its roof height at 3 m per floor: 1, 2, 3–4, 5–8 and 9 or more. Its Floor area variant colours each building by its gross floor area, its footprint times its floors. The Floors chart in the ratios now uses the same classes as the diagram, and the ratios panel and CSV give the site's total gross floor area.
+- City blocks cuts the site into the blocks its streets, paths, rail and water leave, so a road that stops at the site edge still cuts and a circle closes its blocks at its edge. Its GSI variant colours each block by how much of it the buildings cover, and its FSI variant by its floor area over its area, both as Spacematrix defines them.
+- Sunlight hours shows how many hours of direct sun the ground gets over the sheet's sun date, past the shadows of the buildings and trees in the site and around it, on a 2 m grid. The legend names the date and the method, a sun-on-ground study after BRE BR 209, which asks for two hours on 21 March over half of a garden. Buildings are drawn blank so no roof reads as a class. On this diagram the time field shows only in the axonometric view, which is lit at one moment.
+- All three draw in plan, axonometric and explode views and on a sheet that shows part of the site, and assistants find them through `list_diagrams`.
+- Your own palettes saved before a layer existed now draw it too: a palette made from swatches gets the style its own colours give that layer, any other the Paper style in its own colours. The file on disk is not changed.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

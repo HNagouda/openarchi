@@ -12,6 +12,9 @@ use crate::Result;
 /// Stroke in the fill colour on figure layers. Neighbouring tiles of a planar
 /// map would otherwise show hairline seams where antialiasing meets.
 const FIGURE_SEAM_MM: f64 = 0.25;
+/// The ink edge of a blank layer: enough to find a building, too fine to compete with the ground.
+const BLANK_EDGE_MM: f64 = 0.1;
+const BLANK_TINT: f64 = 0.08;
 
 /// Why a layer looks the way it does. The legend groups rows by this.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,14 +59,19 @@ pub fn resolve_layers(diagram: &Diagram, theme: &Theme, look: &Look) -> Result<V
             .filter(|classify| classify.layer == layer);
         let is_kept = diagram.emphasis == Some(layer) || diagram.highlight.contains(&layer);
         let is_figure = diagram.as_figure.contains(&layer);
+        let is_blank = diagram.blank.contains(&layer);
 
-        if diagram.mute_others && !is_kept && !is_figure && classified.is_none() {
+        let is_quieted = !is_kept && !is_figure && !is_blank && classified.is_none();
+        if diagram.mute_others && is_quieted {
             mute(&mut style);
             role = Role::Muted;
         }
         if is_figure {
             make_figure(&mut style);
             role = Role::Figure;
+        }
+        if is_blank {
+            make_blank(&mut style, theme);
         }
         let mut classes = match classified {
             Some(classify) => {
@@ -117,6 +125,19 @@ fn make_figure(style: &mut LayerStyle) {
     style.fill = Some("@figure".to_string());
     style.stroke = Some("@figure".to_string());
     style.stroke_mm = FIGURE_SEAM_MM;
+    style.dash_mm.clear();
+    style.opacity = 1.0;
+    style.pattern = None;
+    style.shadow_mm = 0.0;
+}
+
+/// Paper lifted a little towards ink, so a blank solid still stands out from
+/// the paper in a tilted view, on dark palettes too.
+fn make_blank(style: &mut LayerStyle, theme: &Theme) {
+    let palette = &theme.palette;
+    style.fill = Some(color::mix(&palette.paper, &palette.ink, BLANK_TINT));
+    style.stroke = Some("@ink".to_string());
+    style.stroke_mm = BLANK_EDGE_MM;
     style.dash_mm.clear();
     style.opacity = 1.0;
     style.pattern = None;

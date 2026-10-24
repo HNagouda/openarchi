@@ -1,0 +1,95 @@
+{
+    "id": "city-block",
+    "name": "City blocks",
+    "group": "Context and built form",
+    "description": "The blocks the streets, rail and water cut the site into, and how densely each is built.",
+    "mute_others": true,
+    "highlight": [
+        "water"
+    ],
+    "as_figure": [],
+    "variants": [
+        {
+            "id": "blocks",
+            "name": "Blocks",
+            "title": "City blocks",
+            "description": "The land between streets, paths, rail and water, block by block.",
+            "layers": [
+                "water",
+                "block"
+            ],
+            "emphasis": "block",
+            "classify": null
+        },
+        {
+            "id": "coverage",
+            "name": "GSI",
+            "title": "Block coverage",
+            "description": "How much of each block the buildings cover: building footprint over block area.",
+            "layers": [
+                "water",
+                "block"
+            ],
+            "emphasis": "block",
+            "classify": {
+                "layer": "block",
+                "attribute": "coverage",
+                "title": "Coverage (GSI)",
+                "note": "Building footprint over block area, the GSI of Spacematrix (Berghauser Pont and Haupt, 2010).",
+                "scheme": {
+                    "kind": "sequential",
+                    "breaks": [
+                        0.2,
+                        0.35,
+                        0.5,
+                        0.65,
+                        0.8
+                    ],
+                    "labels": [
+                        "Under 20 %",
+                        "20–35 %",
+                        "35–50 %",
+                        "50–65 %",
+                        "65–80 %",
+                        "80 % or more"
+                    ]
+                }
+            }
+        },
+        {
+            "id": "floor-space",
+            "name": "FSI",
+            "title": "Block floor space",
+            "description": "How much floor each block holds for its area: gross floor area over block area.",
+            "layers": [
+                "water",
+                "block"
+            ],
+            "emphasis": "block",
+            "classify": {
+                "layer": "block",
+                "attribute": "floor_space_index",
+                "title": "Floor space index (FSI)",
+                "note": "Gross floor area over block area, the FSI of Spacematrix (Berghauser Pont and Haupt, 2010). Floors from roof height at 3 m each.",
+                "scheme": {
+                    "kind": "sequential",
+                    "breaks": [
+                        0.5,
+                        1,
+                        2,
+                        3,
+                        4
+                    ],
+                    "labels": [
+                        "Under 0.5",
+                        "0.5–1",
+                        "1–2",
+                        "2–3",
+                        "3–4",
+                        "4 or more"
+                    ]
+                }
+            }
+        }
+    ]
+}

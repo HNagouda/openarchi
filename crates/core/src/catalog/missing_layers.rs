@@ -1,0 +1,96 @@
+//! Styles for the layers a saved theme is older than.
+//!
+//! A theme without a style for a layer does not draw it, so a palette saved
+//! before a layer existed would draw that layer's diagrams empty. On load, each
+//! missing layer gets the style the template theme gives it: through the
+//! palette rules for a palette made from swatches, as it is for the built-in
+//! Paper otherwise. Paper styles its newer layers with palette roles, so they
+//! follow the theme's own colours either way. Nothing is written back to disk.
+
+use super::builtin_themes;
+use crate::palette::{layer_style, TEMPLATE_THEME};
+use crate::theme::Theme;
+use crate::{Error, Result};
+
+/// The theme with a style for every layer the template styles.
+pub fn filled(mut theme: Theme) -> Result<Theme> {
+    let template = builtin_themes()
+        .into_iter()
+        .find(|builtin| builtin.id == TEMPLATE_THEME)
+        .ok_or_else(|| Error::Invalid(format!("built-in theme {TEMPLATE_THEME:?} is missing")))?;
+    for (layer, style) in template.layers {
+        if theme.layers.contains_key(&layer) {
+            continue;
+        }
+        let style = match theme.source {
+            Some(_) => layer_style(layer, &style, &theme.palette)?,
+            None => style,
+        };
+        theme.layers.insert(layer, style);
+    }
+
+    Ok(theme)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::palette::PaletteSource;
+    use crate::scene::Layer;
+
+    /// The Ink theme saved before the block and sun-hours layers existed.
+    fn old_ink() -> Theme {
+        let mut theme = builtin_themes()
+            .into_iter()
+            .find(|theme| theme.id == "ink")
+            .unwrap();
+        theme.id = "my-ink".to_string();
+        theme.layers.remove(&Layer::Block);
+        theme.layers.remove(&Layer::SunHours);
+        theme
+    }
+
+    #[test]
+    fn a_theme_missing_a_layer_gets_the_paper_style_in_its_own_roles() {
+        let filled = filled(old_ink()).unwrap();
+        let paper = builtin_themes().into_iter().next().unwrap();
+
+        assert_eq!(filled.layers[&Layer::Block], paper.layers[&Layer::Block]);
+        assert_eq!(
+            filled.layers[&Layer::SunHours].fill.as_deref(),
+            Some("@muted")
+        );
+    }
+
+    #[test]
+    fn a_palette_made_from_swatches_gets_its_own_rule_for_the_layer() {
+        let mut theme = old_ink();
+        theme.layers.remove(&Layer::Road);
+        theme.source = Some(PaletteSource {
+            swatches: Vec::new(),
+            roles: Default::default(),
+        });
+        let filled = filled(theme.clone()).unwrap();
+
+        // Paper paints roads in a raw colour; a swatch palette mixes its own.
+        let road = filled.layers[&Layer::Road].fill.clone().unwrap();
+        let expected = layer_style(
+            Layer::Road,
+            &builtin_themes()[0].layers[&Layer::Road],
+            &theme.palette,
+        )
+        .unwrap();
+        assert_eq!(Some(road), expected.fill);
+        assert!(filled.layers.contains_key(&Layer::Block));
+    }
+
+    #[test]
+    fn styles_the_theme_has_are_kept() {
+        let mut theme = old_ink();
+        let mut road = theme.layers[&Layer::Road].clone();
+        road.stroke_mm = 1.5;
+        theme.layers.insert(Layer::Road, road.clone());
+
+        assert_eq!(filled(theme).unwrap().layers[&Layer::Road], road);
+    }
+}
