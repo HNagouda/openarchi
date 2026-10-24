@@ -57,6 +57,8 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::Green | Layer::Verge | Layer::Tree => 3,
         Layer::Parcel => 6,
         Layer::Contour => 30,
+        Layer::Business | Layer::Facility | Layer::TransitStop => 1,
+        Layer::WalkPath | Layer::WalkBand => 40,
     }
 }
 
