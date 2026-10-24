@@ -29,8 +29,14 @@ const RECORDED_ANALYSIS: &str = concat!(
     "/../core/tests/fixtures/analysis-cache/tiles-v1"
 );
 
+/// A small recorded scene with noise, air, flood, slope, population and dwellings.
+const WESTERKERK_ENVIRONMENT: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../core/tests/fixtures/westerkerk-environment.scene.json"
+);
+
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 17] = [
+const TOOLS: [&str; 18] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -44,6 +50,7 @@ const TOOLS: [&str; 17] = [
     "get_ratios",
     "get_neighbourhood",
     "get_analysis",
+    "get_environment",
     "export",
     "create_theme",
     "delete_project",
@@ -481,6 +488,28 @@ fn seed_analysis_cache(cache: &std::path::Path) {
             handle.set_modified(std::time::SystemTime::now()).unwrap();
         }
     }
+}
+
+#[test]
+fn get_environment_gives_noise_flood_and_people_with_their_years() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+    let library = Library::at(server.library.path()).unwrap();
+    let mut project = library.load(&id).unwrap();
+
+    let message = server.call_err("get_environment", json!({ "id": id }));
+    assert!(message.contains("fetch_site"), "{message}");
+
+    let scene: Scene =
+        serde_json::from_str(&std::fs::read_to_string(WESTERKERK_ENVIRONMENT).unwrap()).unwrap();
+    project.scene = Some(scene);
+    library.save(&mut project).unwrap();
+
+    let environment = server.call_ok("get_environment", json!({ "id": id }));
+    assert!(environment["road_noise_mean_db"].as_f64().unwrap() > 50.0);
+    assert!(environment["flood_max_depth_m"].as_f64().unwrap() > 0.0);
+    assert!(environment["residents"].as_f64().unwrap() > 0.0);
+    assert_eq!(environment["noise_year"], json!(2022));
 }
 
 #[test]

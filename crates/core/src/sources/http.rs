@@ -11,21 +11,26 @@ use crate::{Error, Result};
 /// A whole response, including a slow 2 km elevation tile, must arrive within this.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(90);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
-/// PDOK hiccups are usually gone a moment later, so one retry after a short pause.
-const RETRY_DELAY: Duration = Duration::from_secs(2);
+/// Pauses before each retry. PDOK hiccups are usually gone a moment later,
+/// but the CBS grid kept answering 500 to some tiles past one retry while a whole
+/// site was fetched at once, so a failed request gets a second, longer pause.
+const RETRY_DELAYS: [Duration; 2] = [Duration::from_secs(2), Duration::from_secs(4)];
 /// ureq stops at 10 MB by default; a 2 km elevation tile is about 20 MB.
 const MAX_BODY_BYTES: u64 = 256 * 1024 * 1024;
 
 /// The response body of `url` with `query` appended. `service` names the
 /// service in error messages: "PDOK BGT".
 pub fn get(service: &str, url: &str, query: &[(&str, &str)]) -> Result<Vec<u8>> {
-    match get_once(service, url, query) {
-        Ok(body) => Ok(body),
-        Err(_) => {
-            thread::sleep(RETRY_DELAY);
-            get_once(service, url, query)
+    let mut result = get_once(service, url, query);
+    for delay in RETRY_DELAYS {
+        if result.is_ok() {
+            break;
         }
+        thread::sleep(delay);
+        result = get_once(service, url, query);
     }
+
+    result
 }
 
 /// The response body of a form POST to `url`, retried after each pause in

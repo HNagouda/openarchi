@@ -8,6 +8,7 @@ pub mod area;
 pub mod catalog;
 pub mod crs;
 pub mod diagram;
+pub mod environment;
 pub mod error;
 pub mod export;
 pub mod geocode;

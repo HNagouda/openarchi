@@ -6,6 +6,7 @@
 
 use serde::Serialize;
 
+use crate::environment;
 use crate::ratios::{Group, Ratios};
 use crate::scene::{Layer, Scene};
 use crate::walk::{self, GroupCount};
@@ -46,21 +47,13 @@ pub struct UseShare {
     pub share: f64,
 }
 
-/// Numbers about the site's surroundings that other sources provide. Each
-/// stays `None` until its source is in the scene, and the summary and the
-/// design notes simply leave it out.
-#[derive(Debug, Clone, Default, Serialize)]
+/// Numbers about the site's surroundings from the environment and walk data
+/// in the scene. Each stays `None` when its source is missing, and the
+/// summary and the design notes simply leave it out.
+#[derive(Debug, Clone, Serialize)]
 pub struct Surroundings {
-    /// Road traffic noise, Lden in dB, mean over the site (RIVM).
-    pub noise_lden_db: Option<f64>,
-    /// Annual mean NO2 in µg/m³, mean over the site (RIVM).
-    pub no2_ug_m3: Option<f64>,
-    /// Maximum water depth in metres in the most likely flood scenario that reaches the site (LIWO).
-    pub flood_depth_m: Option<f64>,
-    /// Residents in the CBS 100 m cells the site touches.
-    pub population: Option<u32>,
-    /// Dwellings in the same cells.
-    pub dwellings: Option<u32>,
+    /// Noise, air, flood, slope and people, as `environment::summarise` gives them.
+    pub environment: environment::Summary,
     /// Facilities (schools, health, culture, sport) within a `FACILITY_WALK_MIN` walk (OpenStreetMap).
     pub facilities_within_walk: Option<usize>,
     /// Facility groups with nothing within that walk: "Education", "Health".
@@ -109,15 +102,11 @@ pub fn land_use(ratios: &Ratios) -> Option<&Group> {
     group(ratios, LAND_USE_GROUP)
 }
 
-// #! TODO[analysis, integration] : Fill noise, NO2, flood, population and dwellings from the environment layers once they are merged
-// The environment branch should give `environment::site_numbers(scene) -> EnvironmentNumbers`
-// with noise_lden_db, no2_ug_m3, flood_depth_m, population and dwellings as Option fields.
 fn surroundings(scene: &Scene) -> Surroundings {
-    let Some(neighbourhood) = walk::neighbourhood(scene) else {
-        return Surroundings::default();
-    };
+    let neighbourhood = walk::neighbourhood(scene);
     let band = |minutes: u32| {
         neighbourhood
+            .as_ref()?
             .bands
             .iter()
             .find(|band| band.minutes == minutes)
@@ -126,6 +115,7 @@ fn surroundings(scene: &Scene) -> Surroundings {
     let facilities = band(FACILITY_WALK_MIN);
 
     Surroundings {
+        environment: environment::summarise(scene),
         facilities_within_walk: facilities.map(|band| total(&band.facilities)),
         facility_groups_missing: facilities
             .map(|band| {
@@ -138,7 +128,6 @@ fn surroundings(scene: &Scene) -> Surroundings {
             .unwrap_or_default(),
         businesses_within_walk: facilities.map(|band| total(&band.businesses)),
         transit_stops_within_walk: band(TRANSIT_WALK_MIN).map(|band| total(&band.transit_stops)),
-        ..Surroundings::default()
     }
 }
 

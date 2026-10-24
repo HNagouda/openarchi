@@ -9,6 +9,7 @@
 
 mod boundary;
 mod download;
+mod environment;
 #[cfg(test)]
 mod tests;
 
@@ -19,14 +20,17 @@ use geo::{BoundingRect, Coord, Geometry, MapCoords, Polygon, Rect};
 
 use self::boundary::{boundary_in_rd, site_centre};
 use self::download::{Dataset, Download, Fetcher, Payload};
+use self::environment::{Raster, RIVM_RASTERS};
 use crate::area::Area;
+use crate::environment::Measured;
 use crate::scene::{Credit, Feature, Layer, Scene, Walk};
 use crate::sources::ahn::{self, CellTile, Elevation};
 use crate::sources::cache::TileCache;
 use crate::sources::clip::{self, Clipped};
 use crate::sources::osm::{self, Osm};
 use crate::sources::pdok::Record;
-use crate::sources::{bag, bgt, brk, contours, heights};
+use crate::sources::raster::Grid;
+use crate::sources::{bag, bag_units, bands, bgt, brk, cbs, contours, heights, liwo, rivm};
 use crate::walk;
 use crate::{Error, Result};
 
@@ -47,16 +51,28 @@ enum Source {
     Bag,
     Brk,
     Ahn,
+    Rivm,
+    Liwo,
+    Cbs,
+    BagUnits,
     Osm,
 }
 
-const SOURCES: [Source; 5] = [
+const SOURCES: [Source; 9] = [
     Source::Bgt,
     Source::Bag,
     Source::Brk,
     Source::Ahn,
     Source::Osm,
+    Source::Rivm,
+    Source::Liwo,
+    Source::Cbs,
+    Source::BagUnits,
 ];
+
+/// The sources a site cannot do without. The others add layers and figures,
+/// so when only they arrive the fetch still failed.
+const BASE_SOURCES: [Source; 4] = [Source::Bgt, Source::Bag, Source::Brk, Source::Ahn];
 
 impl Source {
     fn step(self) -> &'static str {
@@ -65,17 +81,27 @@ impl Source {
             Source::Bag => "Buildings",
             Source::Brk => "Parcels",
             Source::Ahn => "Elevation",
+            Source::Rivm => "Noise and air quality",
+            Source::Liwo => "Flood depth",
+            Source::Cbs => "Population",
+            Source::BagUnits => "Dwellings",
             Source::Osm => "Places, transit and walking routes",
         }
     }
 
-    fn credit(self) -> Credit {
+    /// `None` for a source already credited under another name.
+    fn credit(self) -> Option<Credit> {
         match self {
-            Source::Bgt => bgt::credit(),
-            Source::Bag => bag::credit(),
-            Source::Brk => brk::credit(),
-            Source::Ahn => ahn::credit(),
-            Source::Osm => osm::credit(),
+            Source::Bgt => Some(bgt::credit()),
+            Source::Bag => Some(bag::credit()),
+            Source::Brk => Some(brk::credit()),
+            Source::Ahn => Some(ahn::credit()),
+            Source::Rivm => Some(rivm::credit()),
+            Source::Liwo => Some(liwo::credit()),
+            Source::Cbs => Some(cbs::credit()),
+            // The units are BAG, which the buildings already credit.
+            Source::BagUnits => None,
+            Source::Osm => Some(osm::credit()),
         }
     }
 }
@@ -123,8 +149,10 @@ fn build_scene_with(
         osm,
         credits,
         mut warnings,
-    } = join(downloads, bbox);
-    if credits.is_empty() {
+        mut measured,
+        has_base,
+    } = join(downloads, bbox, &boundary);
+    if !has_base {
         return Err(Error::Network {
             service: "PDOK".to_string(),
             detail: warnings.join("; "),
@@ -134,6 +162,9 @@ fn build_scene_with(
     if let Some(elevation) = &elevation {
         add_building_heights(&mut features, elevation);
         features.extend(contours::contour_lines(&elevation.terrain));
+        let (slope, stats) = environment::slope_bands(&elevation.terrain, &boundary);
+        features.extend(slope);
+        measured.slope_percent = stats;
     }
     report("Heights and contours", total - 2);
 
@@ -151,6 +182,7 @@ fn build_scene_with(
     report("Walk times", total - 1);
 
     let (features, unclippable) = clip_and_localise(features, &boundary, origin);
+    let features = bands::without_hidden_bands(features);
     if unclippable > 0 {
         warnings.push(format!(
             "{unclippable} features had broken shapes and were left out."
@@ -176,6 +208,7 @@ fn build_scene_with(
         credits,
         fetched_at: humantime::format_rfc3339_seconds(SystemTime::now()).to_string(),
         warnings,
+        measured,
         walk,
     })
 }
@@ -211,17 +244,21 @@ struct Joined {
     osm: Option<Osm>,
     credits: Vec<Credit>,
     warnings: Vec<String>,
+    measured: Measured,
+    /// At least one of `BASE_SOURCES` arrived.
+    has_base: bool,
 }
 
 /// Joins the tiles of each source. A source missing even one tile is left out
 /// whole, because a layer with a hole in it would look like real emptiness.
-fn join(mut downloads: Vec<Download>, bbox: Rect<f64>) -> Joined {
+fn join(mut downloads: Vec<Download>, bbox: Rect<f64>, boundary: &Polygon<f64>) -> Joined {
     // Tiles finish in any order; sorting keeps the scene the same every time.
     downloads.sort_by_key(|download| (download.tile.row, download.tile.column));
 
     let mut failed: HashMap<Source, Error> = HashMap::new();
     let mut records: HashMap<Dataset, Vec<Record>> = HashMap::new();
     let mut cells: HashMap<Dataset, Vec<CellTile>> = HashMap::new();
+    let mut rasters: HashMap<Dataset, Vec<Grid>> = HashMap::new();
     let mut osm_body: Option<Vec<u8>> = None;
     for download in downloads {
         match download.payload {
@@ -233,6 +270,7 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>) -> Joined {
                 .entry(download.dataset)
                 .or_default()
                 .push((download.tile.rect(), tile_cells)),
+            Ok(Payload::Raster(grid)) => rasters.entry(download.dataset).or_default().push(grid),
             Ok(Payload::Osm(body)) => osm_body = Some(body),
             Err(error) => {
                 failed.entry(download.dataset.source()).or_insert(error);
@@ -242,6 +280,15 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>) -> Joined {
 
     let mut joined = Joined::default();
     let mut take = |dataset| unique(records.remove(&dataset).unwrap_or_default());
+    // Units first, so the buildings can count them.
+    let units = (!failed.contains_key(&Source::BagUnits))
+        .then(|| bag_units::totals_per_building(&take(Dataset::BagUnits)));
+    let mut bands_of = |raster: Raster, joined: &mut Joined| {
+        let tiles = rasters.remove(&Dataset::Raster(raster)).unwrap_or_default();
+        let (features, stats) = environment::raster_bands(raster, &tiles, boundary);
+        joined.features.extend(features);
+        environment::record(&mut joined.measured, raster, stats);
+    };
     for source in SOURCES {
         if let Some(error) = failed.remove(&source) {
             joined
@@ -259,7 +306,9 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>) -> Joined {
                         .extend(bgt::to_features(collection, tile_records));
                 }
             }
-            Source::Bag => joined.features.extend(bag::to_features(take(Dataset::Bag))),
+            Source::Bag => joined
+                .features
+                .extend(bag::to_features(take(Dataset::Bag), units.as_ref())),
             Source::Brk => joined.features.extend(brk::to_features(take(Dataset::Brk))),
             Source::Ahn => {
                 let surface = cells.remove(&Dataset::AhnSurface).unwrap_or_default();
@@ -269,6 +318,17 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>) -> Joined {
                     terrain: ahn::assemble(bbox, &terrain),
                 });
             }
+            Source::Rivm => {
+                for raster in RIVM_RASTERS {
+                    bands_of(raster, &mut joined);
+                }
+            }
+            Source::Liwo => bands_of(Raster::Flood, &mut joined),
+            Source::Cbs => {
+                let years = cbs::YEARS.map(|year| take(Dataset::Cbs(year)));
+                joined.features.extend(cbs::to_features(years.into()));
+            }
+            Source::BagUnits => {}
             Source::Osm => match osm::parse(&osm_body.take().unwrap_or_default()) {
                 Ok(parsed) => joined.osm = Some(parsed),
                 Err(error) => {
@@ -279,7 +339,8 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>) -> Joined {
                 }
             },
         }
-        joined.credits.push(source.credit());
+        joined.has_base |= BASE_SOURCES.contains(&source);
+        joined.credits.extend(source.credit());
     }
 
     joined

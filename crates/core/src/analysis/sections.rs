@@ -114,19 +114,32 @@ pub fn site(
 
 fn surroundings_facts(summary: &SiteSummary, facts: &mut Vec<Fact>) {
     let surroundings = &summary.surroundings;
-    if let Some(noise) = surroundings.noise_lden_db {
-        facts.push(fact("Road noise", format!("{noise:.0} dB Lden")));
+    let environment = &surroundings.environment;
+    if let Some(noise) = environment.road_noise_mean_db {
+        let label = format!("Road noise, {}", environment.noise_year);
+        facts.push(fact(&label, format!("{noise:.0} dB Lden")));
     }
-    if let Some(no2) = surroundings.no2_ug_m3 {
-        facts.push(fact("NO₂, annual mean", format!("{no2:.0} µg/m³")));
+    if let Some(no2) = environment.no2_mean_ug_m3 {
+        let label = format!("NO₂, {}", environment.air_year);
+        facts.push(fact(&label, format!("{no2:.0} µg/m³")));
     }
-    if let Some(depth) = surroundings.flood_depth_m {
-        facts.push(fact("Flood depth", format!("{depth:.1} m")));
+    if let Some(depth) = environment.flood_max_depth_m {
+        let share = environment.flood_share.unwrap_or(0.0);
+        let value = if depth > 0.0 {
+            format!("{depth:.1} m, {} of site", percent(share))
+        } else {
+            "Stays dry".to_string()
+        };
+        facts.push(fact("Worst-case flood", value));
     }
-    if let Some(population) = surroundings.population {
-        facts.push(fact("Residents", grouped(population as f64)));
+    if let Some(slope) = environment.slope_max_percent {
+        facts.push(fact("Steepest slope", format!("{slope:.0} %")));
     }
-    if let Some(dwellings) = surroundings.dwellings {
+    if let Some(residents) = environment.residents {
+        let label = format!("Residents, {}", environment.population_year);
+        facts.push(fact(&label, grouped(residents)));
+    }
+    if let Some(dwellings) = environment.dwellings {
         facts.push(fact("Dwellings", grouped(dwellings as f64)));
     }
     if let Some(facilities) = surroundings.facilities_within_walk {

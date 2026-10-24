@@ -5,7 +5,7 @@
 //!
 //! cargo run --release -p openarchi-core --example app_fixtures   # writes app/dev-fixtures/
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::Path;
 
@@ -22,6 +22,9 @@ use serde_json::json;
 
 const FIXTURE: &str = "tests/fixtures/westermarkt.scene.json";
 const RECORDED_ANALYSIS: &str = "tests/fixtures/analysis-cache/tiles-v1";
+/// Noise, air, flood, slope, population and dwellings for the inner 120 m of
+/// the same site, so the environment diagrams have something to show.
+const ENVIRONMENT_FIXTURE: &str = "tests/fixtures/westerkerk-environment.scene.json";
 /// Wide enough for a gallery card on a Retina screen.
 const THUMBNAIL_WIDTH_PX: u32 = 560;
 
@@ -32,7 +35,11 @@ fn main() {
     fs::create_dir_all(out_dir.join("thumbs")).expect("create the thumbs folder");
 
     let text = fs::read_to_string(manifest.join(FIXTURE)).expect("read the Westermarkt fixture");
-    let scene: Scene = serde_json::from_str(&text).expect("parse the Westermarkt fixture");
+    let mut scene: Scene = serde_json::from_str(&text).expect("parse the Westermarkt fixture");
+    let text = fs::read_to_string(manifest.join(ENVIRONMENT_FIXTURE))
+        .expect("read the environment fixture");
+    let environment: Scene = serde_json::from_str(&text).expect("parse the environment fixture");
+    add_environment(&mut scene, environment);
     write_catalog(&scene, &out_dir);
     write_analysis(&scene, &out_dir);
 
@@ -116,6 +123,37 @@ fn write_analysis(scene: &Scene, out_dir: &Path) {
                 .expect("write the part");
         }
     }
+}
+
+/// The environment layers, dwellings and credits of `environment` on `scene`.
+/// Both fixtures are centred on the Westerkerk, so their frames match.
+fn add_environment(scene: &mut Scene, environment: Scene) {
+    let mut units = HashMap::new();
+    for feature in environment.features {
+        if feature.layer == Layer::Building {
+            units.insert(feature.attributes.source_id.clone(), feature.attributes);
+        } else if !matches!(feature.layer, Layer::Water | Layer::Contour) {
+            scene.features.push(feature);
+        }
+    }
+    for building in scene
+        .features
+        .iter_mut()
+        .filter(|feature| feature.layer == Layer::Building)
+    {
+        if let Some(attributes) = units.get(&building.attributes.source_id) {
+            building.attributes.dwellings = attributes.dwellings;
+            building.attributes.floor_area_m2 = attributes.floor_area_m2;
+        }
+    }
+    let known: BTreeSet<String> = scene.credits.iter().map(|c| c.name.clone()).collect();
+    let new_credits: Vec<_> = environment
+        .credits
+        .into_iter()
+        .filter(|credit| !known.contains(&credit.name))
+        .collect();
+    scene.credits.extend(new_credits);
+    scene.measured = environment.measured;
 }
 
 /// The catalog as the app's `get_catalog` returns it, plus the fixture's area and layers.

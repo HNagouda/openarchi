@@ -254,6 +254,7 @@ mod tests {
             credits: vec![],
             fetched_at: String::new(),
             warnings: vec![],
+            measured: Default::default(),
             walk: Some(Walk {
                 bands: walk.bands,
                 paths: walk.paths,

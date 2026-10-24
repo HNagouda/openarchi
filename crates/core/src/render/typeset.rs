@@ -13,6 +13,7 @@ use crate::theme::Typography;
 /// Cap height as a share of the font size, close for all three bundled families.
 pub(super) const CAP_HEIGHT_EM: f64 = 0.72;
 const ELLIPSIS: char = '\u{2026}';
+const MICRO_SIGN: char = '\u{00B5}';
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Kind {
@@ -254,9 +255,33 @@ impl Typesetter {
 
     fn cased(&self, text: &str, spec: &Spec) -> String {
         if spec.is_uppercase {
-            text.to_uppercase()
+            capitals(text)
         } else {
             text.to_string()
         }
+    }
+}
+
+/// `text` in capitals, except the micro sign: a capital µ is a Greek M, which
+/// would turn µg/m³ into "MG/M³", milligrams.
+fn capitals(text: &str) -> String {
+    text.chars()
+        .map(|character| {
+            if character == MICRO_SIGN {
+                character.to_string()
+            } else {
+                character.to_uppercase().collect()
+            }
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn capitals_keep_the_micro_sign() {
+        assert_eq!(capitals("15–20 µg/m³"), "15–20 µG/M³");
     }
 }

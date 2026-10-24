@@ -8,6 +8,7 @@ use geo::{Geometry, Polygon};
 use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
+use crate::environment::Measured;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scene {
@@ -24,6 +25,10 @@ pub struct Scene {
     pub fetched_at: String,
     /// Sources that failed. The scene is still usable without them.
     pub warnings: Vec<String>,
+    /// Noise, air, flood and slope inside the site, from the full rasters
+    /// before they were turned into bands. Empty in scenes fetched before 0.2.
+    #[serde(default)]
+    pub measured: Measured,
     /// The walkable neighbourhood, which reaches past the boundary. `None` for
     /// sites fetched before it existed, or when OpenStreetMap could not be reached.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -65,6 +70,21 @@ pub struct Attributes {
     pub height_m: Option<f64>,
     /// Ground level above NAP.
     pub ground_m: Option<f64>,
+    /// The lower edge of a band (dB, µg/m³, metres of water, percent slope),
+    /// or the residents of a CBS statistics cell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<f64>,
+    /// BAG dwellings (units with a residential use) in a building, or the
+    /// dwellings CBS counts in a statistics cell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub dwellings: Option<u32>,
+    /// The BAG floor area of every unit in a building, in m². BAG records
+    /// usable floor area (NEN 2580), which is smaller than gross floor area.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub floor_area_m2: Option<f64>,
+    /// Private households in a CBS statistics cell.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub households: Option<f64>,
     /// A place's or a stop's own name: "Westermarkt".
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -122,6 +142,21 @@ pub enum Layer {
     Parcel,
     /// Terrain contour lines.
     Contour,
+    /// Road traffic noise bands, Lden.
+    RoadNoise,
+    /// Noise bands from every source together, Lden.
+    AllNoise,
+    /// Annual mean nitrogen dioxide bands.
+    No2,
+    /// Annual mean particulate matter bands, PM10 and PM2.5.
+    Pm10,
+    Pm25,
+    /// Maximum flood depth bands.
+    Flood,
+    /// Terrain slope bands.
+    Slope,
+    /// CBS 100 m statistics cells, with residents per cell.
+    Population,
     /// Shops, food and drink, offices, hotels and services, as points.
     Business,
     /// Schools, culture, civic, health, leisure and parking, as points.
@@ -136,7 +171,16 @@ pub enum Layer {
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 23] = [
+    pub const ALL: [Layer; 31] = [
+        // Measured surfaces lie under the map, as the ground they describe.
+        Layer::Population,
+        Layer::Slope,
+        Layer::Flood,
+        Layer::Pm25,
+        Layer::Pm10,
+        Layer::No2,
+        Layer::AllNoise,
+        Layer::RoadNoise,
         Layer::WalkBand,
         Layer::WalkPath,
         Layer::Unpaved,
@@ -182,6 +226,14 @@ impl Layer {
             Layer::Tree => "Trees",
             Layer::Parcel => "Parcels",
             Layer::Contour => "Contours",
+            Layer::RoadNoise => "Road traffic noise",
+            Layer::AllNoise => "Noise, all sources",
+            Layer::No2 => "Nitrogen dioxide",
+            Layer::Pm10 => "PM10",
+            Layer::Pm25 => "PM2.5",
+            Layer::Flood => "Flood depth",
+            Layer::Slope => "Slope",
+            Layer::Population => "Population",
             Layer::Business => "Businesses",
             Layer::Facility => "Facilities",
             Layer::TransitStop => "Transit stops",

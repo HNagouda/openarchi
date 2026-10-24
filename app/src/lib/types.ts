@@ -31,7 +31,15 @@ export type Layer =
   | "facility"
   | "transit_stop"
   | "walk_path"
-  | "walk_band";
+  | "walk_band"
+  | "road_noise"
+  | "all_noise"
+  | "no2"
+  | "pm10"
+  | "pm25"
+  | "flood"
+  | "slope"
+  | "population";
 
 export type Paper = "a4" | "a3" | "a2" | "a1" | "a0" | "square";
 export type Frame = "circle" | "square" | "area";
@@ -194,6 +202,11 @@ export type Ratios = {
   building_count: number;
   coverage: number;
   floor_area_ratio: number;
+  /** BAG floor area over site area; null when the site has no BAG units. */
+  bag_floor_area_ratio: number | null;
+  dwellings: number | null;
+  /** CBS residents, each 100 m square counted by its share inside the site. */
+  residents: number | null;
   groups: RatioGroup[];
 };
 export type ChartStyle = "bar" | "pie";

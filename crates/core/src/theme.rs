@@ -25,6 +25,9 @@ pub struct Theme {
     pub palette: Palette,
     /// Colours for sequential classifications (age, height), light to strong. At least 3.
     pub ramp: Vec<String>,
+    /// Shallow to deep water, for flood depth. Empty means the main `ramp`.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub water_ramp: Vec<String>,
     /// Colours for categories (building use), in order. At least 6.
     pub categories: Vec<String>,
     pub typography: Typography,

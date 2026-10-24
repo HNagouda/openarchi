@@ -114,20 +114,21 @@ fn surroundings_notes(summary: &SiteSummary, notes: &mut Vec<String>) {
         let names: Vec<String> = missing.iter().map(|name| name.to_lowercase()).collect();
         notes.push(format!("Within a {FACILITY_WALK_MIN} minute walk there is no {}. A project with ground floor space could bring it here.", list(&names)));
     }
-    if let Some(noise) = surroundings
-        .noise_lden_db
+    let environment = &surroundings.environment;
+    if let Some(noise) = environment
+        .road_noise_mean_db
         .filter(|db| *db > WHO_ROAD_NOISE_DB)
     {
-        notes.push(format!("Road noise reaches {noise:.0} dB Lden, above the 53 dB the WHO recommends. Put bedrooms and outdoor space on the quiet side of the building."));
+        notes.push(format!("Road noise averages {noise:.0} dB Lden over the site, above the 53 dB the WHO recommends. Put bedrooms and outdoor space on the quiet side of the building."));
     }
-    if let Some(no2) = surroundings
-        .no2_ug_m3
+    if let Some(no2) = environment
+        .no2_mean_ug_m3
         .filter(|value| *value > WHO_NO2_UG_M3)
     {
         notes.push(format!("Nitrogen dioxide averages {no2:.0} µg/m³, above the WHO guideline of 10. Take fresh air in away from the busiest road."));
     }
-    if let Some(depth) = surroundings.flood_depth_m.filter(|depth| *depth > 0.0) {
-        notes.push(format!("In a flood the water here can reach {depth:.1} m. Keep entrances, installations and an escape route above that line."));
+    if let Some(depth) = environment.flood_max_depth_m.filter(|depth| *depth > 0.0) {
+        notes.push(format!("In the rarest flood LIWO models, water here can reach {depth:.1} m. Keep entrances, installations and an escape route above that line."));
     }
 }
 

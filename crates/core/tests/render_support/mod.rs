@@ -148,6 +148,7 @@ pub fn scene() -> Scene {
         }],
         fetched_at: "2026-10-24T07:15:23Z".to_string(),
         warnings: vec![],
+        measured: Default::default(),
         walk: None,
     }
 }

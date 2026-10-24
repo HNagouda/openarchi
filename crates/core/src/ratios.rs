@@ -16,6 +16,7 @@
 mod buildings;
 mod chart;
 mod csv;
+mod environment;
 mod nature;
 mod parcels;
 mod places;
@@ -25,6 +26,7 @@ use std::collections::BTreeMap;
 use geo::Area;
 use serde::Serialize;
 
+use crate::environment::population_in;
 use crate::render::{resolve_colour, sample_ramp};
 use crate::scene::{Feature, Layer, Scene};
 use crate::theme::Theme;
@@ -87,6 +89,13 @@ pub struct Ratios {
     pub coverage: f64,
     /// Estimated floor area over site area. Buildings without a height are left out.
     pub floor_area_ratio: f64,
+    /// BAG floor area of every unit over site area, next to the estimate
+    /// above. `None` when the scene has no BAG units.
+    pub bag_floor_area_ratio: Option<f64>,
+    /// BAG dwellings in the site's buildings.
+    pub dwellings: Option<u32>,
+    /// CBS residents, each 100 m square counted by its share inside the site.
+    pub residents: Option<f64>,
     pub groups: Vec<Group>,
 }
 
@@ -145,15 +154,26 @@ pub fn compute(scene: &Scene, theme: &Theme) -> Result<Ratios> {
     groups.push(nature::green(scene, theme)?);
     groups.push(nature::water(scene, theme)?);
     groups.extend(places::groups(scene, theme)?);
-    // #! TODO[ratios, bag] : Add a households group once the scene holds BAG verblijfsobjecten
+    groups.extend(environment::groups(scene, &buildings, theme)?);
     groups.retain(|group| group.total > 0.0);
 
     let footprint_m2 = areas.get(&Layer::Building).copied().unwrap_or(0.0);
+    let bag_floor_area_m2 = buildings
+        .iter()
+        .filter_map(|building| building.attributes.floor_area_m2)
+        .reduce(|total, area| total + area);
+    let dwellings = buildings
+        .iter()
+        .filter_map(|building| building.attributes.dwellings)
+        .reduce(|total, count| total + count);
     Ok(Ratios {
         site_area_m2,
         building_count: buildings.len(),
         coverage: footprint_m2 / site_area_m2,
         floor_area_ratio: buildings::floor_area_m2(&buildings) / site_area_m2,
+        bag_floor_area_ratio: bag_floor_area_m2.map(|area| area / site_area_m2),
+        dwellings,
+        residents: population_in(scene).residents,
         groups,
     })
 }

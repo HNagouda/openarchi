@@ -128,6 +128,39 @@ fn the_summary_counts_the_walk_and_names_what_is_missing() {
 }
 
 #[test]
+fn the_site_section_shows_noise_air_and_people_from_the_environment() {
+    const ENVIRONMENT_SCENE: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/westerkerk-environment.scene.json"
+    );
+    let json = fs::read_to_string(ENVIRONMENT_SCENE).expect("fixture is checked in");
+    let scene: Scene = serde_json::from_str(&json).expect("fixture is a serialised Scene");
+    let theme = theme("paper");
+    let ratios = ratios::compute(&scene, &theme).unwrap();
+    let summary = summary::summarise(&scene, &ratios);
+    assert!(summary
+        .surroundings
+        .environment
+        .road_noise_mean_db
+        .is_some());
+
+    let section = sections::site(&summary, &ratios, scene.credits.clone(), &theme).unwrap();
+    let labels: Vec<&str> = section
+        .facts
+        .iter()
+        .map(|fact| fact.label.as_str())
+        .collect();
+    assert!(
+        labels.iter().any(|label| label.starts_with("Road noise")),
+        "{labels:?}"
+    );
+    assert!(
+        labels.iter().any(|label| label.starts_with("NO₂")),
+        "{labels:?}"
+    );
+}
+
+#[test]
 fn the_climate_is_a_mild_dutch_year_with_south_westerly_winter_wind() {
     let (_folder, cache) = recorded_cache();
     let (climate, warnings) = climate(&westermarkt(), &cache).unwrap();
