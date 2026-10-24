@@ -5,6 +5,7 @@
 //! the ones that are rules of thumb say so. Nothing here is generated.
 
 use super::climate::{Climate, COMFORTABLE_BAND, COMFORT_EDGES_C, SEASONS, WINTER_HALF};
+use super::figure::percent;
 use super::rain::Rain;
 use super::summary::{SiteSummary, FACILITY_WALK_MIN, TRANSIT_WALK_MIN};
 
@@ -82,7 +83,7 @@ pub fn site_notes(summary: &SiteSummary) -> Vec<String> {
         .median_year_built
         .filter(|year| *year < HISTORIC_YEAR)
     {
-        notes.push(format!("Half the buildings date from before {year}. New work here is measured against an existing street front: its line, height and rhythm."));
+        notes.push(format!("Half the buildings were built in {year} or earlier. New work here is measured against an existing street front: its line, height and rhythm."));
     }
     if let (Some(mean), Some(tallest)) = (summary.mean_height_m, summary.tallest_m) {
         if tallest >= mean * LANDMARK_RATIO {
@@ -161,7 +162,7 @@ pub fn temperature_notes(climate: &Climate) -> Vec<String> {
         .map(|month| month.month)
         .collect();
     if !frost.is_empty() {
-        notes.push(format!("Nights freeze on average in {}. Detail outdoor stairs, ramps and paving for frost and ice.", month_span(&frost)));
+        notes.push(format!("Nights freeze on average {}. Detail outdoor stairs, ramps and paving for frost and ice.", during(&frost)));
     }
 
     notes
@@ -178,7 +179,7 @@ pub fn comfort_notes(climate: &Climate) -> Vec<String> {
     if comfortable.is_empty() {
         notes.push("No month is comfortable for more than half its daytime hours by air temperature alone. Outdoor space has to make its own climate: sun, shelter from the wind, somewhere dry.".to_string());
     } else {
-        notes.push(format!("Air temperature is comfortable for most daytime hours in {}. Outside that, a sunny spot out of the wind feels several degrees warmer than the chart says.", month_span(&comfortable)));
+        notes.push(format!("Air temperature is comfortable for most daytime hours {}. Outside that, a sunny spot out of the wind feels several degrees warmer than the chart says.", during(&comfortable)));
     }
 
     let total: u32 = climate
@@ -268,7 +269,7 @@ pub fn humidity_notes(climate: &Climate) -> Vec<String> {
         return Vec::new();
     }
 
-    vec![format!("The air is damp in {}, at {:.0} % or more on average. Ventilate well, avoid cold bridges where condensation forms, and let outside timber and render dry out.", month_span(&damp), DAMP_HUMIDITY_PCT)]
+    vec![format!("The air is damp {}, at {:.0} % or more on average. Ventilate well, avoid cold bridges where condensation forms, and let outside timber and render dry out.", during(&damp), DAMP_HUMIDITY_PCT)]
 }
 
 pub fn rain_notes(rain: &Rain) -> Vec<String> {
@@ -359,9 +360,14 @@ fn list(items: &[String]) -> String {
     }
 }
 
-/// 0.184 -> "18 %".
-fn percent(share: f64) -> String {
-    format!("{:.0} %", share * 100.0)
+/// A run of months as "from May to September", anything else as "in January and April".
+fn during(months: &[u32]) -> String {
+    let span = month_span(months);
+    if span.contains(" to ") {
+        format!("from {span}")
+    } else {
+        format!("in {span}")
+    }
 }
 
 fn capitalised(text: &str) -> String {

@@ -8,8 +8,8 @@ use std::fmt::Write;
 
 use super::climate::{Climate, COMFORT_EDGES_C, COMFORT_LABELS};
 use super::figure::{
-    figure, legend, line, rect, text, ticks, Figure, MonthAxes, Paint, HAIRLINE_MM, INSET_MM,
-    LINE_MM, SMALL_MM, WIDTH_MM,
+    figure, legend, line, percent, rect, text, ticks, Figure, MonthAxes, Paint, HAIRLINE_MM,
+    INSET_MM, LINE_MM, SMALL_MM, WIDTH_MM,
 };
 use super::rain::Rain;
 use crate::ratios::Group;
@@ -336,7 +336,7 @@ pub fn ground(land_use: &Group, paint: &Paint) -> Figure {
         .iter()
         .map(|row| {
             (
-                format!("{} {:.0} %", row.label, row.share * 100.0),
+                format!("{} {}", row.label, percent(row.share)),
                 row.fill.clone(),
             )
         })

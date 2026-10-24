@@ -39,7 +39,7 @@ export function Inspector({ catalog, project, look, onLook, onSeal }: Props) {
           options={[
             { value: "style", label: "Style" },
             { value: "ratios", label: "Ratios", tip: "How the site divides up, in numbers" },
-            { value: "analysis", label: "Analysis", tip: "Location, site and climate, with design notes" },
+            { value: "analysis", label: "Analysis", tip: "Site and climate" },
           ]}
           onChange={changeTab}
         />

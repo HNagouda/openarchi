@@ -35,6 +35,8 @@ const MIN_LUMINANCE_STEP: f64 = 0.05;
 const SWATCH_MM: f64 = 2.4;
 const LEGEND_GAP_MM: f64 = 3.0;
 const LEGEND_ROW_MM: f64 = 4.2;
+/// Below this a share is written with one decimal.
+const SMALL_SHARE: f64 = 0.01;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Figure {
@@ -287,6 +289,15 @@ impl MonthAxes {
         }
 
         label_y
+    }
+}
+
+/// 0.184 -> "18 %", 0.004 -> "0.4 %": a small share keeps a decimal so it does not read as none.
+pub fn percent(share: f64) -> String {
+    if share > 0.0 && share < SMALL_SHARE {
+        format!("{:.1} %", share * 100.0)
+    } else {
+        format!("{:.0} %", share * 100.0)
     }
 }
 

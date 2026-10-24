@@ -5,7 +5,7 @@ use super::charts;
 use super::climate::{
     sector_name, Climate, COMFORTABLE_BAND, COMFORT_EDGES_C, DAY_END_HOUR, DAY_START_HOUR,
 };
-use super::figure::Paint;
+use super::figure::{percent, Paint};
 use super::location::{self, Location};
 use super::locator::locator;
 use super::notes;
@@ -342,10 +342,6 @@ fn fact(label: &str, value: String) -> Fact {
         label: label.to_string(),
         value,
     }
-}
-
-fn percent(share: f64) -> String {
-    format!("{:.0} %", share * 100.0)
 }
 
 /// The credits of every section, each once, for a page's footer.
