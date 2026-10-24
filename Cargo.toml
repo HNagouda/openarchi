@@ -6,7 +6,7 @@ members = ["crates/core", "crates/mcp", "app/src-tauri"]
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/harshnagouda/openarchi"
+repository = "https://github.com/HNagouda/openarchi"
 
 [workspace.dependencies]
 openarchi-core = { path = "crates/core" }

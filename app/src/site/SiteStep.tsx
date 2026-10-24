@@ -121,7 +121,12 @@ export function SiteStep({ project, navigate }: Props) {
       return;
     }
     try {
-      navigate.sheet(await currentProject());
+      const fetched = await currentProject();
+      navigate.sheet(fetched);
+      // A failed source still leaves a usable site, so say what is missing rather than block.
+      if (fetched.warnings.length > 0) {
+        toast(`Opened without some data: ${fetched.warnings.join("; ")}`, { isError: true });
+      }
     } catch (error) {
       setFetch({ state: "failed", error: errorText(error) });
     }
