@@ -38,6 +38,7 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 - **Several sheets per site, with your own landmarks.** Each tab is its own sheet, and can zoom in on part of the site, with ratios for just that part. Drag pins, stars, flags or dots onto the sheet and label them; they show on every sheet.
 - **Sheets ready to print.** A3 to A0 or a square for social posts, at a real scale like 1:2500, with a legend, north arrow, scale bar and the data credits.
 - **Exports that open properly.** SVG and PDF with named layers for Illustrator, Affinity and InDesign, PNG at any resolution, and DXF in real Dutch coordinates (RD New) for AutoCAD and Rhino.
+- **Laser cutting files for a site model.** Choose a scale, a board and your laser's bed, and get one file per bed: the site as a base plate with streets and footprints scored on it, and every building as a stack of numbered pieces, packed and ready for the model workshop.
 - **Hard to lose work.** Projects save as you go, every save keeps a backup, ⌘Z undoes every change, and deleted projects wait in Recently Deleted.
 - **Works with your AI assistant.** Connect Claude or another assistant over MCP and ask it to make a site, try diagrams and palettes, or design a new palette. Its changes show up live in the open app. See [docs/mcp.md](docs/mcp.md).
 
@@ -79,7 +80,7 @@ You only need to do this once. Each release also lists `SHA256SUMS.txt`, to chec
 1. **Draw a site.** Press ⌘N, search for an address, and draw a circle, rectangle or polygon around it (C, R or P). Sites can be up to 4 km².
 2. **Fetch it.** openarchi downloads the buildings, surfaces, parcels and terrain for that area. A 300 m circle takes a few seconds.
 3. **Pick a diagram and a palette.** Pick a diagram in the column on the left, or step through them with ↑ and ↓. [ and ] step through palettes. The sheet updates as you go.
-4. **Export.** Press ⌘E for this diagram or the whole series, as SVG, PDF, PNG or DXF.
+4. **Export.** Press ⌘E for this diagram or the whole series, as SVG, PDF, PNG or DXF, or as laser cutting files for a site model.
 
 The first time you open openarchi, a short tour walks through this. Help > Show Tour opens it again.
 
