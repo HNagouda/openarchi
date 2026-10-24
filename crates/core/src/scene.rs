@@ -4,6 +4,8 @@
 //! y points north. Adding `origin` back gives real RD New coordinates, which is
 //! what a DXF needs to land in the right place in a Dutch drawing set.
 
+use std::collections::BTreeMap;
+
 use geo::{Geometry, Polygon};
 use serde::{Deserialize, Serialize};
 
@@ -33,6 +35,19 @@ pub struct Scene {
     /// sites fetched before it existed, or when OpenStreetMap could not be reached.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub walk: Option<Walk>,
+    /// The year the data of each dated layer describes, from the edition its
+    /// source served when the site was fetched: `{"road_noise": 2022}`. Kept,
+    /// so a saved project goes on naming its years after a newer edition
+    /// appears. Scenes from before this field get the years then pinned in code.
+    #[serde(default = "crate::site::years_before_editions_were_kept")]
+    pub editions: BTreeMap<Layer, i32>,
+}
+
+impl Scene {
+    /// The year of the data `layer` shows, when the scene knows it.
+    pub fn year_of(&self, layer: Layer) -> Option<i32> {
+        self.editions.get(&layer).copied()
+    }
 }
 
 /// Everything within a 15 minute walk of the site centre, in the scene's local

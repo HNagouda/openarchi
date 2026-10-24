@@ -14,7 +14,7 @@
     "layer": "flood",
     "attribute": "value",
     "title": "Flood depth",
-    "note": "Deepest water over all scenarios with an extremely small chance or more (under 1 in 30,000 a year). LIWO, 2025.",
+    "note": "Deepest water over all scenarios with an extremely small chance or more (under 1 in 30,000 a year). LIWO, {year}.",
     "scheme": {
       "kind": "sequential",
       "breaks": [

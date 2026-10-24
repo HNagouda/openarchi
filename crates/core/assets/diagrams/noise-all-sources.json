@@ -14,7 +14,7 @@
     "layer": "all_noise",
     "attribute": "value",
     "title": "Noise from all sources",
-    "note": "Lden in dB: road, rail, air, industry and wind turbines. RIVM, 2022.",
+    "note": "Lden in dB: road, rail, air, industry and wind turbines. RIVM, {year}.",
     "scheme": {
       "kind": "sequential",
       "breaks": [

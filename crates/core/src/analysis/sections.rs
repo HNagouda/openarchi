@@ -116,11 +116,11 @@ fn surroundings_facts(summary: &SiteSummary, facts: &mut Vec<Fact>) {
     let surroundings = &summary.surroundings;
     let environment = &surroundings.environment;
     if let Some(noise) = environment.road_noise_mean_db {
-        let label = format!("Road noise, {}", environment.noise_year);
+        let label = with_year("Road noise", environment.noise_year);
         facts.push(fact(&label, format!("{noise:.0} dB Lden")));
     }
     if let Some(no2) = environment.no2_mean_ug_m3 {
-        let label = format!("NO₂, {}", environment.air_year);
+        let label = with_year("NO₂", environment.air_year);
         facts.push(fact(&label, format!("{no2:.0} µg/m³")));
     }
     if let Some(depth) = environment.flood_max_depth_m {
@@ -136,7 +136,7 @@ fn surroundings_facts(summary: &SiteSummary, facts: &mut Vec<Fact>) {
         facts.push(fact("Steepest slope", format!("{slope:.0} %")));
     }
     if let Some(residents) = environment.residents {
-        let label = format!("Residents, {}", environment.population_year);
+        let label = with_year("Residents", environment.population_year);
         facts.push(fact(&label, grouped(residents)));
     }
     if let Some(dwellings) = environment.dwellings {
@@ -354,6 +354,14 @@ fn fact(label: &str, value: String) -> Fact {
     Fact {
         label: label.to_string(),
         value,
+    }
+}
+
+/// "Road noise, 2022", or just "Road noise" when the scene does not say.
+fn with_year(label: &str, year: Option<i32>) -> String {
+    match year {
+        Some(year) => format!("{label}, {year}"),
+        None => label.to_string(),
     }
 }
 

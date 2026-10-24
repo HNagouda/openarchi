@@ -14,7 +14,7 @@
     "layer": "road_noise",
     "attribute": "value",
     "title": "Road traffic noise",
-    "note": "Lden in dB, the day, evening and night average. RIVM, 2022.",
+    "note": "Lden in dB, the day, evening and night average. RIVM, {year}.",
     "scheme": {
       "kind": "sequential",
       "breaks": [

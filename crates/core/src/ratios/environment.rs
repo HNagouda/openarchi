@@ -90,6 +90,6 @@ fn noise(scene: &Scene, theme: &Theme) -> Result<Group> {
         "Road traffic noise",
         Unit::SquareMetres,
         rows,
-        classify.note.clone(),
+        classify.note_for(scene),
     ))
 }

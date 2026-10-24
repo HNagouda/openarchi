@@ -14,7 +14,7 @@
     "layer": "pm10",
     "attribute": "value",
     "title": "Particulate matter (PM10)",
-    "note": "Annual mean in µg/m³. WHO guideline 15, EU limit 40 (20 from 2030). RIVM, 2024.",
+    "note": "Annual mean in µg/m³. WHO guideline 15, EU limit 40 (20 from 2030). RIVM, {year}.",
     "scheme": {
       "kind": "sequential",
       "breaks": [
