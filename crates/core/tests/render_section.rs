@@ -153,6 +153,21 @@ fn a_section_on_a_sheet_area_cuts_what_lies_outside_it_as_neighbourhood() {
 }
 
 #[test]
+fn a_fainter_neighbourhood_pales_its_buildings_in_a_section() {
+    let mut look = look_in(ViewMode::Section);
+    look.selection = Some(Area::Circle {
+        center: rd_to_wgs84(ORIGIN.0 - 50.0, ORIGIN.1 + 90.0),
+        radius_m: 40.0,
+    });
+    let full = svg(&scene_with_neighbourhood(), &look, "paper");
+    look.sheet.context_opacity = 0.3;
+    let faint = svg(&scene_with_neighbourhood(), &look, "paper");
+
+    assert!(faint.contains("Neighbourhood beyond"));
+    assert_ne!(full, faint);
+}
+
+#[test]
 fn a_section_exports_as_pdf_and_png() {
     let look = look_in(ViewMode::Section);
     let diagram = diagram(&look.diagram_id);

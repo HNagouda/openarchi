@@ -64,7 +64,7 @@ pub fn render(
         .find(|resolved| resolved.layer == Layer::Building);
 
     let mut site_buildings: Vec<&Feature> = layer_of(&scene.features, Layer::Building);
-    let neighbours = if look.sheet.show_context {
+    let neighbours = if look.sheet.show_context && look.sheet.context_opacity > 0.0 {
         layer_of(&scene.context, Layer::Building)
     } else {
         Vec::new()
@@ -85,7 +85,13 @@ pub fn render(
             &mut cuts,
         );
     }
-    let neighbour_fill = context::roof(&massing::theme_fill(theme), theme);
+    // An elevation is opaque, with nothing behind a neighbour to show through,
+    // so a fainter neighbourhood moves its fill towards the paper instead.
+    let neighbour_fill = color::mix(
+        &context::roof(&massing::theme_fill(theme), theme),
+        &theme.palette.paper,
+        1.0 - look.sheet.context_opacity,
+    );
     let site_masses = masses.len();
     for feature in &neighbours {
         let fill = neighbour_fill.clone();
