@@ -85,6 +85,13 @@ What changed in each version of openarchi, newest first.
 - When RIVM or CBS cannot be asked which year is newest, the site arrives with the last year they named and a warning that it may not be the newest.
 - Asking takes about a second, once a day; every other fetch that day reuses the answer.
 
+### Plates and layout
+
+- Plates in the explode view are reordered by dragging: by the grip in the inspector's plate list, where the other rows slide aside to show where it lands, or on the sheet itself, where the held plate lifts above the stack and a line marks the slot it will take. Alt+↑ and Alt+↓ move a focused row in the list. Each move is one undo step.
+- The explode view has a scale bar again. The stack is drawn at the nearest round scale that fits, such as 1:5000, and the note reads "Scale 1:5000 left to right, on A3", because a tilted plate is only at scale across the paper; lengths running into it are shortened by the tilt. The axonometric note says "left to right" for the same reason.
+- The map in the site step shows a metric scale bar in the bottom left corner.
+- The diagram column and the inspector can be dragged wider or narrower by their inner edge, or moved with the arrow keys once the edge is focused. Double-click the edge to reset it. The app remembers both widths. In a wider inspector the ratios and analysis charts, numbers and notes grow with it, and the summary figures spread over three columns; a wider diagram column shows bigger pictures.
+
 ### Ratios
 
 - The inspector has a Ratios view next to Style: how the site divides up, as bars or pies. Land use and transport by area, building use, floors, height, year built and footprint by building, building coverage and floor area ratio by parcel, and green and water by type.

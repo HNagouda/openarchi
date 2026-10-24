@@ -27,6 +27,7 @@ import { TextOverlay } from "./text/TextOverlay";
 import { useTextTool } from "./text/useTextTool";
 import { PlateDropLine } from "./plates/PlateDropLine";
 import { usePlateDrag } from "./plates/usePlateDrag";
+import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
 import { PaletteSwatches, type Swatch } from "../ui/ColorPicker";
 
 // File events come in bursts; read the project once they settle.
@@ -262,6 +263,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             onSelect={selectDiagram}
             onVariant={selectVariant}
           />
+          <ColumnResizer column={DIAGRAM_COLUMN} />
         </div>
         <div className="sheet-main">
           <div className="canvas-wrap">
@@ -309,6 +311,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           </div>
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
+          <ColumnResizer column={INSPECTOR_COLUMN} />
           {catalog && <Inspector catalog={catalog} project={project} look={look} onLook={history.change} onSeal={history.seal} />}
         </div>
       </div>

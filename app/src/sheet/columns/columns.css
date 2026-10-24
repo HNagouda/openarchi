@@ -1,0 +1,89 @@
+/* The draggable inner edge of the diagram column and the inspector. The
+   handle is wider than the line it lights up, so it is easy to catch. */
+
+.inspector-slot {
+  position: relative;
+}
+
+/* A narrow window already lays the diagram column over the sheet with position: absolute. */
+@media (min-width: 1001px) {
+  .diagram-slot {
+    position: relative;
+  }
+}
+
+/* The ratios and analysis panels size their charts and words to the inspector's width. */
+.inspector {
+  container: inspector / inline-size;
+}
+
+.column-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+  outline: none;
+}
+
+.column-resizer.is-right {
+  right: 0;
+}
+
+.column-resizer.is-left {
+  left: 0;
+}
+
+.column-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background var(--fast) var(--ease);
+}
+
+.column-resizer.is-right::after {
+  right: 0;
+}
+
+.column-resizer.is-left::after {
+  left: 0;
+}
+
+.column-resizer:hover::after,
+.column-resizer:focus-visible::after,
+.column-resizer:active::after {
+  background: var(--accent);
+}
+
+/* While dragging, the columns follow the pointer at once and nothing else reacts to it. */
+.is-resizing-columns {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.is-resizing-columns .diagram-slot,
+.is-resizing-columns .inspector-slot {
+  transition: none;
+}
+
+.is-resizing-columns .canvas {
+  pointer-events: none;
+}
+
+/* A wider diagram column shows bigger thumbnails: the usual 56 px at the usual
+   232 px width, growing with the column. Scoped under the column so this wins
+   over sheet.css whichever loads last. */
+.diagram-column {
+  container: diagram-column / inline-size;
+}
+
+.diagram-column .diagram-thumb {
+  width: clamp(56px, 24cqi, 104px);
+  height: auto;
+  aspect-ratio: 7 / 5;
+}
