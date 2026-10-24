@@ -142,6 +142,7 @@ impl Library {
             scene: None,
             look: Look::default(),
         };
+        project.look.sheet.title = project.name.clone();
         self.save(&mut project)?;
         Ok(project)
     }

@@ -13,6 +13,10 @@ const SERVICE: &str = "PDOK BAG";
 const BASE_URL: &str = "https://api.pdok.nl/kadaster/bag/ogc/v2";
 const COLLECTION: &str = "pand";
 
+/// Placeholder years BAG uses when the real year is unknown (1005) or the
+/// building is not finished (9999). Both become unknown, not a real year.
+const PLACEHOLDER_YEARS: [i64; 2] = [1005, 9999];
+
 /// BAG statuses of a building that stands on the site today, in one place.
 /// Left out: "Pand gesloopt", "Niet gerealiseerd pand", "Pand ten onrechte
 /// opgevoerd", "Bouwvergunning verleend" and "Bouw gestart", which is not yet
@@ -58,6 +62,7 @@ fn to_building(record: Record) -> Feature {
             source_id: pdok::text(&record, "identificatie"),
             kind: pdok::text(&record, "status"),
             year_built: pdok::integer(&record, "bouwjaar")
+                .filter(|year| !PLACEHOLDER_YEARS.contains(year))
                 .and_then(|year| i32::try_from(year).ok()),
             use_class: pdok::text(&record, "gebruiksdoel").map(|uses| join_uses(&uses)),
             ..Attributes::default()
@@ -106,6 +111,12 @@ mod tests {
             json!({"status": "Niet gerealiseerd pand"})
         )));
         assert!(!is_standing(&record(json!({}))));
+    }
+
+    #[test]
+    fn placeholder_years_become_unknown() {
+        let building = to_building(record(json!({"bouwjaar": 1005})));
+        assert_eq!(building.attributes.year_built, None);
     }
 
     #[test]
