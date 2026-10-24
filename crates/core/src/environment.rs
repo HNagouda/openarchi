@@ -3,14 +3,29 @@
 //!
 //! The raster figures are measured when the site is fetched, over the full
 //! rasters, because the bands drawn on the sheet keep only which band a place
-//! falls in. People and dwellings are counted from the scene's features.
+//! falls in. The rasters are kept, cut to the site's box, so a sheet area can
+//! be measured again over its own cells. People and dwellings are counted
+//! from the scene's features.
 
-use geo::Area;
+use std::collections::BTreeMap;
+
+use geo::{Area, Polygon};
 use serde::{Deserialize, Serialize};
 
 use crate::scene::{Layer, Scene};
 use crate::sources::cbs::CELL_AREA_M2;
-use crate::sources::raster::Stats;
+use crate::sources::raster::{self, Grid, Stats};
+
+/// Every layer with a figure in `Measured`, in one place.
+const MEASURED_LAYERS: [Layer; 7] = [
+    Layer::RoadNoise,
+    Layer::AllNoise,
+    Layer::No2,
+    Layer::Pm10,
+    Layer::Pm25,
+    Layer::Flood,
+    Layer::Slope,
+];
 
 /// Raster figures over the cells inside the site. `None` when the source
 /// failed or had no cells there. For flood depth only flooded cells have a
@@ -24,6 +39,63 @@ pub struct Measured {
     pub pm25_ug_m3: Option<Stats>,
     pub flood_depth_m: Option<Stats>,
     pub slope_percent: Option<Stats>,
+    /// The raster each figure was measured on, cut to the site's box, so a
+    /// sheet area can be measured again: `{"road_noise": grid}`. Only for
+    /// figures that found a value. Slope is never kept, see `site::environment`.
+    /// Empty in scenes fetched before sheet areas measured their own figures.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub grids: BTreeMap<Layer, Grid>,
+    /// On a sheet area, the figures that still describe the whole site
+    /// because no raster was kept to measure them again. Empty for a whole site.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub whole_site: Vec<Layer>,
+}
+
+impl Measured {
+    /// The figure measured on `layer`'s raster, `None` for a layer without one.
+    pub fn get(&self, layer: Layer) -> Option<Stats> {
+        match layer {
+            Layer::RoadNoise => self.road_noise_db,
+            Layer::AllNoise => self.all_noise_db,
+            Layer::No2 => self.no2_ug_m3,
+            Layer::Pm10 => self.pm10_ug_m3,
+            Layer::Pm25 => self.pm25_ug_m3,
+            Layer::Flood => self.flood_depth_m,
+            Layer::Slope => self.slope_percent,
+            _ => None,
+        }
+    }
+
+    /// Keeps `stats` in the field the summary reads `layer` from.
+    pub fn set(&mut self, layer: Layer, stats: Option<Stats>) {
+        match layer {
+            Layer::RoadNoise => self.road_noise_db = stats,
+            Layer::AllNoise => self.all_noise_db = stats,
+            Layer::No2 => self.no2_ug_m3 = stats,
+            Layer::Pm10 => self.pm10_ug_m3 = stats,
+            Layer::Pm25 => self.pm25_ug_m3 = stats,
+            Layer::Flood => self.flood_depth_m = stats,
+            Layer::Slope => self.slope_percent = stats,
+            _ => {}
+        }
+    }
+}
+
+/// `measured` again over `area`, a sheet area inside the site, from the kept
+/// rasters. A figure without a kept raster stays as it was and is listed in
+/// `whole_site`. One that found no value over the whole site finds none in a
+/// part of it either, so it stays `None` and is exact.
+pub fn measured_within(measured: &Measured, area: &Polygon<f64>) -> Measured {
+    let mut framed = measured.clone();
+    for layer in MEASURED_LAYERS {
+        match measured.grids.get(&layer) {
+            Some(grid) => framed.set(layer, raster::stats_within(grid, area)),
+            None if measured.get(layer).is_some() => framed.whole_site.push(layer),
+            None => {}
+        }
+    }
+
+    framed
 }
 
 /// One site in numbers, for a summary page. Every figure is `None` when its
@@ -56,6 +128,9 @@ pub struct Summary {
     pub dwellings: Option<u32>,
     /// BAG floor area of every unit on the site, in m².
     pub floor_area_m2: Option<f64>,
+    /// On a sheet area, the figures above that describe the whole site
+    /// instead: `["slope"]`. See `Measured::whole_site`.
+    pub whole_site: Vec<Layer>,
 }
 
 /// The summary of `scene`.
@@ -93,6 +168,7 @@ pub fn summarise(scene: &Scene) -> Summary {
         population_year: scene.year_of(Layer::Population),
         dwellings: dwellings_in(scene),
         floor_area_m2: floor_area_in(scene),
+        whole_site: measured.whole_site.clone(),
     }
 }
 

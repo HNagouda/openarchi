@@ -19,8 +19,8 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::inputs::{
-    CreateProject, CreateTheme, EditText, Export, GetRatios, ListThemes, ProjectId, RenderPreview,
-    SearchPlaces, SetLook,
+    CreateProject, CreateTheme, EditText, Export, GetEnvironment, GetRatios, ListThemes, ProjectId,
+    RenderPreview, SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
 use crate::palettes::{self, ImportPalette};
@@ -337,9 +337,12 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Get the site's environment in numbers: road traffic noise (mean and highest Lden in dB) and all noise sources together, annual mean NO2, PM10 and PM2.5 in µg/m³, the deepest flood water and the share of the site it reaches in LIWO's extremely-small-chance scenario (under 1 in 30,000 a year), the steepest slope in percent, CBS residents and households (each 100 m square counted by its share inside the site, plus how many squares CBS keeps secret), and BAG dwellings and floor area. Each source's year is included. A figure is null when its source was not reached. The site must have been fetched first."
+        description = "Get the site's environment in numbers: road traffic noise (mean and highest Lden in dB) and all noise sources together, annual mean NO2, PM10 and PM2.5 in µg/m³, the deepest flood water and the share of the site it reaches in LIWO's extremely-small-chance scenario (under 1 in 30,000 a year), the steepest slope in percent, CBS residents and households (each 100 m square counted by its share inside the site, plus how many squares CBS keeps secret), and BAG dwellings and floor area. Each source's year is included. A figure is null when its source was not reached. With `tab`, a sheet with a sub-selection gives the figures of that smaller area; `whole_site` lists the layers whose figures still describe the whole site there (slope always, and noise, air and flood for sites fetched before sheet areas measured their own). The site must have been fetched first."
     )]
-    async fn get_environment(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
+    async fn get_environment(
+        &self,
+        Parameters(input): Parameters<GetEnvironment>,
+    ) -> CallToolResult {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
@@ -349,7 +352,10 @@ impl OpenArchi {
                         input.id
                     ));
                 };
-                Ok(environment::summarise(scene))
+                let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
+                let scene =
+                    selection::framed_or_whole(scene, look.selection.as_ref()).map_err(text)?;
+                Ok(environment::summarise(&scene))
             })
             .await;
         reply(result)

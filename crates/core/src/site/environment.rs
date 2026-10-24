@@ -2,11 +2,14 @@
 //! quality, flood depth and slope.
 //!
 //! Each raster is measured inside the site before it becomes bands, because
-//! the bands keep only which class a place is in. The band edges are the
+//! the bands keep only which class a place is in, and is kept cut to the
+//! site's box so a sheet area can be measured again. The band edges are the
 //! breaks of the diagram that draws the layer, so the map and its legend can
 //! never disagree.
 
-use geo::{Polygon, Rect};
+use geo::{BoundingRect, Coord, Polygon, Rect};
+
+use super::to_local_centimetres;
 
 use crate::catalog;
 use crate::diagram::Scheme;
@@ -78,33 +81,40 @@ pub fn tiles(bbox: Rect<f64>) -> Vec<Tile> {
     tiles_covering(Rect::new(bbox.min() - margin, bbox.max() + margin))
 }
 
-/// The bands of one raster from its tiles, and its figures inside `boundary`.
+/// The bands of one raster from its tiles. Its figures inside `boundary` go
+/// into `measured`, with the raster cut to the boundary's box when they found a value.
 pub fn raster_bands(
     raster: Raster,
     tiles: &[Grid],
     boundary: &Polygon<f64>,
-) -> (Vec<Feature>, Option<Stats>) {
+    measured: &mut Measured,
+) -> Vec<Feature> {
     let Some(grid) = raster::join(tiles) else {
-        return (Vec::new(), None);
+        return Vec::new();
     };
     let stats = raster::stats_within(&grid, boundary);
+    measured.set(raster.layer(), stats);
+    // Without a value over the whole site there is none in a part of it either, so nothing is kept.
+    if let (Some(_), Some(bbox)) = (stats, boundary.bounding_rect()) {
+        measured.grids.insert(raster.layer(), grid.cropped(bbox));
+    }
     let (lowest, gaps) = match raster {
         // A cell LIWO leaves empty stays dry in every scenario.
         Raster::Flood => (Lowest::From(FLOOD_MIN_DEPTH_M), Gaps::Means(0.0)),
         _ => (Lowest::Everything, Gaps::Unknown),
     };
-    let features = bands::banded(
+    bands::banded(
         &grid,
         raster.layer(),
         &breaks_for(raster.layer()),
         lowest,
         gaps,
-    );
-
-    (features, stats)
+    )
 }
 
 /// Slope bands from the terrain model, and the slope figures inside `boundary`.
+/// The slope raster is not kept for sheet areas: it has the terrain's 0.5 m
+/// cells, 400 times as many as a 10 m noise raster over the same site.
 pub fn slope_bands(terrain: &Grid, boundary: &Polygon<f64>) -> (Vec<Feature>, Option<Stats>) {
     let slope = slope_percent(terrain);
     let stats = raster::stats_within(&slope, boundary);
@@ -119,16 +129,22 @@ pub fn slope_bands(terrain: &Grid, boundary: &Polygon<f64>) -> (Vec<Feature>, Op
     (features, stats)
 }
 
-/// Keeps a raster's figures in the field the summary reads them from.
-pub fn record(measured: &mut Measured, raster: Raster, stats: Option<Stats>) {
-    match raster {
-        Raster::RoadNoise => measured.road_noise_db = stats,
-        Raster::AllNoise => measured.all_noise_db = stats,
-        Raster::No2 => measured.no2_ug_m3 = stats,
-        Raster::Pm10 => measured.pm10_ug_m3 = stats,
-        Raster::Pm25 => measured.pm25_ug_m3 = stats,
-        Raster::Flood => measured.flood_depth_m = stats,
+/// `measured` with its kept rasters moved into the scene's frame, which is
+/// RD New minus `origin`, to the centimetre like the boundary they are measured in.
+pub fn localised(mut measured: Measured, origin: (f64, f64)) -> Measured {
+    for grid in measured.grids.values_mut() {
+        let corner = to_local_centimetres(
+            Coord {
+                x: grid.west,
+                y: grid.north,
+            },
+            origin,
+        );
+        grid.west = corner.x;
+        grid.north = corner.y;
     }
+
+    measured
 }
 
 /// The class breaks of the built-in diagram, or diagram variant, that classifies `layer`.

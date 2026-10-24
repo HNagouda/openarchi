@@ -274,6 +274,14 @@ pub struct GetRatios {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetEnvironment {
+    /// The project id.
+    pub id: String,
+    /// Which sheet tab, counting from 1. A sheet with a sub-selection gives the figures of that smaller area.
+    pub tab: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct Export {
     /// The project id.
     pub id: String,
