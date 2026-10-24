@@ -198,6 +198,19 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The library and the inspector resize by dragging their inner edge, as on the sheet, and keep their widths. Double-click an edge to put it back.
 - The way back to the sheet is a labelled Sheet button at the top left, and **Esc** with nothing selected.
 
+### Speed
+
+- A sheet that shows part of a large site no longer carries the parts its frame hides, and path points too fine to see on paper are left out. The context sheet of a 3.8 km² site went from 6.4 MB to 0.9 MB and draws the same, so every change reaches the screen sooner.
+- Dragging the scale slider redraws the sheet while it moves, instead of waiting for the pointer to rest. Stepping back to a diagram or undoing shows the earlier sheet at once.
+- Panning moves the drawn sheet instead of painting it again, and zooming scales it smoothly, sharpening it once the zoom rests.
+- Saving no longer packs the whole site again each time; it packs it once after opening or fetching. A sheet area is cut from the site once instead of on every redraw.
+- The diagram column's pictures always show the plan, leave out the sheet's text and ignore turning or tilting, so typing a title or turning the view no longer redraws all 21 of them.
+- `pnpm tauri dev` builds its dependencies optimised, so a development build renders and saves close to release speed.
+
+### Fixes
+
+- A polygon drawn clockwise showed the area of the rest of the earth (510 million km²); it now shows its own.
+
 ### A calmer palette editor
 
 - The palette editor fills the window instead of a fixed 1180 px box, so the live sheet is as large as the screen allows, at 1280 px and at 2560 px alike.
