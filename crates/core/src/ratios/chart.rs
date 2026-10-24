@@ -307,13 +307,15 @@ fn total_text(group: &Group) -> String {
         Unit::SquareMetres => area_text(group.total),
         Unit::Buildings => format!("{} buildings", grouped(group.total)),
         Unit::Parcels => format!("{} parcels", grouped(group.total)),
+        Unit::Places => format!("{} places", grouped(group.total)),
+        Unit::Stops => format!("{} stops", grouped(group.total)),
     }
 }
 
 fn value_text(value: f64, unit: Unit) -> String {
     match unit {
         Unit::SquareMetres => area_text(value),
-        Unit::Buildings | Unit::Parcels => grouped(value),
+        Unit::Buildings | Unit::Parcels | Unit::Places | Unit::Stops => grouped(value),
     }
 }
 

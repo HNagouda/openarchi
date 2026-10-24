@@ -26,29 +26,37 @@ const FLOOR_AREA_LABELS: [&str; 6] = [
     "10,000 m² or more",
 ];
 
+/// The noise group, plus the dwellings and floor area groups when the scene
+/// has BAG units. Without them every building would only count as unknown.
 pub fn groups(scene: &Scene, buildings: &[&Feature], theme: &Theme) -> Result<Vec<Group>> {
+    let mut groups = vec![noise(scene, theme)?];
+    let has_units = buildings
+        .iter()
+        .any(|building| building.attributes.dwellings.is_some());
+    if !has_units {
+        return Ok(groups);
+    }
+
     let floor_areas: Vec<Option<f64>> = buildings
         .iter()
         .map(|building| building.attributes.floor_area_m2)
         .collect();
     let floor_area_note = "BAG records usable floor area per unit, which is about a fifth smaller than gross floor area.";
+    groups.push(classified(
+        "dwellings",
+        buildings,
+        &diagram_classify(DWELLINGS_DIAGRAM)?,
+        theme,
+    )?);
+    groups.push(finish(
+        "floor_area",
+        "Floor area per building",
+        Unit::Buildings,
+        binned(&floor_areas, &FLOOR_AREA_BREAKS, &FLOOR_AREA_LABELS, theme)?,
+        Some(floor_area_note.to_string()),
+    ));
 
-    Ok(vec![
-        noise(scene, theme)?,
-        classified(
-            "dwellings",
-            buildings,
-            &diagram_classify(DWELLINGS_DIAGRAM)?,
-            theme,
-        )?,
-        finish(
-            "floor_area",
-            "Floor area per building",
-            Unit::Buildings,
-            binned(&floor_areas, &FLOOR_AREA_BREAKS, &FLOOR_AREA_LABELS, theme)?,
-            Some(floor_area_note.to_string()),
-        ),
-    ])
+    Ok(groups)
 }
 
 /// The site's area in each road traffic noise band.

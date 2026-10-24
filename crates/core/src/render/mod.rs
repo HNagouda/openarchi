@@ -18,14 +18,17 @@ mod legend;
 mod map;
 mod order;
 mod patterns;
+mod points;
 mod shadow;
 mod solid;
 mod style;
 mod sunpath;
 mod svg;
+mod symbols;
 mod text;
 mod tools;
 mod typeset;
+mod walk_bands;
 
 use std::fmt::Write;
 
@@ -111,8 +114,8 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         texts: &texts,
         sheet: &sheet,
         scene: input.scene,
+        layers: &input.diagram.layers,
         diagram_name: &drawing.title_name,
-        diagram_layers: &input.diagram.layers,
         palette,
         mm_per_m: drawing.mm_per_m,
         north_deg: drawing.north_deg,

@@ -17,7 +17,7 @@ use crate::sources::cache::TileCache;
 use crate::sources::grid::{tiles_covering, tiles_touching, Tile, TILE_M};
 use crate::sources::pdok::Record;
 use crate::sources::raster::{self, Grid};
-use crate::sources::{ahn, bag, bag_units, bgt, brk, cbs, wcs};
+use crate::sources::{ahn, bag, bag_units, bgt, brk, cbs, osm, wcs};
 use crate::{Error, Result};
 
 /// Requests in flight at once. With 32, an uncached 1 km site arrives in about
@@ -47,6 +47,9 @@ pub enum Dataset {
     Cbs(i32),
     /// BAG verblijfsobjecten, the units inside buildings.
     BagUnits,
+    /// One Overpass answer for every site centred in the tile, reaching this
+    /// many metres around the tile's centre. See `sources/osm`.
+    Osm(u32),
 }
 
 /// What one tile of a dataset holds.
@@ -55,6 +58,8 @@ pub enum Payload {
     /// Elevation cells, row by row from the north.
     Cells(Vec<f32>),
     Raster(Grid),
+    /// An Overpass answer as it arrived, parsed when the scene is put together.
+    Osm(Vec<u8>),
 }
 
 /// How a tile is fetched when the cache does not have it: `fetch_from_pdok`,
@@ -79,6 +84,7 @@ impl Dataset {
             Dataset::Raster(_) => Source::Rivm,
             Dataset::Cbs(_) => Source::Cbs,
             Dataset::BagUnits => Source::BagUnits,
+            Dataset::Osm(_) => Source::Osm,
         }
     }
 
@@ -93,6 +99,7 @@ impl Dataset {
             Dataset::Raster(raster) => format!("wcs-{}", raster.coverage().id),
             Dataset::Cbs(year) => format!("cbs-vierkant100-{year}"),
             Dataset::BagUnits => "bag-verblijfsobject".to_string(),
+            Dataset::Osm(radius_m) => format!("osm-r{radius_m}"),
         }
     }
 }
@@ -128,6 +135,22 @@ pub fn tiles_for(boundary: &Polygon<f64>, bbox: Rect<f64>) -> Vec<(Dataset, Tile
     jobs
 }
 
+/// The one OpenStreetMap job of a site centred at `origin`: the tile the
+/// centre falls in, and a reach that covers the walk and the whole site.
+pub fn osm_job(origin: (f64, f64), boundary: &Polygon<f64>) -> (Dataset, Tile) {
+    let site_radius_m = boundary
+        .exterior()
+        .points()
+        .map(|point| ((point.x() - origin.0).powi(2) + (point.y() - origin.1).powi(2)).sqrt())
+        .fold(0.0, f64::max);
+    let tile = Tile {
+        column: (origin.0 / TILE_M).floor() as i64,
+        row: (origin.1 / TILE_M).floor() as i64,
+    };
+
+    (Dataset::Osm(osm::radius_for(site_radius_m)), tile)
+}
+
 pub fn fetch_from_pdok(dataset: Dataset, tile: Tile) -> Result<Payload> {
     let rect = tile.rect();
     match dataset {
@@ -139,6 +162,8 @@ pub fn fetch_from_pdok(dataset: Dataset, tile: Tile) -> Result<Payload> {
         Dataset::Raster(raster) => wcs::fetch(&raster.coverage(), rect).map(Payload::Raster),
         Dataset::Cbs(year) => cbs::fetch_tile(year, rect).map(Payload::Records),
         Dataset::BagUnits => bag_units::fetch_tile(rect).map(Payload::Records),
+        // Not PDOK, but fetched and cached through the same pool and cache.
+        Dataset::Osm(radius_m) => osm::fetch(tile, radius_m).map(Payload::Osm),
     }
 }
 
@@ -229,6 +254,7 @@ fn store(cache: &TileCache, dataset: Dataset, tile: Tile, payload: &Payload) -> 
         })?,
         Payload::Cells(cells) => cells.iter().flat_map(|cell| cell.to_le_bytes()).collect(),
         Payload::Raster(grid) => raster::to_bytes(grid),
+        Payload::Osm(body) => body.clone(),
     };
     cache.write(&dataset.cache_name(), tile, &bytes)
 }
@@ -253,5 +279,6 @@ fn decode(dataset: Dataset, bytes: &[u8]) -> Result<Payload> {
                 .map(Payload::Records)
                 .map_err(|error| corrupt(error.to_string()))
         }
+        Dataset::Osm(_) => Ok(Payload::Osm(bytes.to_vec())),
     }
 }

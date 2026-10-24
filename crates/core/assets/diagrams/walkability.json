@@ -1,0 +1,54 @@
+{
+  "id": "walkability",
+  "name": "Walkability",
+  "description": "How far one walks from the site in 5, 10 and 15 minutes, and the facilities within reach.",
+  "layers": [
+    "water",
+    "building",
+    "walk_band",
+    "walk_path",
+    "facility"
+  ],
+  "emphasis": "walk_band",
+  "mute_others": true,
+  "highlight": [
+    "water",
+    "walk_path"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "facility",
+    "attribute": "group",
+    "title": "Within a 15 minute walk",
+    "scheme": {
+      "kind": "categorical",
+      "categories": [
+        {
+          "value": "education",
+          "label": "Education"
+        },
+        {
+          "value": "culture",
+          "label": "Culture"
+        },
+        {
+          "value": "civic",
+          "label": "Civic and worship"
+        },
+        {
+          "value": "health",
+          "label": "Health"
+        },
+        {
+          "value": "leisure",
+          "label": "Sport and play"
+        },
+        {
+          "value": "parking",
+          "label": "Car parking"
+        }
+      ]
+    }
+  },
+  "walk_minutes": 15
+}

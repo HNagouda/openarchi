@@ -16,7 +16,7 @@ const MIN_CATEGORY_COLOURS: usize = 6;
 const THEME_EXTENSION: &str = "json";
 
 /// Built-in diagrams in picker order, in one place.
-const BUILTIN_DIAGRAMS: [(&str, &str); 20] = [
+const BUILTIN_DIAGRAMS: [(&str, &str); 24] = [
     ("context", include_str!("../assets/diagrams/context.json")),
     (
         "figure-ground",
@@ -76,6 +76,13 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 20] = [
     (
         "households",
         include_str!("../assets/diagrams/households.json"),
+    ),
+    ("business", include_str!("../assets/diagrams/business.json")),
+    ("facility", include_str!("../assets/diagrams/facility.json")),
+    ("transit", include_str!("../assets/diagrams/transit.json")),
+    (
+        "walkability",
+        include_str!("../assets/diagrams/walkability.json"),
     ),
 ];
 

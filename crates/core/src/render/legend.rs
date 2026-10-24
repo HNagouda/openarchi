@@ -12,6 +12,7 @@ use super::drawing::{pattern_id, Drawn};
 use super::geometry::{decimal, mm};
 use super::layout::Rect;
 use super::style::{ResolvedLayer, Role};
+use super::symbols::{self, Shape};
 use super::typeset::{Kind, Typesetter};
 use crate::diagram::Diagram;
 use crate::scene::Layer;
@@ -37,6 +38,8 @@ const MAX_NOTE_LINES: usize = 2;
 const SITE_STROKE_MM: f64 = 0.5;
 const MIN_SWATCH_STROKE_MM: f64 = 0.1;
 const SWATCH_EDGE_OPACITY: f64 = 0.3;
+/// A symbol's radius as a share of the swatch height, leaving room for its corners.
+const SYMBOL_SHARE: f64 = 0.32;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Swatch {
@@ -58,6 +61,12 @@ pub enum Swatch {
         fill: Option<String>,
         stroke: Option<String>,
         opacity: f64,
+    },
+    /// A place or stop symbol in its class's shape.
+    Symbol {
+        shape: Shape,
+        fill: String,
+        stroke: Option<String>,
     },
 }
 
@@ -93,13 +102,24 @@ pub fn build(layers: &[ResolvedLayer], drawn: &[Drawn], diagram: &Diagram, accen
             (Role::Classified, Some(classes)) => {
                 title = classes.title.clone();
                 note = classes.note.clone();
-                for (class, &is_present) in classes.classes.iter().zip(&drawn.classes_present) {
-                    if is_present {
-                        class_rows.push(Row {
-                            label: class.label.clone(),
-                            swatch: with_fill(&swatch, &class.fill),
-                        });
+                let classes_present = classes.classes.iter().zip(&drawn.classes_present);
+                for (index, (class, &is_present)) in classes_present.enumerate() {
+                    if !is_present {
+                        continue;
                     }
+                    let swatch = if is_point_layer(resolved.layer) {
+                        Swatch::Symbol {
+                            shape: symbols::shape_for(index),
+                            fill: class.fill.clone(),
+                            stroke: resolved.style.stroke.clone(),
+                        }
+                    } else {
+                        with_fill(&swatch, &class.fill)
+                    };
+                    class_rows.push(Row {
+                        label: class.label.clone(),
+                        swatch,
+                    });
                 }
                 if drawn.has_unknown {
                     class_rows.push(Row {
@@ -257,6 +277,14 @@ pub fn write(
     }
 }
 
+/// Layers drawn as class-shaped symbols by `points`.
+pub fn is_point_layer(layer: Layer) -> bool {
+    matches!(
+        layer,
+        Layer::Business | Layer::Facility | Layer::TransitStop
+    )
+}
+
 fn swatch_for(layer: Layer, style: &LayerStyle) -> Swatch {
     let fill = if style.pattern.is_some() {
         Some(format!("url(#{})", pattern_id("", layer)))
@@ -264,7 +292,7 @@ fn swatch_for(layer: Layer, style: &LayerStyle) -> Swatch {
         style.fill.clone()
     };
     let visible_stroke = style.stroke.clone().filter(|_| style.stroke_mm > 0.0);
-    if layer == Layer::Tree {
+    if layer == Layer::Tree || is_point_layer(layer) {
         return Swatch::Dot {
             fill,
             stroke: visible_stroke,
@@ -311,6 +339,11 @@ fn with_fill(swatch: &Swatch, fill: &str) -> Swatch {
             stroke: None,
             stroke_mm: 0.0,
             opacity: 1.0,
+        },
+        Swatch::Symbol { shape, stroke, .. } => Swatch::Symbol {
+            shape: *shape,
+            fill: fill.to_string(),
+            stroke: stroke.clone(),
         },
     }
 }
@@ -401,6 +434,25 @@ fn write_swatch(out: &mut String, swatch: &Swatch, x: f64, top: f64, unit: f64, 
                 fill.as_deref().unwrap_or("none"),
                 decimal(*opacity)
             );
+        }
+        Swatch::Symbol {
+            shape,
+            fill,
+            stroke,
+        } => {
+            let stroke_attributes = match stroke {
+                Some(stroke) => format!(
+                    r#" stroke="{stroke}" stroke-width="{}" stroke-linejoin="round""#,
+                    mm(MIN_SWATCH_STROKE_MM * 1.5)
+                ),
+                None => String::new(),
+            };
+            out.push_str(&symbols::element(
+                *shape,
+                (x + width / 2.0, top + height / 2.0),
+                height * SYMBOL_SHARE,
+                &format!(r#" fill="{fill}"{stroke_attributes}"#),
+            ));
         }
     }
 }

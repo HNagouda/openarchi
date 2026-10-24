@@ -24,8 +24,8 @@ fn a_small_site_in_amsterdam_has_every_source_and_no_warnings() {
     let scene = build_scene(&area, &TileCache::at(folder.path()), &|_| {}).unwrap();
 
     assert!(scene.warnings.is_empty(), "{:?}", scene.warnings);
-    // BGT, BAG, BRK and AHN, then RIVM, LIWO and CBS.
-    assert_eq!(scene.credits.len(), 7);
+    // BGT, BAG, BRK, AHN and OpenStreetMap, then RIVM, LIWO and CBS.
+    assert_eq!(scene.credits.len(), 8);
     for layer in [
         Layer::Building,
         Layer::Road,
@@ -64,6 +64,30 @@ fn a_rectangle_works_as_well_as_a_circle() {
         .features
         .iter()
         .any(|feature| feature.layer == Layer::Building));
+}
+
+#[test]
+#[ignore = "needs the network"]
+fn the_westerkerk_has_places_stops_and_a_walk_from_openstreetmap() {
+    let area = Area::Circle {
+        center: WESTERMARKT,
+        radius_m: 300.0,
+    };
+    let folder = tempfile::TempDir::new().unwrap();
+    let scene = build_scene(&area, &TileCache::at(folder.path()), &|_| {}).unwrap();
+
+    let businesses = scene
+        .features
+        .iter()
+        .filter(|feature| feature.layer == Layer::Business)
+        .count();
+    let walk = scene.walk.expect("a walk from the site centre");
+    assert!(businesses > 100, "{businesses} businesses");
+    assert_eq!(walk.bands.len(), 3);
+    assert!(walk
+        .places
+        .iter()
+        .any(|place| place.layer == Layer::TransitStop && !place.attributes.lines.is_empty()));
 }
 
 #[test]

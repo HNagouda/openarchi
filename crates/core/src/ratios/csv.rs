@@ -60,6 +60,8 @@ fn unit_name(unit: Unit) -> &'static str {
         Unit::SquareMetres => "m2",
         Unit::Buildings => "buildings",
         Unit::Parcels => "parcels",
+        Unit::Places => "places",
+        Unit::Stops => "stops",
     }
 }
 

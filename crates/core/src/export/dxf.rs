@@ -67,6 +67,8 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::Flood => 150,
         Layer::Slope => 32,
         Layer::Population => 200,
+        Layer::Business | Layer::Facility | Layer::TransitStop => 1,
+        Layer::WalkPath | Layer::WalkBand => 40,
     }
 }
 

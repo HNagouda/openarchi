@@ -44,9 +44,10 @@ const MARK_RING_RADIUS: f64 = 0.95;
 pub struct Furniture<'a> {
     pub sheet: &'a Sheet,
     pub scene: &'a Scene,
+    /// The layers the diagram draws, so a source only shows up in the credits
+    /// when its data is on the sheet.
+    pub layers: &'a [Layer],
     pub diagram_name: &'a str,
-    /// The layers the diagram draws, which decide the sources credited.
-    pub diagram_layers: &'a [Layer],
     pub palette: &'a Palette,
     pub mm_per_m: f64,
     /// Which way north points on the paper, in degrees clockwise from straight up.
@@ -316,7 +317,7 @@ fn write_credits_and_mark(
         &furniture.palette.ink,
     );
 
-    let text = credits_text(furniture.scene, furniture.diagram_layers);
+    let text = credits_text(furniture.scene, furniture.layers);
     if !furniture.sheet.show_credits || text.is_empty() {
         return bottom - typesetter.cap_height(Kind::Mark);
     }
@@ -354,18 +355,13 @@ fn write_mark(out: &mut String, typesetter: &Typesetter, x: f64, baseline: f64, 
     typesetter.write(out, x + 3.0 * radius, baseline, MARK_TEXT, Kind::Mark, None);
 }
 
-/// "Sources: BGT, Kadaster, CC BY 4.0; ... Retrieved 2026-10-24." A source
-/// tied to layers is credited only when the diagram draws one of them.
-fn credits_text(scene: &Scene, diagram_layers: &[Layer]) -> String {
+/// "Sources: BGT, Kadaster, CC BY 4.0; ... Retrieved 2026-10-24."
+fn credits_text(scene: &Scene, layers: &[Layer]) -> String {
     let sources: Vec<String> = scene
         .credits
         .iter()
         .filter(|credit| {
-            credit.layers.is_empty()
-                || credit
-                    .layers
-                    .iter()
-                    .any(|layer| diagram_layers.contains(layer))
+            credit.layers.is_empty() || credit.layers.iter().any(|layer| layers.contains(layer))
         })
         .map(|credit| format!("{} ({})", credit.name, credit.license))
         .collect();

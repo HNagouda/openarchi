@@ -19,6 +19,7 @@ mod csv;
 mod environment;
 mod nature;
 mod parcels;
+mod places;
 
 use std::collections::BTreeMap;
 
@@ -116,6 +117,9 @@ pub enum Unit {
     SquareMetres,
     Buildings,
     Parcels,
+    /// Businesses or facilities from OpenStreetMap.
+    Places,
+    Stops,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -147,6 +151,7 @@ pub fn compute(scene: &Scene, theme: &Theme) -> Result<Ratios> {
     groups.extend(parcels::groups(scene, &buildings, theme)?);
     groups.push(nature::green(scene, theme)?);
     groups.push(nature::water(scene, theme)?);
+    groups.extend(places::groups(scene, theme)?);
     groups.extend(environment::groups(scene, &buildings, theme)?);
     groups.retain(|group| group.total > 0.0);
 

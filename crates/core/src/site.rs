@@ -23,13 +23,15 @@ use self::download::{Dataset, Download, Fetcher, Payload};
 use self::environment::{Raster, RIVM_RASTERS};
 use crate::area::Area;
 use crate::environment::Measured;
-use crate::scene::{Credit, Feature, Layer, Scene};
+use crate::scene::{Credit, Feature, Layer, Scene, Walk};
 use crate::sources::ahn::{self, CellTile, Elevation};
 use crate::sources::cache::TileCache;
 use crate::sources::clip::{self, Clipped};
+use crate::sources::osm::{self, Osm};
 use crate::sources::pdok::Record;
 use crate::sources::raster::Grid;
 use crate::sources::{bag, bag_units, bands, bgt, brk, cbs, contours, heights, liwo, rivm};
+use crate::walk;
 use crate::{Error, Result};
 
 const RD_NEW: &str = "EPSG:28992";
@@ -53,13 +55,15 @@ enum Source {
     Liwo,
     Cbs,
     BagUnits,
+    Osm,
 }
 
-const SOURCES: [Source; 8] = [
+const SOURCES: [Source; 9] = [
     Source::Bgt,
     Source::Bag,
     Source::Brk,
     Source::Ahn,
+    Source::Osm,
     Source::Rivm,
     Source::Liwo,
     Source::Cbs,
@@ -81,6 +85,7 @@ impl Source {
             Source::Liwo => "Flood depth",
             Source::Cbs => "Population",
             Source::BagUnits => "Dwellings",
+            Source::Osm => "Places, transit and walking routes",
         }
     }
 
@@ -96,6 +101,7 @@ impl Source {
             Source::Cbs => Some(cbs::credit()),
             // The units are BAG, which the buildings already credit.
             Source::BagUnits => None,
+            Source::Osm => Some(osm::credit()),
         }
     }
 }
@@ -123,9 +129,10 @@ fn build_scene_with(
         .bounding_rect()
         .ok_or_else(|| Error::Invalid("The drawn area has no points.".to_string()))?;
 
-    let jobs = download::tiles_for(&boundary, bbox);
-    // Every tile, then heights and contours, then clipping.
-    let total = jobs.len() + 2;
+    let mut jobs = download::tiles_for(&boundary, bbox);
+    jobs.push(download::osm_job(origin, &boundary));
+    // Every tile, then heights and contours, then walk times, then clipping.
+    let total = jobs.len() + 3;
     let report = |step: &str, done: usize| {
         on_progress(Progress {
             step: step.to_string(),
@@ -139,6 +146,7 @@ fn build_scene_with(
     let Joined {
         mut features,
         elevation,
+        osm,
         credits,
         mut warnings,
         mut measured,
@@ -158,7 +166,20 @@ fn build_scene_with(
         features.extend(slope);
         measured.slope_percent = stats;
     }
-    report("Heights and contours", total - 1);
+    report("Heights and contours", total - 2);
+
+    let walk = osm.as_ref().and_then(|osm| walk_around(osm, origin));
+    if let Some(osm) = osm {
+        if walk.is_none() {
+            warnings.push(
+                "No street or path passes near the site centre, so walk times were left out."
+                    .to_string(),
+            );
+        }
+        features.extend(osm.places);
+        features.extend(osm.stops);
+    }
+    report("Walk times", total - 1);
 
     let (features, unclippable) = clip_and_localise(features, &boundary, origin);
     let features = bands::without_hidden_bands(features);
@@ -188,6 +209,30 @@ fn build_scene_with(
         fetched_at: humantime::format_rfc3339_seconds(SystemTime::now()).to_string(),
         warnings,
         measured,
+        walk,
+    })
+}
+
+/// The walk from the site centre, moved into the scene's frame. Not clipped:
+/// a walk does not stop at the boundary.
+fn walk_around(osm: &Osm, origin: (f64, f64)) -> Option<Walk> {
+    let result = walk::compute(osm, origin)?;
+    let localise = |features: Vec<Feature>| -> Vec<Feature> {
+        features
+            .into_iter()
+            .map(|feature| Feature {
+                geometry: feature
+                    .geometry
+                    .map_coords(|coord| to_local_centimetres(coord, origin)),
+                ..feature
+            })
+            .collect()
+    };
+
+    Some(Walk {
+        bands: localise(result.bands),
+        paths: localise(result.paths),
+        places: localise(result.places),
     })
 }
 
@@ -196,6 +241,7 @@ fn build_scene_with(
 struct Joined {
     features: Vec<Feature>,
     elevation: Option<Elevation>,
+    osm: Option<Osm>,
     credits: Vec<Credit>,
     warnings: Vec<String>,
     measured: Measured,
@@ -213,6 +259,7 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>, boundary: &Polygon<f64>) 
     let mut records: HashMap<Dataset, Vec<Record>> = HashMap::new();
     let mut cells: HashMap<Dataset, Vec<CellTile>> = HashMap::new();
     let mut rasters: HashMap<Dataset, Vec<Grid>> = HashMap::new();
+    let mut osm_body: Option<Vec<u8>> = None;
     for download in downloads {
         match download.payload {
             Ok(Payload::Records(tile_records)) => records
@@ -224,6 +271,7 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>, boundary: &Polygon<f64>) 
                 .or_default()
                 .push((download.tile.rect(), tile_cells)),
             Ok(Payload::Raster(grid)) => rasters.entry(download.dataset).or_default().push(grid),
+            Ok(Payload::Osm(body)) => osm_body = Some(body),
             Err(error) => {
                 failed.entry(download.dataset.source()).or_insert(error);
             }
@@ -281,6 +329,15 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>, boundary: &Polygon<f64>) 
                 joined.features.extend(cbs::to_features(years.into()));
             }
             Source::BagUnits => {}
+            Source::Osm => match osm::parse(&osm_body.take().unwrap_or_default()) {
+                Ok(parsed) => joined.osm = Some(parsed),
+                Err(error) => {
+                    joined
+                        .warnings
+                        .push(format!("{} could not be read: {error}", source.step()));
+                    continue;
+                }
+            },
         }
         joined.has_base |= BASE_SOURCES.contains(&source);
         joined.credits.extend(source.credit());

@@ -22,5 +22,6 @@ pub mod sources;
 pub mod sun;
 pub mod theme;
 pub mod view;
+pub mod walk;
 
 pub use error::{Error, Result};

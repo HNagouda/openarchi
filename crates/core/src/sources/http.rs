@@ -33,24 +33,64 @@ pub fn get(service: &str, url: &str, query: &[(&str, &str)]) -> Result<Vec<u8>> 
     result
 }
 
-fn get_once(service: &str, url: &str, query: &[(&str, &str)]) -> Result<Vec<u8>> {
-    let network_error = |error: ureq::Error| Error::Network {
+/// The response body of a form POST to `url`, retried after each pause in
+/// `backoff` when the server says it is busy (429, 502, 503 or 504). Any other
+/// failure is returned at once. `timeout` replaces the usual request timeout,
+/// for services that take long to answer.
+pub fn post_form(
+    service: &str,
+    url: &str,
+    form: &[(&str, &str)],
+    timeout: Duration,
+    backoff: &[Duration],
+) -> Result<Vec<u8>> {
+    let mut pauses = backoff.iter();
+    loop {
+        let result = agent()
+            .post(url)
+            .config()
+            .timeout_global(Some(timeout))
+            .build()
+            .send_form(form.iter().copied());
+        let error = match result {
+            Ok(mut response) => {
+                return response
+                    .body_mut()
+                    .with_config()
+                    .limit(MAX_BODY_BYTES)
+                    .read_to_vec()
+                    .map_err(|error| network_error(service, error));
+            }
+            Err(error) => error,
+        };
+        let is_busy = matches!(error, ureq::Error::StatusCode(429 | 502 | 503 | 504));
+        match pauses.next() {
+            Some(pause) if is_busy => thread::sleep(*pause),
+            _ => return Err(network_error(service, error)),
+        }
+    }
+}
+
+fn network_error(service: &str, error: ureq::Error) -> Error {
+    Error::Network {
         service: service.to_string(),
         detail: error.to_string(),
-    };
+    }
+}
 
+fn get_once(service: &str, url: &str, query: &[(&str, &str)]) -> Result<Vec<u8>> {
     let mut response = agent()
         .get(url)
         .query_pairs(query.iter().copied())
         .call()
-        .map_err(network_error)?;
+        .map_err(|error| network_error(service, error))?;
 
     response
         .body_mut()
         .with_config()
         .limit(MAX_BODY_BYTES)
         .read_to_vec()
-        .map_err(network_error)
+        .map_err(|error| network_error(service, error))
 }
 
 // Shared so connections to PDOK are reused across pages and sources.
@@ -60,7 +100,14 @@ fn agent() -> &'static Agent {
         Agent::config_builder()
             .timeout_global(Some(REQUEST_TIMEOUT))
             .timeout_connect(Some(CONNECT_TIMEOUT))
-            .user_agent(concat!("openarchi/", env!("CARGO_PKG_VERSION")))
+            // Overpass asks every client for a User-Agent that leads back to it.
+            .user_agent(concat!(
+                "openarchi/",
+                env!("CARGO_PKG_VERSION"),
+                " (+",
+                env!("CARGO_PKG_REPOSITORY"),
+                ")"
+            ))
             .build()
             .into()
     })

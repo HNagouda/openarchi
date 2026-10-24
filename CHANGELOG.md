@@ -25,6 +25,17 @@ What changed in each version of openarchi, newest first.
 - Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
 - Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
 
+### Places, transit and walking
+
+- Four new diagrams from OpenStreetMap. Business shows shops, food and drink, offices, hotels and services on the site. Facilities shows education, culture, civic buildings and places of worship, health care, sport and play, and car parking. Transit shows the bus, tram, metro and train stops within a 10 minute walk, each named with the line numbers that call there. Walkability shows how far you get on foot in 5, 10 and 15 minutes, with the facilities inside each band.
+- Each group has its own shape as well as its colour, so the diagrams still read in Mono. Places of one group that would touch on paper merge into one larger symbol, so a busy shopping street does not turn into a smear.
+- Transit and Walkability zoom out until the walk fits the sheet, for example to 1:10 000 for the 15 minute walk around the Westerkerk, with the site outlined in the middle.
+- Walk times are worked out on your own computer over the OpenStreetMap footpath network at 1.4 m/s, from the site centre. Benches, bins, vending machines and bicycle racks are left out.
+- The Ratios view counts businesses and facilities on the site by group, and transit stops within a 10 minute walk by mode.
+- Sheets that show OpenStreetMap data credit "© OpenStreetMap contributors (ODbL 1.0)". Other sheets leave the credit off.
+- OpenStreetMap is asked once per site, and the answer is kept with the other downloaded data, so a nudged site does not ask again. When it is busy or down, the site still arrives without these layers and says why.
+- Assistants can read the walk counts with the new `get_neighbourhood` tool.
+
 ### Ratios
 
 - The inspector has a Ratios view next to Style: how the site divides up, as bars or pies. Land use and transport by area, building use, floors, height, year built and footprint by building, building coverage and floor area ratio by parcel, and green and water by type.

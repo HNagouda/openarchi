@@ -68,6 +68,7 @@ fn fake_pdok(requests: &AtomicUsize, dataset: Dataset, tile: Tile) -> Result<Pay
             height: 10,
             values: vec![50.0; 100],
         })),
+        Dataset::Osm(_) => Ok(Payload::Osm(br#"{"elements": []}"#.to_vec())),
         _ => Ok(Payload::Records(Vec::new())),
     }
 }

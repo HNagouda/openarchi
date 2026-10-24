@@ -17,6 +17,7 @@ pub mod grid;
 pub mod heights;
 pub mod http;
 pub mod liwo;
+pub mod osm;
 pub mod pdok;
 pub mod raster;
 pub mod rivm;
