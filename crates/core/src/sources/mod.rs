@@ -14,6 +14,7 @@ pub mod cache;
 pub mod cbs;
 pub mod clip;
 pub mod contours;
+pub mod edition;
 pub mod grid;
 pub mod heights;
 pub mod http;

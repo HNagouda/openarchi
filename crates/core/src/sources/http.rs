@@ -33,6 +33,32 @@ pub fn get(service: &str, url: &str, query: &[(&str, &str)]) -> Result<Vec<u8>> 
     result
 }
 
+/// The response body of `url` with `query` appended, asked once and given up
+/// after `timeout`. For quick questions that have an answer to fall back on,
+/// where waiting through retries would hold up a whole site.
+pub fn get_once_within(
+    service: &str,
+    url: &str,
+    query: &[(&str, &str)],
+    timeout: Duration,
+) -> Result<Vec<u8>> {
+    let mut response = agent()
+        .get(url)
+        .config()
+        .timeout_global(Some(timeout))
+        .build()
+        .query_pairs(query.iter().copied())
+        .call()
+        .map_err(|error| network_error(service, error))?;
+
+    response
+        .body_mut()
+        .with_config()
+        .limit(MAX_BODY_BYTES)
+        .read_to_vec()
+        .map_err(|error| network_error(service, error))
+}
+
 /// The response body of a form POST to `url`, retried after each pause in
 /// `backoff` when the server says it is busy (429, 502, 503 or 504). Any other
 /// failure is returned at once. `timeout` replaces the usual request timeout,

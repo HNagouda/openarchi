@@ -12,10 +12,11 @@
 //! abstract, so the report is the only source for this numbering.
 
 use crate::scene::{Credit, Layer};
+use crate::sources::edition::Edition;
 use crate::sources::wcs::Coverage;
 
 /// Maximum water depth in metres, 5 m cells. Dry cells are nodata, not zero.
-pub const FLOOD_DEPTH: Coverage = Coverage {
+pub const FLOOD_DEPTH: Coverage<'static> = Coverage {
     service: "LIWO",
     url: "https://basisinformatie-overstromingen.nl/geoserver/LIWO_Basis/ows",
     id: "LIWO_Basis__MaximaleWaterdiepteNederland_Kaart5",
@@ -24,6 +25,15 @@ pub const FLOOD_DEPTH: Coverage = Coverage {
 
 /// LIWO release 2025.1.2 is the one the method report describes.
 pub const FLOOD_YEAR: i32 = 2025;
+
+// #! NOTE[flood, edition] : LIWO serves only the current release under an undated id, and neither its WCS, its WMS nor its viewer says which release that is, so the year stays pinned; ask liwo@rws.nl for a release endpoint
+/// The edition every site is fetched in.
+pub fn edition() -> Edition {
+    Edition {
+        year: FLOOD_YEAR,
+        id: FLOOD_DEPTH.id.to_string(),
+    }
+}
 
 // #! NOTE[flood, licence] : The LIWO capabilities say "Fees none, AccessConstraints none" and name no licence; ask liwo@rws.nl which one applies
 pub fn credit() -> Credit {
