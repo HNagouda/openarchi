@@ -6,7 +6,7 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { chosenVariant } from "../lib/diagrams";
-import type { Area, Catalog, Credit, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
+import type { Area, Catalog, Credit, LaserSettings, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
 import { answerPalette, withPaletteEdits } from "./mockPalettes";
 import { withMockPins } from "./mockPins";
 import { mockBackdrop, mockBlockFixture, mockTextBlock } from "./mockReports";
@@ -172,10 +172,22 @@ async function answer(command: string, args: Args) {
     const theme = fixture.catalog.themes.find((entry) => entry.id === (report.theme_id ?? openLook.theme_id));
     return theme ? mockBackdrop(report, args.index as number, theme) : null;
   }
+  if (command === "laser_summary") return mockLaserSummary(args.settings as LaserSettings);
+  if (command === "export_laser") {
+    const summary = await mockLaserSummary(args.settings as LaserSettings);
+    const files = Array.from({ length: summary.sheet_count }, (_, index) => `${args.folder}/westermarkt-laser-${index + 1}.svg`);
+    return { files, summary };
+  }
   if (command === "report_file_name") return `westermarkt.${args.format}`;
   if (command === "analysis_file_name") return args.sectionId ? `westermarkt-${args.sectionId}.svg` : "westermarkt-analysis.pdf";
   // Saves, renames, window theme and the like: nothing to show for them here.
   return null;
+}
+
+/** The summary app_fixtures wrote for the nearest preset scale, whatever the other settings. */
+async function mockLaserSummary(settings: LaserSettings) {
+  const scale = [500, 1000, 2500].reduce((best, preset) => (Math.abs(preset - settings.scale) < Math.abs(best - settings.scale) ? preset : best));
+  return fetch(`${FIXTURES}/laser/${scale}.json`).then((response) => response.json());
 }
 
 /** A block as the core would draw it, from the fixtures: sheets from the previews, the rest from report-blocks. */

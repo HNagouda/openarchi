@@ -229,6 +229,33 @@ export type Progress = { step: string; done: number; total: number };
 
 export type ExportFormat = "svg" | "pdf" | "png" | "dxf";
 
+// crates/core/src/export/laser/mod.rs
+export type LaserFormat = "svg" | "dxf";
+export type LaserSettings = {
+  scale: number;
+  thickness_mm: number;
+  bed_width_mm: number;
+  bed_height_mm: number;
+  has_base_plate: boolean;
+  has_buildings: boolean;
+  has_contours: boolean;
+  format: LaserFormat;
+};
+export type LaserSummary = {
+  sheet_count: number;
+  piece_count: number;
+  building_count: number;
+  dropped_buildings: number;
+  estimated_heights: number;
+  plate_width_mm: number;
+  plate_height_mm: number;
+  plate_tiles: number;
+  has_contours: boolean;
+  material_m2: number;
+  pieces_m2: number;
+};
+export type LaserExport = { files: string[]; summary: LaserSummary };
+
 // crates/core/src/ratios.rs
 export type RatioUnit = "square_metres" | "buildings" | "parcels" | "places" | "stops";
 export type RatioRow = { label: string; value: number; share: number; fill: string };

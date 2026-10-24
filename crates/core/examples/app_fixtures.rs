@@ -15,6 +15,7 @@ use std::path::Path;
 use openarchi_core::analysis::{self, Part, PARTS};
 use openarchi_core::area::{Area, LonLat};
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
+use openarchi_core::export::laser::{self, LaserFormat, LaserSettings};
 use openarchi_core::export::render_png;
 use openarchi_core::palette::{self, PaletteCheck, PaletteDraft, RoleChoice};
 use openarchi_core::project::Look;
@@ -121,6 +122,7 @@ fn main() {
 
     write_explode_previews(&scene, &sheet, &out_dir);
     write_ratios(&scene, &out_dir);
+    write_laser_summaries(&scene, &out_dir);
 
     println!("fixtures in {}", out_dir.display());
 }
@@ -188,6 +190,28 @@ fn write_ratios(scene: &Scene, out_dir: &Path) {
             serde_json::to_string(&ratios).expect("serialise the ratios"),
         )
         .expect("write the ratios");
+    }
+}
+
+/// What the laser export would write at each preset scale, with the dialog's
+/// other defaults, "laser/1000.json"; the mock answers every setting with these.
+fn write_laser_summaries(scene: &Scene, out_dir: &Path) {
+    let folder = out_dir.join("laser");
+    fs::create_dir_all(&folder).expect("create the laser folder");
+    for scale in [500, 1000, 2500] {
+        let settings = LaserSettings {
+            scale,
+            thickness_mm: laser::DEFAULT_THICKNESS_MM,
+            bed_width_mm: laser::DEFAULT_BED_MM.0,
+            bed_height_mm: laser::DEFAULT_BED_MM.1,
+            has_base_plate: true,
+            has_buildings: true,
+            has_contours: true,
+            format: LaserFormat::Svg,
+        };
+        let summary = laser::summarize(scene, None, &settings).expect("plan the laser files");
+        let text = serde_json::to_string(&summary).expect("serialise the summary");
+        fs::write(folder.join(format!("{scale}.json")), text).expect("write the summary");
     }
 }
 
