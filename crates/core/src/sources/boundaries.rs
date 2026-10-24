@@ -11,7 +11,7 @@ use geo::{BooleanOps, Contains, Coord, Geometry, MultiPolygon, Point, Rect, Simp
 use serde::{Deserialize, Serialize};
 
 use crate::scene::Credit;
-use crate::sources::pdok::{self, Record};
+use crate::sources::pdok::{self, Filter, Record};
 use crate::{Error, Result};
 
 const SERVICE: &str = "PDOK bestuurlijke gebieden";
@@ -74,7 +74,13 @@ pub fn fetch_municipality(point: (f64, f64)) -> Result<Option<Municipality>> {
             y: point.1 + PROBE_HALF_SIDE_M,
         },
     );
-    let records = pdok::fetch_records(SERVICE, BASE_URL, MUNICIPALITY_COLLECTION, probe, None)?;
+    let records = pdok::fetch_records(
+        SERVICE,
+        BASE_URL,
+        MUNICIPALITY_COLLECTION,
+        probe,
+        Filter::None,
+    )?;
     let centre = Point::new(point.0, point.1);
 
     // A box on a border touches two municipalities; the point lies in one.
@@ -103,13 +109,13 @@ pub fn fetch_country(year: i32) -> Result<MultiPolygon<f64>> {
         },
     );
     // Every year since 2016 is in the collection, so ask for one.
-    let filter = format!("jaarcode = {year}");
+    let year = year.to_string();
     let records = pdok::fetch_records(
         COUNTRY_SERVICE,
         COUNTRY_BASE_URL,
         COUNTRY_COLLECTION,
         netherlands,
-        Some(&filter),
+        Filter::Property("jaarcode", &year),
     )?;
     let regions: Vec<MultiPolygon<f64>> = records
         .into_iter()
