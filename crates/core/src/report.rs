@@ -23,7 +23,7 @@ use crate::{Error, Result};
 
 pub use compose::{backdrop_svg, block_svg, page_svg, pages_svg};
 pub use data::{parts_needed, ReportData};
-pub use files::{export, ReportFormat};
+pub use files::{export, output_paths, ReportFormat};
 
 /// What a page shows behind its blocks when nothing is chosen: the palette's paper.
 pub const DEFAULT_BACKGROUND: &str = "@paper";

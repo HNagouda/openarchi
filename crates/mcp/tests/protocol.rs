@@ -639,7 +639,7 @@ fn get_environment_gives_noise_flood_and_people_with_their_years() {
 }
 
 #[test]
-fn a_report_laid_out_in_the_app_is_listed_and_exports_as_a_pdf() {
+fn a_report_laid_out_in_the_app_is_listed_and_exports_as_pdf_svg_and_png() {
     let mut server = Server::start();
     let id = server.create_westermarkt();
     let library = Library::at(server.library.path()).unwrap();
@@ -697,6 +697,44 @@ fn a_report_laid_out_in_the_app_is_listed_and_exports_as_a_pdf() {
         json!({ "id": id, "report_id": "report-9", "path": path, "overwrite": true }),
     );
     assert!(unknown.contains("report-1"), "{unknown}");
+
+    // SVG and PNG write a file per page, numbered next to the path asked for.
+    let svg_path = server.library.path().join("westermarkt-report.svg");
+    let svgs = server.call_ok(
+        "export_report",
+        json!({ "id": id, "report_id": "report-1", "format": "svg", "path": svg_path }),
+    );
+    assert_eq!(svgs["files"].as_array().unwrap().len(), 2);
+    let first =
+        std::fs::read_to_string(server.library.path().join("westermarkt-report-1.svg")).unwrap();
+    assert!(first.contains("<svg"));
+    assert!(server
+        .library
+        .path()
+        .join("westermarkt-report-2.svg")
+        .exists());
+
+    let png_path = server.library.path().join("westermarkt-report.png");
+    server.call_ok(
+        "export_report",
+        json!({ "id": id, "report_id": "report-1", "format": "png", "dpi": 72, "path": png_path }),
+    );
+    let png = std::fs::read(server.library.path().join("westermarkt-report-1.png")).unwrap();
+    assert_eq!(&png[1..4], b"PNG");
+
+    let mismatch = server.call_err(
+        "export_report",
+        json!({ "id": id, "report_id": "report-1", "format": "png", "path": path, "overwrite": true }),
+    );
+    assert!(mismatch.contains(".png"), "{mismatch}");
+    let numbered_again = server.call_err(
+        "export_report",
+        json!({ "id": id, "report_id": "report-1", "format": "svg", "path": svg_path }),
+    );
+    assert!(
+        numbered_again.contains("westermarkt-report-1.svg"),
+        "{numbered_again}"
+    );
 }
 
 #[test]

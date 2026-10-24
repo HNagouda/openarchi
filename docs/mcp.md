@@ -17,6 +17,7 @@ The assistant finds the address, creates a project with a circle around it, down
 - "Design a theme in warm brick and sage tones and use it for all my Rotterdam projects."
 - "Export the Westermarkt project as DXF for AutoCAD."
 - "Export my Westermarkt report as a PDF to the Desktop."
+- "Save each page of the Westermarkt report as a PNG for the slides."
 
 The assistant can also see the sheet it is working on, because the server renders a preview image for it. That is what lets it fix a cramped title or a colour that does not read before you ever open the file.
 
@@ -81,7 +82,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `get_analysis` | Gives the site analysis: address, municipality and province, a site summary, the climate from a PVGIS typical year (temperature, outdoor comfort as UTCI hours per stress category in the sun and in the shade, wind by season, sun, humidity), 30 years of rain from the nearest KNMI station, and design notes for each section |
 | `export` | Writes SVG, PDF, PNG or DXF |
 | `list_reports` | Lists the reports laid out in the app, with each page's paper and the blocks placed on it |
-| `export_report` | Writes one report as a PDF with a page per report page, drawn from the project's current data |
+| `export_report` | Writes one report as a PDF with a page per report page, or as an SVG or PNG per page, drawn from the project's current data |
 | `create_theme` | Saves a new theme, which the app picks up too |
 | `import_palette` | Turns a palette generator's export (hex codes, JSON, SVG swatches, XML or a link) into a theme, with the roles it chose and any contrast warnings |
 | `list_user_palettes` | Lists the palettes the user made or imported, with their swatches |

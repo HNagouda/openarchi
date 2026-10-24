@@ -1,5 +1,6 @@
-//! The report tools: listing a project's reports and writing one as a PDF.
-//! Reports are laid out in the app; the assistant reads and exports them.
+//! The report tools: listing a project's reports and writing one as a PDF,
+//! or as an SVG or PNG per page. Reports are laid out in the app; the
+//! assistant reads and exports them.
 
 use std::path::PathBuf;
 
@@ -12,8 +13,9 @@ use serde_json::{json, Value};
 
 use crate::resolve::find_theme;
 
-/// PDF pages are vector; only raster images inside them would use this.
-const PDF_DPI: u32 = 300;
+/// PNG resolution when none is asked for, the same as the sheet's export.
+/// PDF and SVG pages are vector and ignore it.
+const DEFAULT_DPI: u32 = 300;
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExportReport {
@@ -21,10 +23,34 @@ pub struct ExportReport {
     pub id: String,
     /// The report id from list_reports, like "report-1".
     pub report_id: String,
-    /// Absolute path of the PDF to write, including ".pdf". The folder must exist.
+    /// pdf (the default) writes one file with every page; svg and png write one
+    /// file per page, "report-1.png", "report-2.png" and on next to `path`.
+    pub format: Option<ReportFormatInput>,
+    /// Absolute path of the file to write, with the format's extension. The folder must exist.
     pub path: String,
-    /// Replace a file that is already at `path`. Defaults to false.
+    /// Resolution for png. Defaults to 300.
+    pub dpi: Option<u32>,
+    /// Replace files that are already there. Defaults to false.
     pub overwrite: Option<bool>,
+}
+
+/// pdf for print, svg for layout tools, png for slides and the web.
+#[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ReportFormatInput {
+    Pdf,
+    Svg,
+    Png,
+}
+
+impl From<ReportFormatInput> for ReportFormat {
+    fn from(format: ReportFormatInput) -> Self {
+        match format {
+            ReportFormatInput::Pdf => ReportFormat::Pdf,
+            ReportFormatInput::Svg => ReportFormat::Svg,
+            ReportFormatInput::Png => ReportFormat::Png,
+        }
+    }
 }
 
 /// Every report of the project, with its pages and the blocks on them.
@@ -47,9 +73,10 @@ pub fn list(library: &Library, id: &str) -> Result<Value, String> {
     Ok(json!({ "reports": reports }))
 }
 
-/// Writes the report as one PDF with a page per report page.
-pub fn export_pdf(library: &Library, input: ExportReport) -> Result<Value, String> {
-    let path = checked_path(&input)?;
+/// Writes the report as one PDF with a page per report page, or one SVG or PNG per page.
+pub fn export(library: &Library, input: ExportReport) -> Result<Value, String> {
+    let format = ReportFormat::from(input.format.unwrap_or(ReportFormatInput::Pdf));
+    let path = checked_path(&input.path, format)?;
     let project = library.load(&input.id).map_err(|error| error.to_string())?;
     let Some(scene) = &project.scene else {
         return Err(format!(
@@ -78,6 +105,16 @@ pub fn export_pdf(library: &Library, input: ExportReport) -> Result<Value, Strin
         ));
     };
 
+    let targets = report::output_paths(report, format, &path);
+    if !input.overwrite.unwrap_or(false) {
+        if let Some(taken) = targets.iter().find(|target| target.exists()) {
+            return Err(format!(
+                "{} already exists; pass overwrite: true to replace it",
+                taken.display()
+            ));
+        }
+    }
+
     let theme_id = report.theme_id.as_ref().unwrap_or(&project.look.theme_id);
     let theme = find_theme(&library.themes_dir(), theme_id)?;
     let diagrams = catalog::builtin_diagrams();
@@ -96,29 +133,25 @@ pub fn export_pdf(library: &Library, input: ExportReport) -> Result<Value, Strin
         contents,
     )
     .map_err(|error| error.to_string())?;
-    report::export(report, &data, ReportFormat::Pdf, PDF_DPI, &path)
-        .map_err(|error| error.to_string())?;
+    let dpi = input.dpi.unwrap_or(DEFAULT_DPI);
+    let written =
+        report::export(report, &data, format, dpi, &path).map_err(|error| error.to_string())?;
 
-    Ok(json!({ "path": path, "pages": report.pages.len() }))
+    Ok(json!({ "path": path, "files": written, "pages": report.pages.len() }))
 }
 
-/// An absolute path to a PDF in a folder that exists, not over a file unless asked.
-fn checked_path(input: &ExportReport) -> Result<PathBuf, String> {
-    let path = PathBuf::from(&input.path);
+/// An absolute path with the format's extension, in a folder that exists.
+fn checked_path(typed: &str, format: ReportFormat) -> Result<PathBuf, String> {
+    let path = PathBuf::from(typed);
     if !path.is_absolute() {
-        return Err(format!("path must be absolute, got \"{}\"", input.path));
+        return Err(format!("path must be absolute, got \"{typed}\""));
     }
-    let is_pdf = path
+    let wanted = format.extension();
+    let has_extension = path
         .extension()
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("pdf"));
-    if !is_pdf {
-        return Err(format!("path must end in .pdf, got \"{}\"", input.path));
-    }
-    if path.exists() && !input.overwrite.unwrap_or(false) {
-        return Err(format!(
-            "{} already exists; pass overwrite: true to replace it",
-            path.display()
-        ));
+        .is_some_and(|extension| extension.eq_ignore_ascii_case(wanted));
+    if !has_extension {
+        return Err(format!("path must end in .{wanted}, got \"{typed}\""));
     }
     if !path.parent().is_some_and(|folder| folder.is_dir()) {
         return Err(format!("the folder for {} does not exist", path.display()));
