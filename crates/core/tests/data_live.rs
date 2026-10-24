@@ -6,6 +6,7 @@ use openarchi_core::area::{Area, LonLat};
 use openarchi_core::geocode;
 use openarchi_core::scene::Layer;
 use openarchi_core::site::build_scene;
+use openarchi_core::sources::cache::TileCache;
 
 const WESTERMARKT: LonLat = LonLat {
     lon: 4.8840,
@@ -19,7 +20,8 @@ fn a_small_site_in_amsterdam_has_every_source_and_no_warnings() {
         center: WESTERMARKT,
         radius_m: 100.0,
     };
-    let scene = build_scene(&area, &|_| {}).unwrap();
+    let folder = tempfile::TempDir::new().unwrap();
+    let scene = build_scene(&area, &TileCache::at(folder.path()), &|_| {}).unwrap();
 
     assert!(scene.warnings.is_empty(), "{:?}", scene.warnings);
     assert_eq!(scene.credits.len(), 4);
@@ -50,7 +52,8 @@ fn a_rectangle_works_as_well_as_a_circle() {
             lat: 52.3755,
         },
     };
-    let scene = build_scene(&area, &|_| {}).unwrap();
+    let folder = tempfile::TempDir::new().unwrap();
+    let scene = build_scene(&area, &TileCache::at(folder.path()), &|_| {}).unwrap();
     assert!(scene
         .features
         .iter()

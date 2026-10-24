@@ -3,8 +3,6 @@
 //! BGT surfaces tile the ground without gaps or overlaps, which is why a site
 //! drawn from them looks clean. Buildings come from BAG instead, see `bag.rs`.
 
-use std::thread;
-
 use geo::Rect;
 
 use crate::scene::{Attributes, Credit, Feature, Layer};
@@ -17,7 +15,7 @@ const BASE_URL: &str = "https://api.pdok.nl/lv/bgt/ogc/v1";
 const CURRENT_ONLY: &str = "eind_registratie IS NULL";
 
 /// Every BGT collection we read, in one place. `layer_for` maps each of them.
-const COLLECTIONS: [&str; 9] = [
+pub const COLLECTIONS: [&str; 9] = [
     "wegdeel",
     "ondersteunendwegdeel",
     "waterdeel",
@@ -37,31 +35,13 @@ pub fn credit() -> Credit {
     }
 }
 
-/// Every current BGT feature touching `bbox` (RD New), still in RD New.
-pub fn fetch(bbox: Rect<f64>) -> Result<Vec<Feature>> {
-    // One thread per collection: each is a separate, mostly waiting, request chain.
-    let per_collection: Vec<Result<Vec<Feature>>> = thread::scope(|scope| {
-        let handles: Vec<_> = COLLECTIONS
-            .iter()
-            .map(|&collection| scope.spawn(move || fetch_collection(collection, bbox)))
-            .collect();
-        handles
-            .into_iter()
-            .map(|handle| handle.join().expect("BGT fetch thread panicked"))
-            .collect()
-    });
-
-    let mut features = Vec::new();
-    for result in per_collection {
-        features.extend(result?);
-    }
-
-    Ok(features)
+/// Every current record of `collection` touching `bbox` (RD New), still in RD New.
+pub fn fetch_tile(collection: &str, bbox: Rect<f64>) -> Result<Vec<Record>> {
+    pdok::fetch_records(SERVICE, BASE_URL, collection, bbox, Some(CURRENT_ONLY))
 }
 
-fn fetch_collection(collection: &str, bbox: Rect<f64>) -> Result<Vec<Feature>> {
-    let records = pdok::fetch_collection(SERVICE, BASE_URL, collection, bbox, Some(CURRENT_ONLY))?;
-    let features = records
+pub fn to_features(collection: &str, records: Vec<Record>) -> Vec<Feature> {
+    records
         .into_iter()
         .map(|record| {
             let (layer, kind) = layer_for(collection, &record);
@@ -75,9 +55,7 @@ fn fetch_collection(collection: &str, bbox: Rect<f64>) -> Result<Vec<Feature>> {
                 geometry: record.geometry,
             }
         })
-        .collect();
-
-    Ok(features)
+        .collect()
 }
 
 /// The layer for one BGT record, and its own subtype for `attributes.kind`.

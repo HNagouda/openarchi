@@ -31,6 +31,16 @@ What changed in each version of openarchi, newest first.
 - Export the ratios as a CSV table or as an SVG page of charts in the sheet's theme.
 - Assistants can read the same numbers with the `get_ratios` tool.
 
+### Sites
+
+- Fetching a site again after moving, resizing or reshaping it only downloads what is new. A 300 m site nudged by 50 m comes back in under half a second.
+- Downloaded map data is kept for 30 days and shared between projects, so a site next to one you already fetched is quick too. The cache stays under 1 GB.
+- A large site downloads faster: a 1 km radius site takes about 12 s instead of about 26 s.
+
+### Your work
+
+- Project files are about six times smaller, and large sites open in a fraction of the time and memory. Projects from 0.1.0 still open and are stored the new way on their next save.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

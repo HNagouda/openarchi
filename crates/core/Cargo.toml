@@ -32,6 +32,11 @@ geojson = "0.24"
 # Library: the platform data folder, and the random suffix on project ids.
 dirs = "6"
 fastrand = "2"
+# Stored scenes and cached tiles are compressed. zstd rather than gzip: about
+# a third smaller on scene JSON and several times faster to unpack.
+zstd = "0.13"
+# The compressed scene sits inside the JSON project file as text.
+base64 = "0.22"
 
 [dev-dependencies]
 tempfile = "3"

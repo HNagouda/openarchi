@@ -4,15 +4,11 @@
 //! one function fetches any collection inside a bounding box. We ask for RD New
 //! both for the box and for the answer, which spares any reprojection.
 //!
-//! PDOK takes a few seconds per page of 1000 features and pages through a
-//! cursor, one page after the other. So a large box is split into tiles that
-//! page side by side, and features on a tile edge are kept once.
+//! Tiling and caching happen one level up, in `site.rs`, so this file only
+//! knows how to read every page of one box.
 
-use std::collections::HashSet;
-use std::thread;
-
-use geo::{Coord, Geometry, Rect};
-use serde::Deserialize;
+use geo::{Geometry, Rect};
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::sources::http;
@@ -21,14 +17,12 @@ use crate::{Error, Result};
 const RD_NEW_URI: &str = "http://www.opengis.net/def/crs/EPSG/0/28992";
 /// The largest page PDOK serves.
 const PAGE_SIZE: &str = "1000";
-/// Side of the tiles a large query is split into. A 1 km radius site becomes
-/// four tiles, which brought one BGT collection from about 60 s to about 11 s.
-const TILE_M: f64 = 1000.0;
-/// A guard against a paging loop; 200 pages is 200 000 features, far beyond a 4 km² site.
+/// A guard against a paging loop; 200 pages is 200 000 features, far beyond one tile.
 const MAX_PAGES: usize = 200;
 
-/// One feature as the service gave it, geometry in RD New.
-#[derive(Debug, Clone)]
+/// One feature as the service gave it, geometry in RD New. This is what the
+/// tile cache stores, so a change in how we read a record needs no refetch.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Record {
     /// The service's feature id, unique within the collection.
     pub id: Option<String>,
@@ -51,69 +45,7 @@ struct Link {
 
 /// Every record of `collection` at `base_url` that touches `bbox`. `filter` is
 /// an optional CQL2 text filter, for example "eind_registratie IS NULL".
-pub fn fetch_collection(
-    service: &str,
-    base_url: &str,
-    collection: &str,
-    bbox: Rect<f64>,
-    filter: Option<&str>,
-) -> Result<Vec<Record>> {
-    let per_tile: Vec<Result<Vec<Record>>> = thread::scope(|scope| {
-        let handles: Vec<_> = tiles(bbox)
-            .into_iter()
-            .map(|tile| {
-                scope.spawn(move || fetch_tile(service, base_url, collection, tile, filter))
-            })
-            .collect();
-        handles
-            .into_iter()
-            .map(|handle| handle.join().expect("PDOK tile thread panicked"))
-            .collect()
-    });
-
-    let mut seen = HashSet::new();
-    let mut records = Vec::new();
-    for tile in per_tile {
-        for record in tile? {
-            let is_new = match &record.id {
-                Some(id) => seen.insert(id.clone()),
-                None => true,
-            };
-            if is_new {
-                records.push(record);
-            }
-        }
-    }
-
-    Ok(records)
-}
-
-/// `bbox` cut into a grid of equal tiles no wider or taller than `TILE_M`.
-fn tiles(bbox: Rect<f64>) -> Vec<Rect<f64>> {
-    let columns = (bbox.width() / TILE_M).ceil().max(1.0) as usize;
-    let rows = (bbox.height() / TILE_M).ceil().max(1.0) as usize;
-    let tile_width = bbox.width() / columns as f64;
-    let tile_height = bbox.height() / rows as f64;
-
-    let mut tiles = Vec::with_capacity(columns * rows);
-    for row in 0..rows {
-        for column in 0..columns {
-            let min = Coord {
-                x: bbox.min().x + column as f64 * tile_width,
-                y: bbox.min().y + row as f64 * tile_height,
-            };
-            let max = Coord {
-                x: min.x + tile_width,
-                y: min.y + tile_height,
-            };
-            tiles.push(Rect::new(min, max));
-        }
-    }
-
-    tiles
-}
-
-fn fetch_tile(
+pub fn fetch_records(
     service: &str,
     base_url: &str,
     collection: &str,
@@ -200,26 +132,6 @@ pub fn integer(record: &Record, key: &str) -> Option<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_small_box_is_one_tile_and_a_large_one_is_split_evenly() {
-        let small = Rect::new(Coord { x: 0.0, y: 0.0 }, Coord { x: 600.0, y: 600.0 });
-        assert_eq!(tiles(small), vec![small]);
-
-        let large = Rect::new(
-            Coord { x: 0.0, y: 0.0 },
-            Coord {
-                x: 2200.0,
-                y: 1000.0,
-            },
-        );
-        let split = tiles(large);
-        assert_eq!(split.len(), 3);
-        assert!(split
-            .iter()
-            .all(|tile| (tile.width() - 2200.0 / 3.0).abs() < 1e-9));
-        assert_eq!(split[2].max(), large.max());
-    }
 
     #[test]
     fn a_page_parses_into_records_and_finds_the_next_link() {

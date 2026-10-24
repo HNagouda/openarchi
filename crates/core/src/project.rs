@@ -1,7 +1,10 @@
 //! A project is one site plus the look the user chose for it, saved as one file.
 //!
 //! The fetched scene is stored inside, so a project opens offline and never
-//! changes under the user because a data service updated.
+//! changes under the user because a data service updated. It is stored
+//! compressed, see `packed_scene`.
+
+pub mod packed_scene;
 
 use std::collections::BTreeMap;
 
@@ -13,7 +16,8 @@ use crate::sheet::Sheet;
 use crate::theme::LayerOverride;
 
 /// Bump when the file shape changes, and add a step to `library::migrate`.
-pub const PROJECT_FORMAT_VERSION: u32 = 1;
+/// Version 2 stores the scene compressed.
+pub const PROJECT_FORMAT_VERSION: u32 = 2;
 
 pub const PROJECT_EXTENSION: &str = "openarchi";
 
@@ -28,6 +32,7 @@ pub struct Project {
     pub modified: String,
     pub area: Area,
     /// `None` until the site has been fetched.
+    #[serde(with = "packed_scene")]
     pub scene: Option<Scene>,
     pub look: Look,
 }

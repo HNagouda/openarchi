@@ -5,6 +5,7 @@ use tempfile::TempDir;
 
 use super::*;
 use crate::area::LonLat;
+use crate::scene::Scene;
 
 fn westermarkt() -> Area {
     Area::Circle {
@@ -260,4 +261,69 @@ fn stamps_and_times_convert_both_ways() {
     let stamp = stamp_from_rfc3339(time);
     assert_eq!(stamp, "2026-10-24T15-30-12.123456789Z");
     assert_eq!(rfc3339_from_stamp(&stamp), time);
+}
+
+/// The Westermarkt scene the render tests use, about 7 MB of JSON.
+fn fixture_scene() -> Scene {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/westermarkt.scene.json"
+    );
+    serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
+}
+
+#[test]
+fn a_saved_scene_is_stored_packed_and_loads_back_whole() {
+    let (folder, library) = library();
+    let mut project = library.create("Westermarkt", westermarkt()).unwrap();
+    let scene = fixture_scene();
+    let feature_count = scene.features.len();
+    project.scene = Some(scene);
+    library.save(&mut project).unwrap();
+
+    let path = folder
+        .path()
+        .join(format!("projects/{}.openarchi", project.id));
+    let value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    let loaded = library.load(&project.id).unwrap();
+
+    assert!(value["scene"].is_string());
+    assert_eq!(loaded.scene.unwrap().features.len(), feature_count);
+    assert!(library.list().unwrap()[0].has_scene);
+}
+
+#[test]
+fn a_version_1_project_with_a_plain_scene_still_opens() {
+    let (folder, library) = library();
+    let project = library.create("Westermarkt", westermarkt()).unwrap();
+    let path = folder
+        .path()
+        .join(format!("projects/{}.openarchi", project.id));
+    let mut value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    value["format_version"] = Value::from(1);
+    value["scene"] = serde_json::to_value(fixture_scene()).unwrap();
+    fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+
+    let loaded = library.load(&project.id).unwrap();
+
+    assert_eq!(loaded.format_version, PROJECT_FORMAT_VERSION);
+    assert_eq!(
+        loaded.scene.unwrap().features.len(),
+        fixture_scene().features.len()
+    );
+}
+
+#[test]
+fn a_damaged_packed_scene_is_refused_with_a_reason() {
+    let (folder, library) = library();
+    let project = library.create("Westermarkt", westermarkt()).unwrap();
+    let path = folder
+        .path()
+        .join(format!("projects/{}.openarchi", project.id));
+    let mut value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    value["scene"] = Value::from("not base64 at all!");
+    fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+
+    let error = library.load(&project.id).unwrap_err().to_string();
+    assert!(error.contains("stored scene is damaged"), "{error}");
 }

@@ -1,15 +1,23 @@
 //! Fetches a circular site and writes the scene as JSON.
 //!
 //! cargo run -p openarchi-core --example fetch_site -- 4.8840 52.3745 300 westermarkt.scene.json
+//!
+//! Downloaded tiles are kept in target/tile-cache, so a second run over the
+//! same or a nearby site only downloads what is new.
 
 use std::collections::BTreeMap;
+use std::path::Path;
 use std::process::ExitCode;
 use std::time::Instant;
 
 use openarchi_core::area::{Area, LonLat};
 use openarchi_core::site::{build_scene, Progress};
+use openarchi_core::sources::cache::TileCache;
 
 const USAGE: &str = "usage: fetch_site <lon> <lat> <radius_m> <out.json>";
+/// Next to the build output rather than in the user's library, so working on
+/// the data layer never fills the real cache.
+const CACHE_DIR: &str = "../../target/tile-cache";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -37,7 +45,8 @@ fn main() -> ExitCode {
         );
     };
 
-    let scene = match build_scene(&area, &report) {
+    let cache = TileCache::at(&Path::new(env!("CARGO_MANIFEST_DIR")).join(CACHE_DIR));
+    let scene = match build_scene(&area, &cache, &report) {
         Ok(scene) => scene,
         Err(error) => {
             eprintln!("fetch failed: {error}");

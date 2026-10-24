@@ -120,13 +120,14 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Download the site data for a project (buildings with age, height and use, roads, paths, water, green, trees, parcels, terrain) and save it into the project. Takes from a few seconds to a minute. Returns the site summary; `warnings` lists sources that failed while the rest of the site is still usable. Running it again refreshes the data; the previous version stays in the project's backups."
+        description = "Download the site data for a project (buildings with age, height and use, roads, paths, water, green, trees, parcels, terrain) and save it into the project. Takes from a few seconds to a minute. Returns the site summary; `warnings` lists sources that failed while the rest of the site is still usable. Running it again reuses data downloaded in the last 30 days, so a nudged or resized area is quick; the previous version stays in the project's backups."
     )]
     async fn fetch_site(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self
             .with_library(move |library| {
                 let area = library.load(&input.id).map_err(text)?.area;
-                let scene = site::build_scene(&area, &|_| {}).map_err(text)?;
+                let scene =
+                    site::build_scene(&area, &library.tile_cache(), &|_| {}).map_err(text)?;
                 // Load again after the slow fetch, so a look the user changed
                 // in the app meanwhile is kept.
                 let mut project = library.load(&input.id).map_err(text)?;

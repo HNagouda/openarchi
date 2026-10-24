@@ -6,7 +6,6 @@
 
 use std::io::Cursor;
 use std::ops::Range;
-use std::thread;
 
 use geo::{Coord, Rect};
 use tiff::decoder::{Decoder, DecodingResult};
@@ -17,12 +16,10 @@ use crate::{Error, Result};
 const SERVICE: &str = "PDOK AHN";
 const WCS_URL: &str = "https://service.pdok.nl/rws/ahn/wcs/v1_0";
 /// Digital surface model: the top of whatever is there, roofs included.
-const SURFACE_COVERAGE: &str = "dsm_05m";
+pub const SURFACE_COVERAGE: &str = "dsm_05m";
 /// Digital terrain model: bare ground, with gaps under buildings.
-const TERRAIN_COVERAGE: &str = "dtm_05m";
+pub const TERRAIN_COVERAGE: &str = "dtm_05m";
 pub const CELL_M: f64 = 0.5;
-/// The WCS refuses anything over 4000 cells a side, which is 2000 m.
-const MAX_TILE_CELLS: usize = 4000;
 /// Fetch a little beyond the site, so buildings on the edge still have ground
 /// around them and contour lines do not stop at the boundary.
 const MARGIN_M: f64 = 20.0;
@@ -80,22 +77,71 @@ pub fn credit() -> Credit {
     }
 }
 
-/// Surface and terrain covering `bbox` (RD New) plus a small margin.
-pub fn fetch(bbox: Rect<f64>) -> Result<Elevation> {
+/// The area elevation is fetched for: `bbox` (RD New) plus a small margin,
+/// widened to whole cells.
+pub fn extent(bbox: Rect<f64>) -> Rect<f64> {
     let (west, north, width, height) = snapped(bbox);
-    let (surface, terrain) = thread::scope(|scope| {
-        let surface = scope.spawn(|| fetch_grid(SURFACE_COVERAGE, west, north, width, height));
-        let terrain = scope.spawn(|| fetch_grid(TERRAIN_COVERAGE, west, north, width, height));
-        (
-            surface.join().expect("AHN surface thread panicked"),
-            terrain.join().expect("AHN terrain thread panicked"),
-        )
-    });
+    Rect::new(
+        Coord {
+            x: west,
+            y: north - height as f64 * CELL_M,
+        },
+        Coord {
+            x: west + width as f64 * CELL_M,
+            y: north,
+        },
+    )
+}
 
-    Ok(Elevation {
-        surface: surface?,
-        terrain: terrain?,
-    })
+/// One downloaded raster tile: where it lies, and its cells row by row from the north.
+pub type CellTile = (Rect<f64>, Vec<f32>);
+
+/// One coverage over `extent(bbox)`, pieced together from tiles of that
+/// coverage. Cells no tile covers stay NaN.
+pub fn assemble(bbox: Rect<f64>, tiles: &[CellTile]) -> Grid {
+    let (west, north, width, height) = snapped(bbox);
+    let mut grid = Grid {
+        west,
+        north,
+        cell_m: CELL_M,
+        width,
+        height,
+        values: vec![f32::NAN; width * height],
+    };
+    for (rect, cells) in tiles {
+        copy_tile(&mut grid, *rect, cells);
+    }
+
+    grid
+}
+
+/// Copies the part of a tile that falls inside `grid`. Tiles and grid share
+/// the AHN cell raster, so offsets are whole cells.
+fn copy_tile(grid: &mut Grid, rect: Rect<f64>, cells: &[f32]) {
+    let tile_width = cells_across(rect.width());
+    let column_offset = ((rect.min().x - grid.west) / CELL_M).round() as i64;
+    let row_offset = ((grid.north - rect.max().y) / CELL_M).round() as i64;
+    let first_column = column_offset.max(0);
+    let end_column = (column_offset + tile_width as i64).min(grid.width as i64);
+    if first_column >= end_column {
+        return;
+    }
+
+    for (tile_row, source) in cells.chunks_exact(tile_width).enumerate() {
+        let row = row_offset + tile_row as i64;
+        if row < 0 || row >= grid.height as i64 {
+            continue;
+        }
+        let start = (first_column - column_offset) as usize;
+        let end = (end_column - column_offset) as usize;
+        let target = row as usize * grid.width;
+        grid.values[target + first_column as usize..target + end_column as usize]
+            .copy_from_slice(&source[start..end]);
+    }
+}
+
+fn cells_across(metres: f64) -> usize {
+    (metres / CELL_M).round() as usize
 }
 
 /// West edge, north edge, width and height in cells of `bbox` with the margin,
@@ -110,73 +156,10 @@ fn snapped(bbox: Rect<f64>) -> (f64, f64, usize, usize) {
     (west, north, width, height)
 }
 
-/// The columns and rows of one tile, and its cells.
-type Tile = (Range<usize>, Range<usize>, Result<Vec<f32>>);
-
-/// One coverage as a single grid, fetched in tiles the WCS accepts.
-fn fetch_grid(coverage: &str, west: f64, north: f64, width: usize, height: usize) -> Result<Grid> {
-    let column_tiles = tile_ranges(width);
-    let row_tiles = tile_ranges(height);
-
-    let tiles: Vec<Tile> = thread::scope(|scope| {
-        let mut handles = Vec::new();
-        for rows in &row_tiles {
-            for columns in &column_tiles {
-                let (rows, columns) = (rows.clone(), columns.clone());
-                handles.push(scope.spawn(move || {
-                    let values = fetch_tile(coverage, west, north, &columns, &rows);
-                    (columns, rows, values)
-                }));
-            }
-        }
-        handles
-            .into_iter()
-            .map(|handle| handle.join().expect("AHN tile thread panicked"))
-            .collect()
-    });
-
-    let mut values = vec![f32::NAN; width * height];
-    for (columns, rows, tile) in tiles {
-        let tile = tile?;
-        let tile_width = columns.len();
-        for (tile_row, row) in rows.enumerate() {
-            let source = &tile[tile_row * tile_width..(tile_row + 1) * tile_width];
-            values[row * width + columns.start..row * width + columns.end].copy_from_slice(source);
-        }
-    }
-
-    Ok(Grid {
-        west,
-        north,
-        cell_m: CELL_M,
-        width,
-        height,
-        values,
-    })
-}
-
-/// `cells` split into equal runs no longer than the WCS allows: 5000 -> 0..2500, 2500..5000.
-fn tile_ranges(cells: usize) -> Vec<Range<usize>> {
-    let count = cells.div_ceil(MAX_TILE_CELLS).max(1);
-    let size = cells.div_ceil(count);
-    (0..count)
-        .map(|index| index * size..((index + 1) * size).min(cells))
-        .collect()
-}
-
-fn fetch_tile(
-    coverage: &str,
-    west: f64,
-    north: f64,
-    columns: &Range<usize>,
-    rows: &Range<usize>,
-) -> Result<Vec<f32>> {
-    let x_min = west + columns.start as f64 * CELL_M;
-    let x_max = west + columns.end as f64 * CELL_M;
-    let y_max = north - rows.start as f64 * CELL_M;
-    let y_min = north - rows.end as f64 * CELL_M;
-    let subset_x = format!("x({x_min},{x_max})");
-    let subset_y = format!("y({y_min},{y_max})");
+/// The cells of `coverage` inside `rect` (RD New, on whole cells), row by row from the north.
+pub fn fetch_tile(coverage: &str, rect: Rect<f64>) -> Result<Vec<f32>> {
+    let subset_x = format!("x({},{})", rect.min().x, rect.max().x);
+    let subset_y = format!("y({},{})", rect.min().y, rect.max().y);
     let query = [
         ("service", "WCS"),
         ("version", "2.0.1"),
@@ -188,7 +171,11 @@ fn fetch_tile(
     ];
 
     let body = crate::sources::http::get(SERVICE, WCS_URL, &query)?;
-    decode(&body, columns.len(), rows.len())
+    decode(
+        &body,
+        cells_across(rect.width()),
+        cells_across(rect.height()),
+    )
 }
 
 /// The cells of a float GeoTIFF, row by row from the north, NaN for no data.
@@ -241,12 +228,38 @@ mod tests {
     use super::*;
 
     #[test]
-    fn a_large_side_is_split_into_tiles_the_service_accepts() {
-        assert_eq!(tile_ranges(1200), vec![0..1200]);
-        assert_eq!(tile_ranges(5000), vec![0..2500, 2500..5000]);
-        assert!(tile_ranges(9001)
-            .iter()
-            .all(|range| range.len() <= MAX_TILE_CELLS));
+    fn two_tiles_side_by_side_fill_one_grid() {
+        // Two 2 by 2 cell tiles, the left all 1.0 and the right all 2.0.
+        let left = Rect::new(Coord { x: 0.0, y: 0.0 }, Coord { x: 1.0, y: 1.0 });
+        let right = Rect::new(Coord { x: 1.0, y: 0.0 }, Coord { x: 2.0, y: 1.0 });
+        let mut grid = Grid {
+            west: 0.0,
+            north: 1.0,
+            cell_m: CELL_M,
+            width: 4,
+            height: 2,
+            values: vec![f32::NAN; 8],
+        };
+        copy_tile(&mut grid, left, &[1.0; 4]);
+        copy_tile(&mut grid, right, &[2.0; 4]);
+        assert_eq!(grid.values, vec![1.0, 1.0, 2.0, 2.0, 1.0, 1.0, 2.0, 2.0]);
+    }
+
+    #[test]
+    fn a_tile_reaching_past_the_grid_is_cut_to_it() {
+        let tile = Rect::new(Coord { x: -0.5, y: 0.0 }, Coord { x: 1.0, y: 1.5 });
+        let mut grid = Grid {
+            west: 0.0,
+            north: 1.0,
+            cell_m: CELL_M,
+            width: 2,
+            height: 2,
+            values: vec![f32::NAN; 4],
+        };
+        // Three by three cells, numbered row by row from the north-west.
+        let cells: Vec<f32> = (0..9).map(|index| index as f32).collect();
+        copy_tile(&mut grid, tile, &cells);
+        assert_eq!(grid.values, vec![4.0, 5.0, 7.0, 8.0]);
     }
 
     #[test]

@@ -117,7 +117,8 @@ fn fetch_and_store(
             },
         );
     };
-    let scene = build_scene(&area, &on_progress).map_err(text)?;
+    let cache = state.library()?.tile_cache();
+    let scene = build_scene(&area, &cache, &on_progress).map_err(text)?;
     if state.fetch_generation.load(Ordering::SeqCst) != generation {
         return Ok(());
     }

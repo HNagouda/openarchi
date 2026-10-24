@@ -19,10 +19,13 @@ pub fn credit() -> Credit {
     }
 }
 
-/// Every parcel touching `bbox` (RD New), still in RD New.
-pub fn fetch(bbox: Rect<f64>) -> Result<Vec<Feature>> {
-    let records = pdok::fetch_collection(SERVICE, BASE_URL, COLLECTION, bbox, None)?;
-    Ok(records.into_iter().map(to_parcel).collect())
+/// Every parcel record touching `bbox` (RD New), still in RD New.
+pub fn fetch_tile(bbox: Rect<f64>) -> Result<Vec<Record>> {
+    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, None)
+}
+
+pub fn to_features(records: Vec<Record>) -> Vec<Feature> {
+    records.into_iter().map(to_parcel).collect()
 }
 
 fn to_parcel(record: Record) -> Feature {

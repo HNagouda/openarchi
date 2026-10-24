@@ -5,6 +5,7 @@
 //! <root>/backups/<id>/<timestamp>.openarchi   the last BACKUPS_KEPT versions of each
 //! <root>/trash/<id>.openarchi           Recently Deleted, restorable
 //! <root>/themes/<id>.json               the user's own themes
+//! <root>/cache/                         downloaded map tiles, see `sources::cache`
 //! ```
 //!
 //! `OPENARCHI_LIBRARY_DIR` points the app and the MCP server at a throwaway
@@ -17,6 +18,7 @@
 mod files;
 mod migrate;
 
+use std::cmp::Reverse;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -26,6 +28,7 @@ use serde::{Deserialize, Serialize};
 use crate::area::Area;
 use crate::project::{Look, Project, PROJECT_FORMAT_VERSION};
 use crate::sheet::Frame;
+use crate::sources::cache::TileCache;
 use crate::{Error, Result};
 
 use self::files::{
@@ -46,6 +49,7 @@ const PROJECTS_FOLDER: &str = "projects";
 const BACKUPS_FOLDER: &str = "backups";
 const TRASH_FOLDER: &str = "trash";
 const THEMES_FOLDER: &str = "themes";
+const CACHE_FOLDER: &str = "cache";
 
 /// Tries at a free random id suffix. A clash needs two projects with the same
 /// name on the same day, so running out means something else is wrong.
@@ -123,6 +127,12 @@ impl Library {
     /// Where the user's own themes live.
     pub fn themes_dir(&self) -> PathBuf {
         self.root.join(THEMES_FOLDER)
+    }
+
+    /// Downloaded map tiles, shared by every project so neighbouring sites
+    /// reuse each other's downloads.
+    pub fn tile_cache(&self) -> TileCache {
+        TileCache::at(&self.root.join(CACHE_FOLDER))
     }
 
     /// Current projects, most recently modified first.
@@ -219,7 +229,7 @@ impl Library {
     /// Recently Deleted, most recently deleted first.
     pub fn trash(&self) -> Result<Vec<ProjectSummary>> {
         let mut deleted = read_summaries(&self.root.join(TRASH_FOLDER))?;
-        deleted.sort_by_key(|(_, deleted_at)| std::cmp::Reverse(*deleted_at));
+        deleted.sort_by_key(|entry| Reverse(entry.1));
         Ok(deleted.into_iter().map(|(summary, _)| summary).collect())
     }
 

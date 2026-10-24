@@ -38,16 +38,18 @@ pub fn credit() -> Credit {
     }
 }
 
-/// Every standing building touching `bbox` (RD New), still in RD New.
-pub fn fetch(bbox: Rect<f64>) -> Result<Vec<Feature>> {
-    let records = pdok::fetch_collection(SERVICE, BASE_URL, COLLECTION, bbox, None)?;
-    let buildings = records
+/// Every building record touching `bbox` (RD New), demolished ones included.
+pub fn fetch_tile(bbox: Rect<f64>) -> Result<Vec<Record>> {
+    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, None)
+}
+
+/// The standing buildings among `records`, still in RD New.
+pub fn to_features(records: Vec<Record>) -> Vec<Feature> {
+    records
         .into_iter()
         .filter(is_standing)
         .map(to_building)
-        .collect();
-
-    Ok(buildings)
+        .collect()
 }
 
 fn is_standing(record: &Record) -> bool {

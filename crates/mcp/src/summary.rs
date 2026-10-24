@@ -1,6 +1,7 @@
 //! A short description of a fetched site, so an assistant can talk about it
 //! without reading thousands of features.
 
+use std::cmp::Reverse;
 use std::collections::BTreeMap;
 
 use openarchi_core::scene::{Layer, Scene};
@@ -124,7 +125,7 @@ fn top_uses<'a>(use_classes: impl Iterator<Item = &'a str>) -> Vec<UseCount> {
         })
         .collect();
     // Stable sort, so ties stay in alphabetical order.
-    ranked.sort_by_key(|entry| std::cmp::Reverse(entry.count));
+    ranked.sort_by_key(|entry| Reverse(entry.count));
     ranked.truncate(TOP_USES);
     ranked
 }
