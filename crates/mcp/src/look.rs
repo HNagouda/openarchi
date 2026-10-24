@@ -35,6 +35,8 @@ pub fn updated_look(
         overrides: updated_overrides(&look.overrides, overrides.unwrap_or_default())?,
         view: updated_view(&look.view, view.unwrap_or_default())?,
         sun: updated_sun(&look.sun, sun.unwrap_or_default())?,
+        // The tab's name, sub-selection and pin toggle are not set_look's to change.
+        ..look.clone()
     })
 }
 

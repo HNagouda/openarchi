@@ -69,7 +69,9 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `create_project` | Makes a project from a circle, rectangle or polygon |
 | `fetch_site` | Downloads buildings, roads, water, green and terrain into the project |
 | `list_diagrams`, `list_themes` | Shows the diagrams, with their group and variants, and the themes to choose from |
-| `set_look` | Changes the diagram and its variant, theme, sheet, single layers, the view and the sun's date and time |
+| `set_look` | Changes the diagram and its variant, theme, sheet, single layers, the view and the sun's date and time, on the first sheet tab or the one `tab` names |
+| `list_sheets`, `add_sheet` | Lists a project's sheet tabs, and adds one copied from another, optionally framing a smaller area inside the site that it zooms to |
+| `list_pins`, `add_pin`, `move_pin`, `remove_pin` | Marks landmarks with a pin, star, flag, dot or numbered disc and a label, shown on every sheet that does not hide pins |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |

@@ -91,6 +91,8 @@ pub struct SetLook {
     /// The date and Dutch clock time the sun path and shadow diagrams, and the
     /// lighting of the axonometric, are drawn for. Only the fields you pass change.
     pub sun: Option<SunInput>,
+    /// Which sheet tab, counting from 1 for the first, which is the default. list_sheets shows them.
+    pub tab: Option<usize>,
 }
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
@@ -213,6 +215,8 @@ pub struct EditText {
     pub auto_position: Option<bool>,
     /// True deletes this text box. The title and subtitle cannot be deleted; give them empty text instead.
     pub remove: Option<bool>,
+    /// Which sheet tab, counting from 1 for the first, which is the default. list_sheets shows them.
+    pub tab: Option<usize>,
 }
 
 /// How a text is set. Fields left out follow the theme.
@@ -252,14 +256,18 @@ pub struct RenderPreview {
     pub id: String,
     /// Width of the PNG in pixels. Defaults to 1200, between 200 and 4000.
     pub width_px: Option<u32>,
+    /// Which sheet tab, counting from 1 for the first, which is the default. list_sheets shows them.
+    pub tab: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GetRatios {
     /// The project id.
     pub id: String,
-    /// Theme whose colours the rows take, like "paper". Defaults to the project's own theme.
+    /// Theme whose colours the rows take, like "paper". Defaults to the sheet's own theme.
     pub theme_id: Option<String>,
+    /// Which sheet tab, counting from 1. A sheet with a sub-selection gives the ratios of that smaller area.
+    pub tab: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -273,6 +281,8 @@ pub struct Export {
     pub dpi: Option<u32>,
     /// Replace a file that is already at `path`. Defaults to false.
     pub overwrite: Option<bool>,
+    /// Which sheet tab, counting from 1 for the first, which is the default. list_sheets shows them.
+    pub tab: Option<usize>,
 }
 
 /// svg and pdf for print and layout tools, png for slides and the web, dxf for
