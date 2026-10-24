@@ -32,7 +32,7 @@ fn parse(svg: &str) -> usvg::Tree {
 fn every_diagram_renders_in_every_theme_as_valid_svg() {
     let scene = scene();
     let look = look();
-    for diagram in builtin_diagrams() {
+    for (_, diagram) in builtin_diagrams().iter().flat_map(|d| d.drawings()) {
         for theme in builtin_themes() {
             let svg = render_svg(&RenderInput {
                 scene: &scene,

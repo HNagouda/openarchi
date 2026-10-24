@@ -1,6 +1,7 @@
 {
   "id": "households",
   "name": "Dwellings",
+  "group": "People",
   "description": "How many homes each building holds, counted from the BAG units in use.",
   "layers": [
     "water",

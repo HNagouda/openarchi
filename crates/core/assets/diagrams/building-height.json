@@ -1,6 +1,7 @@
 {
   "id": "building-height",
   "name": "Building height",
+  "group": "Context and built form",
   "description": "How tall the buildings are, from the AHN elevation survey.",
   "layers": [
     "water",

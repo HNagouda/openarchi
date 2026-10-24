@@ -48,10 +48,22 @@ fn main() {
         subtitle: "Amsterdam, around the Westerkerk".to_string(),
         ..Sheet::default()
     };
-    for diagram in builtin_diagrams() {
+    // A diagram with variants gets a picture per variant, "air-quality-pm10--paper",
+    // the names the mock asks for.
+    let drawings: Vec<_> = builtin_diagrams()
+        .into_iter()
+        .flat_map(|diagram| {
+            diagram
+                .drawings()
+                .into_iter()
+                .map(move |(variant, _)| (diagram.clone(), variant))
+        })
+        .collect();
+    for (diagram, variant) in drawings {
         for theme in builtin_themes() {
             let look = Look {
                 diagram_id: diagram.id.clone(),
+                variant: variant.clone(),
                 theme_id: theme.id.clone(),
                 sheet: sheet.clone(),
                 ..Look::default()
@@ -62,7 +74,11 @@ fn main() {
                 theme: &theme,
                 look: &look,
             };
-            let name = format!("{}--{}", diagram.id, theme.id);
+            let stem = match &variant {
+                Some(variant) => format!("{}-{variant}", diagram.id),
+                None => diagram.id.clone(),
+            };
+            let name = format!("{stem}--{}", theme.id);
             let svg = render_svg(&input).expect("render the preview");
             fs::write(out_dir.join(format!("previews/{name}.svg")), svg)
                 .expect("write the preview");

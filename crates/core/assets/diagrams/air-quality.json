@@ -1,39 +1,118 @@
 {
   "id": "air-quality",
   "name": "Air quality",
-  "description": "Yearly mean nitrogen dioxide, mostly from traffic, against the WHO guideline.",
-  "layers": [
-    "no2",
-    "building"
-  ],
-  "emphasis": "no2",
+  "group": "Environment",
+  "description": "Yearly mean air pollution against the WHO guideline: nitrogen dioxide, coarse or fine particulate matter.",
   "mute_others": true,
   "highlight": [],
   "as_figure": [],
-  "classify": {
-    "layer": "no2",
-    "attribute": "value",
-    "title": "Nitrogen dioxide (NO₂)",
-    "note": "Annual mean in µg/m³. WHO guideline 10, EU limit 40 (20 from 2030). RIVM, 2024.",
-    "scheme": {
-      "kind": "sequential",
-      "breaks": [
-        10,
-        15,
-        20,
-        25,
-        30,
-        40
+  "variants": [
+    {
+      "id": "no2",
+      "name": "NO₂",
+      "title": "Air quality, NO₂",
+      "description": "Yearly mean nitrogen dioxide, mostly from traffic, against the WHO guideline.",
+      "layers": [
+        "no2",
+        "building"
       ],
-      "labels": [
-        "Under 10 µg/m³",
-        "10–15 µg/m³",
-        "15–20 µg/m³",
-        "20–25 µg/m³",
-        "25–30 µg/m³",
-        "30–40 µg/m³",
-        "40 µg/m³ and above"
-      ]
+      "emphasis": "no2",
+      "classify": {
+        "layer": "no2",
+        "attribute": "value",
+        "title": "Nitrogen dioxide (NO₂)",
+        "note": "Annual mean in µg/m³. WHO guideline 10, EU limit 40 (20 from 2030). RIVM, 2024.",
+        "scheme": {
+          "kind": "sequential",
+          "breaks": [
+            10,
+            15,
+            20,
+            25,
+            30,
+            40
+          ],
+          "labels": [
+            "Under 10 µg/m³",
+            "10–15 µg/m³",
+            "15–20 µg/m³",
+            "20–25 µg/m³",
+            "25–30 µg/m³",
+            "30–40 µg/m³",
+            "40 µg/m³ and above"
+          ]
+        }
+      }
+    },
+    {
+      "id": "pm10",
+      "name": "PM10",
+      "title": "Air quality, PM10",
+      "description": "Yearly mean coarse particulate matter, against the WHO guideline.",
+      "layers": [
+        "pm10",
+        "building"
+      ],
+      "emphasis": "pm10",
+      "classify": {
+        "layer": "pm10",
+        "attribute": "value",
+        "title": "Particulate matter (PM10)",
+        "note": "Annual mean in µg/m³. WHO guideline 15, EU limit 40 (20 from 2030). RIVM, 2024.",
+        "scheme": {
+          "kind": "sequential",
+          "breaks": [
+            15,
+            17.5,
+            20,
+            25,
+            30
+          ],
+          "labels": [
+            "Under 15 µg/m³",
+            "15–17.5 µg/m³",
+            "17.5–20 µg/m³",
+            "20–25 µg/m³",
+            "25–30 µg/m³",
+            "30 µg/m³ and above"
+          ]
+        }
+      }
+    },
+    {
+      "id": "pm25",
+      "name": "PM2.5",
+      "title": "Air quality, PM2.5",
+      "description": "Yearly mean fine particulate matter, the most harmful to health, against the WHO guideline.",
+      "layers": [
+        "pm25",
+        "building"
+      ],
+      "emphasis": "pm25",
+      "classify": {
+        "layer": "pm25",
+        "attribute": "value",
+        "title": "Fine particulate matter (PM2.5)",
+        "note": "Annual mean in µg/m³. WHO guideline 5, EU limit 25 (10 from 2030). RIVM, 2024.",
+        "scheme": {
+          "kind": "sequential",
+          "breaks": [
+            5,
+            7.5,
+            10,
+            12.5,
+            15
+          ],
+          "labels": [
+            "Under 5 µg/m³",
+            "5–7.5 µg/m³",
+            "7.5–10 µg/m³",
+            "10–12.5 µg/m³",
+            "12.5–15 µg/m³",
+            "15 µg/m³ and above"
+          ]
+        }
+      }
     }
-  }
+  ]
 }

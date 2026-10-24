@@ -130,11 +130,12 @@ pub fn record(measured: &mut Measured, raster: Raster, stats: Option<Stats>) {
     }
 }
 
-/// The class breaks of the built-in diagram that classifies `layer`.
+/// The class breaks of the built-in diagram, or diagram variant, that classifies `layer`.
 fn breaks_for(layer: Layer) -> Vec<f64> {
     let classify = catalog::builtin_diagrams()
-        .into_iter()
-        .filter_map(|diagram| diagram.classify)
+        .iter()
+        .flat_map(|diagram| diagram.drawings())
+        .filter_map(|(_, drawing)| drawing.classify)
         .find(|classify| classify.layer == layer);
     match classify.map(|classify| classify.scheme) {
         Some(Scheme::Sequential { breaks, .. }) if !breaks.is_empty() => breaks,

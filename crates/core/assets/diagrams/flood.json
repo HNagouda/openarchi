@@ -1,6 +1,7 @@
 {
   "id": "flood",
   "name": "Flood depth",
+  "group": "Environment",
   "description": "How deep water could stand if the dikes and dunes failed, in the worst case LIWO maps.",
   "layers": [
     "flood",

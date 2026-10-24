@@ -1,6 +1,7 @@
 {
   "id": "facility",
   "name": "Facilities",
+  "group": "Movement and places",
   "description": "Schools, culture, civic buildings, health, sport and parking on the site, from OpenStreetMap.",
   "layers": [
     "water",

@@ -180,16 +180,29 @@ fn main() {
         ..Sheet::default()
     };
 
-    for diagram in builtin_diagrams() {
-        if only_diagram.as_deref().is_some_and(|id| id != diagram.id) {
-            continue;
-        }
+    // A diagram with variants gets a sample per variant: "air-quality-pm10--paper.png".
+    let drawings: Vec<_> = builtin_diagrams()
+        .into_iter()
+        .filter(|diagram| only_diagram.as_deref().is_none_or(|id| id == diagram.id))
+        .flat_map(|diagram| {
+            diagram
+                .drawings()
+                .into_iter()
+                .map(move |(variant, _)| (diagram.clone(), variant))
+        })
+        .collect();
+    for (diagram, variant) in drawings {
+        let stem = match &variant {
+            Some(variant) => format!("{}-{variant}", diagram.id),
+            None => diagram.id.clone(),
+        };
         for theme in builtin_themes() {
             if only_theme.as_deref().is_some_and(|id| id != theme.id) {
                 continue;
             }
             let look = Look {
                 diagram_id: diagram.id.clone(),
+                variant: variant.clone(),
                 theme_id: theme.id.clone(),
                 sheet: sheet.clone(),
                 ..Look::default()
@@ -201,11 +214,8 @@ fn main() {
                 look: &look,
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
-            std::fs::write(
-                out_dir.join(format!("{}--{}.png", diagram.id, theme.id)),
-                png,
-            )
-            .expect("write the sample");
+            std::fs::write(out_dir.join(format!("{stem}--{}.png", theme.id)), png)
+                .expect("write the sample");
         }
     }
     if only_diagram.is_none() {

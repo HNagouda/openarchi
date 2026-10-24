@@ -1,6 +1,7 @@
 {
   "id": "parcels",
   "name": "Parcels",
+  "group": "Context and built form",
   "description": "Cadastral parcels over the built fabric: who owns which piece of ground.",
   "layers": [
     "water",

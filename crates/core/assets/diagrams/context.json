@@ -1,6 +1,7 @@
 {
   "id": "context",
   "name": "Context",
+  "group": "Context and built form",
   "description": "The whole site at a glance: buildings, streets, green and water, drawn calmly.",
   "layers": [
     "unpaved",

@@ -42,6 +42,11 @@ pub struct Project {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Look {
     pub diagram_id: String,
+    /// One of the diagram's variants, such as "pm10" for air quality. `None`,
+    /// or an id the diagram does not have, draws its first variant. Older
+    /// projects have none.
+    #[serde(default)]
+    pub variant: Option<String>,
     pub theme_id: String,
     pub sheet: Sheet,
     #[serde(default)]
@@ -58,6 +63,7 @@ impl Default for Look {
     fn default() -> Self {
         Look {
             diagram_id: "context".to_string(),
+            variant: None,
             theme_id: "paper".to_string(),
             sheet: Sheet::default(),
             overrides: BTreeMap::new(),

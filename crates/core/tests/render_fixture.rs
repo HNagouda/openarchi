@@ -20,7 +20,7 @@ fn westermarkt_renders_in_every_diagram_and_theme() {
     let scene = westermarkt();
     let look = Look::default();
     let options = usvg::Options::default();
-    for diagram in builtin_diagrams() {
+    for (_, diagram) in builtin_diagrams().iter().flat_map(|d| d.drawings()) {
         for theme in builtin_themes() {
             let svg = render_svg(&RenderInput {
                 scene: &scene,
