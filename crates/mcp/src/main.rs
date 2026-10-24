@@ -5,6 +5,7 @@
 
 mod inputs;
 mod look;
+mod reports;
 mod resolve;
 mod server;
 mod summary;

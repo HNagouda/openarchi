@@ -23,6 +23,7 @@ use crate::inputs::{
     SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
+use crate::reports::{self, ExportReport};
 use crate::resolve::{check_plate, chosen_diagram, find_theme, with_render_input};
 use crate::summary::summarize;
 use crate::text::edited_sheet;
@@ -52,8 +53,9 @@ it, fetch_site to download the site data, list_diagrams and list_themes, set_loo
 choose and tune the style, edit_text to style, move or add text on the sheet, \
 render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
 numbers behind it (land use, building use, coverage, floor area ratio), get_analysis \
-for the location, climate and design notes, and export to \
-write a file. Projects live in the same library as the openarchi app, so the user sees every \
+for the location, climate and design notes, export to \
+write a file, and list_reports and export_report for the multi-page reports the \
+user laid out in the app. Projects live in the same library as the openarchi app, so the user sees every \
 project you make there. delete_project moves a project to Recently Deleted and \
 restore_project brings it back.";
 
@@ -374,6 +376,26 @@ impl OpenArchi {
             })
             .await;
         reply(result)
+    }
+
+    #[tool(
+        description = "List a project's reports: pages the user laid out in the app, each with its paper size and the blocks placed on it (ratios charts, analysis figures, facts and notes, sheets in another diagram, and text), positioned in millimetres. Pass a report id to export_report."
+    )]
+    async fn list_reports(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
+        reply(
+            self.with_library(move |library| reports::list(library, &input.id))
+                .await,
+        )
+    }
+
+    #[tool(
+        description = "Write one of a project's reports as a PDF with a page per report page, drawn from the project's current data in the report's palette. Refuses to replace an existing file unless overwrite is true. The site must have been fetched first."
+    )]
+    async fn export_report(&self, Parameters(input): Parameters<ExportReport>) -> CallToolResult {
+        reply(
+            self.with_library(move |library| reports::export_pdf(library, input))
+                .await,
+        )
     }
 
     #[tool(

@@ -5,6 +5,7 @@ use std::time::Instant;
 use openarchi_core::area::Area;
 use openarchi_core::library::ProjectSummary;
 use openarchi_core::project::{Look, Project};
+use openarchi_core::report::Report;
 use openarchi_core::scene::{Credit, Layer, Scene};
 use serde::Serialize;
 use tauri::State;
@@ -26,6 +27,7 @@ pub struct ProjectView {
     pub credits: Vec<Credit>,
     /// Layers that hold at least one feature, so the inspector lists only those.
     pub layers_present: Vec<Layer>,
+    pub reports: Vec<Report>,
 }
 
 pub fn view_of(open: &OpenProject) -> ProjectView {
@@ -58,6 +60,7 @@ pub fn view_of(open: &OpenProject) -> ProjectView {
             .unwrap_or_default(),
         credits: scene.map(|scene| scene.credits.clone()).unwrap_or_default(),
         layers_present,
+        reports: project.reports.clone(),
     }
 }
 
