@@ -12,7 +12,7 @@ use super::{PaletteDraft, PaletteSource};
 use crate::catalog::builtin_themes;
 use crate::render::{is_hex, mix, sample_ramp};
 use crate::scene::Layer;
-use crate::theme::{Palette, Theme, Typography, THEME_FORMAT_VERSION};
+use crate::theme::{Palette, Pattern, Theme, Typography, THEME_FORMAT_VERSION};
 use crate::{Error, Result};
 
 const TEMPLATE_THEME: &str = "paper";
@@ -32,6 +32,11 @@ const UNKNOWN_SHARE: f64 = 0.22;
 /// Extra categories: tints towards the paper, then shades towards the ink.
 const CATEGORY_TINT: f64 = 0.45;
 const CATEGORY_SHADE: f64 = 0.35;
+/// The hatch over grey water, as fine as the one in the mono theme.
+const WATER_HATCH_ANGLE_DEG: f64 = 45.0;
+const WATER_HATCH_SPACING_MM: f64 = 0.6;
+const WATER_HATCH_STROKE_MM: f64 = 0.1;
+const WATER_HATCH_SHARE: f64 = 0.6;
 
 pub fn theme(draft: &PaletteDraft, id: &str, roles: &[RoleColour]) -> Result<Theme> {
     let hex_of = |role: &str| -> String {
@@ -68,6 +73,18 @@ pub fn theme(draft: &PaletteDraft, id: &str, roles: &[RoleColour]) -> Result<The
         if style.stroke.as_deref().is_some_and(is_hex) {
             style.stroke = Some(mixed_colour(*layer, &palette)?);
         }
+    }
+    // A grey water would read as paving, so it is hatched, the way maps draw water in one ink.
+    let is_grey_water = roles
+        .iter()
+        .any(|colour| colour.role == "water" && colour.swatch.is_none());
+    if let Some(water) = layers.get_mut(&Layer::Water).filter(|_| is_grey_water) {
+        water.pattern = Some(Pattern::Hatch {
+            angle_deg: WATER_HATCH_ANGLE_DEG,
+            spacing_mm: WATER_HATCH_SPACING_MM,
+            stroke_mm: WATER_HATCH_STROKE_MM,
+            color: mix(&palette.water, &palette.ink, WATER_HATCH_SHARE),
+        });
     }
 
     let water_ramp = sample_ramp(

@@ -30,9 +30,18 @@ fn five_colours_fill_the_roles_by_the_rule() {
     // No swatch left stands out from the pale paper by 3:1, so buildings take the ink.
     assert_eq!(role(&check, "figure").hex, "#5B5941");
     assert_eq!(role(&check, "accent").hex, "#F79F79");
-    // Cambridge blue is nearer to green than to blue, and nothing else is blue.
+    // Cambridge blue is the only cool swatch, so water and green share it, water fuller.
+    assert_eq!(role(&check, "water").swatch, Some(3));
     assert_eq!(role(&check, "green").swatch, Some(3));
+    assert!(lch(&role(&check, "water").hex).lightness < lch(&role(&check, "green").hex).lightness);
+}
+
+#[test]
+fn a_warm_palette_gets_grey_hatched_water() {
+    let check = check(&draft("ffffff, d62828, f77f00, 3a1f04"), "warm").unwrap();
     assert_eq!(role(&check, "water").swatch, None);
+    let water = &check.theme.layers[&crate::scene::Layer::Water];
+    assert!(water.pattern.is_some());
 }
 
 #[test]

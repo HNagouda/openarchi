@@ -10,9 +10,10 @@
 //!    the paper by WCAG's 3:1 for graphics. When none does, it is the ink.
 //! 4. Accent is the most colourful swatch left.
 //! 5. Water and green take the swatch nearest in hue to blue (240°) and to
-//!    green (140°), softened towards the paper because they cover large areas.
-//!    With no swatch within 60° of that hue, they become a quiet grey mixed
-//!    from paper and ink.
+//!    green (140°), softened towards the paper because they cover large areas,
+//!    green more than water. They may share a swatch. With no swatch within a
+//!    quarter turn (90°) of that hue, they become a quiet grey mixed from paper
+//!    and ink, and grey water is hatched so it never reads as paving.
 //!
 //! A role the user pinned to a swatch takes it exactly, and the rule fills
 //! the other roles around it.
@@ -35,13 +36,16 @@ const PAPER_MIN_LIGHTNESS: f64 = 0.85;
 const HUE_MIN_CHROMA: f64 = 0.03;
 const WATER_HUE_DEG: f64 = 240.0;
 const GREEN_HUE_DEG: f64 = 140.0;
-const HUE_TOLERANCE_DEG: f64 = 60.0;
+/// A quarter turn: sage still counts as water, orange does not.
+const HUE_TOLERANCE_DEG: f64 = 90.0;
 /// How far a colourful automatic paper moves towards white.
-const PAPER_TINT: f64 = 0.72;
-/// How far automatic water and green move towards the paper.
-const AREA_SOFTENING: f64 = 0.45;
+const PAPER_TINT: f64 = 0.8;
+/// How far automatic water and green move towards the paper. Water stays
+/// fuller, so canals still read when both come from one swatch.
+const WATER_SOFTENING: f64 = 0.3;
+const GREEN_SOFTENING: f64 = 0.5;
 /// The quiet greys for water and green without a matching swatch, from paper towards ink.
-const GREY_WATER: f64 = 0.2;
+const GREY_WATER: f64 = 0.16;
 const GREY_GREEN: f64 = 0.13;
 const WHITE: &str = "#FFFFFF";
 
@@ -103,7 +107,7 @@ pub fn resolve(swatches: &[Swatch], choice: &RoleChoice) -> Result<Vec<RoleColou
     };
     take(&mut taken, accent.swatch);
 
-    let (water, green) = water_and_green(swatches, &colours, choice, &paper, &ink, &taken);
+    let (water, green) = water_and_green(swatches, &colours, choice, &paper, &ink);
     Ok(vec![paper, ink, figure, accent, water, green])
 }
 
@@ -215,96 +219,94 @@ fn automatic_accent(
     }
 }
 
-/// Water and green each take the nearest swatch in hue. When both want the
-/// same one, the nearer role keeps it and the other looks again without it.
+/// Water and green each take the swatch nearest in hue, apart from the paper
+/// and ink swatches, which are too light and too dark for large areas. They
+/// may land on the same swatch; water is then the fuller of the two.
 fn water_and_green(
     swatches: &[Swatch],
     colours: &[Lch],
     choice: &RoleChoice,
     paper: &RoleColour,
     ink: &RoleColour,
-    taken: &[usize],
 ) -> (RoleColour, RoleColour) {
-    // Paper and ink are too light and too dark for large areas; the rest may be shared.
     let blocked: Vec<usize> = [paper.swatch, ink.swatch].into_iter().flatten().collect();
-    let pinned_elsewhere: Vec<usize> = taken
-        .iter()
-        .copied()
-        .filter(|index| Some(*index) != choice.water && Some(*index) != choice.green)
-        .collect();
-    let nearest = |target: f64, also_blocked: Option<usize>| {
-        nearest_hue(colours, target, &blocked, also_blocked, &pinned_elsewhere)
-    };
-
-    let mut water_pick = nearest(WATER_HUE_DEG, None);
-    let mut green_pick = nearest(GREEN_HUE_DEG, None);
-    if choice.water.is_none() && choice.green.is_none() {
-        if let (Some(water), Some(green)) = (water_pick, green_pick) {
-            if water.0 == green.0 && water.1 <= green.1 {
-                green_pick = nearest(GREEN_HUE_DEG, Some(water.0));
-            } else if water.0 == green.0 {
-                water_pick = nearest(WATER_HUE_DEG, Some(green.0));
-            }
-        }
-    }
-
     let water = match choice.water {
         Some(index) => pinned_role("water", swatches, index),
-        None => area_role(
-            "water", swatches, water_pick, paper, ink, GREY_WATER, "blue",
-        ),
+        None => {
+            let pick = nearest_hue(colours, WATER_HUE_DEG, &blocked);
+            let area = Area {
+                role: "water",
+                hue_name: "blue",
+                softening: WATER_SOFTENING,
+                grey_share: GREY_WATER,
+            };
+            area_role(&area, swatches, pick, paper, ink)
+        }
     };
     let green = match choice.green {
         Some(index) => pinned_role("green", swatches, index),
-        None => area_role(
-            "green", swatches, green_pick, paper, ink, GREY_GREEN, "green",
-        ),
+        None => {
+            let pick = nearest_hue(colours, GREEN_HUE_DEG, &blocked);
+            let area = Area {
+                role: "green",
+                hue_name: "green",
+                softening: GREEN_SOFTENING,
+                grey_share: GREY_GREEN,
+            };
+            area_role(&area, swatches, pick, paper, ink)
+        }
     };
+
     (water, green)
 }
 
+/// What sets water and green apart when the rule fills them.
+struct Area {
+    role: &'static str,
+    hue_name: &'static str,
+    /// How far the swatch moves towards the paper.
+    softening: f64,
+    /// Without a swatch near the hue: how far the grey sits from paper towards ink.
+    grey_share: f64,
+}
+
 fn area_role(
-    role: &str,
+    area: &Area,
     swatches: &[Swatch],
-    pick: Option<(usize, f64)>,
+    pick: Option<usize>,
     paper: &RoleColour,
     ink: &RoleColour,
-    grey_share: f64,
-    hue_name: &str,
 ) -> RoleColour {
     match pick {
-        Some((index, _)) => RoleColour {
-            role: role.to_string(),
-            hex: mix(&swatches[index].hex, &paper.hex, AREA_SOFTENING),
+        Some(index) => RoleColour {
+            role: area.role.to_string(),
+            hex: mix(&swatches[index].hex, &paper.hex, area.softening),
             swatch: Some(index),
             is_pinned: false,
-            reason: format!("swatch nearest to {hue_name}, softened towards the paper"),
+            reason: format!(
+                "swatch nearest to {}, softened towards the paper",
+                area.hue_name
+            ),
         },
         None => RoleColour {
-            role: role.to_string(),
-            hex: mix(&paper.hex, &ink.hex, grey_share),
+            role: area.role.to_string(),
+            hex: mix(&paper.hex, &ink.hex, area.grey_share),
             swatch: None,
             is_pinned: false,
-            reason: format!("a quiet grey, as no swatch is near {hue_name}"),
+            reason: format!("a quiet grey, as no swatch is near {}", area.hue_name),
         },
     }
 }
 
-/// The swatch nearest in hue to `target`, and how far it is, within the tolerance.
-fn nearest_hue(
-    colours: &[Lch],
-    target: f64,
-    blocked: &[usize],
-    also_blocked: Option<usize>,
-    pinned_elsewhere: &[usize],
-) -> Option<(usize, f64)> {
+/// The swatch nearest in hue to `target`, within the tolerance.
+fn nearest_hue(colours: &[Lch], target: f64, blocked: &[usize]) -> Option<usize> {
     (0..colours.len())
-        .filter(|index| !blocked.contains(index) && Some(*index) != also_blocked)
-        .filter(|index| !pinned_elsewhere.contains(index))
+        .filter(|index| !blocked.contains(index))
         .filter(|index| colours[*index].chroma >= HUE_MIN_CHROMA)
         .map(|index| (index, hue_distance(colours[index].hue_deg, target)))
         .filter(|(_, distance)| *distance <= HUE_TOLERANCE_DEG)
         .min_by(|a, b| a.1.total_cmp(&b.1))
+        .map(|(index, _)| index)
 }
 
 // * ====================================================================
