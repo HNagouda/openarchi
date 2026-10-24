@@ -72,7 +72,6 @@ scripts/mcp.sh          call any MCP tool from the shell
 | How a palette of swatches becomes a theme (import formats, the role rule, contrast checks, mixed colours) | `crates/core/src/palette/`; the editor is `app/src/sheet/palette/` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
 | Something drawn on top of every view, like pins | a module in `crates/core/src/render/`, placed with `SheetDrawing::ground` |
-| A new kind of tab in the sheet workspace | a `TabKind` in `app/src/sheet/tabs/TabBar.tsx` |
 | A new export format | `crates/core/src/export/` |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs`, the rule in `notes.rs` |
 | A new kind of report block | a `Content` variant in `crates/core/src/report.rs`, drawn in `report/draw.rs`, offered in `app/src/report/library.ts` |

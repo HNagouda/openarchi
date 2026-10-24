@@ -26,7 +26,7 @@ type Props = {
 
 export function SheetTabs(props: Props) {
   const { book, index, look, isReady } = props;
-  const tabs: Tab[] = book.sheets.map((sheet, at) => ({ key: `sheet-${at}`, kind: "sheet", label: sheetName(sheet, at) }));
+  const tabs: Tab[] = book.sheets.map((sheet, at) => ({ key: `sheet-${at}`, label: sheetName(sheet, at) }));
   const arePinsHidden = look.hide_pins ?? false;
   const hasArea = Boolean(look.selection);
 

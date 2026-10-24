@@ -55,7 +55,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
   const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
   const [isExportOpen, setExportOpen] = useState(false);
-  // The report editor opens over the sheet until reports become a sheet tab.
+  // The report editor opens over the sheet; the tabs below hold sheets only.
   const [isReportsOpen, setReportsOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const canvas = useRef<CanvasControls>(null);
