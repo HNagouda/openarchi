@@ -1,6 +1,8 @@
 //! The line under the location and site headings that says where their facts
 //! come from. Climate and rain write theirs next to their data in `sections.rs`,
-//! because their lines name the weather years and the station.
+//! because their lines name the weather years and the station. The site's
+//! caption and area label live here too, since they change with the source
+//! line when a sheet's sub-selection is summed up instead of the whole site.
 
 use super::summary::SiteSummary;
 use crate::attribution::{dated, short_name};
@@ -9,6 +11,11 @@ use crate::sources::{ahn, bag, bgt, boundaries, cbs, liwo, osm, rivm};
 
 /// The address service has no credit of its own: PDOK serves it alongside BAG.
 const ADDRESS_SERVICE: &str = "the PDOK Locatieserver";
+
+/// Opens the site line on a sheet with a sub-selection, so the reader knows
+/// which figures moved with the area and which did not.
+const SHEET_AREA_SCOPE: &str =
+    "Of this sheet's area only; location, climate and rain are of the whole site.";
 
 pub fn location() -> String {
     format!(
@@ -60,9 +67,33 @@ pub fn site(summary: &SiteSummary) -> String {
         ));
     }
 
-    let mut line = format!("{}.", parts.join(", "));
+    let mut line = String::new();
+    if summary.is_sheet_area {
+        line.push_str(SHEET_AREA_SCOPE);
+        line.push(' ');
+    }
+    line.push_str(&format!("{}.", parts.join(", ")));
     line.push_str(&whole_site_figures(&environment.whole_site));
     line
+}
+
+/// The site figure's caption: what its ground cover is of.
+pub fn site_caption(summary: &SiteSummary) -> String {
+    let place = if summary.is_sheet_area {
+        "this sheet's area"
+    } else {
+        "the site"
+    };
+    format!("Ground cover inside {place}, as in the Ratios tab. Paved is streets, paths and paved squares.")
+}
+
+/// "Sheet area" on a sheet with a sub-selection, "Site area" otherwise.
+pub fn area_label(summary: &SiteSummary) -> &'static str {
+    if summary.is_sheet_area {
+        "Sheet area"
+    } else {
+        "Site area"
+    }
 }
 
 /// On a sheet area, which figures still describe the whole site, and why.

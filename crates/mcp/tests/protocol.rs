@@ -594,6 +594,33 @@ fn get_analysis_returns_location_climate_and_notes_from_the_cache() {
         let source = entry["source"].as_str().unwrap();
         assert!(!source.is_empty(), "{} has no source", entry["section"]);
     }
+    assert_eq!(report["summary"]["is_sheet_area"], json!(false));
+
+    // On a sheet with a sub-selection only the site summary follows the area.
+    server.call_ok(
+        "add_sheet",
+        json!({
+            "id": id,
+            "name": "Westerkerk",
+            "selection": {
+                "kind": "circle",
+                "center": { "lon": 4.8840, "lat": 52.3745 },
+                "radius_m": 60.0,
+            },
+        }),
+    );
+    let framed = server.call_ok("get_analysis", json!({ "id": id, "tab": 2 }));
+    assert_eq!(framed["summary"]["is_sheet_area"], json!(true));
+    assert!(
+        framed["summary"]["site_area_m2"].as_f64() < report["summary"]["site_area_m2"].as_f64()
+    );
+    assert_eq!(framed["location"], report["location"]);
+    assert_eq!(framed["climate"], report["climate"]);
+    let site_source = framed["notes"][1]["source"].as_str().unwrap();
+    assert!(
+        site_source.starts_with("Of this sheet's area"),
+        "{site_source}"
+    );
 }
 
 /// Copies the answers the core recorded for the Westermarkt into a library's

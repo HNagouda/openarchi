@@ -81,7 +81,7 @@ fn the_location_is_amsterdam_at_the_westermarkt() {
 fn the_summary_agrees_with_the_ratios() {
     let scene = westermarkt();
     let ratios = ratios::compute(&scene, &theme("paper")).unwrap();
-    let summary = summary::summarise(&scene, &ratios);
+    let summary = summary::summarise(&scene, &ratios, false);
     assert_eq!(summary.coverage, ratios.coverage);
     assert_eq!(summary.building_count, ratios.building_count);
     // Zero would mean a land use label changed in ratios.rs and the summary lost it.
@@ -114,7 +114,7 @@ fn the_summary_counts_the_walk_and_names_what_is_missing() {
         ],
     });
     let ratios = ratios::compute(&scene, &theme("paper")).unwrap();
-    let summary = summary::summarise(&scene, &ratios);
+    let summary = summary::summarise(&scene, &ratios, false);
     let surroundings = &summary.surroundings;
 
     assert_eq!(surroundings.facilities_within_walk, Some(2));
@@ -138,7 +138,7 @@ fn the_site_section_shows_noise_air_and_people_from_the_environment() {
     let scene: Scene = serde_json::from_str(&json).expect("fixture is a serialised Scene");
     let theme = theme("paper");
     let ratios = ratios::compute(&scene, &theme).unwrap();
-    let summary = summary::summarise(&scene, &ratios);
+    let summary = summary::summarise(&scene, &ratios, false);
     assert!(summary
         .surroundings
         .environment
@@ -159,6 +159,35 @@ fn the_site_section_shows_noise_air_and_people_from_the_environment() {
         labels.iter().any(|label| label.starts_with("NO₂")),
         "{labels:?}"
     );
+}
+
+#[test]
+fn on_a_sheet_area_the_site_part_sums_up_that_area_and_says_so() {
+    use crate::area::{Area, LonLat};
+    let scene = westermarkt();
+    let selection = Area::Circle {
+        center: LonLat {
+            lon: 4.8840,
+            lat: 52.3745,
+        },
+        radius_m: 60.0,
+    };
+    let sheet_area = crate::selection::framed(&scene, &selection).unwrap();
+    let (_folder, cache) = recorded_cache();
+    let theme = theme("paper");
+
+    let whole = part(Part::Site, &scene, None, &theme, &cache).unwrap();
+    let framed = part(Part::Site, &scene, Some(&sheet_area), &theme, &cache).unwrap();
+    assert_eq!(whole[0].facts[0].label, "Site area");
+    assert_eq!(framed[0].facts[0].label, "Sheet area");
+    assert_ne!(whole[0].facts[0].value, framed[0].facts[0].value);
+    assert!(!whole[0].source.contains("sheet's area"));
+    assert!(framed[0].source.starts_with("Of this sheet's area only"));
+
+    let report = report(&scene, Some(&sheet_area), &theme, &cache).unwrap();
+    let area_ratios = ratios::compute(&sheet_area, &theme).unwrap();
+    assert!(report.summary.is_sheet_area);
+    assert_eq!(report.summary.building_count, area_ratios.building_count);
 }
 
 #[test]
@@ -257,7 +286,7 @@ fn the_whole_analysis_lays_out_on_numbered_a4_pages_with_credits_last() {
     let theme = theme("paper");
     let mut sections = Vec::new();
     for part in [Part::Location, Part::Site, Part::Climate] {
-        sections.extend(super::part(part, &scene, &theme, &cache).unwrap());
+        sections.extend(super::part(part, &scene, None, &theme, &cache).unwrap());
     }
     let failures = vec![("Rain".to_string(), "offline".to_string())];
 
@@ -297,7 +326,7 @@ fn every_section_draws_in_every_theme_and_converts() {
     for theme in builtin_themes() {
         let mut sections = Vec::new();
         for part in [Part::Location, Part::Site, Part::Climate] {
-            sections.extend(super::part(part, &scene, &theme, &cache).unwrap());
+            sections.extend(super::part(part, &scene, None, &theme, &cache).unwrap());
         }
         let (rain, warnings) = rain(&scene, &cache, RECORDED_LAST_YEAR).unwrap();
         sections.push(sections::rain(&rain, warnings, &theme).unwrap());

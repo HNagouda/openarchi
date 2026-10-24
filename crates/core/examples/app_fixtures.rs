@@ -12,12 +12,12 @@ use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::Path;
 
-use openarchi_core::analysis::{self, PARTS};
+use openarchi_core::analysis::{self, Part, PARTS};
+use openarchi_core::area::{Area, LonLat};
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
 use openarchi_core::export::render_png;
 use openarchi_core::palette::{self, PaletteCheck, PaletteDraft, RoleChoice};
 use openarchi_core::project::Look;
-use openarchi_core::ratios;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::report::{block_svg, Block, Content, RatiosStyle, ReportData};
 use openarchi_core::scene::{Layer, Scene};
@@ -26,6 +26,7 @@ use openarchi_core::sources::cache::TileCache;
 use openarchi_core::sources::grid::Tile;
 use openarchi_core::theme::Theme;
 use openarchi_core::view::{View, ViewMode};
+use openarchi_core::{ratios, selection};
 use serde_json::json;
 
 const FIXTURE: &str = "tests/fixtures/westermarkt.scene.json";
@@ -268,7 +269,7 @@ fn write_analysis(scene: &Scene, cache: &TileCache, out_dir: &Path) {
     for theme in fixture_themes() {
         for part in PARTS {
             let sections =
-                analysis::part(part, scene, &theme, cache).expect("draw the analysis part");
+                analysis::part(part, scene, None, &theme, cache).expect("draw the analysis part");
             let part_name = serde_json::to_value(part).expect("a part name");
             let file = folder.join(format!(
                 "{}--{}.json",
@@ -278,6 +279,25 @@ fn write_analysis(scene: &Scene, cache: &TileCache, out_dir: &Path) {
             fs::write(file, serde_json::to_string(&sections).expect("serialise"))
                 .expect("write the part");
         }
+
+        // The mock serves this for any sheet with a sub-selection.
+        let sheet_area = selection::framed(scene, &sheet_area()).expect("frame the sheet area");
+        let sections = analysis::part(Part::Site, scene, Some(&sheet_area), &theme, cache)
+            .expect("draw the sheet area's site part");
+        let file = folder.join(format!("site-area--{}.json", theme.id));
+        fs::write(file, serde_json::to_string(&sections).expect("serialise"))
+            .expect("write the part");
+    }
+}
+
+/// 60 m around the Westerkerk, inside the Westermarkt fixture.
+fn sheet_area() -> Area {
+    Area::Circle {
+        center: LonLat {
+            lon: 4.8840,
+            lat: 52.3745,
+        },
+        radius_m: 60.0,
     }
 }
 
@@ -372,7 +392,8 @@ fn write_report_blocks(scene: &Scene, cache: &TileCache, out_dir: &Path) {
             }
         }
         for part in PARTS {
-            for section in analysis::part(part, scene, &theme, cache).expect("draw the part") {
+            for section in analysis::part(part, scene, None, &theme, cache).expect("draw the part")
+            {
                 for figure in &section.figures {
                     let content = Content::AnalysisFigure {
                         section: section.id.clone(),

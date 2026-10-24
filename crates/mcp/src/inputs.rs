@@ -282,6 +282,15 @@ pub struct GetEnvironment {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub struct GetAnalysis {
+    /// The project id.
+    pub id: String,
+    /// Which sheet tab, counting from 1. On a sheet with a sub-selection the site summary describes
+    /// that smaller area; location, climate and rain always describe the whole site.
+    pub tab: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct Export {
     /// The project id.
     pub id: String,
