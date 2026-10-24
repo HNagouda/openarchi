@@ -40,6 +40,8 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
   const [drag, setDrag] = useState<Drag | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
   const elements = useRef<(HTMLDivElement | null)[]>([]);
+  // The dragged tab moves with the pointer, so letting go clicks it too; that click must not select by its old place.
+  const wasDragged = useRef(false);
   const canDelete = tabs.length > 1;
 
   /** The slot a tab dragged to `clientX` lands in: before the first tab whose middle lies right of it. */
@@ -55,6 +57,7 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
 
   const startDrag = (event: React.PointerEvent, index: number) => {
     if (event.button !== 0 || renaming !== null) return;
+    wasDragged.current = false;
     const startX = event.clientX;
     let isDragging = false;
     const onPointerMove = (move: PointerEvent) => {
@@ -67,7 +70,9 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       setDrag(null);
-      if (isDragging) onMove(index, slotAt(up.clientX, index));
+      if (!isDragging) return;
+      wasDragged.current = true;
+      onMove(index, slotAt(up.clientX, index));
     };
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
@@ -133,7 +138,9 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
                   aria-selected={isActive}
                   className="sheet-tab-button"
                   tabIndex={isActive ? 0 : -1}
-                  onClick={() => onSelect(index)}
+                  onClick={() => {
+                    if (!wasDragged.current) onSelect(index);
+                  }}
                   onDoubleClick={() => setRenaming(index)}
                   onKeyDown={(event) => onTabKey(event, index)}
                 >
