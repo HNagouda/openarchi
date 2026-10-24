@@ -11,6 +11,7 @@ mod boundary;
 mod download;
 mod editions;
 mod environment;
+mod source;
 #[cfg(test)]
 mod tests;
 
@@ -24,6 +25,7 @@ use self::download::{Dataset, Download, Fetcher, Payload};
 pub(crate) use self::editions::years_before_editions_were_kept;
 use self::editions::Editions;
 use self::environment::{Raster, RIVM_RASTERS};
+use self::source::{Source, BASE_SOURCES, SOURCES};
 use crate::area::Area;
 use crate::environment::Measured;
 use crate::scene::{Credit, Feature, Layer, Scene, Walk};
@@ -33,7 +35,7 @@ use crate::sources::clip::{self, Clipped};
 use crate::sources::osm::{self, Osm};
 use crate::sources::pdok::Record;
 use crate::sources::raster::Grid;
-use crate::sources::{bag, bag_units, bands, bgt, brk, cbs, contours, heights, liwo, rivm};
+use crate::sources::{bag, bag_units, bands, bgt, brk, cbs, contours, heights};
 use crate::walk;
 use crate::{Error, Result};
 
@@ -45,68 +47,6 @@ pub struct Progress {
     pub step: String,
     pub done: usize,
     pub total: usize,
-}
-
-/// Every data source of a scene, in one place.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum Source {
-    Bgt,
-    Bag,
-    Brk,
-    Ahn,
-    Rivm,
-    Liwo,
-    Cbs,
-    BagUnits,
-    Osm,
-}
-
-const SOURCES: [Source; 9] = [
-    Source::Bgt,
-    Source::Bag,
-    Source::Brk,
-    Source::Ahn,
-    Source::Osm,
-    Source::Rivm,
-    Source::Liwo,
-    Source::Cbs,
-    Source::BagUnits,
-];
-
-/// The sources a site cannot do without. The others add layers and figures,
-/// so when only they arrive the fetch still failed.
-const BASE_SOURCES: [Source; 4] = [Source::Bgt, Source::Bag, Source::Brk, Source::Ahn];
-
-impl Source {
-    fn step(self) -> &'static str {
-        match self {
-            Source::Bgt => "Roads, water and green",
-            Source::Bag => "Buildings",
-            Source::Brk => "Parcels",
-            Source::Ahn => "Elevation",
-            Source::Rivm => "Noise and air quality",
-            Source::Liwo => "Flood depth",
-            Source::Cbs => "Population",
-            Source::BagUnits => "Dwellings",
-            Source::Osm => "Places, transit and walking routes",
-        }
-    }
-
-    /// `None` for a source already credited under another name.
-    fn credit(self) -> Option<Credit> {
-        match self {
-            Source::Bgt => Some(bgt::credit()),
-            Source::Bag => Some(bag::credit()),
-            Source::Brk => Some(brk::credit()),
-            Source::Ahn => Some(ahn::credit()),
-            Source::Rivm => Some(rivm::credit()),
-            Source::Liwo => Some(liwo::credit()),
-            Source::Cbs => Some(cbs::credit()),
-            // The units are BAG, which the buildings already credit.
-            Source::BagUnits => None,
-            Source::Osm => Some(osm::credit()),
-        }
-    }
 }
 
 /// Fetches and assembles everything inside `area`, reusing tiles in `cache`.
