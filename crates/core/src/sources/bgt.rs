@@ -6,7 +6,7 @@
 use geo::Rect;
 
 use crate::scene::{Attributes, Credit, Feature, Layer};
-use crate::sources::pdok::{self, Record};
+use crate::sources::pdok::{self, Filter, Record};
 use crate::Result;
 
 const SERVICE: &str = "PDOK BGT";
@@ -38,7 +38,13 @@ pub fn credit() -> Credit {
 
 /// Every current record of `collection` touching `bbox` (RD New), still in RD New.
 pub fn fetch_tile(collection: &str, bbox: Rect<f64>) -> Result<Vec<Record>> {
-    pdok::fetch_records(SERVICE, BASE_URL, collection, bbox, Some(CURRENT_ONLY))
+    pdok::fetch_records(
+        SERVICE,
+        BASE_URL,
+        collection,
+        bbox,
+        Filter::Cql(CURRENT_ONLY),
+    )
 }
 
 pub fn to_features(collection: &str, records: Vec<Record>) -> Vec<Feature> {

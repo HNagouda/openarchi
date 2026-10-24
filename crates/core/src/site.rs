@@ -129,8 +129,10 @@ fn build_scene_with(
         .bounding_rect()
         .ok_or_else(|| Error::Invalid("The drawn area has no points.".to_string()))?;
 
-    let mut jobs = download::tiles_for(&boundary, bbox);
-    jobs.push(download::osm_job(origin, &boundary));
+    // The one Overpass query takes 30 s or more, so it goes first: queued
+    // behind several hundred tiles it would start last and finish last.
+    let mut jobs = vec![download::osm_job(origin, &boundary)];
+    jobs.extend(download::tiles_for(&boundary, bbox));
     // Every tile, then heights and contours, then walk times, then clipping.
     let total = jobs.len() + 3;
     let report = |step: &str, done: usize| {

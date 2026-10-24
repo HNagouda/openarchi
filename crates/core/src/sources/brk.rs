@@ -3,7 +3,7 @@
 use geo::Rect;
 
 use crate::scene::{Attributes, Credit, Feature, Layer};
-use crate::sources::pdok::{self, Record};
+use crate::sources::pdok::{self, Filter, Record};
 use crate::Result;
 
 const SERVICE: &str = "PDOK BRK";
@@ -22,7 +22,7 @@ pub fn credit() -> Credit {
 
 /// Every parcel record touching `bbox` (RD New), still in RD New.
 pub fn fetch_tile(bbox: Rect<f64>) -> Result<Vec<Record>> {
-    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, None)
+    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, Filter::None)
 }
 
 pub fn to_features(records: Vec<Record>) -> Vec<Feature> {

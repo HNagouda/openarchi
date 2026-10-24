@@ -9,7 +9,7 @@ use geo::Rect;
 
 use crate::scene::{Attributes, Credit, Feature, Layer};
 use crate::sources::bag_units::Totals;
-use crate::sources::pdok::{self, Record};
+use crate::sources::pdok::{self, Filter, Record};
 use crate::Result;
 
 const SERVICE: &str = "PDOK BAG";
@@ -44,7 +44,7 @@ pub fn credit() -> Credit {
 
 /// Every building record touching `bbox` (RD New), demolished ones included.
 pub fn fetch_tile(bbox: Rect<f64>) -> Result<Vec<Record>> {
-    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, None)
+    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, Filter::None)
 }
 
 /// The standing buildings among `records`, still in RD New. With `units`,

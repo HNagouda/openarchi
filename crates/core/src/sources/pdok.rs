@@ -43,14 +43,25 @@ struct Link {
     href: String,
 }
 
-/// Every record of `collection` at `base_url` that touches `bbox`. `filter` is
-/// an optional CQL2 text filter, for example "eind_registratie IS NULL".
+/// How a request narrows a collection beyond the box.
+pub enum Filter<'a> {
+    None,
+    /// A CQL2 text filter, for example "eind_registratie IS NULL".
+    Cql(&'a str),
+    /// One property equal to one value, sent as a plain query parameter:
+    /// ("jaarcode", "2024"). Prefer this to the same test in CQL: on the CBS
+    /// grid `jaarcode=2024` answers in 0.6 s, while `filter=jaarcode=2024`
+    /// took 20 to 30 s per tile and sometimes failed with 500 (2026-10-24).
+    Property(&'a str, &'a str),
+}
+
+/// Every record of `collection` at `base_url` that touches `bbox`.
 pub fn fetch_records(
     service: &str,
     base_url: &str,
     collection: &str,
     bbox: Rect<f64>,
-    filter: Option<&str>,
+    filter: Filter<'_>,
 ) -> Result<Vec<Record>> {
     let first_url = format!("{base_url}/collections/{collection}/items");
     let bbox_text = format!(
@@ -67,8 +78,10 @@ pub fn fetch_records(
         ("bbox-crs", RD_NEW_URI),
         ("crs", RD_NEW_URI),
     ];
-    if let Some(filter) = filter {
-        query.push(("filter", filter));
+    match filter {
+        Filter::None => {}
+        Filter::Cql(text) => query.push(("filter", text)),
+        Filter::Property(name, value) => query.push((name, value)),
     }
 
     let mut records = Vec::new();

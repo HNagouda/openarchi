@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use geo::Rect;
 
 use crate::scene::{Attributes, Credit, Feature, Layer};
-use crate::sources::pdok::{self, Record};
+use crate::sources::pdok::{self, Filter, Record};
 use crate::Result;
 
 const SERVICE: &str = "PDOK CBS";
@@ -41,8 +41,14 @@ pub fn credit() -> Credit {
 
 /// Every square of `year` touching `bbox` (RD New).
 pub fn fetch_tile(year: i32, bbox: Rect<f64>) -> Result<Vec<Record>> {
-    let filter = format!("jaarcode={year}");
-    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, Some(&filter))
+    let year = year.to_string();
+    pdok::fetch_records(
+        SERVICE,
+        BASE_URL,
+        COLLECTION,
+        bbox,
+        Filter::Property("jaarcode", &year),
+    )
 }
 
 /// One feature per square, each figure from the newest year that has it.

@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use geo::Rect;
 use serde_json::Value;
 
-use crate::sources::pdok::{self, Record};
+use crate::sources::pdok::{self, Filter, Record};
 use crate::Result;
 
 const SERVICE: &str = "PDOK BAG";
@@ -39,7 +39,7 @@ pub struct Totals {
 
 /// Every unit touching `bbox` (RD New), withdrawn ones included.
 pub fn fetch_tile(bbox: Rect<f64>) -> Result<Vec<Record>> {
-    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, None)
+    pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, Filter::None)
 }
 
 /// Totals per building feature id. A unit spread over several buildings
