@@ -1,0 +1,131 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 300px;
+  animation: fade-in var(--medium) var(--ease);
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-row-top {
+  align-items: start;
+}
+
+.settings-row .segmented {
+  max-width: 260px;
+}
+
+.settings-row > .button {
+  justify-self: start;
+}
+
+.settings-label {
+  color: var(--text-2);
+  font-size: 12.5px;
+  padding-top: 1px;
+}
+
+.settings-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.path {
+  max-width: 100%;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.prose {
+  gap: 10px;
+}
+
+.prose p {
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.prose h4,
+.shortcut-group h4 {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.prose code {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+}
+
+.prose > .button {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
+.copy-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.copy-line code {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.shortcut-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.shortcut-group h4 {
+  margin-bottom: 4px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+}
+
+.shortcut-keys {
+  display: flex;
+  gap: 4px;
+}

@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
 use crate::project::{Look, Project, PROJECT_FORMAT_VERSION};
+use crate::sheet::Frame;
 use crate::{Error, Result};
 
 use self::files::{
@@ -49,6 +50,16 @@ const THEMES_FOLDER: &str = "themes";
 /// Tries at a free random id suffix. A clash needs two projects with the same
 /// name on the same day, so running out means something else is wrong.
 const ID_ATTEMPTS: usize = 100;
+
+/// The frame that fits the shape the user drew, so a rectangle is not left
+/// floating inside an empty circle.
+fn frame_for(area: &Area) -> Frame {
+    match area {
+        Area::Circle { .. } => Frame::Circle,
+        Area::Rectangle { .. } => Frame::Square,
+        Area::Polygon { .. } => Frame::Area,
+    }
+}
 
 pub struct Library {
     root: PathBuf,
@@ -143,6 +154,7 @@ impl Library {
             look: Look::default(),
         };
         project.look.sheet.title = project.name.clone();
+        project.look.sheet.frame = frame_for(&project.area);
         self.save(&mut project)?;
         Ok(project)
     }

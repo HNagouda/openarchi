@@ -63,7 +63,10 @@ pub enum Attribute {
 pub enum Scheme {
     /// Classes split at `breaks`: n breaks make n + 1 classes, each taking the
     /// next ramp colour. `labels` has one entry per class.
-    Sequential { breaks: Vec<f64>, labels: Vec<String> },
+    Sequential {
+        breaks: Vec<f64>,
+        labels: Vec<String>,
+    },
     /// One class per value, matched exactly, in order. A feature with several
     /// values (mixed use) takes the first that matches. Anything unmatched falls
     /// in "Other" with the last category colour.

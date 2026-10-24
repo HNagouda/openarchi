@@ -1,0 +1,27 @@
+[package]
+name = "openarchi-app"
+description = "The openarchi desktop app: draw a site, style it, export it."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+# The suffix keeps the library name from clashing with the binary on Windows.
+name = "openarchi_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+openarchi-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+# Watches the library so edits made by the MCP server show up in the open window.
+notify = "8"
+base64 = "0.22"
+# Same version as the core, for measuring a drawn area before it is fetched.
+geo = "0.29"

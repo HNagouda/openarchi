@@ -51,12 +51,10 @@ jobs:
       - run: cargo test --workspace --exclude openarchi-app
 
   # * ====================================================================
-  # * === Tauri app build (disabled until the app compiles)
+  # * === Tauri app build
   # * ====================================================================
-  # To enable: delete the `if: false` line. Then consider dropping
-  # `--exclude openarchi-app` from the rust job's clippy and test steps.
+  # The rust job excludes openarchi-app because this job builds it with its front end.
   app:
-    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -76,7 +74,7 @@ jobs:
       # Once it has one, drop `version` and the action reads it from there.
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 22

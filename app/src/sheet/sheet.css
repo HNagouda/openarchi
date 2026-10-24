@@ -1,0 +1,620 @@
+.sheet-step {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-name {
+  font-weight: 600;
+  max-width: 280px;
+}
+
+.topbar-crumb {
+  color: var(--text-3);
+  font-weight: 450;
+  white-space: nowrap;
+}
+
+.topbar-crumb::before {
+  content: "/";
+  margin-right: 8px;
+  color: var(--line-strong);
+}
+
+.save-status {
+  color: var(--text-3);
+  font-size: 12px;
+  margin-right: 4px;
+  min-width: 48px;
+  text-align: right;
+  transition: color var(--medium) var(--ease);
+}
+
+.save-status.is-failed {
+  color: var(--danger);
+}
+
+.sheet-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.sheet-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--canvas);
+  cursor: grab;
+  touch-action: none;
+}
+
+.canvas.is-panning {
+  cursor: grabbing;
+}
+
+.paper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-shadow: var(--paper-shadow);
+  background: #fff;
+  animation: fade-in var(--medium) var(--ease);
+}
+
+.paper > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-message {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.canvas-message > * {
+  pointer-events: auto;
+}
+
+.canvas-loading {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--text-2);
+  animation: spin 0.8s linear infinite;
+}
+
+.canvas-error {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 70%;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+.render-hint {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--text-2);
+  animation: spin 0.8s linear infinite;
+}
+
+.zoom-control {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--card-shadow), 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.zoom-control .button-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.zoom-value {
+  min-width: 46px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.zoom-value:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* * ==== filmstrip ==== */
+
+.filmstrip {
+  flex: none;
+  height: var(--filmstrip-height);
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.frame {
+  flex: none;
+  width: 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.frame-picture {
+  height: 70px;
+  border-radius: var(--radius);
+  background: var(--canvas);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.frame-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: fade-in var(--medium) var(--ease);
+}
+
+.frame-blank,
+.diagram-blank {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent 30%, var(--hover) 50%, transparent 70%) var(--canvas);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.frame:hover .frame-picture {
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.frame.is-selected .frame-picture {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.frame-caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+.frame.is-selected .frame-caption {
+  color: var(--text);
+}
+
+.frame-key {
+  flex: none;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+.frame-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The filmstrip's tooltips are long descriptions; let them wrap. */
+.frame[data-tip]::after {
+  white-space: normal;
+  width: 220px;
+  left: 0;
+  transform: translate(0, 2px);
+}
+
+.frame[data-tip]:hover::after {
+  transform: translate(0, 0);
+}
+
+/* * ==== inspector ==== */
+
+.inspector-slot {
+  flex: none;
+  width: 0;
+  overflow: hidden;
+  border-left: 1px solid transparent;
+  background: var(--bg);
+  transition: width var(--medium) var(--ease), border-color var(--medium) var(--ease);
+}
+
+.inspector-slot.is-open {
+  width: var(--inspector-width);
+  border-left-color: var(--line);
+}
+
+.inspector {
+  width: var(--inspector-width);
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.inspector-note {
+  margin: 10px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.text-button {
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.text-button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* * ==== diagram picker ==== */
+
+.diagram-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 8px;
+}
+
+.diagram-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.diagram-picture {
+  aspect-ratio: 1.414;
+  border-radius: var(--radius-s);
+  background: var(--canvas);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  display: flex;
+  transition: box-shadow var(--fast) var(--ease);
+}
+
+.diagram-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.diagram-tile:hover .diagram-picture {
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+.diagram-tile.is-selected .diagram-picture {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.diagram-name {
+  font-size: 11.5px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diagram-tile.is-selected .diagram-name {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* * ==== theme cards ==== */
+
+.section-keys {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.section-keys .keys {
+  height: 18px;
+  min-width: 18px;
+  font-size: 11px;
+}
+
+.theme-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 6px 7px;
+  border: 0;
+  border-radius: var(--radius-l);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+  transition: box-shadow var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+
+.theme-card:hover {
+  background: var(--hover);
+}
+
+.theme-card.is-selected {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  background: var(--accent-soft);
+}
+
+.theme-strip {
+  display: flex;
+  height: 26px;
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.theme-strip span {
+  flex: 1;
+}
+
+.theme-name {
+  padding: 0 2px;
+  font-weight: 500;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Theme descriptions are sentences; let the tooltip wrap. */
+.theme-card[data-tip]::after {
+  white-space: normal;
+  width: 200px;
+}
+
+/* * ==== layers ==== */
+
+.layer-list {
+  list-style: none;
+  margin: 0 -8px;
+  padding: 0;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  border-radius: var(--radius);
+}
+
+.layer-row:hover {
+  background: var(--hover);
+}
+
+.layer-row.is-hidden .layer-name,
+.layer-row.is-hidden .layer-swatch {
+  opacity: 0.4;
+}
+
+.layer-eye {
+  width: 26px;
+  height: 26px;
+  color: var(--text-3);
+}
+
+.layer-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px 0 2px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.layer-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.layer-swatch.is-empty {
+  background: var(--surface);
+}
+
+.layer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-edited {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.layer-badge {
+  padding: 0 5px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--text-3);
+  font-size: 10.5px;
+  line-height: 16px;
+}
+
+.layer-chevron {
+  display: inline-flex;
+  color: var(--text-3);
+  opacity: 0;
+  transition: transform var(--medium) var(--ease), opacity var(--fast) var(--ease);
+}
+
+.layer-row:hover .layer-chevron,
+.layer.is-open .layer-chevron {
+  opacity: 1;
+}
+
+.layer.is-open .layer-chevron {
+  transform: rotate(180deg);
+}
+
+.layer-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 2px 0 10px;
+  padding: 10px 8px 10px 34px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  animation: fade-in var(--medium) var(--ease);
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+/* * ==== sheet ==== */
+
+.sheet-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.title-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.title-fields .editable {
+  margin: 0;
+  padding: 2px 4px;
+}
+
+.sheet-title {
+  font-weight: 600;
+}
+
+.sheet-subtitle {
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+.field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 96px;
+  gap: 8px;
+}
+
+.field-note {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.toggles {
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+
+/* * ==== export ==== */
+
+.export-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.export-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 12.5px;
+  user-select: text;
+  -webkit-user-select: text;
+}

@@ -1,0 +1,284 @@
+.app {
+  height: 100%;
+}
+
+.home {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+}
+
+/* The app mark in miniature: a site circle with one warm block. */
+.wordmark-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 52% 52%, var(--brand) 0 2.6px, transparent 2.8px), var(--strong);
+}
+
+.home-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.home-content {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 32px 40px 64px;
+}
+
+.home-notice {
+  margin-bottom: 24px;
+}
+
+.home-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.home-heading h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.home-count {
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 28px 20px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.card-picture {
+  position: relative;
+  aspect-ratio: 1.414;
+  border-radius: var(--radius-l);
+  background: var(--canvas);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition: box-shadow var(--fast) var(--ease), transform var(--medium) var(--ease);
+}
+
+.card-picture img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  animation: fade-in var(--medium) var(--ease);
+}
+
+.card:hover .card-picture {
+  box-shadow: 0 0 0 1px var(--line-strong), 0 6px 18px -8px rgba(0, 0, 0, 0.2);
+}
+
+.card.is-selected .card-picture {
+  box-shadow: 0 0 0 2px var(--accent), 0 6px 18px -8px rgba(0, 0, 0, 0.2);
+}
+
+.card.is-opening .card-picture {
+  transform: scale(0.985);
+}
+
+.card-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.card-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, var(--hover) 50%, transparent 70%) var(--canvas);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  color: var(--text-2);
+  box-shadow: var(--card-shadow);
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.card:hover .card-delete {
+  opacity: 1;
+}
+
+.card-delete:hover {
+  color: var(--danger);
+}
+
+.card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 2px;
+  min-width: 0;
+}
+
+.card-name {
+  font-weight: 550;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.card-date {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.empty-gallery {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 72px 0 40px;
+  border-radius: 14px;
+  border: 1px dashed var(--line-strong);
+}
+
+.empty-gallery h2 {
+  margin: 20px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.empty-gallery p {
+  margin: 0 0 20px;
+  max-width: 360px;
+  color: var(--text-2);
+}
+
+.empty-ring {
+  fill: var(--surface);
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+
+.empty-block {
+  fill: var(--text-3);
+  opacity: 0.55;
+}
+
+.empty-site {
+  fill: var(--brand);
+}
+
+.trash {
+  margin-top: 48px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.trash-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px 0 4px;
+  margin-left: -4px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 550;
+}
+
+.trash-toggle:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.trash-chevron {
+  display: inline-flex;
+  color: var(--text-3);
+  transition: transform var(--medium) var(--ease);
+}
+
+.trash.is-open .trash-chevron {
+  transform: rotate(90deg);
+}
+
+.trash-count {
+  color: var(--text-3);
+  font-weight: 450;
+}
+
+.trash-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  animation: fade-in var(--medium) var(--ease);
+}
+
+.trash-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  align-items: center;
+  gap: 12px;
+  height: 36px;
+  padding: 0 4px 0 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.trash-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trash-date {
+  color: var(--text-3);
+  font-size: 12px;
+}

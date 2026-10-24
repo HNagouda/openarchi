@@ -15,8 +15,16 @@ pub struct LonLat {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Area {
-    Circle { center: LonLat, radius_m: f64 },
-    Rectangle { south_west: LonLat, north_east: LonLat },
+    Circle {
+        center: LonLat,
+        radius_m: f64,
+    },
+    Rectangle {
+        south_west: LonLat,
+        north_east: LonLat,
+    },
     /// Outer ring only, not closed: the first point is not repeated at the end.
-    Polygon { points: Vec<LonLat> },
+    Polygon {
+        points: Vec<LonLat>,
+    },
 }

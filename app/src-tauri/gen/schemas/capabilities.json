@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"What the main window may do: core events and windowing, and the native save and folder dialogs.","local":true,"windows":["main"],"permissions":["core:default","core:window:allow-start-dragging","core:window:allow-set-theme","core:window:allow-destroy","dialog:allow-save","dialog:allow-open"]}}

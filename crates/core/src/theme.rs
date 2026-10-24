@@ -92,9 +92,23 @@ fn opaque() -> f64 {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Pattern {
-    Hatch { angle_deg: f64, spacing_mm: f64, stroke_mm: f64, color: String },
-    CrossHatch { angle_deg: f64, spacing_mm: f64, stroke_mm: f64, color: String },
-    Dots { spacing_mm: f64, radius_mm: f64, color: String },
+    Hatch {
+        angle_deg: f64,
+        spacing_mm: f64,
+        stroke_mm: f64,
+        color: String,
+    },
+    CrossHatch {
+        angle_deg: f64,
+        spacing_mm: f64,
+        stroke_mm: f64,
+        color: String,
+    },
+    Dots {
+        spacing_mm: f64,
+        radius_mm: f64,
+        color: String,
+    },
 }
 
 /// The user's edits to one layer on top of the theme. Only set fields win.
