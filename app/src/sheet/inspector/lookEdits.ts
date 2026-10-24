@@ -43,6 +43,16 @@ export function swatchColour(value: string | null | undefined, palette: Palette)
   return value;
 }
 
+/** `share` of the way from one "#RRGGBB" to another, in RGB, as the core's colour mix. */
+export function mixHex(from: string, to: string, share: number): string {
+  const channel = (hex: string, index: number) => parseInt(hex.slice(1 + index * 2, 3 + index * 2), 16);
+  const mixed = [0, 1, 2].map((index) => {
+    const value = Math.round(channel(from, index) + (channel(to, index) - channel(from, index)) * share);
+    return value.toString(16).padStart(2, "0");
+  });
+  return `#${mixed.join("").toUpperCase()}`;
+}
+
 /** The colours a theme card shows, from paper to accent. */
 export function paletteStrip(theme: Theme): string[] {
   const { paper, figure, accent, water, green } = theme.palette;

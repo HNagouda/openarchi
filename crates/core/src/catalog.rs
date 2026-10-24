@@ -5,6 +5,7 @@
 //! next to it.
 
 mod lookup;
+mod missing_layers;
 
 use std::path::Path;
 
@@ -194,7 +195,7 @@ pub fn read_theme(path: &Path) -> Result<Theme> {
         return Err(format_error(problems.join("; ")));
     }
 
-    Ok(theme)
+    missing_layers::filled(theme)
 }
 
 /// Everything wrong with a theme, in plain words. Empty means valid.

@@ -231,6 +231,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 - City blocks cuts the site into the blocks its streets, paths, rail and water leave, so a road that stops at the site edge still cuts and a circle closes its blocks at its edge. Its GSI variant colours each block by how much of it the buildings cover, and its FSI variant by its floor area over its area, both as Spacematrix defines them.
 - Sunlight hours shows how many hours of direct sun the ground gets over the sheet's sun date, past the shadows of the buildings and trees in the site and around it, on a 2 m grid. The legend names the date and the method, a sun-on-ground study after BRE BR 209, which asks for two hours on 21 March over half of a garden. Buildings are drawn blank so no roof reads as a class. On this diagram the time field shows only in the axonometric view, which is lit at one moment.
 - All three draw in plan, axonometric and explode views and on a sheet that shows part of the site, and assistants find them through `list_diagrams`.
+- Your own palettes saved before a layer existed now draw it too: a palette made from swatches gets the style its own colours give that layer, any other the Paper style in its own colours. The file on disk is not changed.
 
 ## 0.1.0 (unreleased)
 

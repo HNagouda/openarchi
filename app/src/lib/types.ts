@@ -170,6 +170,8 @@ export type Diagram = {
   layers: Layer[];
   emphasis: Layer | null;
   mute_others: boolean;
+  /** Layers drawn blank, near the paper colour with a fine ink edge. */
+  blank?: Layer[];
   /** A computed sun drawing on top of the layers; sun_hours uses the date only. */
   solar?: "sun_path" | "shadow" | "sun_hours" | null;
   /** Zooms the plan out to the walk band of this many minutes. */
