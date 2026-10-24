@@ -1,0 +1,110 @@
+// A stand-in for the Rust side, so the front end runs in a plain browser for
+// screenshots. main.tsx loads it only in dev and only outside Tauri, so it never
+// reaches a release build. The pictures come from app/dev-fixtures, written by
+// `cargo run --release -p openarchi-core --example app_fixtures`.
+
+import { emit } from "@tauri-apps/api/event";
+import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Sheet } from "../lib/types";
+
+const FIXTURES = "/dev-fixtures";
+const MAX_AREA_M2 = 4_000_000;
+
+type Fixture = { catalog: Catalog; area: Area; credits: Credit[]; layers_present: Layer[] };
+
+const SHEET: Sheet = {
+  paper: "a3",
+  landscape: true,
+  scale: 2500,
+  frame: "circle",
+  title: "Westermarkt",
+  subtitle: "Amsterdam, around the Westerkerk",
+  show_legend: true,
+  show_north_arrow: true,
+  show_scale_bar: true,
+  show_credits: true,
+};
+
+function look(diagram_id: string, theme_id: string, patch: Partial<Sheet> = {}): Look {
+  return { diagram_id, theme_id, sheet: { ...SHEET, ...patch }, overrides: {} };
+}
+
+const PROJECTS: ProjectSummary[] = [
+  summary("westermarkt", "Westermarkt", "2026-10-24T10:12:00Z", look("building-age", "paper")),
+  summary("domplein", "Domplein, Utrecht", "2026-10-23T16:40:00Z", look("context", "ink", { scale: 2000 })),
+  summary("blauwe-loper", "Blauwe Loper", "2026-10-22T09:05:00Z", look("figure-ground", "mono", { paper: "a2" })),
+  summary("polder", "Polder edge study", "2026-10-20T14:30:00Z", look("landscape", "polder", { scale: 5000 })),
+  summary("night", "Jordaan by night", "2026-10-18T19:55:00Z", look("building-use", "midnight", { paper: "a1", scale: 1000 })),
+  { id: "katendrecht", name: "Katendrecht, Rotterdam", modified: "2026-10-17T11:00:00Z", has_scene: false, look: null },
+];
+
+const TRASH: ProjectSummary[] = [
+  { id: "old", name: "First try", modified: "2026-10-12T08:00:00Z", has_scene: true, look: look("parcels", "pastel") },
+];
+
+function summary(id: string, name: string, modified: string, projectLook: Look): ProjectSummary {
+  return { id, name, modified, has_scene: true, look: projectLook };
+}
+
+const fixture: Fixture = await fetch(`${FIXTURES}/fixture.json`).then((response) => response.json());
+let openLook: Look = PROJECTS[0].look!;
+
+function view(project: ProjectSummary): ProjectView {
+  return {
+    id: project.id,
+    name: project.name,
+    modified: project.modified,
+    area: fixture.area,
+    look: project.look ?? look("context", "paper"),
+    has_scene: project.has_scene,
+    fetched_at: project.has_scene ? project.modified : null,
+    warnings: [],
+    credits: fixture.credits,
+    layers_present: fixture.layers_present,
+  };
+}
+
+const picture = (lookToShow: Look) => `${FIXTURES}/thumbs/${lookToShow.diagram_id}--${lookToShow.theme_id}.png`;
+
+function circleArea(area: Area) {
+  return area.kind === "circle" ? Math.PI * area.radius_m * area.radius_m : 0;
+}
+
+type Args = Record<string, unknown>;
+
+async function answer(command: string, args: Args) {
+  const project = PROJECTS.find((entry) => entry.id === args.id);
+  if (command === "library_path") return "/Users/you/Documents/openarchi";
+  if (command === "list_projects") return PROJECTS;
+  if (command === "list_trash") return TRASH;
+  if (command === "get_catalog") return fixture.catalog;
+  if (command === "project_thumbnail") return project?.has_scene && project.look ? picture(project.look) : null;
+  if (command === "open_project" && project) {
+    openLook = project.look ?? openLook;
+    return view(project);
+  }
+  if (command === "current_project") return view({ ...PROJECTS[0], look: openLook });
+  if (command === "save_look") {
+    openLook = args.look as Look;
+    return new Date().toISOString();
+  }
+  if (command === "render_preview") {
+    const shown = args.look as Look;
+    return fetch(`${FIXTURES}/previews/${shown.diagram_id}--${shown.theme_id}.svg`).then((response) => response.text());
+  }
+  if (command === "render_thumbnail") return picture(args.look as Look);
+  if (command === "search_places") {
+    return [{ label: "Westermarkt 20, 1016DK Amsterdam", kind: "adres", location: fixture.area.kind === "circle" ? fixture.area.center : null }];
+  }
+  if (command === "measure_area") return { m2: circleArea(args.area as Area), max_m2: MAX_AREA_M2, in_netherlands: true };
+  if (command === "create_project") return view({ id: "new", name: String(args.name), modified: new Date().toISOString(), has_scene: false, look: null });
+  if (command === "export_file_name") return "westermarkt.svg";
+  // Saves, renames, window theme and the like: nothing to show for them here.
+  return null;
+}
+
+mockWindows("main");
+mockIPC((command, args) => answer(command, (args ?? {}) as Args), { shouldMockEvents: true });
+
+// The menu bar is native, so a screenshot script sends its commands through this instead.
+Object.assign(window, { menu: (id: string) => emit("menu", id) });

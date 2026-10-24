@@ -14,8 +14,15 @@ import { isMac } from "./lib/platform";
 
 document.documentElement.dataset.platform = isMac ? "mac" : "other";
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+function start() {
+  createRoot(document.getElementById("root")!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  );
+}
+
+// In a plain browser (for screenshots) the Rust side is mocked. The check on
+// import.meta.env.DEV is constant in a release build, so the mock is left out of it.
+if (import.meta.env.DEV && !("__TAURI_INTERNALS__" in window)) import("./dev/mockIpc").then(start);
+else start();

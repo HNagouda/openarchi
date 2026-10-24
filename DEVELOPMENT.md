@@ -78,6 +78,13 @@ cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
 ```
 
+To work on the front end in a plain browser, render the fixtures once and start Vite on its own. Outside Tauri, `app/src/dev/mockIpc.ts` answers every command from those fixtures, so the gallery, the sheet and the site step all work without the Rust side. This is how the screenshots in `docs/screenshots/` are taken. The mock is loaded only in dev, so it never reaches a release build.
+
+```sh
+cargo run --release -p openarchi-core --example app_fixtures   # writes app/dev-fixtures/
+cd app && pnpm dev                                             # then open http://localhost:1420
+```
+
 To drive the core the way an assistant does:
 
 ```sh

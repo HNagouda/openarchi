@@ -8,3 +8,5 @@ dist/
 .scratch/
 # openarchi-mcp builds that scripts/build-mcp-sidecar.sh puts here for the installers.
 app/src-tauri/binaries/
+# Rendered by crates/core/examples/app_fixtures.rs for the dev-only IPC mock.
+app/dev-fixtures/
