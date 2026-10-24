@@ -110,8 +110,9 @@
   background: var(--brand);
 }
 
+/* Right under the section title, so the numbers below read with where they came from. */
 .analysis-source {
-  margin: 0;
+  margin: 0 0 6px;
   color: var(--text-3);
   font-size: clamp(11px, 3.7cqi, 14px);
   line-height: 1.4;

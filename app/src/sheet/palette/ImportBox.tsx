@@ -53,9 +53,9 @@ export function ImportBox({ onImport }: Props) {
       <textarea
         className="text-input import-text"
         value={text}
-        rows={2}
+        rows={3}
         spellCheck={false}
-        placeholder="Paste hex codes, a link, or a generator's SVG, JSON or XML. Or drop the file here."
+        placeholder="Paste hex codes or a palette generator's link, or drop its SVG, JSON or XML file here"
         aria-label="Palette to import"
         onChange={(event) => setText(event.target.value)}
         onKeyDown={(event) => {
@@ -70,7 +70,7 @@ export function ImportBox({ onImport }: Props) {
           <span className="button-label">Choose a file…</span>
         </label>
         <Button variant="secondary" disabled={text.trim() === ""} onClick={() => read(text)}>
-          Import
+          Use these colours
         </Button>
       </div>
       {error && (

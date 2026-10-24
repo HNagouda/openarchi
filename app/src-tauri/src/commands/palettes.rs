@@ -96,10 +96,18 @@ pub async fn save_palette(
     blocking(move || {
         let library = state.library()?;
         let id = id.unwrap_or_else(|| library.free_theme_id(&draft.name));
-        let theme = checked(&state, &draft, &id)?.theme;
-        library.save_theme(&theme).map_err(text)?;
+        let check = checked(&state, &draft, &id)?;
+        // The editor already greys out Save; this keeps an unreadable palette out of the library anyway.
+        if !check.is_readable {
+            return Err(format!(
+                "\"{}\" is hard to read: {}",
+                draft.name,
+                check.warnings.join(" ")
+            ));
+        }
+        library.save_theme(&check.theme).map_err(text)?;
         forget_catalog(&state);
-        Ok(theme)
+        Ok(check.theme)
     })
     .await
 }

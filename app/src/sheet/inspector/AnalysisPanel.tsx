@@ -112,6 +112,7 @@ function SectionView({ section, onExport }: { section: AnalysisSection; onExport
   const exportButton = <Button icon="export" tip={`Export ${section.title.toLowerCase()} as SVG or PDF`} tipSide="left" onClick={onExport} />;
   return (
     <Section id={`analysis.${section.id}`} title={section.title} aside={exportButton}>
+      {section.source && <p className="analysis-source">{section.source}</p>}
       {section.facts.length > 0 && (
         <dl className="analysis-facts">
           {section.facts.map((fact) => (
@@ -139,7 +140,6 @@ function SectionView({ section, onExport }: { section: AnalysisSection; onExport
           {warning}
         </p>
       ))}
-      <p className="analysis-source">{section.source}</p>
     </Section>
   );
 }

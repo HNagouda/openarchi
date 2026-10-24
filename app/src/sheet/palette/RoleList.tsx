@@ -2,6 +2,7 @@
 // crates/core/src/palette/roles.rs; a swatch pins it to exactly that colour.
 
 import type { PaletteSwatch, Role, RoleColour } from "../../lib/palette";
+import "./roles.css";
 
 /** What each role paints on a sheet, in the words the editor uses. */
 const ROLE_LABELS: Record<Role, { name: string; paints: string }> = {

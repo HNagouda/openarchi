@@ -169,3 +169,11 @@
   stroke: var(--bg);
   stroke-width: 1.2;
 }
+
+/* The same muted line the Analysis tab draws under each section title. */
+.ratios-source {
+  margin: 0 0 6px;
+  color: var(--text-3);
+  font-size: clamp(11px, 3.7cqi, 14px);
+  line-height: 1.4;
+}
