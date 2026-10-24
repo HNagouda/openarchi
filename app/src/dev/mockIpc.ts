@@ -6,7 +6,8 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { chosenVariant } from "../lib/diagrams";
-import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Sheet, SunMoment, View } from "../lib/types";
+import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
+import { mockBackdrop, mockBlockFixture, mockTextBlock } from "./mockReports";
 
 const FIXTURES = "/dev-fixtures";
 const MAX_AREA_M2 = 4_000_000;
@@ -66,6 +67,7 @@ function summary(id: string, name: string, modified: string, projectLook: Look):
 
 const fixture: Fixture = await fetch(`${FIXTURES}/fixture.json`).then((response) => response.json());
 let openLook: Look = PROJECTS[0].look!;
+let openReports: Report[] = [];
 
 function view(project: ProjectSummary): ProjectView {
   return {
@@ -79,6 +81,7 @@ function view(project: ProjectSummary): ProjectView {
     warnings: [],
     credits: fixture.credits,
     layers_present: fixture.layers_present,
+    reports: openReports,
   };
 }
 
@@ -131,9 +134,39 @@ async function answer(command: string, args: Args) {
     if (isSlow) await new Promise((resolve) => setTimeout(resolve, SLOW_PART_MS));
     return fetch(`${FIXTURES}/analysis/${args.part}--${args.themeId}.json`).then((response) => response.json());
   }
+  if (command === "get_ratios") return fetch(`${FIXTURES}/ratios/${args.themeId}.json`).then((response) => response.json());
+  if (command === "save_reports") {
+    openReports = args.reports as Report[];
+    return new Date().toISOString();
+  }
+  if (command === "render_report_block") return reportBlock(args.themeId as string, args.block as ReportBlock);
+  if (command === "render_report_backdrop") {
+    const report = args.report as Report;
+    const theme = fixture.catalog.themes.find((entry) => entry.id === (report.theme_id ?? openLook.theme_id));
+    return theme ? mockBackdrop(report, args.index as number, theme) : null;
+  }
+  if (command === "report_file_name") return `westermarkt.${args.format}`;
   if (command === "analysis_file_name") return args.sectionId ? `westermarkt-${args.sectionId}.svg` : "westermarkt-analysis.pdf";
   // Saves, renames, window theme and the like: nothing to show for them here.
   return null;
+}
+
+/** A block as the core would draw it, from the fixtures: sheets from the previews, figures from the analysis. */
+async function reportBlock(themeId: string, block: ReportBlock): Promise<string> {
+  const content = block.content;
+  const theme = fixture.catalog.themes.find((entry) => entry.id === themeId);
+  if (content.kind === "text") return theme ? mockTextBlock(block, theme) : "";
+  if (content.kind === "sheet") {
+    const shown = { ...openLook, diagram_id: content.diagram_id, variant: content.variant ?? null, theme_id: themeId };
+    return fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
+  }
+  if (content.kind === "analysis_figure") {
+    const part = { location: "location", site: "site", rain: "rain" }[content.section] ?? "climate";
+    const sections: { id: string; figures: { id: string; svg: string }[] }[] = await fetch(`${FIXTURES}/analysis/${part}--${themeId}.json`).then((response) => response.json());
+    const figure = sections.find((section) => section.id === content.section)?.figures.find((entry) => entry.id === content.figure);
+    return figure?.svg ?? "";
+  }
+  return fetch(`${FIXTURES}/report-blocks/${mockBlockFixture(content)}--${themeId}.svg`).then((response) => response.text());
 }
 
 mockWindows("main");

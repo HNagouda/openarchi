@@ -26,6 +26,7 @@ import { useThumbnails } from "./useThumbnails";
 import { TextOverlay } from "./text/TextOverlay";
 import { useTextTool } from "./text/useTextTool";
 import { PaletteSwatches, type Swatch } from "../ui/ColorPicker";
+import { ReportsWorkspace } from "../report/ReportsWorkspace";
 
 // File events come in bursts; read the project once they settle.
 const RELOAD_DELAY_MS = 400;
@@ -46,6 +47,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
   const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
   const [isExportOpen, setExportOpen] = useState(false);
+  // The report editor opens over the sheet until reports become a sheet tab.
+  const [isReportsOpen, setReportsOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const canvas = useRef<CanvasControls>(null);
   const toast = useToast();
@@ -220,7 +223,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       event.preventDefault();
       steps[key]();
     }
-  }, !isExportOpen);
+  }, !isExportOpen && !isReportsOpen);
 
   const saveText = { saved: "Saved", pending: "Edited", saving: "Saving…", failed: "Not saved" }[autosave.status];
 
@@ -239,6 +242,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
         <span className="topbar-divider" />
         <Button icon="text" tip="Add text" shortcut="t" disabled={!isReady} onClick={textTool.addText} />
+        <Button icon="text" tip="Lay out a report of this site" disabled={!catalog} onClick={() => setReportsOpen(true)}>
+          Reports
+        </Button>
         <Button icon="map" tip="Draw the site again" onClick={() => navigate.editSite(project)}>
           Edit site
         </Button>
@@ -307,6 +313,15 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         </div>
       </div>
       </PaletteSwatches.Provider>
+
+      {isReportsOpen && catalog && (
+        <ReportsWorkspace
+          project={{ ...project, look }}
+          catalog={catalog}
+          onClose={() => setReportsOpen(false)}
+          onSaved={(reports) => setProject((current) => ({ ...current, reports }))}
+        />
+      )}
 
       {isExportOpen && diagram && (
         <ExportDialog

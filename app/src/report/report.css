@@ -1,0 +1,515 @@
+/* The report editor: the library, the pages on the desk, the inspector.
+   It reads as the sheet workspace does: paper chrome, prints on a deeper
+   desk, ink-blue selection, hairlines instead of boxes. */
+
+.reports-workspace {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  animation: fade-in var(--fast) var(--ease);
+}
+
+.reports-empty {
+  position: relative;
+  flex: 1;
+  background: var(--canvas);
+}
+
+.report-name {
+  font-family: var(--font-ui);
+  font-size: 13px;
+}
+
+.report-switch {
+  width: 180px;
+}
+
+.report-select {
+  height: 26px;
+  min-width: 0;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  font-size: 12.5px;
+}
+
+.report-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* * ==== library ==== */
+
+.report-library {
+  flex: none;
+  width: var(--diagram-column-width);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.report-panel-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 49px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.report-panel-title {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.report-library-loading {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--text-2);
+  animation: spin 0.8s linear infinite;
+}
+
+.report-library-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 12px 2px;
+  padding: 0 8px;
+  height: 28px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-3);
+}
+
+.report-library-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.report-library-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 8px 16px;
+}
+
+.library-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 8px 4px 4px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.library-item:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.library-item.is-dragged {
+  opacity: 0.5;
+}
+
+.library-thumb {
+  flex: none;
+  width: 56px;
+  height: 40px;
+  border-radius: var(--radius-s);
+  background: var(--canvas);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.library-thumb svg,
+.library-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.library-glyph {
+  color: var(--text-3);
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.library-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.library-name,
+.library-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-name {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.library-detail {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.library-problem {
+  margin: 10px 4px 0;
+}
+
+.library-ghost {
+  position: fixed;
+  z-index: 40;
+  transform: translate(12px, 12px);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  color: var(--text);
+  font-size: 12.5px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* * ==== pages ==== */
+
+.report-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: var(--canvas);
+}
+
+.report-stack {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 24px 32px 72px;
+}
+
+.report-page-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-page-slot.is-drop-above::before,
+.report-page-slot.is-drop-below::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.report-page-slot.is-drop-above::before {
+  top: -15px;
+}
+
+.report-page-slot.is-drop-below::after {
+  bottom: -15px;
+}
+
+.report-page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.report-page-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  cursor: grab;
+  touch-action: none;
+}
+
+.report-page-slot.is-current .report-page-grip {
+  box-shadow: 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+}
+
+.report-page-paper {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.report-page-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.report-page-slot:hover .report-page-actions,
+.report-page-slot.is-current .report-page-actions,
+.report-page-actions:focus-within {
+  opacity: 1;
+}
+
+.report-page-wrap {
+  position: relative;
+}
+
+.report-page {
+  position: relative;
+  background: var(--paper-blank);
+  box-shadow: var(--paper-shadow);
+}
+
+.report-page-content {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.report-backdrop,
+.report-backdrop > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.report-block {
+  position: absolute;
+  cursor: move;
+  touch-action: none;
+}
+
+.report-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow var(--fast) var(--ease);
+  pointer-events: none;
+}
+
+.report-block:hover::after {
+  box-shadow: inset 0 0 0 1px var(--accent-soft), 0 0 0 1px var(--focus);
+}
+
+.report-block.is-loading {
+  background: linear-gradient(100deg, transparent 30%, var(--hover) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.report-block-picture,
+.report-block-picture > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.report-block.is-editing .report-block-picture {
+  visibility: hidden;
+}
+
+.report-block-error {
+  position: absolute;
+  inset: 0;
+  padding: 6px;
+  color: var(--danger);
+  font-size: 11px;
+}
+
+.report-selection {
+  position: absolute;
+  box-shadow: 0 0 0 1px var(--accent);
+  pointer-events: none;
+}
+
+.report-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 2px;
+  background: var(--paper-blank);
+  box-shadow: 0 0 0 1px var(--accent);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.report-handle.is-nw { left: 0; top: 0; cursor: nwse-resize; }
+.report-handle.is-n { left: 50%; top: 0; cursor: ns-resize; }
+.report-handle.is-ne { left: 100%; top: 0; cursor: nesw-resize; }
+.report-handle.is-e { left: 100%; top: 50%; cursor: ew-resize; }
+.report-handle.is-se { left: 100%; top: 100%; cursor: nwse-resize; }
+.report-handle.is-s { left: 50%; top: 100%; cursor: ns-resize; }
+.report-handle.is-sw { left: 0; top: 100%; cursor: nesw-resize; }
+.report-handle.is-w { left: 0; top: 50%; cursor: ew-resize; }
+
+/* The red pencil: a snap line, the one warm mark in the chrome. */
+.report-guide {
+  position: absolute;
+  background: var(--brand);
+  pointer-events: none;
+}
+
+.report-guide.is-x {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.report-guide.is-y {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.report-text-editor {
+  white-space: pre-wrap;
+  overflow: visible;
+  background: color-mix(in srgb, var(--paper-blank) 70%, transparent);
+  box-shadow: 0 0 0 1px var(--accent);
+  z-index: 2;
+}
+
+.report-add-page {
+  flex: none;
+}
+
+/* * ==== inspector ==== */
+
+.report-inspector {
+  flex: none;
+  border-left: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.report-box-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.report-box-fields .number-unit {
+  margin-right: 6px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.report-arrange {
+  display: flex;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.report-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 6px 0 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.report-layer {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: var(--radius);
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 28px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.report-layer:hover {
+  background: var(--hover);
+}
+
+.report-layer.is-selected {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+.report-layer.is-drop-above {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.report-layer.is-drop-below {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.report-layer-kind {
+  flex: none;
+  width: 44px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 550;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.report-layer-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

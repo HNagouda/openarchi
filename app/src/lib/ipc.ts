@@ -17,6 +17,9 @@ import type {
   ProjectSummary,
   ProjectView,
   Ratios,
+  Report,
+  ReportBlock,
+  ReportFormat,
 } from "./types";
 
 export const libraryPath = () => invoke<string>("library_path");
@@ -88,3 +91,16 @@ export const analysisFileName = (sectionId: string | null) => invoke<string>("an
 /** SVG or PDF, by the extension of `path`. Without a section id, the whole analysis. */
 export const exportAnalysis = (themeId: string, sectionId: string | null, path: string) =>
   invoke<string>("export_analysis", { themeId, sectionId, path });
+
+export const saveReports = (reports: Report[]) => invoke<string>("save_reports", { reports });
+/** One block on its own, `width_mm` by `height_mm`, for the report editor to place. */
+export const renderReportBlock = (themeId: string, block: ReportBlock) =>
+  invoke<string>("render_report_block", { themeId, block });
+/** A page with only its background and page number. */
+export const renderReportBackdrop = (report: Report, index: number) =>
+  invoke<string>("render_report_backdrop", { report, index });
+export const reportFileName = (reportName: string, format: ReportFormat) =>
+  invoke<string>("report_file_name", { reportName, format });
+/** One PDF, or an SVG or PNG per page next to `path`. Returns the files written. */
+export const exportReport = (report: Report, format: ReportFormat, dpi: number, path: string) =>
+  invoke<string[]>("export_report", { report, format, dpi, path });
