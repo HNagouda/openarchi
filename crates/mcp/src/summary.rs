@@ -178,6 +178,7 @@ mod tests {
             walk: None,
             editions: Default::default(),
             context: vec![],
+            terrain: None,
         }
     }
 

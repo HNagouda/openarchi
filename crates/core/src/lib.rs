@@ -21,6 +21,7 @@ pub mod ratios;
 pub mod render;
 pub mod report;
 pub mod scene;
+pub mod section;
 pub mod selection;
 pub mod sheet;
 pub mod site;

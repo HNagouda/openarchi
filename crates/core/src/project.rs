@@ -16,6 +16,7 @@ use crate::area::Area;
 use crate::pin::Pin;
 use crate::report::Report;
 use crate::scene::{Layer, Scene};
+use crate::section::SectionLine;
 use crate::sheet::Sheet;
 use crate::theme::LayerOverride;
 use crate::view::{SunMoment, View};
@@ -137,6 +138,10 @@ pub struct Look {
     /// Leaves the project's pins off this sheet.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hide_pins: bool,
+    /// The line this sheet is cut along in the section view, drawn on its
+    /// plan as a cut marker. `None` until the user draws one; older projects have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub section: Option<SectionLine>,
 }
 
 impl Default for Look {
@@ -152,6 +157,7 @@ impl Default for Look {
             name: String::new(),
             selection: None,
             hide_pins: false,
+            section: None,
         }
     }
 }
