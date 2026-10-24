@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { analysisFileName, errorText, exportAnalysis, getAnalysis, revealPath } from "../../lib/ipc";
 import { fileManagerName } from "../../lib/platform";
-import type { AnalysisPart, AnalysisSection, ProjectView } from "../../lib/types";
+import type { AnalysisPart, AnalysisSection, Area, ProjectView } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { Problem } from "../../ui/Problem";
 import { Section } from "../../ui/Section";
@@ -26,9 +26,13 @@ const PARTS: { part: AnalysisPart; title: string; waiting: string }[] = [
 const SVG_FILTER = { name: "SVG page", extensions: ["svg"] };
 const PDF_FILTER = { name: "PDF page", extensions: ["pdf"] };
 
-type Props = { project: ProjectView; themeId: string };
+/** What the intro says, for the whole site and for a sheet with a sub-selection. */
+const INTRO_WHOLE_SITE = "Location, site and climate, drawn in the sheet's palette.";
+const INTRO_SHEET_AREA = "Site describes this sheet's area only. Location, climate and rain describe the whole site.";
 
-export function AnalysisPanel({ project, themeId }: Props) {
+type Props = { project: ProjectView; themeId: string; selection?: Area | null };
+
+export function AnalysisPanel({ project, themeId, selection = null }: Props) {
   const toast = useToast();
 
   const exportTo = async (sectionId: string | null) => {
@@ -38,7 +42,7 @@ export function AnalysisPanel({ project, themeId }: Props) {
         filters: sectionId ? [SVG_FILTER, PDF_FILTER] : [PDF_FILTER, SVG_FILTER],
       });
       if (!path) return;
-      const written = await exportAnalysis(themeId, sectionId, path);
+      const written = await exportAnalysis(themeId, selection, sectionId, path);
       const fileName = written.split(/[\\/]/).pop() ?? written;
       toast(`Exported ${fileName}`, { action: { label: `Show in ${fileManagerName}`, run: () => revealPath(written) } });
     } catch (reason) {
@@ -53,13 +57,21 @@ export function AnalysisPanel({ project, themeId }: Props) {
   return (
     <div className="analysis">
       <div className="analysis-toolbar">
-        <p className="analysis-intro">Location, site and climate, drawn in the sheet's palette.</p>
+        <p className="analysis-intro">{selection ? INTRO_SHEET_AREA : INTRO_WHOLE_SITE}</p>
         <Button icon="export" variant="secondary" tip="Save the whole analysis as one PDF or SVG page" onClick={() => exportTo(null)}>
           Export
         </Button>
       </div>
       {PARTS.map((entry) => (
-        <PartView key={entry.part} {...entry} themeId={themeId} fetchedAt={project.fetched_at} onExport={exportTo} />
+        <PartView
+          key={entry.part}
+          {...entry}
+          themeId={themeId}
+          // Only the site part follows the area, so a new area leaves the others alone.
+          selection={entry.part === "site" ? selection : null}
+          fetchedAt={project.fetched_at}
+          onExport={exportTo}
+        />
       ))}
     </div>
   );
@@ -70,12 +82,13 @@ type PartProps = {
   title: string;
   waiting: string;
   themeId: string;
+  selection: Area | null;
   fetchedAt: string | null;
   onExport: (sectionId: string) => void;
 };
 
-function PartView({ part, title, waiting, themeId, fetchedAt, onExport }: PartProps) {
-  const { sections, error, retry } = useAnalysisPart(part, themeId, fetchedAt);
+function PartView({ part, title, waiting, themeId, selection, fetchedAt, onExport }: PartProps) {
+  const { sections, error, retry } = useAnalysisPart(part, themeId, selection, fetchedAt);
 
   if (error && !sections) {
     return (
@@ -144,16 +157,18 @@ function SectionView({ section, onExport }: { section: AnalysisSection; onExport
   );
 }
 
-/** One part for the open site in `themeId`. A palette change keeps the old
-    charts on screen until the new ones arrive, so nothing flickers. */
-function useAnalysisPart(part: AnalysisPart, themeId: string, fetchedAt: string | null) {
+/** One part for the open site in `themeId`, or for `selection` when the part
+    follows the sheet's area. A palette or area change keeps the old charts on
+    screen until the new ones arrive, so nothing flickers. */
+function useAnalysisPart(part: AnalysisPart, themeId: string, selection: Area | null, fetchedAt: string | null) {
   const [sections, setSections] = useState<AnalysisSection[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const selectionKey = JSON.stringify(selection);
 
   useEffect(() => {
     let isCurrent = true;
-    getAnalysis(part, themeId)
+    getAnalysis(part, themeId, selection)
       .then((result) => {
         if (!isCurrent) return;
         setSections(result);
@@ -167,7 +182,9 @@ function useAnalysisPart(part: AnalysisPart, themeId: string, fetchedAt: string 
     return () => {
       isCurrent = false;
     };
-  }, [part, themeId, fetchedAt, attempt]);
+    // `selectionKey` stands for `selection`, which is a new object on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [part, themeId, selectionKey, fetchedAt, attempt]);
 
   const retry = useCallback(() => {
     setError(null);
