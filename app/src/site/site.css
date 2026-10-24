@@ -221,6 +221,11 @@
   color: var(--text-2);
 }
 
+/* MapLibre draws the collapsed attribution "i" as a black image, invisible on a dark map. */
+:root[data-appearance="dark"] .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}
+
 /* * ==== side panel ==== */
 
 .site-panel {
