@@ -21,14 +21,21 @@ pub const BUSINESS_GROUPS: [(&str, &str); 5] = [
 ];
 
 /// Facility groups in legend order: (group, label).
-pub const FACILITY_GROUPS: [(&str, &str); 6] = [
+pub const FACILITY_GROUPS: [(&str, &str); 7] = [
     ("education", "Education"),
     ("culture", "Culture"),
     ("civic", "Civic and worship"),
     ("health", "Health"),
     ("leisure", "Sport and play"),
     ("parking", "Car parking"),
+    ("bicycle_parking", "Bicycle parking"),
 ];
+
+/// The facility groups that are somewhere to leave a car or a bike rather
+/// than somewhere to go. Walk counts and ratios keep them apart, so 400
+/// bicycle racks do not drown out the schools, and a site without a car park
+/// is not told it lacks a facility.
+pub const PARKING_GROUPS: [&str; 2] = ["parking", "bicycle_parking"];
 
 /// Transit modes, most important first: (group, label). A stop served by
 /// several modes takes the first.
@@ -41,7 +48,7 @@ pub const TRANSIT_GROUPS: [(&str, &str); 5] = [
 ];
 
 /// Every `amenity` value openarchi keeps, with its layer and group.
-pub const AMENITIES: [(&str, Layer, &str); 41] = [
+pub const AMENITIES: [(&str, Layer, &str); 42] = [
     ("restaurant", Layer::Business, "food_drink"),
     ("cafe", Layer::Business, "food_drink"),
     ("bar", Layer::Business, "food_drink"),
@@ -84,6 +91,8 @@ pub const AMENITIES: [(&str, Layer, &str); 41] = [
     ("hospital", Layer::Facility, "health"),
     ("clinic", Layer::Facility, "health"),
     ("dentist", Layer::Facility, "health"),
+    // Racks, stands and the big station bicycle parks; `capacity` tells them apart.
+    ("bicycle_parking", Layer::Facility, "bicycle_parking"),
 ];
 
 /// `amenity=parking` on its own, because car parks are areas that the query
@@ -302,6 +311,10 @@ mod tests {
     #[test]
     fn street_furniture_and_vacant_shops_are_not_places() {
         assert_eq!(place_group(&tags(&[("amenity", "bench")])), None);
+        assert_eq!(
+            place_group(&tags(&[("amenity", "bicycle_parking")])),
+            Some((Layer::Facility, "bicycle_parking"))
+        );
         assert_eq!(place_group(&tags(&[("amenity", "waste_basket")])), None);
         assert_eq!(place_group(&tags(&[("shop", "vacant")])), None);
     }

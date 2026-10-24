@@ -2,7 +2,7 @@
 //! groups stay apart in a one-colour palette and for readers who cannot tell
 //! the category colours apart.
 
-use super::geometry::push_paper_points;
+use super::geometry::{mm, push_paper_points};
 
 /// The shapes in the order classes take them, in one place.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,15 +13,18 @@ pub enum Shape {
     Triangle,
     InvertedTriangle,
     Hexagon,
+    /// A ring, light enough for a group with hundreds of places (bicycle parking).
+    Ring,
 }
 
-const SHAPES: [Shape; 6] = [
+const SHAPES: [Shape; 7] = [
     Shape::Circle,
     Shape::Square,
     Shape::Diamond,
     Shape::Triangle,
     Shape::InvertedTriangle,
     Shape::Hexagon,
+    Shape::Ring,
 ];
 
 /// How far each shape's corners reach, relative to a circle of the same
@@ -30,6 +33,9 @@ const SQUARE_REACH: f64 = 1.25;
 const DIAMOND_REACH: f64 = 1.3;
 const TRIANGLE_REACH: f64 = 1.45;
 const HEXAGON_REACH: f64 = 1.1;
+/// A ring's outer edge, and its hole as a share of that, so it reads as a ring at 1 mm.
+const RING_REACH: f64 = 1.1;
+const RING_HOLE: f64 = 0.45;
 
 /// The shape for the class at `index`; classes past the last shape start over.
 pub fn shape_for(index: usize) -> Shape {
@@ -64,11 +70,32 @@ pub fn element(shape: Shape, (x, y): (f64, f64), radius: f64, attributes: &str) 
         Shape::Triangle => corners(3, TRIANGLE_REACH, 0.0),
         Shape::InvertedTriangle => corners(3, TRIANGLE_REACH, std::f64::consts::PI),
         Shape::Hexagon => corners(6, HEXAGON_REACH, std::f64::consts::FRAC_PI_6),
+        Shape::Ring => return ring((x, y), radius * RING_REACH, attributes),
     };
     let mut data = String::new();
     push_paper_points(&mut data, &points, true);
 
     format!(r#"<path d="{data}"{attributes}/>"#)
+}
+
+/// Two circles as one path; the even-odd rule leaves the inner one open.
+fn ring((x, y): (f64, f64), outer: f64, attributes: &str) -> String {
+    let inner = outer * RING_HOLE;
+    let circle = |radius: f64| {
+        format!(
+            "M{} {}a{r} {r} 0 1 0 {d} 0a{r} {r} 0 1 0 -{d} 0z",
+            mm(x - radius),
+            mm(y),
+            r = mm(radius),
+            d = mm(2.0 * radius)
+        )
+    };
+
+    format!(
+        r#"<path d="{}{}" fill-rule="evenodd"{attributes}/>"#,
+        circle(outer),
+        circle(inner)
+    )
 }
 
 #[cfg(test)]
@@ -80,6 +107,13 @@ mod tests {
         assert_eq!(shape_for(0), Shape::Circle);
         assert_eq!(shape_for(1), Shape::Square);
         assert_eq!(shape_for(SHAPES.len()), Shape::Circle);
+    }
+
+    #[test]
+    fn a_ring_is_two_circles_with_the_inner_one_open() {
+        let ring = element(Shape::Ring, (10.0, 10.0), 1.0, "");
+        assert_eq!(ring.matches('z').count(), 2);
+        assert!(ring.contains("fill-rule=\"evenodd\""));
     }
 
     #[test]

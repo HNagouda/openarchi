@@ -285,7 +285,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Get the site's 15 minute neighbourhood: for walks of 5, 10 and 15 minutes from the site centre at 1.4 m/s over the OpenStreetMap footpath network, how many businesses, facilities and transit stops lie within reach, by group (food_drink, shop, education, health, tram, bus and so on). Counts are cumulative, so the 10 minute counts include the 5 minute ones. The site must have been fetched first, with OpenStreetMap reachable."
+        description = "Get the site's 15 minute neighbourhood: for walks of 5, 10 and 15 minutes from the site centre at 1.4 m/s over the OpenStreetMap footpath network, how many businesses, facilities, car and bicycle parking places and transit stops lie within reach, by group (food_drink, shop, education, health, bicycle_parking, tram, bus and so on). Parking is counted apart from the facilities. Counts are cumulative, so the 10 minute counts include the 5 minute ones. The site must have been fetched first, with OpenStreetMap reachable."
     )]
     async fn get_neighbourhood(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self

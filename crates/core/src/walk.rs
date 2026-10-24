@@ -19,7 +19,9 @@ use serde::Serialize;
 use self::graph::Graph;
 use self::surface::Surface;
 use crate::scene::{Attributes, Feature, Layer, Scene};
-use crate::sources::osm::{self, Osm, BUSINESS_GROUPS, FACILITY_GROUPS, TRANSIT_GROUPS};
+use crate::sources::osm::{
+    self, Osm, BUSINESS_GROUPS, FACILITY_GROUPS, PARKING_GROUPS, TRANSIT_GROUPS,
+};
 
 /// An unhurried adult pace, about 5 km/h.
 pub const SPEED_M_S: f64 = 1.4;
@@ -129,7 +131,10 @@ pub struct Neighbourhood {
 pub struct BandCounts {
     pub minutes: u32,
     pub businesses: Vec<GroupCount>,
+    /// Places to go to: education, culture, civic, health, sport and play.
     pub facilities: Vec<GroupCount>,
+    /// Places to leave a car or a bike, kept apart from the facilities.
+    pub parking: Vec<GroupCount>,
     pub transit_stops: Vec<GroupCount>,
 }
 
@@ -160,13 +165,29 @@ pub fn neighbourhood(scene: &Scene) -> Option<Neighbourhood> {
             BandCounts {
                 minutes,
                 businesses: counts(within(Layer::Business), &BUSINESS_GROUPS),
-                facilities: counts(within(Layer::Facility), &FACILITY_GROUPS),
+                facilities: counts(within(Layer::Facility), &destination_groups()),
+                parking: counts(within(Layer::Facility), &parking_groups()),
                 transit_stops: counts(within(Layer::TransitStop), &TRANSIT_GROUPS),
             }
         })
         .collect();
 
     Some(Neighbourhood { bands })
+}
+
+/// The facility groups that are not parking, in legend order.
+fn destination_groups() -> Vec<(&'static str, &'static str)> {
+    FACILITY_GROUPS
+        .into_iter()
+        .filter(|(group, _)| !PARKING_GROUPS.contains(group))
+        .collect()
+}
+
+fn parking_groups() -> Vec<(&'static str, &'static str)> {
+    FACILITY_GROUPS
+        .into_iter()
+        .filter(|(group, _)| PARKING_GROUPS.contains(group))
+        .collect()
 }
 
 fn counts<'a>(

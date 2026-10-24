@@ -1,11 +1,14 @@
-//! Place groups from OpenStreetMap: businesses and facilities on the site by
-//! group, and transit stops within a 10 minute walk by mode. Classes and
+//! Place groups from OpenStreetMap: businesses, facilities and parking on the
+//! site by group, and transit stops within a 10 minute walk by mode. Parking
+//! is its own group, because a few hundred bicycle racks would otherwise make
+//! every other facility a sliver. Classes and
 //! colours come from the diagrams that draw them, so a chart matches its sheet.
 
 use super::buildings::diagram_classify;
 use super::{finish, row, Group, Unit};
 use crate::render::{build_classes, class_of};
 use crate::scene::{Feature, Layer, Scene};
+use crate::sources::osm::PARKING_GROUPS;
 use crate::theme::Theme;
 use crate::Result;
 
@@ -36,6 +39,17 @@ pub fn groups(scene: &Scene, theme: &Theme) -> Result<Vec<Group>> {
         })
         .collect();
 
+    let is_parking = |feature: &&Feature| {
+        feature
+            .attributes
+            .group
+            .as_deref()
+            .is_some_and(|group| PARKING_GROUPS.contains(&group))
+    };
+    let facilities = on_site(Layer::Facility);
+    let (parking, destinations): (Vec<&Feature>, Vec<&Feature>) =
+        facilities.into_iter().partition(is_parking);
+
     Ok(vec![
         counted(
             "businesses",
@@ -49,7 +63,15 @@ pub fn groups(scene: &Scene, theme: &Theme) -> Result<Vec<Group>> {
             "facilities",
             "Facilities",
             Unit::Places,
-            &on_site(Layer::Facility),
+            &destinations,
+            FACILITY_DIAGRAM,
+            theme,
+        )?,
+        counted(
+            "parking",
+            "Car and bicycle parking",
+            Unit::Places,
+            &parking,
             FACILITY_DIAGRAM,
             theme,
         )?,

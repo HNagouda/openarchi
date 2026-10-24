@@ -99,7 +99,7 @@ impl Dataset {
             Dataset::Raster(raster) => format!("wcs-{}", raster.coverage().id),
             Dataset::Cbs(year) => format!("cbs-vierkant100-{year}"),
             Dataset::BagUnits => "bag-verblijfsobject".to_string(),
-            Dataset::Osm(radius_m) => format!("osm-r{radius_m}"),
+            Dataset::Osm(radius_m) => format!("{}-r{radius_m}", osm::CACHE_NAME),
         }
     }
 }

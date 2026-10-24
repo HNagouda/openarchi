@@ -32,8 +32,11 @@ use crate::walk::REACH_M;
 use crate::{Error, Result};
 
 pub use self::stops::line_order;
-pub use self::tags::{BUSINESS_GROUPS, FACILITY_GROUPS, TRANSIT_GROUPS};
+pub use self::tags::{BUSINESS_GROUPS, FACILITY_GROUPS, PARKING_GROUPS, TRANSIT_GROUPS};
 
+/// The answer's folder in the tile cache. Bumped whenever the query asks for
+/// more, so an answer cached before bicycle parking was asked for is not reused.
+pub const CACHE_NAME: &str = "osm-v2";
 const SERVICE: &str = "OpenStreetMap Overpass";
 const URL: &str = "https://overpass-api.de/api/interpreter";
 /// What Overpass may spend on the query. A 1.5 km radius around the Westerkerk,
@@ -190,6 +193,11 @@ fn place(element: &Element) -> Option<Feature> {
             kind: tags::place_kind(&element.tags),
             name: element.tags.get("name").cloned(),
             group: Some(group.to_string()),
+            // Mappers write "200", sometimes "ca. 200" or "200;20"; only a plain number is kept.
+            capacity: element
+                .tags
+                .get("capacity")
+                .and_then(|capacity| capacity.trim().parse().ok()),
             ..Attributes::default()
         },
     })

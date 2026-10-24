@@ -21,6 +21,8 @@ use crate::scene::{Attributes, Feature, Layer};
 const SAME_STOP_M: f64 = 250.0;
 /// Unnamed nodes are only joined with ones this close: the two sides of a street.
 const SAME_UNNAMED_STOP_M: f64 = 40.0;
+/// Where trains sit in `TRANSIT_GROUPS`.
+const TRAIN_RANK: usize = 0;
 
 /// One stop node as Overpass returned it, in RD New.
 #[derive(Debug, Clone)]
@@ -118,9 +120,11 @@ fn stop_feature(
         platforms.iter().map(|member| member.position).collect()
     };
 
+    // Train refs in the Netherlands are service series like "3500", which mean
+    // nothing on a board; a station shows its name and mode only.
     let mut sorted_lines: Vec<(usize, String)> = lines
         .into_iter()
-        .filter(|(_, line)| !line.is_empty())
+        .filter(|(rank, line)| !line.is_empty() && *rank != TRAIN_RANK)
         .collect();
     sorted_lines.sort_by_key(|(rank, line)| (*rank, line_order(line)));
 
@@ -247,6 +251,28 @@ mod tests {
             node(2, 900.0, &[("highway", "bus_stop"), ("name", "Kerkstraat")]),
         ];
         assert_eq!(merge(&nodes, &[]).len(), 2);
+    }
+
+    #[test]
+    fn a_station_keeps_its_mode_but_not_its_train_series_numbers() {
+        let nodes = [
+            node(
+                1,
+                0.0,
+                &[("railway", "station"), ("name", "Eindhoven Centraal")],
+            ),
+            node(
+                2,
+                20.0,
+                &[("highway", "bus_stop"), ("name", "Eindhoven Centraal")],
+            ),
+        ];
+        let routes = [route("train", "3500", &[1]), route("bus", "400", &[2])];
+
+        let stops = merge(&nodes, &routes);
+
+        assert_eq!(stops[0].attributes.group.as_deref(), Some("train"));
+        assert_eq!(stops[0].attributes.lines, ["Bus 400"]);
     }
 
     #[test]

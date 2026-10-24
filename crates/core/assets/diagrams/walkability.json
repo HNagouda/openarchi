@@ -46,6 +46,10 @@
         {
           "value": "parking",
           "label": "Car parking"
+        },
+        {
+          "value": "bicycle_parking",
+          "label": "Bicycle parking"
         }
       ]
     }

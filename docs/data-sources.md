@@ -50,7 +50,7 @@ Walk times need a footpath network and a shortest path search. Public routing se
 
 That is how it was built (`crates/core/src/sources/osm/` and `crates/core/src/walk/`). The one query per site reaches 1,500 m around the middle of the 250 m tile the site centre falls in, so the cached answer serves any site centred in that tile; for a 300 m site at the Westerkerk the answer was 8.2 MB with 180 route relations, and the whole fetch, PDOK included, took 42 s. Two things came up on the way. Route relations are incomplete: at Westermarkt only the night buses list the stop, so a stop tagged `railway=tram_stop` stays a tram stop even when no tram route lists it. And Amsterdam maps pavements as separate footways, so they are walked but not drawn, or every street would show three lines.
 
-#! NOTE[poi, parking] : Car parks are 71 of 172 places within 15 minutes of TU/e; should Walkability leave car parking out?
+#! NOTE[decision, poi, parking] : Car parks stay in Walkability, and bicycle parking joins them as its own group (2026-10-24)
 
 #! NOTE[transit, gtfs] : Do we want departures per hour per stop? That is the only reason to touch the 242 MB GTFS file
 

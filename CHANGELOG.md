@@ -27,14 +27,14 @@ What changed in each version of openarchi, newest first.
 
 ### Places, transit and walking
 
-- Four new diagrams from OpenStreetMap. Business shows shops, food and drink, offices, hotels and services on the site. Facilities shows education, culture, civic buildings and places of worship, health care, sport and play, and car parking. Transit shows the bus, tram, metro and train stops within a 10 minute walk, each named with the line numbers that call there. Walkability shows how far you get on foot in 5, 10 and 15 minutes, with the facilities inside each band.
-- Each group has its own shape as well as its colour, so the diagrams still read in Mono. Places of one group that would touch on paper merge into one larger symbol, so a busy shopping street does not turn into a smear.
+- Four new diagrams from OpenStreetMap. Business shows shops, food and drink, offices, hotels and services on the site. Facilities shows education, culture, civic buildings and places of worship, health care, sport and play, car parking and bicycle parking. Transit shows the bus, tram, metro and train stops within a 10 minute walk, each named with the bus, tram, metro and ferry lines that call there. Train stations show their name only, without service numbers. Walkability shows how far you get on foot in 5, 10 and 15 minutes, with the facilities inside each band.
+- Each group has its own shape as well as its colour, so the diagrams still read in Mono. Places of one group that would touch on paper merge into one larger symbol, so a busy shopping street does not turn into a smear. Bicycle parking is drawn as a light ring, and a bicycle park with its capacity mapped grows with it, so a station's bicycle park stands out from a single rack.
 - Transit and Walkability zoom out until the walk fits the sheet, for example to 1:10 000 for the 15 minute walk around the Westerkerk, with the site outlined in the middle.
-- Walk times are worked out on your own computer over the OpenStreetMap footpath network at 1.4 m/s, from the site centre. Benches, bins, vending machines and bicycle racks are left out.
-- The Ratios view counts businesses and facilities on the site by group, and transit stops within a 10 minute walk by mode.
+- Walk times are worked out on your own computer over the OpenStreetMap footpath network at 1.4 m/s, from the site centre. Benches, bins and vending machines are left out.
+- The Ratios view counts businesses and facilities on the site by group, car and bicycle parking on their own, and transit stops within a 10 minute walk by mode.
 - Sheets that show OpenStreetMap data credit "© OpenStreetMap contributors (ODbL 1.0)". Other sheets leave the credit off.
 - OpenStreetMap is asked once per site, and the answer is kept with the other downloaded data, so a nudged site does not ask again. When it is busy or down, the site still arrives without these layers and says why.
-- Assistants can read the walk counts with the new `get_neighbourhood` tool.
+- Assistants can read the walk counts with the new `get_neighbourhood` tool. Car and bicycle parking are counted apart from the facilities, so the site summary never lists parking as a missing facility.
 
 ### Analysis
 
