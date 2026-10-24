@@ -159,7 +159,7 @@ export function ColorPicker({ value, onChange, acceptsRoles = false, selected = 
 
       {swatches.length > 0 && (
         <SwatchRow
-          title="Theme"
+          title="Palette"
           swatches={swatches}
           selected={selected}
           onPick={(swatch) => onChange(acceptsRoles ? swatch.value : swatch.colour)}

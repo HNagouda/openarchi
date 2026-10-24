@@ -35,11 +35,11 @@ const STEPS: Step[] = [
     ),
   },
   {
-    title: "Pick a theme",
+    title: "Pick a palette",
     art: "theme",
     body: (
       <>
-        A theme styles the whole series at once, so the sheets read as a set. Step through themes with{" "}
+        A palette styles the whole series at once, so the sheets read as a set. Step through palettes with{" "}
         <Keys shortcut="[" /> and <Keys shortcut="]" />, change any layer's colour in the inspector, and undo anything
         with <Keys shortcut="mod+z" />.
       </>

@@ -53,7 +53,7 @@ export function TextToolbar({ text, style, isMoved, isBox, onStyle, onSeal, onBa
         value={style.family ?? ""}
         onChange={(event) => onStyle({ family: event.target.value === "" ? null : event.target.value })}
       >
-        <option value="">Theme ({text.family})</option>
+        <option value="">Palette ({text.family})</option>
         {FAMILIES.map((family) => (
           <option key={family} value={family}>
             {family}

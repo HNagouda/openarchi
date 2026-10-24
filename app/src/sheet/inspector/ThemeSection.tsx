@@ -10,7 +10,7 @@ const BUILTIN_AUTHOR = "openarchi";
 
 type Props = { themes: Theme[]; selectedId: string; onSelect: (id: string) => void };
 
-/** A theme picker that works like a font menu: the current theme closed, every theme open. [ and ] step through them. */
+/** A palette picker that works like a font menu: the current palette closed, every palette open. [ and ] step through them. */
 export function ThemeSection({ themes, selectedId, onSelect }: Props) {
   const [isOpen, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -54,9 +54,9 @@ export function ThemeSection({ themes, selectedId, onSelect }: Props) {
   return (
     <Section
       id="theme"
-      title="Theme"
+      title="Palette"
       aside={
-        <span className="section-keys" data-tip="Previous and next theme" data-tip-side="left">
+        <span className="section-keys" data-tip="Previous and next palette" data-tip-side="left">
           <Keys shortcut="[" />
           <Keys shortcut="]" />
         </span>
@@ -77,17 +77,17 @@ export function ThemeSection({ themes, selectedId, onSelect }: Props) {
           }}
         >
           {selected && <Strip theme={selected} />}
-          <span className="theme-trigger-name">{selected?.name ?? "Choose a theme"}</span>
+          <span className="theme-trigger-name">{selected?.name ?? "Choose a palette"}</span>
           <Icon name="chevronUpDown" size={14} />
         </button>
         {selected && <p className="inspector-note">{selected.description}</p>}
 
         {isOpen && (
-          <div className="theme-menu" role="listbox" aria-label="Themes" onKeyDown={onListKey}>
+          <div className="theme-menu" role="listbox" aria-label="Palettes" onKeyDown={onListKey}>
             {builtIn.map((theme) => (
               <ThemeOption key={theme.id} theme={theme} isSelected={theme.id === selectedId} onChoose={choose} />
             ))}
-            {own.length > 0 && <div className="theme-menu-heading">Your themes</div>}
+            {own.length > 0 && <div className="theme-menu-heading">Your palettes</div>}
             {own.map((theme) => (
               <ThemeOption key={theme.id} theme={theme} isSelected={theme.id === selectedId} onChoose={choose} />
             ))}

@@ -252,7 +252,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           <Filmstrip diagrams={diagrams} selectedId={look.diagram_id} thumbnails={thumbnails} onSelect={selectDiagram} />
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
-          {catalog && <Inspector catalog={catalog} project={project} look={look} thumbnails={thumbnails} onLook={history.change} onSeal={history.seal} />}
+          {catalog && <Inspector catalog={catalog} project={project} look={look} onLook={history.change} onSeal={history.seal} />}
         </div>
       </div>
       </PaletteSwatches.Provider>
@@ -285,7 +285,7 @@ function CanvasMessage({
   if (catalogError) {
     return (
       <div className="canvas-message">
-        <Problem title="Diagrams and themes aren't available." detail={catalogError}>
+        <Problem title="Diagrams and palettes aren't available." detail={catalogError}>
           <Button variant="secondary" onClick={onRetry}>
             Try again
           </Button>
