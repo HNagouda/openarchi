@@ -52,6 +52,13 @@ pub enum Dataset {
     /// One Overpass answer for every site centred in the tile, reaching this
     /// many metres around the tile's centre. See `sources/osm`.
     Osm(u32),
+    /// One BGT collection or the BAG buildings in a tile of the neighbourhood
+    /// around the site. Cached with the site's own tiles of the same data.
+    ContextBgt(&'static str),
+    ContextBag,
+    /// AHN in 2 m cells, for the heights of buildings around the site.
+    ContextSurface,
+    ContextTerrain,
 }
 
 /// What one tile of a dataset holds.
@@ -87,6 +94,10 @@ impl Dataset {
             Dataset::Cbs(_) => Source::Cbs,
             Dataset::BagUnits => Source::BagUnits,
             Dataset::Osm(_) => Source::Osm,
+            Dataset::ContextBgt(_)
+            | Dataset::ContextBag
+            | Dataset::ContextSurface
+            | Dataset::ContextTerrain => Source::Context,
         }
     }
 
@@ -95,8 +106,10 @@ impl Dataset {
     /// mixed with tiles of the one before.
     fn cache_name(&self) -> String {
         match self {
-            Dataset::Bgt(collection) => format!("bgt-{collection}"),
-            Dataset::Bag => "bag-pand".to_string(),
+            Dataset::Bgt(collection) | Dataset::ContextBgt(collection) => {
+                format!("bgt-{collection}")
+            }
+            Dataset::Bag | Dataset::ContextBag => "bag-pand".to_string(),
             Dataset::Brk => "brk-perceel".to_string(),
             Dataset::AhnSurface => format!("ahn-{}", ahn::SURFACE_COVERAGE),
             Dataset::AhnTerrain => format!("ahn-{}", ahn::TERRAIN_COVERAGE),
@@ -104,6 +117,8 @@ impl Dataset {
             Dataset::Cbs(year) => format!("cbs-vierkant100-{year}"),
             Dataset::BagUnits => "bag-verblijfsobject".to_string(),
             Dataset::Osm(radius_m) => format!("{}-r{radius_m}", osm::CACHE_NAME),
+            Dataset::ContextSurface => format!("ahn-{}-coarse", ahn::SURFACE_COVERAGE),
+            Dataset::ContextTerrain => format!("ahn-{}-coarse", ahn::TERRAIN_COVERAGE),
         }
     }
 }
@@ -178,6 +193,14 @@ pub fn fetch_from_pdok(dataset: &Dataset, tile: Tile) -> Result<Payload> {
         Dataset::BagUnits => bag_units::fetch_tile(rect).map(Payload::Records),
         // Not PDOK, but fetched and cached through the same pool and cache.
         Dataset::Osm(radius_m) => osm::fetch(tile, *radius_m).map(Payload::Osm),
+        Dataset::ContextBgt(collection) => bgt::fetch_tile(collection, rect).map(Payload::Records),
+        Dataset::ContextBag => bag::fetch_tile(rect).map(Payload::Records),
+        Dataset::ContextSurface => {
+            ahn::fetch_coarse_tile(ahn::SURFACE_COVERAGE, rect).map(Payload::Raster)
+        }
+        Dataset::ContextTerrain => {
+            ahn::fetch_coarse_tile(ahn::TERRAIN_COVERAGE, rect).map(Payload::Raster)
+        }
     }
 }
 
@@ -287,12 +310,18 @@ fn decode(dataset: &Dataset, bytes: &[u8]) -> Result<Payload> {
                 .collect();
             Ok(Payload::Cells(cells))
         }
-        Dataset::Raster(..) => raster::from_bytes(bytes).map(Payload::Raster),
-        Dataset::Bgt(_) | Dataset::Bag | Dataset::Brk | Dataset::Cbs(_) | Dataset::BagUnits => {
-            serde_json::from_slice(bytes)
-                .map(Payload::Records)
-                .map_err(|error| corrupt(error.to_string()))
+        Dataset::Raster(..) | Dataset::ContextSurface | Dataset::ContextTerrain => {
+            raster::from_bytes(bytes).map(Payload::Raster)
         }
+        Dataset::Bgt(_)
+        | Dataset::Bag
+        | Dataset::Brk
+        | Dataset::Cbs(_)
+        | Dataset::BagUnits
+        | Dataset::ContextBgt(_)
+        | Dataset::ContextBag => serde_json::from_slice(bytes)
+            .map(Payload::Records)
+            .map_err(|error| corrupt(error.to_string())),
         Dataset::Osm(_) => Ok(Payload::Osm(bytes.to_vec())),
     }
 }

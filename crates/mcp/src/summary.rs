@@ -177,6 +177,7 @@ mod tests {
             measured: Default::default(),
             walk: None,
             editions: Default::default(),
+            context: vec![],
         }
     }
 

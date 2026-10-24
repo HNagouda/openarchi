@@ -7,16 +7,18 @@ use std::fmt::Write;
 use geo::CoordsIter;
 
 use super::color;
+use super::context::{self, ContextArea, Neighbourhood};
 use super::drawing::{pattern_id, shadow_colour, write_layer, Canvas, Drawn};
 use super::frame::{ground_outline, FrameShape};
 use super::geometry::{ground_centre, Projection};
 use super::layout::{Layout, Rect};
 use super::legend::{self, Legend, Row, Swatch};
+use super::massing;
 use super::patterns;
 use super::points::{self, PointLayer};
 use super::shadow;
-use super::solid;
-use super::style::{self, ResolvedLayer, Role};
+use super::solid::{self, Neighbours};
+use super::style::{self, ResolvedLayer};
 use super::sunpath::{self, SunPath};
 use super::svg::layer_attributes;
 use super::typeset::Typesetter;
@@ -36,12 +38,6 @@ const AMBIENT_SHADOW_OPACITY: f64 = 0.2;
 /// A cool blue-grey the ambient shadows lean towards, the colour of shade outdoors.
 const COOL_SHADE: &str = "#4A5878";
 const COOL_SHARE: f64 = 0.35;
-/// Sheets at least this light count as light; dark sheets already have light massing.
-const LIGHT_SHEET_LUMINANCE: f64 = 0.5;
-/// Building fills darker than this are lightened in a tilted view on a light sheet.
-const DARK_MASSING_LUMINANCE: f64 = 0.4;
-/// How far a dark building fill moves towards the paper colour.
-const MASSING_LIGHTEN: f64 = 0.82;
 const MERGED_LABEL: &str = "Larger symbol: several places, or a big bicycle park";
 /// Room around the furthest walk band, so its edge does not touch the frame.
 const WALK_FRAME_MARGIN: f64 = 1.04;
@@ -60,7 +56,10 @@ pub struct SheetDrawing {
     /// The scale the drawing is actually at, which a tilted view may have reduced to fit.
     pub scale: u32,
     pub north_deg: f64,
-    pub has_scale_bar: bool,
+    /// A tilted view, where only lengths running left to right across the
+    /// paper are at `scale`: depth shortens with the tilt and heights rise
+    /// with it. The scale note says so.
+    pub is_foreshortened: bool,
     pub title_name: String,
 }
 
@@ -77,6 +76,8 @@ pub struct MapSpec<'a> {
     /// A plan zoomed out to a walk: the frame reaches this far from the
     /// centre, in metres, instead of hugging the site.
     pub reach_m: Option<f64>,
+    /// Where the neighbourhood shows, when this map shows one.
+    pub context: Option<ContextArea>,
 }
 
 pub struct Map {
@@ -106,6 +107,10 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
         has_volume: false,
         is_plate: false,
         reach_m,
+        context: Some(ContextArea {
+            zone,
+            reach_m: None,
+        }),
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -116,7 +121,7 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
         mm_per_m: projection.mm_per_m,
         scale,
         north_deg: 0.0,
-        has_scale_bar: true,
+        is_foreshortened: false,
         title_name: input.diagram.name.clone(),
     })
 }
@@ -161,6 +166,10 @@ pub fn axonometric(
         has_volume: true,
         is_plate: false,
         reach_m: None,
+        context: Some(ContextArea {
+            zone,
+            reach_m: None,
+        }),
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -171,13 +180,13 @@ pub fn axonometric(
         mm_per_m,
         scale,
         north_deg: projection.north_angle_deg(),
-        has_scale_bar: true,
+        is_foreshortened: true,
         title_name: input.diagram.name.clone(),
     })
 }
 
 /// The sheet's own scale when the drawing fits at it, or the nearest round scale that does.
-fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
+pub(super) fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
     let needed = 1000.0 / fitting_mm_per_m;
     if sheet_scale as f64 >= needed {
         return sheet_scale;
@@ -315,7 +324,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         }
     }
     if spec.has_volume {
-        lighten_massing(&mut layers, look, theme);
+        massing::lighten(&mut layers, look, theme);
     }
     let features = features_by_layer(scene, diagram);
     let canvas = Canvas {
@@ -325,9 +334,13 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     };
     let location = sun::site_location(&scene.area);
     let sun = sun::position_at(location, &look.sun);
+    let neighbourhood = Neighbourhood::of(scene, look.sheet.show_context, spec.context, scope);
 
     let mut defs = String::new();
     frame.write_defs(&mut defs);
+    if let Some(neighbourhood) = &neighbourhood {
+        neighbourhood.write_defs(&mut defs, &projection);
+    }
     for resolved in &layers {
         if let Some(pattern) = &resolved.style.pattern {
             defs.push_str(&patterns::pattern_def(
@@ -340,6 +353,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
 
     let mut body = String::new();
     frame.write_ground(&mut body, &palette.ground, &format!("{scope}ground"));
+    if let Some(neighbourhood) = &neighbourhood {
+        neighbourhood.write_ground(&mut body, theme, &canvas, spec.has_volume)?;
+    }
     let is_shadow_diagram = diagram.solar == Some(Solar::Shadow);
     let casters = shadow_casters(&layers, &features);
     let mut drawn = Vec::with_capacity(layers.len());
@@ -425,10 +441,16 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
                 .find(|resolved| resolved.layer == layer)
                 .map(|resolved| (resolved, layer_features(&features, layer)))
         };
+        let neighbours = neighbourhood.as_ref().map(|neighbourhood| Neighbours {
+            features: neighbourhood.buildings(),
+            roof: context::roof(&massing::theme_fill(theme), theme),
+            clip_id: &neighbourhood.clip_id,
+        });
         solid::write(
             &mut body,
             solid_layer(Layer::Building),
             solid_layer(Layer::Tree),
+            neighbours.as_ref(),
             diagram,
             theme,
             &canvas,
@@ -473,31 +495,6 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     }
 
     Ok(Map { defs, body, legend })
-}
-
-/// Standing buildings in a dark figure colour turn into one heavy mass on a
-/// light sheet, so unclassified ones become a light neutral instead and
-/// colour stays for diagrams that classify. A fill the user set is kept.
-fn lighten_massing(layers: &mut [ResolvedLayer], look: &crate::project::Look, theme: &Theme) {
-    let paper = &theme.palette.paper;
-    let has_user_fill = look
-        .overrides
-        .get(&Layer::Building)
-        .is_some_and(|edit| edit.fill.is_some());
-    if has_user_fill || color::luminance(paper) < LIGHT_SHEET_LUMINANCE {
-        return;
-    }
-    for resolved in layers.iter_mut() {
-        let is_plain = matches!(resolved.role, Role::Theme | Role::Figure);
-        if resolved.layer != Layer::Building || !is_plain {
-            continue;
-        }
-        if let Some(fill) = &resolved.style.fill {
-            if color::luminance(fill) < DARK_MASSING_LUMINANCE {
-                resolved.style.fill = Some(color::mix(fill, paper, MASSING_LIGHTEN));
-            }
-        }
-    }
 }
 
 fn write_outlines(out: &mut String, frame: &FrameShape, spec: &MapSpec, theme: &Theme) {

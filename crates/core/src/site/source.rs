@@ -13,9 +13,11 @@ pub(super) enum Source {
     Cbs,
     BagUnits,
     Osm,
+    /// Buildings, roads, water and green around the site, see `site/context.rs`.
+    Context,
 }
 
-pub(super) const SOURCES: [Source; 9] = [
+pub(super) const SOURCES: [Source; 10] = [
     Source::Bgt,
     Source::Bag,
     Source::Brk,
@@ -25,6 +27,7 @@ pub(super) const SOURCES: [Source; 9] = [
     Source::Liwo,
     Source::Cbs,
     Source::BagUnits,
+    Source::Context,
 ];
 
 /// The sources a site cannot do without. The others add layers and figures,
@@ -43,6 +46,7 @@ impl Source {
             Source::Cbs => "Population",
             Source::BagUnits => "Dwellings",
             Source::Osm => "Places, transit and walking routes",
+            Source::Context => "Neighbourhood",
         }
     }
 
@@ -59,6 +63,8 @@ impl Source {
             // The units are BAG, which the buildings already credit.
             Source::BagUnits => None,
             Source::Osm => Some(osm::credit()),
+            // BGT, BAG and AHN again, which the site already credits.
+            Source::Context => None,
         }
     }
 }

@@ -35,6 +35,10 @@ pub struct Coverage<'a> {
     pub id: &'a str,
     /// The axis labels the service expects in `subset`: ("x", "y") or ("X", "Y").
     pub axes: (&'static str, &'static str),
+    /// Asks the service for fewer, larger cells, written as the request
+    /// takes it: "0.25" turns 0.5 m cells into 2 m ones. `None` keeps the
+    /// coverage's own cells.
+    pub scale_factor: Option<&'static str>,
 }
 
 /// Every coverage id the service at `url` lists, for finding the newest
@@ -76,7 +80,7 @@ pub fn coverage_ids(capabilities: &str) -> Vec<String> {
 pub fn fetch(coverage: &Coverage, rect: Rect<f64>) -> Result<Grid> {
     let subset_x = format!("{}({},{})", coverage.axes.0, rect.min().x, rect.max().x);
     let subset_y = format!("{}({},{})", coverage.axes.1, rect.min().y, rect.max().y);
-    let query = [
+    let mut query = vec![
         ("service", "WCS"),
         ("version", "2.0.1"),
         ("request", "GetCoverage"),
@@ -85,6 +89,9 @@ pub fn fetch(coverage: &Coverage, rect: Rect<f64>) -> Result<Grid> {
         ("subset", subset_x.as_str()),
         ("subset", subset_y.as_str()),
     ];
+    if let Some(factor) = coverage.scale_factor {
+        query.push(("scaleFactor", factor));
+    }
 
     let body = http::get(coverage.service, coverage.url, &query)?;
     decode(coverage.service, &body)

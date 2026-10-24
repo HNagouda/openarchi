@@ -24,6 +24,9 @@ const WESTERMARKT: LonLat = LonLat {
 const RADIUS_M: f64 = 200.0;
 /// About 50 m east, roughly how far a user nudges a site.
 const NUDGE_DEGREES: f64 = 0.00075;
+/// Past the 200 m site, well inside its neighbourhood.
+const NEIGHBOUR_EAST_M: f64 = 400.0;
+const COARSE_CELL_M: f64 = 2.0;
 
 fn site(center: LonLat) -> Area {
     Area::Circle {
@@ -44,23 +47,63 @@ fn building_on_a_tile_edge() -> Geometry<f64> {
     ])
 }
 
-/// PDOK as a test sees it: one building, wherever a tile overlaps it, flat
-/// ground at 1 m with roofs at 11 m, 50 everywhere on every environmental
-/// raster, and nothing else. Counts every request.
+/// A 10 m building 400 m east of the Westermarkt, outside the site.
+fn building_in_the_neighbourhood() -> Geometry<f64> {
+    let (x, y) = wgs84_to_rd(WESTERMARKT);
+    let x = x + NEIGHBOUR_EAST_M;
+    Geometry::Polygon(polygon![
+        (x: x - 5.0, y: y - 5.0),
+        (x: x + 5.0, y: y - 5.0),
+        (x: x + 5.0, y: y + 5.0),
+        (x: x - 5.0, y: y + 5.0),
+    ])
+}
+
+fn pand(id: &str, geometry: Geometry<f64>) -> Record {
+    Record {
+        id: Some(id.to_string()),
+        properties: json!({"identificatie": id, "status": "Pand in gebruik"})
+            .as_object()
+            .unwrap()
+            .clone(),
+        geometry,
+    }
+}
+
+/// AHN in 2 m cells over one tile, at one height everywhere.
+fn coarse_tile(tile: Tile, height: f32) -> Payload {
+    let cells = (TILE_M / COARSE_CELL_M) as usize;
+    Payload::Raster(Grid {
+        west: tile.rect().min().x,
+        north: tile.rect().max().y,
+        cell_m: COARSE_CELL_M,
+        width: cells,
+        height: cells,
+        values: vec![height; cells * cells],
+    })
+}
+
+/// PDOK as a test sees it: one building on the site and one in the
+/// neighbourhood, wherever a tile overlaps them, flat ground at 1 m with
+/// roofs at 11 m, 50 everywhere on every environmental raster, and nothing
+/// else. Counts every request.
 fn fake_pdok(requests: &AtomicUsize, dataset: &Dataset, tile: Tile) -> Result<Payload> {
     requests.fetch_add(1, Ordering::SeqCst);
-    let building = building_on_a_tile_edge();
+    let buildings = [
+        pand("0363100012345678", building_on_a_tile_edge()),
+        pand("0363100087654321", building_in_the_neighbourhood()),
+    ];
     match dataset {
-        Dataset::Bag if building.intersects(&tile.rect()) => Ok(Payload::Records(vec![Record {
-            id: Some("pand-1".to_string()),
-            properties: json!({"identificatie": "0363100012345678", "status": "Pand in gebruik"})
-                .as_object()
-                .unwrap()
-                .clone(),
-            geometry: building,
-        }])),
+        Dataset::Bag | Dataset::ContextBag => Ok(Payload::Records(
+            buildings
+                .into_iter()
+                .filter(|record| record.geometry.intersects(&tile.rect()))
+                .collect(),
+        )),
         Dataset::AhnSurface => Ok(Payload::Cells(vec![11.0; CELLS_PER_TILE])),
         Dataset::AhnTerrain => Ok(Payload::Cells(vec![1.0; CELLS_PER_TILE])),
+        Dataset::ContextSurface => Ok(coarse_tile(tile, 11.0)),
+        Dataset::ContextTerrain => Ok(coarse_tile(tile, 1.0)),
         Dataset::Raster(..) => Ok(Payload::Raster(Grid {
             west: tile.rect().min().x,
             north: tile.rect().max().y,
@@ -176,6 +219,56 @@ fn a_building_on_a_tile_edge_appears_once_with_its_height() {
         .collect();
     assert_eq!(buildings.len(), 1);
     assert_eq!(buildings[0].attributes.height_m, Some(10.0));
+}
+
+#[test]
+fn a_neighbour_outside_the_site_is_kept_apart_with_its_height() {
+    let folder = TempDir::new().unwrap();
+    let cache = TileCache::at(folder.path());
+
+    let (scene, _) = fetch_counting(&site(WESTERMARKT), &cache);
+
+    let site_buildings = scene
+        .features
+        .iter()
+        .filter(|feature| feature.layer == Layer::Building)
+        .count();
+    assert_eq!(site_buildings, 1);
+    assert_eq!(scene.context.len(), 1);
+    assert_eq!(scene.context[0].attributes.height_m, Some(10.0));
+    let rect = scene.context[0].geometry.bounding_rect().unwrap();
+    assert!((rect.center().x - NEIGHBOUR_EAST_M).abs() < 1.0);
+}
+
+#[test]
+fn a_failed_neighbourhood_tile_loses_only_the_neighbourhood() {
+    let folder = TempDir::new().unwrap();
+    let cache = TileCache::at(folder.path());
+    let failing = |dataset: &Dataset, tile| {
+        if *dataset == Dataset::ContextBag {
+            return Err(Error::Network {
+                service: "PDOK BAG".to_string(),
+                detail: "timed out".to_string(),
+            });
+        }
+        fake_pdok(&AtomicUsize::new(0), dataset, tile)
+    };
+
+    let scene = build_scene_with(
+        &site(WESTERMARKT),
+        &cache,
+        &Editions::known(),
+        &failing,
+        &|_| {},
+    )
+    .unwrap();
+
+    assert!(scene.context.is_empty());
+    assert!(scene
+        .features
+        .iter()
+        .any(|feature| feature.layer == Layer::Building));
+    assert!(scene.warnings[0].starts_with("Neighbourhood could not be fetched"));
 }
 
 #[test]

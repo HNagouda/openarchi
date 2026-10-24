@@ -3,15 +3,27 @@
 //! the end of a leader line.
 //!
 //! Every plate is the full flat map of its diagram in the look's theme, drawn
-//! through the same tilted projection. The stack is scaled to fit the drawing
-//! zone, so the sheet's own scale is a ceiling here rather than a promise.
+//! through the same tilted projection. The stack is scaled down to the nearest
+//! round scale that fits the drawing zone, never up past the sheet's own.
+//!
+//! The scale bar measures the plates. A tilted plate keeps its scale only for
+//! lengths running left to right across the paper: depth into the plate is
+//! shortened by the sine of the tilt. So the bar, like the axonometric one,
+//! holds for lengths along a plate's horizontal axis, and its note says
+//! "left to right". All plates share one scale, so one bar serves the stack.
+//!
+//! Each plate is a group carrying its plate id, its place in the stack, the
+//! paper y of its centre and its left and right edge in `data-*` attributes,
+//! so the app can pick a plate up and drop it elsewhere in the stack without
+//! repeating this layout.
 
 use std::fmt::Write;
 
+use super::context::ContextArea;
 use super::frame::ground_outline;
 use super::geometry::{decimal, ground_centre, mm, Projection};
 use super::layout::Layout;
-use super::map::{draw, Bounds, MapSpec, SheetDrawing};
+use super::map::{draw, fitted_scale, Bounds, MapSpec, SheetDrawing};
 use super::svg::{escape, layer_attributes};
 use super::typeset::{Kind, Typesetter};
 use super::RenderInput;
@@ -31,6 +43,8 @@ const DOT_RADIUS: f64 = 0.55;
 const LINE_MM: f64 = 0.15;
 const GUIDE_DASH: &str = "0.2 1";
 const GUIDE_OPACITY: f64 = 0.6;
+/// How far the bottom plate's neighbourhood reaches, as a multiple of the plate's own reach.
+const NEIGHBOURHOOD_REACH: f64 = 1.6;
 
 pub fn render(
     input: &RenderInput,
@@ -40,17 +54,28 @@ pub fn render(
     let look = input.look;
     let view = &look.view;
     let own_plate = plate_id(&look.diagram_id, look.variant.as_deref());
-    let plates = plate_diagrams(&view.plates, &own_plate)?;
+    let ids = plate_ids(&view.plates, &own_plate);
+    let plates = plate_diagrams(&ids)?;
     let unit = typesetter.unit;
     let ink = &input.theme.palette.ink;
 
     // The plate outline at 1 mm per metre, centred on the paper origin.
     let centre = ground_centre(&input.scene.boundary);
     let unit_view = Projection::tilted(centre, 1.0, view.rotation_deg, view.tilt_deg).flat();
-    let outline: Vec<(f64, f64)> = ground_outline(look.sheet.frame, input.scene, centre)
-        .into_iter()
-        .map(|(x, y)| unit_view.to_paper(x, y))
+    let ground = ground_outline(look.sheet.frame, input.scene, centre);
+    let outline: Vec<(f64, f64)> = ground
+        .iter()
+        .map(|&(x, y)| unit_view.to_paper(x, y))
         .collect();
+    let plate_reach_m = ground
+        .iter()
+        .map(|&(x, y)| ((x - centre.0).powi(2) + (y - centre.1).powi(2)).sqrt())
+        .fold(0.0, f64::max);
+    // Only the bottom plate stands in the neighbourhood; the plates above would only cover it.
+    let bottom_context = ContextArea {
+        zone: layout.drawing,
+        reach_m: Some(plate_reach_m * NEIGHBOURHOOD_REACH),
+    };
     let mut bounds = Bounds::default();
     for &point in &outline {
         bounds.add(point);
@@ -79,9 +104,10 @@ pub fn render(
     };
     let count = plates.len() as f64;
     let zone = layout.drawing;
-    let mm_per_m = (1000.0 / look.sheet.scale as f64)
-        .min((zone.width - label_width) / bounds.width())
+    let fitting_mm_per_m = ((zone.width - label_width) / bounds.width())
         .min(zone.height / (bounds.height() * (1.0 + (count - 1.0) * step_share)));
+    let scale = fitted_scale(look.sheet.scale, fitting_mm_per_m);
+    let mm_per_m = 1000.0 / scale as f64;
     let step = bounds.height() * mm_per_m * step_share;
     let stack_width = bounds.width() * mm_per_m + label_width;
     let stack_height = bounds.height() * mm_per_m + (count - 1.0) * step;
@@ -110,16 +136,22 @@ pub fn render(
             has_volume: false,
             is_plate: true,
             reach_m: None,
+            context: (index == plates.len() - 1).then_some(bottom_context),
         };
         let map = draw(input, &spec, typesetter)?;
         defs.push_str(&map.defs);
+        let (_, centre_y) = plate_centre(index);
         let _ = writeln!(
             body,
-            "<g {}>{}</g>",
+            r#"<g {} data-plate="{}" data-index="{index}" data-centre-y="{}" data-left="{}" data-right="{}">{}</g>"#,
             layer_attributes(
                 &format!("plate-{}", index + 1),
                 &format!("Plate {}: {}", index + 1, diagram.name)
             ),
+            escape(&ids[index]),
+            mm(centre_y),
+            mm(at(index, left).0),
+            mm(at(index, right).0),
             map.body
         );
     }
@@ -172,9 +204,9 @@ pub fn render(
         body: wrap_in_font(&body, typesetter),
         legend: None,
         mm_per_m,
-        scale: look.sheet.scale,
+        scale,
         north_deg: unit_view.north_angle_deg(),
-        has_scale_bar: false,
+        is_foreshortened: true,
         title_name: TITLE.to_string(),
     })
 }
@@ -187,17 +219,20 @@ fn wrap_in_font(body: &str, typesetter: &Typesetter) -> String {
     )
 }
 
-/// The plates' diagrams, top first. With none chosen, the look's own diagram is the one plate.
-fn plate_diagrams(ids: &[String], fallback: &str) -> Result<Vec<Diagram>> {
-    let catalog = builtin_diagrams();
-    let wanted: Vec<&str> = if ids.is_empty() {
-        vec![fallback]
+/// The plate ids, top first. With none chosen, the look's own diagram is the one plate.
+fn plate_ids(chosen: &[String], fallback: &str) -> Vec<String> {
+    if chosen.is_empty() {
+        vec![fallback.to_string()]
     } else {
-        ids.iter().map(String::as_str).collect()
-    };
+        chosen.to_vec()
+    }
+}
 
-    wanted
-        .into_iter()
+/// The diagram each plate id draws, in the same order.
+fn plate_diagrams(ids: &[String]) -> Result<Vec<Diagram>> {
+    let catalog = builtin_diagrams();
+
+    ids.iter()
         .map(|id| {
             find_plate(&catalog, id).ok_or_else(|| {
                 Error::Invalid(format!(

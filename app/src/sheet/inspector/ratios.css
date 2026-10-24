@@ -1,5 +1,10 @@
 /* The inspector's Ratios view. Row colours come from the sheet theme; the
-   chrome around them uses the app tokens like every other panel. */
+   chrome around them uses the app tokens like every other panel.
+
+   The inspector can be dragged wider, so sizes here grow with it: each is
+   clamp(usual size, share of the inspector width, largest size). The share is
+   the usual size over the usual 296 px width, so nothing changes until the
+   inspector is wider than that. */
 
 .inspector-tabs {
   padding: 10px 12px;
@@ -24,7 +29,7 @@
 
 .ratios-summary {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(var(--summary-columns, 2), 1fr);
   gap: 1px;
   margin: 0;
   border-bottom: 1px solid var(--line);
@@ -36,22 +41,33 @@
   background: var(--bg);
 }
 
+/* The last figure runs to the end of its row, so a short row leaves no empty grey cell. */
+.ratios-summary > div:last-child {
+  grid-column-end: -1;
+}
+
+@container inspector (min-width: 480px) {
+  .ratios-summary {
+    --summary-columns: 3;
+  }
+}
+
 .ratios-summary dt {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: clamp(11px, 3.7cqi, 14px);
 }
 
 .ratios-summary dd {
   margin: 2px 0 0;
   color: var(--text);
-  font-size: 15px;
+  font-size: clamp(15px, 5.1cqi, 24px);
   font-weight: 600;
 }
 
 .ratio-rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: clamp(8px, 2.7cqi, 12px);
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -69,14 +85,14 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
-  font-size: 12px;
+  font-size: clamp(12px, 4.05cqi, 16px);
 }
 
 /* A hairline keeps a swatch in the paper colour visible on the panel. */
 .ratio-swatch {
   flex: none;
-  width: 10px;
-  height: 10px;
+  width: clamp(10px, 3.4cqi, 13px);
+  height: clamp(10px, 3.4cqi, 13px);
   border-radius: 2px;
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
@@ -102,7 +118,7 @@
 
 .ratio-track {
   display: block;
-  height: 4px;
+  height: clamp(4px, 1.35cqi, 8px);
   overflow: hidden;
   border-radius: 2px;
   background: var(--sunken);
@@ -125,8 +141,8 @@
 
 .ratio-pie svg {
   flex: none;
-  width: 64px;
-  height: 64px;
+  width: clamp(64px, 21.6cqi, 180px);
+  height: clamp(64px, 21.6cqi, 180px);
 }
 
 .ratio-pie .ratio-rows {

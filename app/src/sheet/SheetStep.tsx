@@ -25,6 +25,9 @@ import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
 import { TextOverlay } from "./text/TextOverlay";
 import { useTextTool } from "./text/useTextTool";
+import { PlateDropLine } from "./plates/PlateDropLine";
+import { usePlateDrag } from "./plates/usePlateDrag";
+import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
 import { PaletteSwatches, type Swatch } from "../ui/ColorPicker";
 
 // File events come in bursts; read the project once they settle.
@@ -66,6 +69,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const theme = themes.find((entry) => entry.id === look.theme_id);
   const swatches = theme ? paletteSwatches(theme.palette) : [];
   const textTool = useTextTool(look, history, canvas, preview.svg, !isExportOpen && isReady);
+  const plateDrag = usePlateDrag(look, history, preview.svg);
 
   // A new diagram starts on its first variant.
   const selectDiagram = (diagram_id: string) => {
@@ -260,6 +264,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             onSelect={selectDiagram}
             onVariant={selectVariant}
           />
+          <ColumnResizer column={DIAGRAM_COLUMN} />
         </div>
         <div className="sheet-main">
           <div className="canvas-wrap">
@@ -267,23 +272,26 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               svg={preview.svg}
               controls={canvas}
               onZoom={setZoom}
-              onPaperPointerDown={textTool.onPaperPointerDown}
+              onPaperPointerDown={(event, view) => textTool.onPaperPointerDown(event, view) || plateDrag.onPaperPointerDown(event, view)}
               onPaperDoubleClick={textTool.onPaperDoubleClick}
               overlay={(view) =>
                 preview.svg && (
-                  <TextOverlay
-                    view={view}
-                    svg={preview.svg}
-                    look={look}
-                    selectedId={textTool.selectedId}
-                    editingId={textTool.editingId}
-                    drag={textTool.drag}
-                    diagramName={diagramName}
-                    onLook={history.change}
-                    onSeal={history.seal}
-                    onEditEnd={() => textTool.setEditingId(null)}
-                    onDeleted={() => textTool.setSelectedId(null)}
-                  />
+                  <>
+                    <PlateDropLine view={view} drag={plateDrag.drag} />
+                    <TextOverlay
+                      view={view}
+                      svg={preview.svg}
+                      look={look}
+                      selectedId={textTool.selectedId}
+                      editingId={textTool.editingId}
+                      drag={textTool.drag}
+                      diagramName={diagramName}
+                      onLook={history.change}
+                      onSeal={history.seal}
+                      onEditEnd={() => textTool.setEditingId(null)}
+                      onDeleted={() => textTool.setSelectedId(null)}
+                    />
+                  </>
                 )
               }
             />
@@ -304,6 +312,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           </div>
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
+          <ColumnResizer column={INSPECTOR_COLUMN} />
           {catalog && (
             <Inspector catalog={catalog} project={project} look={look} onLook={history.change} onSeal={history.seal} onCatalogChanged={onRetryCatalog} />
           )}

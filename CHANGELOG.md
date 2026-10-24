@@ -85,6 +85,13 @@ What changed in each version of openarchi, newest first.
 - When RIVM or CBS cannot be asked which year is newest, the site arrives with the last year they named and a warning that it may not be the newest.
 - Asking takes about a second, once a day; every other fetch that day reuses the answer.
 
+### Plates and layout
+
+- Plates in the explode view are reordered by dragging: by the grip in the inspector's plate list, where the other rows slide aside to show where it lands, or on the sheet itself, where the held plate lifts above the stack and a line marks the slot it will take. Alt+↑ and Alt+↓ move a focused row in the list. Each move is one undo step.
+- The explode view has a scale bar again. The stack is drawn at the nearest round scale that fits, such as 1:5000, and the note reads "Scale 1:5000 left to right, on A3", because a tilted plate is only at scale across the paper; lengths running into it are shortened by the tilt. The axonometric note says "left to right" for the same reason.
+- The map in the site step shows a metric scale bar in the bottom left corner.
+- The diagram column and the inspector can be dragged wider or narrower by their inner edge, or moved with the arrow keys once the edge is focused. Double-click the edge to reset it. The app remembers both widths. In a wider inspector the ratios and analysis charts, numbers and notes grow with it, and the summary figures spread over three columns; a wider diagram column shows bigger pictures.
+
 ### Ratios
 
 - The inspector has a Ratios view next to Style: how the site divides up, as bars or pies. Land use and transport by area, building use, floors, height, year built and footprint by building, building coverage and floor area ratio by parcel, and green and water by type.
@@ -137,6 +144,16 @@ Sheets can now show the site in three dimensions and the sun over it.
 ### Assistants
 
 - `set_look` takes `view` and `sun`, so an assistant can switch views, pick the plates and set the moment for the sun diagrams.
+
+### Neighbourhood
+
+- Every sheet can show the neighbourhood around the site: buildings, roads, water and green outside the boundary, drawn in the sheet's palette but greyed towards the paper with thinner lines, so the site stays the thing you look at. It fills the drawing area and never reaches the title, legend, scale bar or credits column.
+- In the axonometric the neighbours stand up at their measured height among the site's own buildings, in a pale roof colour and with softer light. In an explode view the bottom plate widens into a disc of neighbourhood under the stack.
+- The neighbourhood never shows up in the legend, the ratios or the analysis. Those still describe only the drawn site.
+- Neighbourhood in the Sheet section of the inspector turns it on and off, and ⌘Z undoes it. New sheets start with it on. Projects from before have no neighbourhood until the site is fetched again, and open with it off.
+- A fetch also downloads the neighbourhood: 250 to 500 m around the site, depending on its size. It reuses the tiles along the site's edge and runs alongside the OpenStreetMap request, so a fetch takes about as long as before.
+- DXF exports put the neighbourhood on layers of its own, `OA-CONTEXT-BUILDING`, `OA-CONTEXT-ROAD` and so on, in grey.
+- `set_look` takes `sheet.show_context`.
 
 ## 0.1.0 (unreleased)
 
