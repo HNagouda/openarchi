@@ -1,4 +1,4 @@
-// Keyboard handling shared by every screen. Single keys (1–9, [, ], D, I, arrows, Delete)
+// Keyboard handling shared by every screen. Single keys ([, ], D, I, arrows, Delete)
 // never fire while the user is typing in a field.
 
 import { useEffect, useRef } from "react";

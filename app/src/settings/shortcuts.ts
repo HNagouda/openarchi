@@ -38,7 +38,6 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
   {
     title: "Sheet",
     items: [
-      { label: "Diagram 1 to 9", keys: ["1", "9"] },
       { label: "Previous or next diagram", keys: ["↑", "↓"] },
       { label: "Previous or next variant, like PM10 or PM2.5", keys: ["←", "→"] },
       { label: "Show or hide the diagrams", keys: ["d"] },

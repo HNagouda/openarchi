@@ -187,10 +187,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   });
 
   usePlainKeys((key, event) => {
-    if (/^[1-9]$/.test(key)) {
-      const target = diagrams[Number(key) - 1];
-      if (target) selectDiagram(target.id);
-    }
     if (key === "[") stepTheme(-1);
     if (key === "]") stepTheme(1);
     if (key.toLowerCase() === "i" && !event.repeat) toggleInspector();

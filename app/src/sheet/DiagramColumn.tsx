@@ -3,9 +3,6 @@ import type { Diagram } from "../lib/types";
 import { Segmented } from "../ui/Segmented";
 import { chosenVariant, groupDiagrams } from "../lib/diagrams";
 
-// Keys 1 to 9 reach the first nine diagrams in column order; the arrows reach the rest.
-const NUMBERED_KEYS = 9;
-
 type Props = {
   diagrams: Diagram[];
   selectedId: string;
@@ -20,7 +17,7 @@ export function DiagramColumn({ diagrams, selectedId, variantId, thumbnails, onS
   const list = useRef<HTMLDivElement>(null);
   const groups = groupDiagrams(diagrams);
 
-  // Keep the selected entry in view when a key jumps to one further down.
+  // Keep the selected entry in view when an arrow key steps to one further down.
   useEffect(() => {
     list.current?.querySelector(".diagram-entry.is-selected")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selectedId]);
@@ -39,7 +36,6 @@ export function DiagramColumn({ diagrams, selectedId, variantId, thumbnails, onS
               <DiagramEntry
                 key={diagram.id}
                 diagram={diagram}
-                number={diagrams.indexOf(diagram) + 1}
                 isSelected={diagram.id === selectedId}
                 variantId={variantId}
                 thumbnail={thumbnails[diagram.id]}
@@ -56,7 +52,6 @@ export function DiagramColumn({ diagrams, selectedId, variantId, thumbnails, onS
 
 type EntryProps = {
   diagram: Diagram;
-  number: number;
   isSelected: boolean;
   variantId: string | null | undefined;
   thumbnail: string | undefined;
@@ -65,7 +60,7 @@ type EntryProps = {
 };
 
 /** One diagram: its picture and name, and under the selected one the switch between its variants. */
-function DiagramEntry({ diagram, number, isSelected, variantId, thumbnail, onSelect, onVariant }: EntryProps) {
+function DiagramEntry({ diagram, isSelected, variantId, thumbnail, onSelect, onVariant }: EntryProps) {
   const hasVariants = diagram.variants.length > 0;
   const chosen = chosenVariant(diagram, isSelected ? variantId : null);
 
@@ -80,7 +75,6 @@ function DiagramEntry({ diagram, number, isSelected, variantId, thumbnail, onSel
           <span className="diagram-name">{diagram.name}</span>
           {hasVariants && !isSelected && <span className="diagram-variant-names">{diagram.variants.map((variant) => variant.name).join(" · ")}</span>}
         </span>
-        {number <= NUMBERED_KEYS && <span className="diagram-key tabular">{number}</span>}
       </button>
       {isSelected && chosen && (
         <div className="diagram-variants">
