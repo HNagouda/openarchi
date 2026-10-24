@@ -12,7 +12,7 @@ use crate::{Error, Result};
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(90);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 /// Pauses before each retry. PDOK hiccups are usually gone a moment later,
-/// but the CBS grid answered 500 to about one in fifty tiles while a whole
+/// but the CBS grid kept answering 500 to some tiles past one retry while a whole
 /// site was fetched at once, so a failed request gets a second, longer pause.
 const RETRY_DELAYS: [Duration; 2] = [Duration::from_secs(2), Duration::from_secs(4)];
 /// ureq stops at 10 MB by default; a 2 km elevation tile is about 20 MB.

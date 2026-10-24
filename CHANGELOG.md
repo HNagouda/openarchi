@@ -36,6 +36,16 @@ What changed in each version of openarchi, newest first.
 - OpenStreetMap is asked once per site, and the answer is kept with the other downloaded data, so a nudged site does not ask again. When it is busy or down, the site still arrives without these layers and says why.
 - Assistants can read the walk counts with the new `get_neighbourhood` tool.
 
+### Noise, air, flood and people
+
+- Nine new diagrams from Dutch government data. Traffic noise and Noise, all sources show the RIVM noise map in 5 dB bands from under 45 to 70 dB and louder. Air quality shows the yearly mean of nitrogen dioxide, and two more show PM10 and PM2.5, each in bands around the WHO guideline. Flood depth shows how deep water could stand in LIWO's worst case, a flood with a chance under 1 in 30,000 a year. Slope shows how steep the ground is in percent, from the same AHN terrain the contours use. Population shows residents per CBS 100 m square, and Dwellings colours each building by how many homes BAG counts in it.
+- The bands are drawn as smooth areas, not as the grid cells they come from, so they export to Illustrator and DXF as shapes you can edit. In DXF each band sits at the height of its lower edge, so 55 dB or 0.5 m can be read off the outline.
+- Each legend says the unit, the source and its year under its title, for example "Lden in dB, the day, evening and night average. RIVM, 2022."
+- Sheets credit RIVM, Rijkswaterstaat (LIWO) and CBS only when they show their data.
+- The Ratios view adds how much of the site lies in each road noise band, dwellings per building, floor area per building from BAG, and next to the estimated floor area ratio a second one from BAG floor areas, with the site's dwellings and residents. Both show up in the CSV and SVG export too.
+- Assistants can read noise, air quality, flood depth, slope, residents and dwellings for a site with the new `get_environment` tool.
+- A source that does not answer is tried twice more, the second time after a longer pause, before the site arrives without it.
+
 ### Ratios
 
 - The inspector has a Ratios view next to Style: how the site divides up, as bars or pies. Land use and transport by area, building use, floors, height, year built and footprint by building, building coverage and floor area ratio by parcel, and green and water by type.

@@ -131,6 +131,24 @@ function Summary({ ratios }: { ratios: Ratios }) {
         <dt>Floor area ratio</dt>
         <dd className="tabular">{ratio.format(ratios.floor_area_ratio)}</dd>
       </div>
+      {ratios.bag_floor_area_ratio !== null && (
+        <div data-tip="BAG floor area of every unit over site area" data-tip-side="above">
+          <dt>Floor area ratio, BAG</dt>
+          <dd className="tabular">{ratio.format(ratios.bag_floor_area_ratio)}</dd>
+        </div>
+      )}
+      {ratios.dwellings !== null && (
+        <div data-tip="Units with a residential use in BAG" data-tip-side="above">
+          <dt>Dwellings</dt>
+          <dd className="tabular">{count.format(ratios.dwellings)}</dd>
+        </div>
+      )}
+      {ratios.residents !== null && (
+        <div data-tip="CBS residents, each 100 m square counted by its share inside the site" data-tip-side="above">
+          <dt>Residents</dt>
+          <dd className="tabular">{count.format(ratios.residents)}</dd>
+        </div>
+      )}
     </dl>
   );
 }

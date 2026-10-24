@@ -72,6 +72,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
+| `get_environment` | Gives the site's road and total noise, yearly NO₂, PM10 and PM2.5, deepest flood water and the share of the site it reaches, steepest slope, residents, households and dwellings, each with its source year |
 | `get_neighbourhood` | Counts the businesses, facilities and transit stops within a 5, 10 and 15 minute walk of the site, by group |
 | `export` | Writes SVG, PDF, PNG or DXF |
 | `create_theme` | Saves a new theme, which the app picks up too |
