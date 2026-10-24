@@ -3,9 +3,12 @@
 //! BAG rather than the BGT pand layer, because BAG carries bouwjaar and
 //! gebruiksdoel, and its footprints are the ones AHN heights are computed for.
 
+use std::collections::HashMap;
+
 use geo::Rect;
 
 use crate::scene::{Attributes, Credit, Feature, Layer};
+use crate::sources::bag_units::Totals;
 use crate::sources::pdok::{self, Record};
 use crate::Result;
 
@@ -35,6 +38,7 @@ pub fn credit() -> Credit {
         license: "Public Domain Mark 1.0".to_string(),
         url: "https://www.pdok.nl/introductie/-/article/basisregistratie-adressen-en-gebouwen-ba-1"
             .to_string(),
+        layers: Vec::new(),
     }
 }
 
@@ -43,12 +47,27 @@ pub fn fetch_tile(bbox: Rect<f64>) -> Result<Vec<Record>> {
     pdok::fetch_records(SERVICE, BASE_URL, COLLECTION, bbox, None)
 }
 
-/// The standing buildings among `records`, still in RD New.
-pub fn to_features(records: Vec<Record>) -> Vec<Feature> {
+/// The standing buildings among `records`, still in RD New. With `units`,
+/// from `bag_units`, each building also gets its dwellings and floor area,
+/// zero when no unit links to it.
+pub fn to_features(records: Vec<Record>, units: Option<&HashMap<String, Totals>>) -> Vec<Feature> {
     records
         .into_iter()
         .filter(is_standing)
-        .map(to_building)
+        .map(|record| {
+            let totals = units.map(|units| {
+                record
+                    .id
+                    .as_ref()
+                    .and_then(|id| units.get(id))
+                    .copied()
+                    .unwrap_or_default()
+            });
+            let mut building = to_building(record);
+            building.attributes.dwellings = totals.map(|totals| totals.dwellings);
+            building.attributes.floor_area_m2 = totals.map(|totals| totals.floor_area_m2);
+            building
+        })
         .collect()
 }
 

@@ -84,7 +84,7 @@ pub fn levels_between(lowest: f64, highest: f64) -> Vec<f64> {
 }
 
 /// `grid` in cells of `COARSE_CELL_M`, each the median of the finite cells it covers.
-fn coarsened(grid: &Grid) -> Grid {
+pub fn coarsened(grid: &Grid) -> Grid {
     let block = (COARSE_CELL_M / grid.cell_m).round().max(1.0) as usize;
     let width = grid.width.div_ceil(block);
     let height = grid.height.div_ceil(block);
@@ -113,7 +113,7 @@ fn coarsened(grid: &Grid) -> Grid {
 
 /// `grid` with every NaN cell filled from its neighbours, growing inwards from
 /// the edges of each hole. A grid with no finite cell at all stays as it is.
-fn filled(grid: &Grid) -> Grid {
+pub fn filled(grid: &Grid) -> Grid {
     let mut values = grid.values.clone();
     while values.iter().any(|value| value.is_nan()) {
         let previous = values.clone();
@@ -139,7 +139,7 @@ fn filled(grid: &Grid) -> Grid {
 }
 
 /// `grid` after `SMOOTHING_PASSES` of a 3 by 3 mean.
-fn smoothed(grid: &Grid) -> Grid {
+pub fn smoothed(grid: &Grid) -> Grid {
     let mut values = grid.values.clone();
     for _ in 0..SMOOTHING_PASSES {
         let previous = values.clone();

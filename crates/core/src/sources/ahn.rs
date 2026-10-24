@@ -4,13 +4,11 @@
 //! The terrain model has no values under buildings and water, so every user of
 //! a `Grid` must expect NaN cells.
 
-use std::io::Cursor;
-use std::ops::Range;
-
 use geo::{Coord, Rect};
-use tiff::decoder::{Decoder, DecodingResult};
 
 use crate::scene::Credit;
+pub use crate::sources::raster::Grid;
+use crate::sources::wcs::{self, Coverage};
 use crate::{Error, Result};
 
 const SERVICE: &str = "PDOK AHN";
@@ -20,47 +18,11 @@ pub const SURFACE_COVERAGE: &str = "dsm_05m";
 /// Digital terrain model: bare ground, with gaps under buildings.
 pub const TERRAIN_COVERAGE: &str = "dtm_05m";
 pub const CELL_M: f64 = 0.5;
+/// PDOK names the axes in lower case.
+const AXES: (&str, &str) = ("x", "y");
 /// Fetch a little beyond the site, so buildings on the edge still have ground
 /// around them and contour lines do not stop at the boundary.
 const MARGIN_M: f64 = 20.0;
-/// AHN marks missing cells with the largest f32; anything this high is not terrain.
-const NODATA_ABOVE: f32 = 1.0e30;
-
-/// A raster in RD New. Row 0 is the northern edge; NaN means no data.
-#[derive(Debug, Clone)]
-pub struct Grid {
-    pub west: f64,
-    pub north: f64,
-    pub cell_m: f64,
-    pub width: usize,
-    pub height: usize,
-    pub values: Vec<f32>,
-}
-
-impl Grid {
-    pub fn value(&self, column: usize, row: usize) -> f32 {
-        self.values[row * self.width + column]
-    }
-
-    pub fn cell_centre(&self, column: usize, row: usize) -> Coord<f64> {
-        Coord {
-            x: self.west + (column as f64 + 0.5) * self.cell_m,
-            y: self.north - (row as f64 + 0.5) * self.cell_m,
-        }
-    }
-
-    /// The columns and rows of the cells overlapping `rect`, cut to the grid.
-    pub fn cells_within(&self, rect: Rect<f64>) -> (Range<usize>, Range<usize>) {
-        let to_index = |offset: f64, limit: usize| {
-            (offset / self.cell_m).floor().clamp(0.0, limit as f64) as usize
-        };
-        let columns = to_index(rect.min().x - self.west, self.width)
-            ..to_index(rect.max().x - self.west + self.cell_m, self.width);
-        let rows = to_index(self.north - rect.max().y, self.height)
-            ..to_index(self.north - rect.min().y + self.cell_m, self.height);
-        (columns, rows)
-    }
-}
 
 /// Surface and terrain for the same cells.
 #[derive(Debug, Clone)]
@@ -74,6 +36,7 @@ pub fn credit() -> Credit {
         name: "Actueel Hoogtebestand Nederland (AHN), via PDOK".to_string(),
         license: "CC0 1.0".to_string(),
         url: "https://www.ahn.nl".to_string(),
+        layers: Vec::new(),
     }
 }
 
@@ -156,71 +119,38 @@ fn snapped(bbox: Rect<f64>) -> (f64, f64, usize, usize) {
     (west, north, width, height)
 }
 
-/// The cells of `coverage` inside `rect` (RD New, on whole cells), row by row from the north.
-pub fn fetch_tile(coverage: &str, rect: Rect<f64>) -> Result<Vec<f32>> {
-    let subset_x = format!("x({},{})", rect.min().x, rect.max().x);
-    let subset_y = format!("y({},{})", rect.min().y, rect.max().y);
-    let query = [
-        ("service", "WCS"),
-        ("version", "2.0.1"),
-        ("request", "GetCoverage"),
-        ("coverageId", coverage),
-        ("format", "image/tiff"),
-        ("subset", subset_x.as_str()),
-        ("subset", subset_y.as_str()),
-    ];
-
-    let body = crate::sources::http::get(SERVICE, WCS_URL, &query)?;
-    decode(
-        &body,
-        cells_across(rect.width()),
-        cells_across(rect.height()),
-    )
-}
-
-/// The cells of a float GeoTIFF, row by row from the north, NaN for no data.
-/// Fails when the size is not what we asked for, since then the cells would not
-/// line up with the grid.
-pub fn decode(body: &[u8], width: usize, height: usize) -> Result<Vec<f32>> {
-    let data_error = |detail: String| Error::Data {
-        service: SERVICE.to_string(),
-        detail,
+/// The cells of `coverage` inside `rect` (RD New, on whole cells), row by row
+/// from the north. Fails when the answer does not cover exactly `rect`, since
+/// then the cells would not line up with the grid.
+pub fn fetch_tile(coverage: &'static str, rect: Rect<f64>) -> Result<Vec<f32>> {
+    let coverage = Coverage {
+        service: SERVICE,
+        url: WCS_URL,
+        id: coverage,
+        axes: AXES,
     };
-
-    let mut decoder = Decoder::new(Cursor::new(body)).map_err(|error| {
-        data_error(format!(
-            "not a GeoTIFF ({error}): {}",
-            String::from_utf8_lossy(&body[..body.len().min(300)])
-        ))
-    })?;
-    let (tiff_width, tiff_height) = decoder
-        .dimensions()
-        .map_err(|error| data_error(error.to_string()))?;
-    if (tiff_width as usize, tiff_height as usize) != (width, height) {
-        return Err(data_error(format!(
-            "asked for {width}x{height} cells, got {tiff_width}x{tiff_height}"
-        )));
+    let grid = wcs::fetch(&coverage, rect)?;
+    let expected = (cells_across(rect.width()), cells_across(rect.height()));
+    let is_on_rect = (grid.west - rect.min().x).abs() < CELL_M / 2.0
+        && (grid.north - rect.max().y).abs() < CELL_M / 2.0;
+    if (grid.width, grid.height) != expected || !is_on_rect {
+        return Err(Error::Data {
+            service: SERVICE.to_string(),
+            detail: format!(
+                "asked for {}x{} cells at ({}, {}), got {}x{} at ({}, {})",
+                expected.0,
+                expected.1,
+                rect.min().x,
+                rect.max().y,
+                grid.width,
+                grid.height,
+                grid.west,
+                grid.north
+            ),
+        });
     }
 
-    let DecodingResult::F32(values) = decoder
-        .read_image()
-        .map_err(|error| data_error(error.to_string()))?
-    else {
-        return Err(data_error(
-            "elevation is not stored as 32-bit floats".to_string(),
-        ));
-    };
-
-    Ok(values
-        .into_iter()
-        .map(|value| {
-            if value.is_finite() && value < NODATA_ABOVE {
-                value
-            } else {
-                f32::NAN
-            }
-        })
-        .collect())
+    Ok(grid.values)
 }
 
 #[cfg(test)]

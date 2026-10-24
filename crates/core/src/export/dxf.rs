@@ -10,6 +10,7 @@ use geo::{Geometry, LineString, Polygon};
 
 use crate::render::layer_slug;
 use crate::scene::{Layer, Scene};
+use crate::sources::bands::BANDED;
 
 /// Trees become circles of this radius on the ground, a symbol rather than a crown.
 const TREE_RADIUS_M: f64 = 1.0;
@@ -26,8 +27,12 @@ pub fn write(scene: &Scene) -> String {
     section(&mut out, "ENTITIES");
     for feature in &scene.features {
         let layer = cad_layer(feature.layer);
+        // A band sits at the height of its lower edge, as a contour sits at its
+        // level, so a CAD user can read 55 dB or 0.5 m off the outline.
         let elevation = if feature.layer == Layer::Contour {
             feature.attributes.ground_m.unwrap_or(0.0)
+        } else if BANDED.contains(&feature.layer) {
+            feature.attributes.value.unwrap_or(0.0)
         } else {
             0.0
         };
@@ -57,6 +62,11 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::Green | Layer::Verge | Layer::Tree => 3,
         Layer::Parcel => 6,
         Layer::Contour => 30,
+        Layer::RoadNoise | Layer::AllNoise => 40,
+        Layer::No2 | Layer::Pm10 | Layer::Pm25 => 50,
+        Layer::Flood => 150,
+        Layer::Slope => 32,
+        Layer::Population => 200,
     }
 }
 

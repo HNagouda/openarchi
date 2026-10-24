@@ -32,6 +32,7 @@ pub fn credit() -> Credit {
         name: "Basisregistratie Grootschalige Topografie (BGT), via PDOK".to_string(),
         license: "CC0 1.0".to_string(),
         url: "https://www.pdok.nl/introductie/-/article/basisregistratie-grootschalige-topografie-bgt-".to_string(),
+        layers: Vec::new(),
     }
 }
 

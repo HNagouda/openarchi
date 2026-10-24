@@ -16,6 +16,7 @@ pub fn credit() -> Credit {
         // Unlike the other sources, CC BY: the credit must stay on the sheet.
         license: "CC BY 4.0".to_string(),
         url: "https://www.pdok.nl/introductie/-/article/kadastrale-kaart".to_string(),
+        layers: Vec::new(),
     }
 }
 
