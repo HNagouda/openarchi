@@ -27,10 +27,11 @@ What changed in each version of openarchi, newest first.
 
 ### Sheet tabs and pins
 
-- A project holds several sheets, each a tab along the bottom of the workspace with its own diagram, palette, view and text. The + adds one, a double-click renames it, dragging reorders it, and the menu on the open tab duplicates or deletes it. Deleting says so with an Undo, and every tab change undoes like any other edit.
+- A project holds several sheets, each a tab along the bottom of the workspace with its own diagram, palette, view and text. The + adds one, a double-click renames it, dragging reorders it, and the menu on the open tab duplicates or deletes it. Deleting says so with an Undo, and every tab change undoes like any other edit. Undoing or redoing a tab move keeps the sheet you were on in view.
+- Tabs hold sheets only. Reports open from the top bar, and the analysis sits in the inspector.
 - Ctrl+Tab and Ctrl+Shift+Tab, or Ctrl+PageDown and Ctrl+PageUp, step through the tabs, and on a Mac ⌘⌥→ and ⌘⌥← do too.
 - A sheet can show part of the site. The Whole site button in the tab bar opens a map with the same circle, rectangle and polygon tools as the site itself; the sheet then clips to that area at the largest round scale it fits, and its ratios describe only that area. With the neighbourhood on, the rest of the site is drawn muted around it.
-- Landmarks can be pinned. Drag a pin, star, flag, dot or numbered marker from the tab bar onto the sheet, type its label, and it shows on every sheet, in plan, axonometric and explode views, in the palette's accent colour. Click a pin to change its marker or delete it, drag it to move it, and the eye in the tab bar hides the pins on one sheet. Pins export to DXF on their own OA-PINS layer.
+- Landmarks can be pinned. Drag a pin, star, flag or dot from the tab bar onto the sheet, type its label, and it shows on every sheet, in plan, axonometric and explode views, in the palette's accent colour. Click a pin to change its marker or delete it, drag it to move it, and the eye in the tab bar hides the pins on one sheet. Pins export to DXF on their own OA-PINS layer. The numbered marker is gone from the tab bar, because a number in a red disc read like an error badge; projects that already have numbered pins still show them.
 - Assistants can list and add sheets and list, add, move and remove pins, and work on any tab.
 - Projects made before tabs open as one sheet, unchanged.
 
@@ -38,7 +39,7 @@ What changed in each version of openarchi, newest first.
 
 - The diagrams moved from the filmstrip along the bottom to a column on the left of the sheet, grouped under Context and built form, Movement and places, Environment, People, and Sun and shade. Each one shows a small picture in the current palette and its name, and the one on the sheet is marked.
 - Air quality is one diagram with a switch between NO₂, PM10 and PM2.5, and Noise is one diagram with a switch between road traffic and all sources. The switch sits under the selected diagram, and ← and → flip between the measures. That brings the column from 24 entries to 21.
-- ↑ and ↓ step through every diagram, not only the first nine that 1 to 9 reach. With a text box selected the arrows still nudge the text.
+- ↑ and ↓ step through every diagram. With a text box selected the arrows still nudge the text. The 1 to 9 keys and the numbers beside the diagrams are gone, since nine keys never reached all 21 diagrams.
 - D, the button next to the back arrow and View > Toggle Diagrams show or hide the column, and the app remembers the choice. In a window narrower than 1000 px the column lies over the sheet instead of squeezing it.
 - Exporting the whole series writes one file per measure, such as `westermarkt-air-quality-pm10.pdf`, so the series still holds every sheet it held before.
 - Projects saved on PM10, PM2.5, traffic noise or noise from all sources open on the same measure of the folded diagram, and so do explode plates. A plate can now show any one measure, like Air quality, PM2.5.
@@ -96,7 +97,7 @@ What changed in each version of openarchi, newest first.
 
 ### Plates and layout
 
-- Plates in the explode view are reordered by dragging: by the grip in the inspector's plate list, where the other rows slide aside to show where it lands, or on the sheet itself, where the held plate lifts above the stack and a line marks the slot it will take. Alt+↑ and Alt+↓ move a focused row in the list. Each move is one undo step.
+- Plates in the explode view are reordered by dragging: by the grip in the inspector's plate list, where the other rows slide aside to show where it lands. Dragging the plates on the sheet itself was slow and is gone. Alt+↑ and Alt+↓ move a focused row in the list. Each move is one undo step.
 - The explode view has a scale bar again. The stack is drawn at the nearest round scale that fits, such as 1:5000, and the note reads "Scale 1:5000 left to right, on A3", because a tilted plate is only at scale across the paper; lengths running into it are shortened by the tilt. The axonometric note says "left to right" for the same reason.
 - The map in the site step shows a metric scale bar in the bottom left corner.
 - The diagram column and the inspector can be dragged wider or narrower by their inner edge, or moved with the arrow keys once the edge is focused. Double-click the edge to reset it. The app remembers both widths. In a wider inspector the ratios and analysis charts, numbers and notes grow with it, and the summary figures spread over three columns; a wider diagram column shows bigger pictures.
@@ -161,7 +162,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The editor checks contrast as you go and names the colours that read badly, with their ratio against the WCAG 2.1 thresholds: 4.5:1 for text, 3:1 for buildings and the site outline.
 - The open sheet is drawn live in the palette while you edit it, and ⌘Z inside the editor undoes your last change to the palette.
 - Duplicate starts a palette from the current one. A copy of a built-in palette keeps its hand-made look until you change a colour.
-- Your palettes sit under the built-in eight in the menu and work on every diagram, view and the neighbourhood. Rename one in place, edit it again later with its swatches and pins, or delete it: it moves to Recently Deleted, and Undo in the toast brings it back.
+- Your palettes sit under the built-in eight in the menu and work on every diagram, view and the neighbourhood. Edit it again later to rename it or change its swatches and pins, or delete it: it moves to Recently Deleted, and Undo in the toast brings it back.
 - Copy a palette's swatches as JSON, CSV or a hex list, to use them elsewhere.
 - Assistants can import a palette with `import_palette` and list yours with `list_user_palettes`.
 - Every ratio group says under its title where its numbers come from, with the edition year where it is known, and the ratios CSV has a source column.
@@ -171,7 +172,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 - Every sheet can show the neighbourhood around the site: buildings, roads, water and green outside the boundary, drawn in the sheet's palette but greyed towards the paper with thinner lines, so the site stays the thing you look at. It fills the drawing area and never reaches the title, legend, scale bar or credits column.
 - In the axonometric the neighbours stand up at their measured height among the site's own buildings, in a pale roof colour and with softer light. In an explode view the bottom plate widens into a disc of neighbourhood under the stack.
 - The neighbourhood never shows up in the legend, the ratios or the analysis. Those still describe only the drawn site.
-- Neighbourhood in the Sheet section of the inspector turns it on and off, and ⌘Z undoes it. New sheets start with it on. Projects from before have no neighbourhood until the site is fetched again, and open with it off.
+- Neighbourhood in the View section of the inspector, under Plan, Axo and Explode, turns it on and off, and ⌘Z undoes it. On a sheet that shows part of the site it also hides the rest of the site drawn muted around that part. New sheets start with it on. Projects from before have no neighbourhood until the site is fetched again, and open with it off.
 - A fetch also downloads the neighbourhood: 250 to 500 m around the site, depending on its size. It reuses the tiles along the site's edge and runs alongside the OpenStreetMap request, so a fetch takes about as long as before.
 - DXF exports put the neighbourhood on layers of its own, `OA-CONTEXT-BUILDING`, `OA-CONTEXT-ROAD` and so on, in grey.
 - `set_look` takes `sheet.show_context`.
