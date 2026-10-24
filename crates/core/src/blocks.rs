@@ -228,6 +228,7 @@ mod tests {
             walk: None,
             editions: Default::default(),
             context: Vec::new(),
+            terrain: None,
         }
     }
 

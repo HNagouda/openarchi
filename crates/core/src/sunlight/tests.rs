@@ -47,6 +47,7 @@ fn site(features: Vec<Feature>, context: Vec<Feature>) -> Scene {
         walk: None,
         editions: Default::default(),
         context,
+        terrain: None,
     }
 }
 

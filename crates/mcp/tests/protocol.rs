@@ -36,7 +36,7 @@ const WESTERKERK_ENVIRONMENT: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 29] = [
+const TOOLS: [&str; 30] = [
     "search_places",
     "list_projects",
     "create_project",
