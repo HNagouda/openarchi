@@ -111,6 +111,7 @@ export type ProjectSummary = {
   name: string;
   modified: string;
   has_scene: boolean;
+  look: Look | null;
 };
 
 export type Credit = { name: string; license: string; url: string };

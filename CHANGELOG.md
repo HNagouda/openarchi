@@ -12,6 +12,17 @@ What changed in each version of openarchi, newest first.
 - Switch a drawn site between circle, rectangle and polygon. It keeps its centre and its size across.
 - A fit button and ⌘0 bring the map back to the drawn site.
 
+### Looks
+
+- openarchi has its own look, taken from a drafting room: warm paper and ink in light, a graphite table in dark. Project names and section titles are set in Source Serif, scales, paper sizes and values in IBM Plex Mono, the same type the sheets use.
+- The project gallery shows each project as a print lying on a desk, with its diagram, scale and paper size underneath, and a blank sheet as the first tile for a new site.
+- Settings has a fourth appearance, AMOLED, with true black surfaces. The chosen appearance is applied before the window first paints, so it no longer flashes light on launch.
+
+### Sheets
+
+- Every layer row shows a chevron, the same one the section headers use, so it is clear the row opens to its fill, line and opacity. The eye to hide a layer sits at the end of the row.
+- Themes are picked from a compact menu, like choosing a font: the closed control shows the current theme and its colours, and the open menu lists every theme with its colours, your own themes in their own group. [ and ] still step through them.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

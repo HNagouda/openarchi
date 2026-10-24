@@ -14,8 +14,9 @@ import {
   restoreProject,
 } from "../lib/ipc";
 import { usePlainKeys } from "../lib/keys";
-import type { ProjectSummary } from "../lib/types";
-import { Button } from "../ui/Button";
+import type { Catalog, ProjectSummary } from "../lib/types";
+import { Button, Keys } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { Problem } from "../ui/Problem";
 import { useToast } from "../ui/Toasts";
 import { ProjectCard } from "./ProjectCard";
@@ -26,11 +27,12 @@ const REFRESH_DELAY_MS = 300;
 
 type Props = {
   navigate: Navigate;
+  catalog: Catalog | null;
   catalogError: string | null;
   onRetryCatalog: () => void;
 };
 
-export function Home({ navigate, catalogError, onRetryCatalog }: Props) {
+export function Home({ navigate, catalog, catalogError, onRetryCatalog }: Props) {
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
   const [trash, setTrash] = useState<ProjectSummary[]>([]);
   const [libraryError, setLibraryError] = useState<string | null>(null);
@@ -140,10 +142,7 @@ export function Home({ navigate, catalogError, onRetryCatalog }: Props) {
   return (
     <div className="home">
       <header className="topbar" data-tauri-drag-region>
-        <div className="wordmark" data-tauri-drag-region>
-          <span className="wordmark-mark" aria-hidden="true" />
-          openarchi
-        </div>
+        <Wordmark />
         <div className="topbar-spacer" data-tauri-drag-region />
         <Button icon="plus" tip="New project" shortcut="mod+n" variant="primary" onClick={navigate.newSite}>
           New project
@@ -173,16 +172,22 @@ export function Home({ navigate, catalogError, onRetryCatalog }: Props) {
             <>
               <div className="home-heading">
                 <h1>Projects</h1>
-                {list.length > 0 && <span className="home-count tabular">{list.length}</span>}
+                {list.length > 0 && (
+                  <span className="home-count">
+                    {list.length} {list.length === 1 ? "site" : "sites"}
+                  </span>
+                )}
               </div>
               {list.length === 0 ? (
                 <EmptyGallery onNew={navigate.newSite} />
               ) : (
                 <div className="gallery">
+                  <NewSiteCard onNew={navigate.newSite} />
                   {list.map((project) => (
                     <ProjectCard
                       key={project.id}
                       project={project}
+                      diagrams={catalog?.diagrams ?? []}
                       isSelected={project.id === selectedId}
                       isOpening={project.id === openingId}
                       onSelect={() => setSelectedId(project.id)}
@@ -200,6 +205,32 @@ export function Home({ navigate, catalogError, onRetryCatalog }: Props) {
         </div>
       </main>
     </div>
+  );
+}
+
+function Wordmark() {
+  return (
+    <div className="wordmark" data-tauri-drag-region>
+      <span className="wordmark-mark" aria-hidden="true" />
+      openarchi
+    </div>
+  );
+}
+
+/** The first tile: a blank sheet waiting for a site. */
+function NewSiteCard({ onNew }: { onNew: () => void }) {
+  return (
+    <button type="button" className="card card-new" onClick={onNew} onMouseDown={(event) => event.stopPropagation()}>
+      <span className="card-picture card-blank">
+        <Icon name="plus" />
+        <span>New site</span>
+        <Keys shortcut="mod+n" />
+      </span>
+      <span className="card-meta">
+        <span className="card-name">Blank sheet</span>
+        <span className="card-specs">Search a place and draw the area</span>
+      </span>
+    </button>
   );
 }
 

@@ -4,6 +4,7 @@ const PATHS: Record<string, string> = {
   back: "M10 3.5 5.5 8l4.5 4.5",
   chevronRight: "M6 3.5 10.5 8 6 12.5",
   chevronDown: "M3.5 6 8 10.5 12.5 6",
+  chevronUpDown: "M5 6 8 3l3 3M5 10l3 3 3-3",
   plus: "M8 3v10M3 8h10",
   close: "M4 4l8 8M12 4l-8 8",
   check: "M3.5 8.5l3 3 6-7",

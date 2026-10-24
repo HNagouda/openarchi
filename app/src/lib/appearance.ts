@@ -1,16 +1,19 @@
-// Light, dark or follow the system. Stored per machine, outside undo.
+// System, light, dark or AMOLED black. Stored per machine, outside undo.
+// index.html applies the stored choice before the first paint; this keeps it current.
 
 import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-export type Appearance = "system" | "light" | "dark";
+// AMOLED is dark with true black surfaces, for OLED screens and dim rooms.
+export type Appearance = "system" | "light" | "dark" | "amoled";
 
 const STORAGE_KEY = "openarchi.appearance";
+const APPEARANCES: Appearance[] = ["system", "light", "dark", "amoled"];
 
 function readStored(): Appearance {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark" || stored === "system") return stored;
+    if (APPEARANCES.includes(stored as Appearance)) return stored as Appearance;
   } catch {
     // Storage can be unavailable; the system setting is a fine default.
   }
@@ -30,15 +33,22 @@ export function useAppearance() {
     return () => darkQuery.removeEventListener("change", listener);
   }, []);
 
-  const isDark = appearance === "dark" || (appearance === "system" && isSystemDark);
+  const isBlack = appearance === "amoled";
+  const isDark = isBlack || appearance === "dark" || (appearance === "system" && isSystemDark);
 
   useEffect(() => {
-    document.documentElement.dataset.appearance = isDark ? "dark" : "light";
+    const root = document.documentElement;
+    // Black is a kind of dark: everything keyed on dark still applies, and the
+    // black tokens override only the surfaces.
+    root.dataset.appearance = isDark ? "dark" : "light";
+    if (isBlack) root.dataset.black = "";
+    else delete root.dataset.black;
     // Native parts (traffic lights, scroll bars, dialogs) follow the same choice.
+    const nativeTheme = appearance === "system" ? null : isDark ? "dark" : "light";
     getCurrentWindow()
-      .setTheme(appearance === "system" ? null : appearance)
+      .setTheme(nativeTheme)
       .catch(() => undefined);
-  }, [isDark, appearance]);
+  }, [isDark, isBlack, appearance]);
 
   const choose = (next: Appearance) => {
     setAppearance(next);

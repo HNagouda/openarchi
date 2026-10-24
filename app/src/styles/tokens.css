@@ -1,50 +1,75 @@
-/* Every colour, radius, shadow and duration the app uses, in one place.
-   Light is the default; dark redefines the same names, so components never
-   pick a colour themselves. The diagrams bring the colour, the chrome stays neutral. */
+/* Every colour, typeface, radius, shadow and duration the app uses, in one place.
+   Components never pick a colour themselves; they name a token.
+
+   The look is a drafting room. Light is warm paper with ink on it, dark is a
+   graphite table under a lamp, and AMOLED black is that table with the lamp off.
+   Prints lie on a desk that is a shade deeper than the chrome around them.
+   Source Serif names things (projects, sections, sheets), Inter runs the
+   controls, and IBM Plex Mono sets every number, scale and paper size, the way
+   a title block does. All three are the fonts the sheets themselves use.
+   The diagrams bring the colour; the chrome stays ink, paper and one red pencil. */
 
 :root {
   --font-ui: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+  --font-display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-  --bg: #fbfbfa;
-  --surface: #ffffff;
-  --surface-raised: #ffffff;
-  --canvas: #efefed;
-  --sunken: #f4f4f2;
+  /* Paper: the chrome. Desk: where prints lie. */
+  --bg: #f6f3ec;
+  --surface: #faf8f3;
+  --surface-raised: #fffdf9;
+  --canvas: #e6e0d4;
+  --sunken: #efebe2;
 
-  --text: #1b1c1e;
-  --text-2: #5d6066;
-  --text-3: #8f9297;
-  --text-on-strong: #ffffff;
+  /* Ink. --text-3 still reads at 4.5:1 on --bg, for small captions. */
+  --text: #1f1d1a;
+  --text-2: #57524a;
+  --text-3: #736c61;
+  --text-on-strong: #faf8f3;
 
-  --line: rgba(18, 20, 24, 0.085);
-  --line-strong: rgba(18, 20, 24, 0.15);
-  --hover: rgba(18, 20, 24, 0.045);
-  --press: rgba(18, 20, 24, 0.08);
+  --line: rgba(52, 40, 22, 0.11);
+  --line-strong: rgba(52, 40, 22, 0.2);
+  --hover: rgba(52, 40, 22, 0.05);
+  --press: rgba(52, 40, 22, 0.09);
 
-  --strong: #1b1c1e;
-  --strong-hover: #33353a;
-  --accent: #2f6be6;
-  --accent-soft: rgba(47, 107, 230, 0.12);
-  --focus: rgba(47, 107, 230, 0.45);
-  /* The one warm colour, from the app mark: the drawn site on the map. */
-  --brand: #e0572a;
-  --danger: #c93a2e;
-  --danger-soft: rgba(201, 58, 46, 0.1);
+  --strong: #1f1d1a;
+  --strong-hover: #3a362f;
+  /* Drafting ink blue: selection and focus. */
+  --accent: #27508f;
+  --accent-soft: rgba(39, 80, 143, 0.11);
+  --focus: rgba(39, 80, 143, 0.5);
+  /* The one warm colour, from the app mark: the red pencil that marks the site. */
+  --brand: #c4502a;
+  --danger: #b8372b;
+  --danger-soft: rgba(184, 55, 43, 0.1);
 
-  --toast-bg: #1f2023;
-  --toast-text: #f2f2f3;
-  --toast-action: #8fb2ff;
+  --toast-bg: #24221f;
+  --toast-text: #f3efe7;
+  --toast-action: #a8c0ea;
+  --toast-hover: rgba(255, 255, 255, 0.08);
+  --toast-error: #ff8a76;
 
-  --paper-shadow: 0 0 0 1px rgba(18, 20, 24, 0.05), 0 1px 2px rgba(18, 20, 24, 0.06),
-    0 10px 30px -6px rgba(18, 20, 24, 0.14);
-  --pop-shadow: 0 0 0 1px rgba(18, 20, 24, 0.07), 0 4px 12px rgba(18, 20, 24, 0.08),
-    0 18px 48px -12px rgba(18, 20, 24, 0.2);
-  --card-shadow: 0 0 0 1px rgba(18, 20, 24, 0.06), 0 1px 2px rgba(18, 20, 24, 0.04);
-  --scrim: rgba(250, 250, 249, 0.6);
+  /* A blank sheet before its drawing arrives, and the knob of a switch. */
+  --paper-blank: #ffffff;
+  --knob: #ffffff;
+  /* The edge drawn around a colour chip, so a paper-white chip still shows. */
+  --swatch-edge: rgba(0, 0, 0, 0.14);
+  --map-attribution: rgba(246, 243, 236, 0.8);
 
-  --radius-s: 4px;
-  --radius: 6px;
-  --radius-l: 10px;
+  --paper-shadow: 0 0 0 1px rgba(52, 40, 22, 0.06), 0 1px 2px rgba(52, 40, 22, 0.08),
+    0 12px 28px -10px rgba(52, 40, 22, 0.28);
+  --print-shadow: 0 0 0 1px rgba(52, 40, 22, 0.07), 0 1px 1px rgba(52, 40, 22, 0.06),
+    0 6px 14px -6px rgba(52, 40, 22, 0.3);
+  --pop-shadow: 0 0 0 1px rgba(52, 40, 22, 0.09), 0 4px 12px rgba(52, 40, 22, 0.08),
+    0 18px 44px -14px rgba(52, 40, 22, 0.26);
+  --float-shadow: 0 0 0 1px var(--line-strong), 0 2px 6px -2px rgba(52, 40, 22, 0.14);
+  --card-shadow: 0 0 0 1px var(--line);
+  --scrim: rgba(246, 243, 236, 0.65);
+
+  /* Drawn corners: barely rounded, like a cut sheet. */
+  --radius-s: 3px;
+  --radius: 5px;
+  --radius-l: 7px;
 
   --fast: 120ms;
   --medium: 180ms;
@@ -58,41 +83,72 @@
 }
 
 :root[data-appearance="dark"] {
-  --bg: #17181a;
-  --surface: #1c1d20;
-  --surface-raised: #232427;
-  --canvas: #111213;
-  --sunken: #141517;
+  --bg: #1c1b19;
+  --surface: #211f1d;
+  --surface-raised: #292724;
+  --canvas: #131211;
+  --sunken: #181715;
 
-  --text: #ececee;
-  --text-2: #a2a4a9;
-  --text-3: #6d7075;
-  --text-on-strong: #17181a;
+  --text: #ece7dd;
+  --text-2: #aca59a;
+  --text-3: #8a8378;
+  --text-on-strong: #1c1b19;
 
-  --line: rgba(255, 255, 255, 0.075);
-  --line-strong: rgba(255, 255, 255, 0.14);
-  --hover: rgba(255, 255, 255, 0.05);
-  --press: rgba(255, 255, 255, 0.09);
+  --line: rgba(255, 244, 222, 0.08);
+  --line-strong: rgba(255, 244, 222, 0.16);
+  --hover: rgba(255, 244, 222, 0.05);
+  --press: rgba(255, 244, 222, 0.09);
 
-  --strong: #ececee;
+  --strong: #ece7dd;
   --strong-hover: #ffffff;
-  --accent: #6e9bff;
-  --accent-soft: rgba(110, 155, 255, 0.16);
-  --focus: rgba(110, 155, 255, 0.5);
-  --brand: #f06a3d;
-  --danger: #ff6b5e;
-  --danger-soft: rgba(255, 107, 94, 0.12);
+  --accent: #93b2e8;
+  --accent-soft: rgba(147, 178, 232, 0.15);
+  --focus: rgba(147, 178, 232, 0.55);
+  --brand: #e0683e;
+  --danger: #ff7b6b;
+  --danger-soft: rgba(255, 123, 107, 0.12);
 
-  --toast-bg: #2b2c30;
-  --toast-text: #f2f2f3;
-  --toast-action: #9dbbff;
+  --toast-bg: #302e2a;
+  --toast-text: #f3efe7;
+  --toast-action: #a8c0ea;
+
+  --paper-blank: #2a2825;
+  --swatch-edge: rgba(255, 255, 255, 0.16);
+  --map-attribution: rgba(28, 27, 25, 0.8);
 
   --paper-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 4px rgba(0, 0, 0, 0.3),
-    0 16px 40px -8px rgba(0, 0, 0, 0.55);
-  --pop-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 16px rgba(0, 0, 0, 0.35),
+    0 16px 40px -8px rgba(0, 0, 0, 0.6);
+  --print-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 6px 16px -6px rgba(0, 0, 0, 0.7);
+  --pop-shadow: 0 0 0 1px rgba(255, 244, 222, 0.09), 0 6px 16px rgba(0, 0, 0, 0.35),
     0 24px 56px -12px rgba(0, 0, 0, 0.6);
-  --card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-  --scrim: rgba(10, 10, 11, 0.5);
+  --float-shadow: 0 0 0 1px var(--line-strong), 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  --scrim: rgba(10, 10, 9, 0.55);
 
   color-scheme: dark;
+}
+
+/* AMOLED black: true #000 wherever there is a surface, so an OLED screen
+   switches those pixels off. With no lighter surfaces to separate areas,
+   hairlines carry the structure, so they are a touch stronger than in dark. */
+:root[data-appearance="dark"][data-black] {
+  --bg: #000000;
+  --surface: #000000;
+  --surface-raised: #0e0e0d;
+  --canvas: #000000;
+  --sunken: #080807;
+
+  --line: rgba(255, 244, 222, 0.11);
+  --line-strong: rgba(255, 244, 222, 0.2);
+  --hover: rgba(255, 244, 222, 0.06);
+  --press: rgba(255, 244, 222, 0.1);
+
+  --toast-bg: #1d1c1a;
+  --paper-blank: #000000;
+  --map-attribution: rgba(0, 0, 0, 0.8);
+
+  --paper-shadow: 0 0 0 1px rgba(255, 244, 222, 0.12);
+  --print-shadow: 0 0 0 1px rgba(255, 244, 222, 0.12);
+  --pop-shadow: 0 0 0 1px rgba(255, 244, 222, 0.16), 0 16px 40px -12px rgba(0, 0, 0, 0.9);
+  --float-shadow: 0 0 0 1px var(--line-strong);
+  --scrim: rgba(0, 0, 0, 0.7);
 }

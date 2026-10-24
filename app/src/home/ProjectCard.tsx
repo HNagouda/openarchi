@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { formatModified } from "../lib/format";
+import { formatModified, formatScale } from "../lib/format";
 import { projectThumbnail } from "../lib/ipc";
-import type { ProjectSummary } from "../lib/types";
+import type { Catalog, Look, ProjectSummary } from "../lib/types";
 import { EditableText } from "../ui/EditableText";
 import { Icon } from "../ui/Icon";
 
@@ -10,6 +10,7 @@ const THUMBNAIL_WIDTH_PX = 560;
 
 type Props = {
   project: ProjectSummary;
+  diagrams: Catalog["diagrams"];
   isSelected: boolean;
   isOpening: boolean;
   onSelect: () => void;
@@ -20,7 +21,7 @@ type Props = {
 
 type Thumbnail = { state: "loading" } | { state: "ready"; url: string } | { state: "none" } | { state: "failed" };
 
-export function ProjectCard({ project, isSelected, isOpening, onSelect, onOpen, onRename, onDelete }: Props) {
+export function ProjectCard({ project, diagrams, isSelected, isOpening, onSelect, onOpen, onRename, onDelete }: Props) {
   const [thumbnail, setThumbnail] = useState<Thumbnail>({ state: "loading" });
 
   useEffect(() => {
@@ -78,10 +79,22 @@ export function ProjectCard({ project, isSelected, isOpening, onSelect, onOpen, 
           <Icon name="trash" size={14} />
         </button>
       </div>
+      {/* A title block, as on the sheet itself: the name, then what was printed and when. */}
       <div className="card-meta">
         <EditableText className="card-name" value={project.name} onCommit={onRename} />
-        <span className="card-date tabular">{formatModified(project.modified)}</span>
+        <span className="card-specs">
+          {project.look && <span>{printLine(project.look, diagrams)}</span>}
+          <span className="card-date">{formatModified(project.modified)}</span>
+        </span>
       </div>
     </div>
   );
+}
+
+/** "Building age · 1:2500 · A3". The diagram name is left out until the catalog has loaded. */
+function printLine(look: Look, diagrams: Catalog["diagrams"]): string {
+  const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
+  const paper = look.sheet.paper === "square" ? "Square" : look.sheet.paper.toUpperCase();
+  const parts = [diagram?.name, formatScale(look.sheet.scale), paper];
+  return parts.filter(Boolean).join(" · ");
 }

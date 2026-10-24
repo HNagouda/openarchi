@@ -55,25 +55,33 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
           return (
             <li key={layer} className={isOpen ? "layer is-open" : "layer"}>
               <div className={isHidden ? "layer-row is-hidden" : "layer-row"}>
-                <Button
-                  icon={isHidden ? "eyeOff" : "eye"}
-                  tip={isHidden ? "Show layer" : "Hide layer"}
-                  tipSide="left"
-                  className="layer-eye"
-                  onClick={() => onLook(withOverride(look, layer, { hidden: isHidden ? null : true }))}
-                />
-                <button type="button" className="layer-main" onClick={() => setExpanded(isOpen ? null : layer)} aria-expanded={isOpen}>
+                <button
+                  type="button"
+                  className="layer-main"
+                  onClick={() => setExpanded(isOpen ? null : layer)}
+                  aria-expanded={isOpen}
+                  data-tip={isOpen ? undefined : "Fill, line and opacity"}
+                  data-tip-side="above"
+                >
+                  {/* The same disclosure chevron as the section header, always shown, so the row reads as something that opens. */}
+                  <span className="layer-chevron">
+                    <Icon name="chevronRight" size={12} />
+                  </span>
                   <span
                     className={fill ? "layer-swatch" : "layer-swatch is-empty"}
                     style={{ background: fill ?? undefined, boxShadow: stroke ? `inset 0 0 0 1.5px ${stroke}` : undefined }}
                   />
                   <span className="layer-name">{labelOf(layer)}</span>
-                  {isEdited && <span className="layer-edited" aria-label="Edited" />}
+                  {isEdited && <span className="layer-edited" data-tip="Changed from the theme" data-tip-side="left" />}
                   {layer === diagram.emphasis && <span className="layer-badge">Focus</span>}
-                  <span className="layer-chevron">
-                    <Icon name="chevronDown" size={12} />
-                  </span>
                 </button>
+                <Button
+                  icon={isHidden ? "eyeOff" : "eye"}
+                  tip={isHidden ? "Show layer" : "Hide layer"}
+                  tipSide="left"
+                  className={isHidden ? "layer-eye is-off" : "layer-eye"}
+                  onClick={() => onLook(withOverride(look, layer, { hidden: isHidden ? null : true }))}
+                />
               </div>
               {isOpen && (
                 <div className="layer-detail">

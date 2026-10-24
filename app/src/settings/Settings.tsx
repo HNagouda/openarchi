@@ -67,6 +67,7 @@ function General({ appearance, onAppearance, onTour }: Pick<Props, "appearance" 
             { value: "system", label: "System" },
             { value: "light", label: "Light" },
             { value: "dark", label: "Dark" },
+            { value: "amoled", label: "AMOLED" },
           ]}
           onChange={onAppearance}
         />

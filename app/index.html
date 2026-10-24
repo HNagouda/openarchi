@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/fonts/fonts.css" />
+    <script>
+      // Sets the appearance before the first paint, so a dark or black window
+      // never flashes light on launch. src/lib/appearance.ts owns the same key.
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem("openarchi.appearance");
+        } catch (error) {}
+        var isSystemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var isDark = stored === "dark" || stored === "amoled" || ((stored === null || stored === "system") && isSystemDark);
+        document.documentElement.dataset.appearance = isDark ? "dark" : "light";
+        if (stored === "amoled") document.documentElement.dataset.black = "";
+      })();
+    </script>
     <title>openarchi</title>
   </head>
   <body>

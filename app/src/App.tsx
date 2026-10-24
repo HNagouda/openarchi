@@ -101,7 +101,7 @@ export function App() {
       <ToastProvider>
         <div className="app">
           {screen.name === "home" && (
-            <Home navigate={navigate} catalogError={catalogError} onRetryCatalog={loadCatalog} />
+            <Home navigate={navigate} catalog={catalog} catalogError={catalogError} onRetryCatalog={loadCatalog} />
           )}
           {screen.name === "site" && <SiteStep project={screen.project} navigate={navigate} />}
           {screen.name === "sheet" && (

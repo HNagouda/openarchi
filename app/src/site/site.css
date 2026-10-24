@@ -50,9 +50,9 @@
   gap: 8px;
   height: 36px;
   padding: 0 10px;
-  border-radius: 9px;
+  border-radius: var(--radius-l);
   background: var(--surface-raised);
-  box-shadow: var(--pop-shadow);
+  box-shadow: var(--float-shadow);
   transition: box-shadow var(--fast) var(--ease);
 }
 
@@ -71,6 +71,11 @@
   border: 0;
   background: transparent;
   font-size: 13px;
+}
+
+/* The whole field shows the focus ring, so the input inside it does not draw a second one. */
+.search-field input:focus-visible {
+  outline: none;
 }
 
 .search-field input::placeholder {
@@ -98,7 +103,7 @@
   left: 0;
   right: 0;
   padding: 4px;
-  border-radius: 9px;
+  border-radius: var(--radius-l);
   background: var(--surface-raised);
   box-shadow: var(--pop-shadow);
   animation: sheet-in var(--fast) var(--ease);
@@ -145,10 +150,10 @@
 .tool-palette {
   display: flex;
   gap: 2px;
-  padding: 4px;
-  border-radius: 9px;
+  padding: 3px;
+  border-radius: var(--radius-l);
   background: var(--surface-raised);
-  box-shadow: var(--pop-shadow);
+  box-shadow: var(--float-shadow);
 }
 
 .tool-palette .button.is-active {
@@ -162,7 +167,7 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 7px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--toast-bg);
   color: var(--toast-text);
   font-size: 12.5px;
@@ -192,9 +197,9 @@
   align-items: center;
   gap: 2px;
   padding: 2px;
-  border-radius: 8px;
+  border-radius: var(--radius-l);
   background: var(--surface-raised);
-  box-shadow: var(--pop-shadow);
+  box-shadow: var(--float-shadow);
 }
 
 .map-zoom .button-icon {
@@ -208,7 +213,7 @@
 }
 
 :root[data-appearance="dark"] .maplibregl-ctrl-attrib {
-  background: rgba(23, 24, 26, 0.75) !important;
+  background: var(--map-attribution) !important;
   color: var(--text-2);
 }
 
@@ -236,7 +241,8 @@
 }
 
 .site-name {
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.01em;
   align-self: flex-start;
@@ -302,8 +308,9 @@
 }
 
 .area-value {
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
   letter-spacing: -0.01em;
 }
 

@@ -12,8 +12,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: -0.01em;
 }
 
@@ -33,72 +34,84 @@
 .home-content {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 32px 40px 64px;
+  padding: 40px 48px 72px;
 }
 
 .home-notice {
   margin-bottom: 24px;
 }
 
+/* A drawing register: a serif title over a hairline, the count set in mono like a sheet number. */
 .home-heading {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin-bottom: 20px;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--line-strong);
 }
 
 .home-heading h1 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
 }
 
 .home-count {
   color: var(--text-3);
-  font-size: 13px;
+  font-family: var(--font-mono);
+  font-size: 12px;
 }
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
-  gap: 28px 20px;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 36px 28px;
 }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
+/* The desk a print lies on. The print keeps its own proportions inside it. */
 .card-picture {
   position: relative;
   aspect-ratio: 1.414;
-  border-radius: var(--radius-l);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: var(--radius-s);
   background: var(--canvas);
-  box-shadow: var(--card-shadow);
-  overflow: hidden;
-  transition: box-shadow var(--fast) var(--ease), transform var(--medium) var(--ease);
+  transition: box-shadow var(--fast) var(--ease);
 }
 
 .card-picture img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
   display: block;
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: var(--print-shadow);
   animation: fade-in var(--medium) var(--ease);
+  transition: transform var(--medium) var(--ease), box-shadow var(--medium) var(--ease);
 }
 
-.card:hover .card-picture {
-  box-shadow: 0 0 0 1px var(--line-strong), 0 6px 18px -8px rgba(0, 0, 0, 0.2);
+.card:hover .card-picture img {
+  transform: translateY(-2px);
+  box-shadow: var(--paper-shadow);
 }
 
 .card.is-selected .card-picture {
-  box-shadow: 0 0 0 2px var(--accent), 0 6px 18px -8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 
-.card.is-opening .card-picture {
+.card.is-opening .card-picture img {
   transform: scale(0.985);
 }
 
@@ -116,8 +129,8 @@
 
 .card-shimmer {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(100deg, transparent 30%, var(--hover) 50%, transparent 70%) var(--canvas);
+  inset: 16px;
+  background: linear-gradient(100deg, transparent 30%, var(--hover) 50%, transparent 70%) var(--paper-blank);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -144,12 +157,13 @@
   border-radius: var(--radius);
   background: var(--surface-raised);
   color: var(--text-2);
-  box-shadow: var(--card-shadow);
+  box-shadow: var(--float-shadow);
   opacity: 0;
   transition: opacity var(--fast) var(--ease), color var(--fast) var(--ease);
 }
 
-.card:hover .card-delete {
+.card:hover .card-delete,
+.card-delete:focus-visible {
   opacity: 1;
 }
 
@@ -160,20 +174,70 @@
 .card-meta {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 0 2px;
+  gap: 3px;
+  padding: 0 1px;
   min-width: 0;
 }
 
 .card-name {
-  font-weight: 550;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
   align-self: flex-start;
   max-width: 100%;
 }
 
-.card-date {
+.card-specs {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
   color: var(--text-3);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.card-specs > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-date {
+  flex: none;
+}
+
+/* The new-site tile: an empty sheet outlined in pencil. */
+.card-new {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.card-blank {
+  flex-direction: column;
+  gap: 8px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--text-2);
+  font-weight: 500;
+  transition: box-shadow var(--fast) var(--ease), color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+
+.card-blank::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.card-new:hover .card-blank {
+  color: var(--text);
+  background: var(--hover);
 }
 
 .empty-gallery {
@@ -181,15 +245,16 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 72px 0 40px;
-  border-radius: 14px;
+  padding: 72px 0 48px;
+  border-radius: var(--radius-s);
   border: 1px dashed var(--line-strong);
 }
 
 .empty-gallery h2 {
   margin: 20px 0 6px;
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
   letter-spacing: -0.01em;
 }
 
@@ -252,6 +317,8 @@
 
 .trash-count {
   color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
   font-weight: 450;
 }
 
@@ -280,5 +347,6 @@
 
 .trash-date {
   color: var(--text-3);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
 }
