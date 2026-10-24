@@ -36,6 +36,19 @@ What changed in each version of openarchi, newest first.
 - OpenStreetMap is asked once per site, and the answer is kept with the other downloaded data, so a nudged site does not ask again. When it is busy or down, the site still arrives without these layers and says why.
 - Assistants can read the walk counts with the new `get_neighbourhood` tool.
 
+### Analysis
+
+- The inspector has an Analysis view next to Style and Ratios: a scrolling report on where the site is, what is on it, and its climate.
+- Location gives the nearest address, the municipality and province, the coordinates in degrees and in RD, and a small map of the country with a dot and of the municipality with the site drawn in it. The country outline ships with the app.
+- Site sums up the area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use and the shares of green, water and paved ground, with the same numbers as the Ratios view. When the walk was fetched it also counts the facilities and shops within a 15 minute walk and the transit stops within 5 minutes.
+- Climate comes from a PVGIS typical year for the site: monthly temperature with the mean daily low and high, outdoor comfort as hours per month from cold to hot, wind roses for each season, monthly sun on a flat roof and towards the sun, where the direct sun comes from in winter and summer, and humidity.
+- Rain is thirty years of monthly totals and rain days from the nearest of thirty KNMI stations, named on the chart with its distance.
+- Each section ends with a few design notes written from fixed rules, such as which side the winter wind comes from and what that means for entrances, when outdoor space is comfortable, and how long a 10 m building's shadow is at midwinter noon.
+- The comfort chart uses the UTCI stress bands on air temperature alone, and says so: sun, wind and humidity change how warm it feels.
+- Charts are drawn in the sheet's palette and change with it. Export one section or the whole analysis as an SVG or PDF page.
+- Climate and rain are fetched once per site and kept with the other downloaded data. Location and site appear at once; climate and rain show their own loading and error state, and the rest of the analysis works without them.
+- Assistants can read the numbers and the notes with the new `get_analysis` tool.
+
 ### Ratios
 
 - The inspector has a Ratios view next to Style: how the site divides up, as bars or pies. Land use and transport by area, building use, floors, height, year built and footprint by building, building coverage and floor area ratio by parcel, and green and water by type.

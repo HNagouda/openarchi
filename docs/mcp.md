@@ -13,6 +13,7 @@ The assistant finds the address, creates a project with a circle around it, down
 - "Which buildings around the Oude Kerk are older than 1700? Show me the building age diagram."
 - "Summarise this site: how many buildings, how tall, what are they used for?"
 - "How much of this site is built over, and what is the floor area ratio of the parcels around the square?"
+- "Where does the winter wind come from on this site, and which months are comfortable to sit outside?"
 - "Design a theme in warm brick and sage tones and use it for all my Rotterdam projects."
 - "Export the Westermarkt project as DXF for AutoCAD."
 
@@ -73,6 +74,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
 | `get_neighbourhood` | Counts the businesses, facilities and transit stops within a 5, 10 and 15 minute walk of the site, by group |
+| `get_analysis` | Gives the site analysis: address, municipality and province, a site summary, the climate from a PVGIS typical year (temperature, comfort hours, wind by season, sun, humidity), 30 years of rain from the nearest KNMI station, and design notes for each section |
 | `export` | Writes SVG, PDF, PNG or DXF |
 | `create_theme` | Saves a new theme, which the app picks up too |
 | `delete_project`, `restore_project` | Moves a project to Recently Deleted and back |
