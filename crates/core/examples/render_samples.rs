@@ -12,7 +12,7 @@ use openarchi_core::export::{export, render_png, ExportFormat};
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::scene::Scene;
-use openarchi_core::sheet::{Frame, Paper, Sheet};
+use openarchi_core::sheet::{Align, Frame, Paper, Position, Sheet, TextBox, TextStyle};
 
 const FIXTURE: &str = "tests/fixtures/westermarkt.scene.json";
 const SAMPLE_WIDTH_PX: u32 = 1800;
@@ -66,6 +66,7 @@ fn main() {
     }
     if only_diagram.is_none() {
         write_layouts(&scene, &out_dir);
+        write_custom_text(&scene, &out_dir);
         time_big_site(&scene, &out_dir);
     }
     println!("samples in {}", out_dir.display());
@@ -130,6 +131,82 @@ fn write_layouts(scene: &Scene, out_dir: &Path) {
         let path = out_dir.join(format!("westermarkt.{}", format.extension()));
         export(&input, format, 150, &path).expect("export");
     }
+}
+
+/// A sheet with the title moved onto the drawing, a restyled subtitle and two
+/// text boxes in every family, as PNG and PDF, to check type and embedding.
+fn write_custom_text(scene: &Scene, out_dir: &Path) {
+    let position = |x_mm, y_mm| Some(Position { x_mm, y_mm });
+    let sheet = Sheet {
+        title: "Westermarkt".to_string(),
+        subtitle: "Building use within 300 m of the Westerkerk".to_string(),
+        title_position: position(24.0, 22.0),
+        title_style: TextStyle {
+            family: Some("Source Serif 4".to_string()),
+            italic: Some(true),
+            size_pt: Some(40.0),
+            ..TextStyle::default()
+        },
+        subtitle_style: TextStyle {
+            family: Some("IBM Plex Mono".to_string()),
+            colour: Some("@accent".to_string()),
+            ..TextStyle::default()
+        },
+        texts: vec![
+            TextBox {
+                id: "text-1".to_string(),
+                text: "Westerkerk\n1631, Hendrick de Keyser".to_string(),
+                style: TextStyle {
+                    bold: Some(true),
+                    size_pt: Some(12.0),
+                    align: Some(Align::Centre),
+                    ..TextStyle::default()
+                },
+                position: position(150.0, 150.0),
+            },
+            TextBox {
+                id: "text-2".to_string(),
+                text: "Prinsengracht".to_string(),
+                style: TextStyle {
+                    family: Some("IBM Plex Mono".to_string()),
+                    italic: Some(true),
+                    bold: Some(true),
+                    size_pt: Some(10.0),
+                    align: Some(Align::Right),
+                    colour: Some("#1D4E89".to_string()),
+                    opacity: Some(0.8),
+                },
+                position: position(280.0, 260.0),
+            },
+        ],
+        ..Sheet::default()
+    };
+    let look = Look {
+        diagram_id: "building-use".to_string(),
+        sheet,
+        ..Look::default()
+    };
+    let diagrams = builtin_diagrams();
+    let themes = builtin_themes();
+    let diagram = diagrams
+        .iter()
+        .find(|d| d.id == "building-use")
+        .expect("building-use exists");
+    let input = RenderInput {
+        scene,
+        diagram,
+        theme: &themes[0],
+        look: &look,
+    };
+    let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the custom text");
+    std::fs::write(out_dir.join("text--custom.png"), png).expect("write the custom text");
+    export(
+        &input,
+        ExportFormat::Pdf,
+        150,
+        &out_dir.join("text--custom.pdf"),
+    )
+    .expect("export the custom text");
 }
 
 /// A stand-in for a 1 km radius site: the fixture tiled 3 × 3, about 600 m apart.

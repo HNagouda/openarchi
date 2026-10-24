@@ -1,7 +1,8 @@
 //! Everything on the sheet that is not the map: title, legend, north arrow,
 //! scale bar, credits and the openarchi mark.
 //!
-//! All of it stays inside the furniture zone from `layout`. Each block is
+//! All of it stays inside the furniture zone from `layout`, until the user
+//! moves the title or subtitle out of it. Each block is
 //! measured before it is placed, and the legend gets whatever height is left.
 
 use std::fmt::Write;
@@ -10,10 +11,11 @@ use super::geometry::{decimal, mm};
 use super::layout::{Layout, Placement, Rect};
 use super::legend::{self, Legend};
 use super::svg::layer_attributes;
+use super::text::{self, SheetTexts};
 use super::tools::{write_tools, TOOLS_HEIGHT};
 use super::typeset::{Kind, Typesetter};
 use crate::scene::Scene;
-use crate::sheet::Sheet;
+use crate::sheet::{Sheet, SUBTITLE_ID, TITLE_ID};
 use crate::theme::Palette;
 
 const MARK_TEXT: &str = "openarchi";
@@ -26,6 +28,9 @@ const RULE_TO_LEGEND: f64 = 5.0;
 const LEGEND_TO_TOOLS: f64 = 8.0;
 const BAND_PADDING_TOP: f64 = 6.0;
 const BAND_COLUMN_GAP: f64 = 9.0;
+/// Shares of the band's width for the title column and the tools column.
+const BAND_TITLE_SHARE: f64 = 0.32;
+const BAND_TOOLS_SHARE: f64 = 0.24;
 const CREDITS_GAP: f64 = 2.6;
 const TOOLS_TO_RULE: f64 = 5.0;
 const RULE_TO_CREDITS: f64 = 4.0;
@@ -43,8 +48,16 @@ pub struct Furniture<'a> {
     pub palette: &'a Palette,
     pub mm_per_m: f64,
     pub legend: Option<Legend>,
+    pub texts: &'a SheetTexts<'a>,
 }
 
+/// The furniture layer, then the text layer above everything: the title or
+/// subtitle once the user moved it, and the user's own text boxes.
+///
+/// A moved title leaves the furniture zone, and the legend moves up into the
+/// space it left. The furniture never makes room around free text, because a
+/// legend that jumps while the user drags a title is worse than an overlap they
+/// can see and fix by moving the text again.
 pub fn write(out: &mut String, furniture: &Furniture, layout: &Layout, typesetter: &Typesetter) {
     let _ = write!(
         out,
@@ -57,6 +70,26 @@ pub fn write(out: &mut String, furniture: &Furniture, layout: &Layout, typesette
         Placement::Band => write_band(out, furniture, &layout.furniture, typesetter),
     }
     out.push_str("</g>\n");
+
+    let sheet = furniture.sheet;
+    let title_width = title_width(layout);
+    text::open_layer(out);
+    if let Some(position) = sheet.title_position {
+        write_title(
+            out,
+            furniture,
+            typesetter,
+            position.x_mm,
+            position.y_mm,
+            title_width,
+        );
+    }
+    if let Some(position) = sheet.subtitle_position {
+        write_subtitle(out, furniture, position.x_mm, position.y_mm, title_width);
+    }
+    text::write_boxes(out, &furniture.texts.boxes, &layout.drawing, layout.unit);
+    text::close_group(out);
+    out.push('\n');
 }
 
 /// Title at the top, legend in the middle, tools and credits at the foot.
@@ -68,7 +101,12 @@ fn write_column(out: &mut String, furniture: &Furniture, area: &Rect, typesetter
     let Some(legend) = &furniture.legend else {
         return;
     };
-    let rule_y = title_bottom + TITLE_TO_LEGEND * unit;
+    // With the title and subtitle both moved away, the legend starts at the top of the column.
+    let rule_y = if title_bottom > area.y {
+        title_bottom + TITLE_TO_LEGEND * unit
+    } else {
+        area.y
+    };
     let legend_top = rule_y + RULE_TO_LEGEND * unit;
     let legend_area = Rect {
         x: area.x,
@@ -86,13 +124,25 @@ fn write_column(out: &mut String, furniture: &Furniture, area: &Rect, typesetter
 fn write_band(out: &mut String, furniture: &Furniture, area: &Rect, typesetter: &Typesetter) {
     let unit = typesetter.unit;
     let gap = BAND_COLUMN_GAP * unit;
-    let title_width = area.width * 0.32;
-    let tools_width = area.width * 0.24;
-    let legend_width = area.width - title_width - tools_width - 2.0 * gap;
+    let tools_width = area.width * BAND_TOOLS_SHARE;
+    // With the title and subtitle both moved away, the legend takes their column too.
+    let title_column = if has_title_in_layout(furniture.sheet) {
+        area.width * BAND_TITLE_SHARE + gap
+    } else {
+        0.0
+    };
+    let legend_width = area.width - title_column - tools_width - gap;
     let top = area.y + BAND_PADDING_TOP * unit;
 
     write_rule(out, area.x, area.right(), area.y, &furniture.palette.ink);
-    write_title_block(out, furniture, typesetter, area.x, top, title_width);
+    write_title_block(
+        out,
+        furniture,
+        typesetter,
+        area.x,
+        top,
+        area.width * BAND_TITLE_SHARE,
+    );
     let credits_top = write_credits_and_mark(
         out,
         furniture,
@@ -105,7 +155,7 @@ fn write_band(out: &mut String, furniture: &Furniture, area: &Rect, typesetter: 
 
     if let Some(legend) = &furniture.legend {
         let legend_area = Rect {
-            x: area.x + title_width + gap,
+            x: area.x + title_column,
             y: top,
             width: legend_width,
             height: credits_top - CREDITS_GAP * unit - top,
@@ -116,7 +166,8 @@ fn write_band(out: &mut String, furniture: &Furniture, area: &Rect, typesetter: 
     write_tools(out, furniture, typesetter, tools_x, top, tools_width);
 }
 
-/// Eyebrow, title and subtitle from `top`. Returns the y below the last line.
+/// The title and subtitle the user has not moved, stacked from `top` across
+/// `width`. Returns the y below the last line, or `top` when nothing stayed.
 fn write_title_block(
     out: &mut String,
     furniture: &Furniture,
@@ -125,8 +176,38 @@ fn write_title_block(
     top: f64,
     width: f64,
 ) -> f64 {
-    let unit = typesetter.unit;
     let sheet = furniture.sheet;
+    let subtitle = &furniture.texts.subtitle;
+    let mut y = top;
+    if sheet.title_position.is_none() {
+        let anchor_x = furniture.texts.title.anchor_x(x, width);
+        y = write_title(out, furniture, typesetter, anchor_x, top, width);
+    }
+    if sheet.subtitle_position.is_none() && !sheet.subtitle.trim().is_empty() {
+        // Under a title, the gap is measured baseline to baseline like the rest of the block.
+        let subtitle_top = if y > top {
+            y + SUBTITLE_GAP * typesetter.unit + subtitle.line_pitch() - subtitle.cap_height()
+        } else {
+            top
+        };
+        let anchor_x = subtitle.anchor_x(x, width);
+        y = write_subtitle(out, furniture, anchor_x, subtitle_top, width);
+    }
+
+    y
+}
+
+/// The eyebrow and title as one group anchored at (`x`, `top`). Returns the last baseline.
+fn write_title(
+    out: &mut String,
+    furniture: &Furniture,
+    typesetter: &Typesetter,
+    x: f64,
+    top: f64,
+    width: f64,
+) -> f64 {
+    let sheet = furniture.sheet;
+    let styled = &furniture.texts.title;
     // With no title of their own, the diagram name becomes the title.
     let (eyebrow, title) = if sheet.title.trim().is_empty() {
         (None, furniture.diagram_name)
@@ -134,37 +215,50 @@ fn write_title_block(
         (Some(furniture.diagram_name), sheet.title.as_str())
     };
 
+    text::open_group(out, styled, TITLE_ID, x, top);
     let mut y = top;
     if let Some(eyebrow) = eyebrow {
         y += typesetter.cap_height(Kind::Eyebrow);
         typesetter.write(out, x, y, eyebrow, Kind::Eyebrow, None);
-        y += EYEBROW_GAP * unit;
+        y += EYEBROW_GAP * typesetter.unit;
     }
-    for (index, line) in limited(typesetter.wrap(title, Kind::Title, width), MAX_TITLE_LINES)
-        .iter()
-        .enumerate()
-    {
-        y += if index == 0 {
-            typesetter.cap_height(Kind::Title)
-        } else {
-            typesetter.line_pitch(Kind::Title)
-        };
-        typesetter.write(out, x, y, line, Kind::Title, None);
-    }
-    let subtitle_lines = limited(
-        typesetter.wrap(&sheet.subtitle, Kind::Subtitle, width),
+    let lines = limited(styled.wrap(title, width), MAX_TITLE_LINES);
+    let last_baseline = text::write_lines(out, styled, &lines, x, y + styled.cap_height());
+    text::close_group(out);
+
+    last_baseline
+}
+
+/// The subtitle as one group anchored at (`x`, `top`). Returns the last baseline.
+fn write_subtitle(out: &mut String, furniture: &Furniture, x: f64, top: f64, width: f64) -> f64 {
+    let styled = &furniture.texts.subtitle;
+    let lines = limited(
+        styled.wrap(&furniture.sheet.subtitle, width),
         MAX_SUBTITLE_LINES,
     );
-    for (index, line) in subtitle_lines.iter().enumerate() {
-        y += if index == 0 {
-            SUBTITLE_GAP * unit + typesetter.line_pitch(Kind::Subtitle)
-        } else {
-            typesetter.line_pitch(Kind::Subtitle)
-        };
-        typesetter.write(out, x, y, line, Kind::Subtitle, None);
+    if lines.is_empty() {
+        return top;
     }
 
-    y
+    text::open_group(out, styled, SUBTITLE_ID, x, top);
+    let last_baseline = text::write_lines(out, styled, &lines, x, top + styled.cap_height());
+    text::close_group(out);
+
+    last_baseline
+}
+
+/// True while the title or a subtitle still sits in the furniture zone.
+fn has_title_in_layout(sheet: &Sheet) -> bool {
+    sheet.title_position.is_none()
+        || (sheet.subtitle_position.is_none() && !sheet.subtitle.trim().is_empty())
+}
+
+/// The width the title wraps to, in the layout and after it has been moved.
+fn title_width(layout: &Layout) -> f64 {
+    match layout.placement {
+        Placement::Column => layout.furniture.width,
+        Placement::Band => layout.furniture.width * BAND_TITLE_SHARE,
+    }
 }
 
 /// Tools, a rule, credits and the mark, stacked up from the bottom of `area`. Returns the top of the stack.

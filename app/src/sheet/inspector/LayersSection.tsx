@@ -91,6 +91,7 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
                     isOverridden={override.fill != null}
                     onChange={(hex) => onLook(withOverride(look, layer, { fill: hex }), `fill:${layer}`)}
                     onReset={() => onLook(withOverride(look, layer, { fill: null }))}
+                    onSeal={onSeal}
                   />
                   <ColorField
                     label="Stroke"
@@ -98,6 +99,7 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
                     isOverridden={override.stroke != null}
                     onChange={(hex) => onLook(withOverride(look, layer, { stroke: hex }), `stroke:${layer}`)}
                     onReset={() => onLook(withOverride(look, layer, { stroke: null }))}
+                    onSeal={onSeal}
                   />
                   <div className="detail-row">
                     <span className="field-label">Weight</span>

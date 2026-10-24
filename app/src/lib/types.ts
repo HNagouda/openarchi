@@ -42,7 +42,30 @@ export type Sheet = {
   show_north_arrow: boolean;
   show_scale_bar: boolean;
   show_credits: boolean;
+  title_style: TextStyle;
+  subtitle_style: TextStyle;
+  title_position: Position | null;
+  subtitle_position: Position | null;
+  texts: TextBox[];
 };
+
+export type Align = "left" | "centre" | "right";
+
+/** Every field left out follows the theme. Colours are "#RRGGBB" or "@role". */
+export type TextStyle = {
+  family?: string | null;
+  bold?: boolean | null;
+  italic?: boolean | null;
+  size_pt?: number | null;
+  align?: Align | null;
+  colour?: string | null;
+  opacity?: number | null;
+};
+
+/** Millimetres from the paper's top-left corner, at the top of the first line. */
+export type Position = { x_mm: number; y_mm: number };
+
+export type TextBox = { id: string; text: string; style: TextStyle; position: Position | null };
 
 export type LayerOverride = {
   hidden?: boolean | null;

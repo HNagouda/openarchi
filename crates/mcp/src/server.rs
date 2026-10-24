@@ -19,12 +19,13 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::inputs::{
-    CreateProject, CreateTheme, Export, GetRatios, ListThemes, ProjectId, RenderPreview,
-    SearchPlaces, SetLook,
+    CreateProject, CreateTheme, EditText, Export, GetRatios, ListThemes, ProjectId,
+    RenderPreview, SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
 use crate::resolve::{find_diagram, find_theme, with_render_input};
 use crate::summary::summarize;
+use crate::text::edited_sheet;
 use crate::user_themes::save_user_theme;
 
 const DEFAULT_PLACES: u32 = 5;
@@ -48,7 +49,8 @@ const INSTRUCTIONS: &str = "openarchi turns a site in the Netherlands into style
 site-analysis diagrams (figure-ground, building age, heights, uses, green and water). \
 A typical session: search_places to find the site, create_project with an area around \
 it, fetch_site to download the site data, list_diagrams and list_themes, set_look to \
-choose and tune the style, render_preview to look at the sheet, get_ratios for the \
+choose and tune the style, edit_text to style, move or add text on the sheet, \
+render_preview to look at the sheet, get_ratios for the \
 numbers behind it (land use, building use, coverage, floor area ratio), and export to \
 write a file. Projects live in the same library as the openarchi app, so the user sees every \
 project you make there. delete_project moves a project to Recently Deleted and \
@@ -199,6 +201,31 @@ impl OpenArchi {
                 )?;
                 library.save(&mut project).map_err(text)?;
                 Ok(project.look)
+            })
+            .await;
+        reply(result)
+    }
+
+    #[tool(
+        description = "Add, change, move or delete text on the sheet and save it. text_id is \"title\", \"subtitle\", an existing text box id, or \"new\" to add a text box. Set the words, the style (family, bold, italic, size_pt, align, colour, opacity) and the position in millimetres from the paper's top-left corner. Returns the id of the text, the paper size in millimetres and every text on the sheet. Check the result with render_preview."
+    )]
+    async fn edit_text(&self, Parameters(input): Parameters<EditText>) -> CallToolResult {
+        let result = self
+            .with_library(move |library| {
+                let mut project = library.load(&input.id).map_err(text)?;
+                let (sheet, text_id) = edited_sheet(&project.look.sheet, input)?;
+                project.look.sheet = sheet;
+                library.save(&mut project).map_err(text)?;
+
+                let sheet = &project.look.sheet;
+                let (width, height) = sheet.size_mm();
+                Ok(json!({
+                    "text_id": text_id,
+                    "paper_mm": { "width": width, "height": height },
+                    "title": { "text": sheet.title, "style": sheet.title_style, "position": sheet.title_position },
+                    "subtitle": { "text": sheet.subtitle, "style": sheet.subtitle_style, "position": sheet.subtitle_position },
+                    "texts": sheet.texts,
+                }))
             })
             .await;
         reply(result)

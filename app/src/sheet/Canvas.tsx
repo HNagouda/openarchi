@@ -4,7 +4,7 @@
 // transform, so WebKit redraws the vectors and the sheet stays crisp at
 // every zoom. Only the offset uses a transform.
 
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { clamp } from "../lib/format";
 
 const MM_TO_PX = 96 / 25.4;
@@ -16,7 +16,21 @@ const FIT_PADDING_PX = 48;
 // Trackpad pinch arrives as small ctrl-wheel deltas; this turns them into a smooth factor.
 const PINCH_SENSITIVITY = 0.01;
 
-export type CanvasControls = { zoomIn: () => void; zoomOut: () => void; fit: () => void };
+export type CanvasControls = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  fit: () => void;
+  /** The paper point at the middle of the visible canvas, in millimetres. */
+  centreMm: () => { x: number; y: number } | null;
+};
+
+/** The paper as it sits on screen, for things drawn over it or dragged on it. */
+export type PaperView = {
+  getPaper: () => HTMLDivElement | null;
+  /** Screen pixels per paper millimetre at the current zoom. */
+  pxPerMm: number;
+  toMm: (clientX: number, clientY: number) => { x: number; y: number };
+};
 
 type Size = { width: number; height: number };
 type View = { zoom: number; x: number; y: number };
@@ -43,10 +57,17 @@ type Props = {
   svg: string | null;
   controls: Ref<CanvasControls>;
   onZoom: (zoom: number) => void;
+  /** Drawn over the paper at its size and position; its own parts opt into pointer events. */
+  overlay?: (view: PaperView) => ReactNode;
+  /** Lets something on the paper claim a press; returning true stops the canvas from panning. */
+  onPaperPointerDown?: (event: React.PointerEvent, view: PaperView) => boolean;
+  /** Returning true stops the double-click from fitting the sheet. */
+  onPaperDoubleClick?: (event: React.MouseEvent, view: PaperView) => boolean;
 };
 
-export function Canvas({ svg, controls, onZoom }: Props) {
+export function Canvas({ svg, controls, onZoom, overlay, onPaperPointerDown, onPaperDoubleClick }: Props) {
   const viewport = useRef<HTMLDivElement>(null);
+  const paper = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<View>({ zoom: 1, x: 0, y: 0 });
   const [isPanning, setPanning] = useState(false);
   const size = svg ? sheetSize(svg) : null;
@@ -90,6 +111,12 @@ export function Canvas({ svg, controls, onZoom }: Props) {
     zoomIn: () => zoomBy(ZOOM_STEP),
     zoomOut: () => zoomBy(1 / ZOOM_STEP),
     fit,
+    centreMm: () => {
+      const element = viewport.current;
+      if (!element) return null;
+      const { zoom, x, y } = latest.current.view;
+      return { x: (element.clientWidth / 2 - x) / (zoom * MM_TO_PX), y: (element.clientHeight / 2 - y) / (zoom * MM_TO_PX) };
+    },
   }));
 
   // Fit when the first sheet arrives and whenever the paper size changes.
@@ -165,8 +192,19 @@ export function Canvas({ svg, controls, onZoom }: Props) {
     };
   }, [zoomBy]);
 
+  const pxPerMm = view.zoom * MM_TO_PX;
+  const paperView: PaperView = {
+    getPaper: () => paper.current,
+    pxPerMm,
+    toMm: (clientX, clientY) => {
+      const rect = paper.current?.getBoundingClientRect();
+      return { x: (clientX - (rect?.left ?? 0)) / pxPerMm, y: (clientY - (rect?.top ?? 0)) / pxPerMm };
+    },
+  };
+
   const startPan = (event: React.PointerEvent) => {
     if (event.button !== 0 && event.button !== 1) return;
+    if (event.button === 0 && onPaperPointerDown?.(event, paperView)) return;
     const start = { x: event.clientX, y: event.clientY, view: latest.current.view };
     setPanning(true);
     const onMove = (move: PointerEvent) => {
@@ -182,9 +220,17 @@ export function Canvas({ svg, controls, onZoom }: Props) {
   };
 
   return (
-    <div ref={viewport} className={isPanning ? "canvas is-panning" : "canvas"} onPointerDown={startPan} onDoubleClick={fit}>
+    <div
+      ref={viewport}
+      className={isPanning ? "canvas is-panning" : "canvas"}
+      onPointerDown={startPan}
+      onDoubleClick={(event) => {
+        if (!onPaperDoubleClick?.(event, paperView)) fit();
+      }}
+    >
       {svg && size && (
         <div
+          ref={paper}
           className="paper"
           style={{
             width: size.width * view.zoom,
@@ -193,6 +239,18 @@ export function Canvas({ svg, controls, onZoom }: Props) {
           }}
           dangerouslySetInnerHTML={{ __html: svg }}
         />
+      )}
+      {svg && size && overlay && (
+        <div
+          className="paper-overlay"
+          style={{
+            width: size.width * view.zoom,
+            height: size.height * view.zoom,
+            transform: `translate(${view.x}px, ${view.y}px)`,
+          }}
+        >
+          {overlay(paperView)}
+        </div>
       )}
     </div>
   );

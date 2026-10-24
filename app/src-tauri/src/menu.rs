@@ -62,6 +62,9 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             &item(app, "undo", "Undo", Some("CmdOrCtrl+Z"))?,
             &item(app, "redo", "Redo", Some("CmdOrCtrl+Shift+Z"))?,
             &separator()?,
+            // A plain key in the label rather than an accelerator, so T still types in text fields.
+            &item(app, "add-text", "Add Text  (T)", None)?,
+            &separator()?,
             &PredefinedMenuItem::cut(app, None)?,
             &PredefinedMenuItem::copy(app, None)?,
             &PredefinedMenuItem::paste(app, None)?,

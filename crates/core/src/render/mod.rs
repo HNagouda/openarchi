@@ -16,6 +16,7 @@ mod legend;
 mod patterns;
 mod style;
 mod svg;
+mod text;
 mod tools;
 mod typeset;
 
@@ -31,6 +32,7 @@ use crate::Result;
 // Shared with the catalog (validating themes) and export (fonts, CAD layer names).
 pub(crate) use color::{is_hex, role, ROLES};
 pub(crate) use drawing::layer_slug;
+pub use fonts::FAMILIES as FONT_FAMILIES;
 pub(crate) use fonts::{is_bundled as is_bundled_font, BUNDLED as BUNDLED_FONTS};
 // Shared with ratios, so its rows take the same classes and colours as the diagrams.
 pub(crate) use classify::{build as build_classes, class_of};
@@ -43,6 +45,7 @@ use frame::FrameShape;
 use furniture::Furniture;
 use geometry::{mm, Projection};
 use layout::Layout;
+use text::SheetTexts;
 use typeset::Typesetter;
 
 /// Everything the renderer needs, already resolved from ids.
@@ -114,7 +117,9 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         &palette.ink,
         &palette.accent,
     );
+    let texts = SheetTexts::resolve(sheet, &typesetter, palette)?;
     let furniture = Furniture {
+        texts: &texts,
         sheet,
         scene: input.scene,
         diagram_name: &input.diagram.name,

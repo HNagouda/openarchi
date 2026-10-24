@@ -33,6 +33,10 @@ const PATHS: Record<string, string> = {
   reset: "M3 8a5 5 0 1 0 1.5-3.5M3 2.5v2.5h2.5",
   more: "M4 8h.01M8 8h.01M12 8h.01",
   keyboard: "M1.5 4h13v8h-13zM4 6.5h.01M6.5 6.5h.01M9 6.5h.01M11.5 6.5h.01M5 9.5h6",
+  text: "M3.5 4V3h9v1M8 3v10M6 13h4",
+  alignLeft: "M2.5 4h11M2.5 7h7M2.5 10h11M2.5 13h7",
+  alignCentre: "M2.5 4h11M4.5 7h7M2.5 10h11M4.5 13h7",
+  alignRight: "M2.5 4h11M6.5 7h7M2.5 10h11M6.5 13h7",
 };
 
 export type IconName = keyof typeof PATHS;

@@ -69,6 +69,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `fetch_site` | Downloads buildings, roads, water, green and terrain into the project |
 | `list_diagrams`, `list_themes` | Shows the diagrams and themes to choose from |
 | `set_look` | Changes the diagram, theme, sheet or single layers |
+| `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
 | `export` | Writes SVG, PDF, PNG or DXF |

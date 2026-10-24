@@ -16,8 +16,8 @@ use crate::sheet::Sheet;
 use crate::theme::LayerOverride;
 
 /// Bump when the file shape changes, and add a step to `library::migrate`.
-/// Version 2 stores the scene compressed.
-pub const PROJECT_FORMAT_VERSION: u32 = 2;
+/// Version 2 stores the scene compressed. Version 3 adds styled, movable sheet text.
+pub const PROJECT_FORMAT_VERSION: u32 = 3;
 
 pub const PROJECT_EXTENSION: &str = "openarchi";
 

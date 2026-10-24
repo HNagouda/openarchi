@@ -1,0 +1,109 @@
+/* Text on the sheet: the layer over the paper, the selection, the field and the toolbar. */
+
+.paper-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.paper-overlay > * {
+  pointer-events: auto;
+}
+
+/* Texts on the sheet can be picked up and moved. */
+.paper g[data-text] {
+  cursor: move;
+}
+
+.text-outline {
+  position: absolute;
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.text-outline.is-editing {
+  border-style: dashed;
+}
+
+.text-editor {
+  position: absolute;
+  min-height: 1em;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  line-height: 1.3;
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+  caret-color: var(--accent);
+}
+
+.text-toolbar-slot {
+  position: absolute;
+  white-space: nowrap;
+}
+
+.text-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  animation: fade-in var(--fast) var(--ease);
+  cursor: default;
+}
+
+.text-toolbar .toolbar-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--line-strong);
+}
+
+.text-family {
+  height: 26px;
+  max-width: 150px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.text-size {
+  width: 64px;
+  margin-left: 4px;
+}
+
+.text-bold .button-label,
+.text-italic .button-label {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 15px;
+}
+
+.text-bold .button-label {
+  font-weight: 600;
+}
+
+.text-italic .button-label {
+  font-style: italic;
+}
+
+.text-bold,
+.text-italic {
+  width: 28px;
+  padding: 0;
+}
+
+.text-colour {
+  margin: 0 5px;
+}

@@ -17,7 +17,8 @@ export type CommandId =
   | "home"
   | "tour"
   | "assistant"
-  | "shortcuts";
+  | "shortcuts"
+  | "add-text";
 
 /** Returns true when the screen handled the command. */
 export type CommandHandler = (id: CommandId) => boolean;

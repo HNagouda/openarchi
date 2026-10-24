@@ -246,6 +246,97 @@ fn newer_format_version_is_refused_with_a_reason() {
     assert!(error.contains("newer openarchi"), "{error}");
 }
 
+/// A project exactly as openarchi 0.1.0 wrote it, before sheet text could be styled or moved.
+const VERSION_1_PROJECT: &str = r#"{
+  "format_version": 1,
+  "id": "2026-10-01-westermarkt-3f9a",
+  "name": "Westermarkt",
+  "created": "2026-10-01T09:00:00Z",
+  "modified": "2026-10-01T09:30:00Z",
+  "area": { "kind": "circle", "center": { "lon": 4.8837, "lat": 52.3747 }, "radius_m": 150.0 },
+  "scene": null,
+  "look": {
+    "diagram_id": "building-age",
+    "theme_id": "ink",
+    "sheet": {
+      "paper": "a2", "landscape": false, "scale": 2000, "frame": "square",
+      "title": "Westermarkt", "subtitle": "Amsterdam",
+      "show_legend": true, "show_north_arrow": false, "show_scale_bar": true, "show_credits": true
+    },
+    "overrides": {}
+  }
+}"#;
+
+#[test]
+fn version_1_project_opens_with_its_title_in_the_automatic_layout() {
+    let (folder, library) = library();
+    let id = "2026-10-01-westermarkt-3f9a";
+    fs::write(
+        folder.path().join(format!("projects/{id}.openarchi")),
+        VERSION_1_PROJECT,
+    )
+    .unwrap();
+
+    let project = library.load(id).unwrap();
+
+    let sheet = &project.look.sheet;
+    assert_eq!(sheet.title, "Westermarkt");
+    assert_eq!(sheet.paper, crate::sheet::Paper::A2);
+    assert_eq!(sheet.title_position, None);
+    assert_eq!(sheet.title_style, crate::sheet::TextStyle::default());
+    assert!(sheet.texts.is_empty());
+}
+
+#[test]
+fn version_1_project_is_saved_back_as_the_current_version() {
+    let (folder, library) = library();
+    let id = "2026-10-01-westermarkt-3f9a";
+    let path = folder.path().join(format!("projects/{id}.openarchi"));
+    fs::write(&path, VERSION_1_PROJECT).unwrap();
+    let mut project = library.load(id).unwrap();
+
+    library.save(&mut project).unwrap();
+
+    let saved: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    assert_eq!(saved["format_version"], Value::from(PROJECT_FORMAT_VERSION));
+    assert_eq!(saved["look"]["sheet"]["texts"], serde_json::json!([]));
+}
+
+#[test]
+fn text_boxes_and_moved_titles_survive_a_save_and_load() {
+    use crate::sheet::{Align, Position, TextBox, TextStyle};
+
+    let (_folder, library) = library();
+    let mut project = library.create("Westermarkt", westermarkt()).unwrap();
+    project.look.sheet.title_position = Some(Position {
+        x_mm: 20.5,
+        y_mm: 18.0,
+    });
+    project.look.sheet.title_style.italic = Some(true);
+    project.look.sheet.texts.push(TextBox {
+        id: "text-1".to_string(),
+        text: "Westerkerk\n1631".to_string(),
+        style: TextStyle {
+            family: Some("IBM Plex Mono".to_string()),
+            bold: Some(true),
+            size_pt: Some(18.0),
+            align: Some(Align::Right),
+            colour: Some("@accent".to_string()),
+            opacity: Some(0.8),
+            ..TextStyle::default()
+        },
+        position: Some(Position {
+            x_mm: 200.0,
+            y_mm: 120.0,
+        }),
+    });
+    library.save(&mut project).unwrap();
+
+    let loaded = library.load(&project.id).unwrap();
+
+    assert_eq!(loaded.look, project.look);
+}
+
 #[test]
 fn ids_that_leave_the_library_are_refused() {
     let (_folder, library) = library();

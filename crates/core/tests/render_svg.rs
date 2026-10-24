@@ -19,8 +19,13 @@ fn svg_for(diagram_id: &str, theme_id: &str, look: &openarchi_core::project::Loo
     .expect("render")
 }
 
+/// Parsed with the bundled fonts, so text has real extents in the bounding boxes.
 fn parse(svg: &str) -> usvg::Tree {
-    usvg::Tree::from_str(svg, &usvg::Options::default()).expect("valid SVG")
+    let mut options = usvg::Options::default();
+    options
+        .fontdb_mut()
+        .load_fonts_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/fonts"));
+    usvg::Tree::from_str(svg, &options).expect("valid SVG")
 }
 
 #[test]

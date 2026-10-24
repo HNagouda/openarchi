@@ -8,6 +8,7 @@ mod look;
 mod resolve;
 mod server;
 mod summary;
+mod text;
 mod user_themes;
 
 use std::process::ExitCode;

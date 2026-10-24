@@ -32,6 +32,7 @@ const TOOLS: [&str; 14] = [
     "list_diagrams",
     "list_themes",
     "set_look",
+    "edit_text",
     "render_preview",
     "get_ratios",
     "export",
@@ -254,6 +255,46 @@ fn set_look_changes_only_the_passed_sheet_fields() {
     assert_eq!(look["overrides"]["water"]["fill"], json!("#3366aa"));
     let saved = server.call_ok("get_project", json!({ "id": id }));
     assert_eq!(saved["look"], look);
+}
+
+#[test]
+fn edit_text_adds_a_box_and_moves_the_title_and_both_are_saved() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let added = server.call_ok(
+        "edit_text",
+        json!({
+            "id": id,
+            "text_id": "new",
+            "text": "Westerkerk",
+            "style": { "family": "Source Serif 4", "italic": true, "size_pt": 18, "align": "centre", "colour": "@accent" },
+            "position": { "x_mm": 120, "y_mm": 90 },
+        }),
+    );
+    server.call_ok(
+        "edit_text",
+        json!({ "id": id, "text_id": "title", "position": { "x_mm": 20, "y_mm": 20 } }),
+    );
+
+    assert_eq!(added["text_id"], json!("text-1"));
+    assert_eq!(added["paper_mm"]["width"], json!(420.0));
+    let sheet = &server.call_ok("get_project", json!({ "id": id }))["look"]["sheet"];
+    assert_eq!(sheet["texts"][0]["style"]["align"], json!("centre"));
+    assert_eq!(sheet["texts"][0]["position"]["x_mm"], json!(120.0));
+    assert_eq!(sheet["title_position"]["y_mm"], json!(20.0));
+}
+
+#[test]
+fn edit_text_with_an_unknown_font_names_the_bundled_ones() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let message = server.call_err(
+        "edit_text",
+        json!({ "id": id, "text_id": "title", "style": { "family": "Helvetica" } }),
+    );
+    assert!(message.contains("IBM Plex Mono"), "{message}");
 }
 
 #[test]

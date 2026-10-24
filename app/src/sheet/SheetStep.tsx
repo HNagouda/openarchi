@@ -9,7 +9,7 @@ import { closeProject, errorText, onLibraryChanged, reloadProject, renameProject
 import { usePlainKeys } from "../lib/keys";
 import { shortcutLabel } from "../lib/platform";
 import { readPreference, writePreference } from "../lib/storage";
-import type { Catalog, ProjectView } from "../lib/types";
+import type { Catalog, Palette, ProjectView } from "../lib/types";
 import { useLookHistory } from "../lib/history";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
@@ -22,6 +22,9 @@ import { Inspector } from "./inspector/Inspector";
 import { useAutosave } from "./useAutosave";
 import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
+import { TextOverlay } from "./text/TextOverlay";
+import { useTextTool } from "./text/useTextTool";
+import { PaletteSwatches, type Swatch } from "../ui/ColorPicker";
 
 // File events come in bursts; read the project once they settle.
 const RELOAD_DELAY_MS = 400;
@@ -54,6 +57,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const diagrams = catalog?.diagrams ?? [];
   const themes = catalog?.themes ?? [];
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
+  const theme = themes.find((entry) => entry.id === look.theme_id);
+  const swatches = theme ? paletteSwatches(theme.palette) : [];
+  const textTool = useTextTool(look, history, canvas, preview.svg, !isExportOpen && isReady);
 
   const selectDiagram = (diagram_id: string) => history.change({ ...look, diagram_id });
 
@@ -160,8 +166,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     if (id === "zoom-out") canvas.current?.zoomOut();
     if (id === "zoom-fit") canvas.current?.fit();
     if (id === "inspector") toggleInspector();
+    if (id === "add-text" && isReady) textTool.addText();
     if (id === "home") leave();
-    return ["zoom-in", "zoom-out", "zoom-fit", "inspector", "home"].includes(id);
+    return ["zoom-in", "zoom-out", "zoom-fit", "inspector", "home", "add-text"].includes(id);
   });
 
   usePlainKeys((key, event) => {
@@ -189,6 +196,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         <Button icon="undo" tip="Undo" shortcut="mod+z" disabled={!history.canUndo} onClick={history.undo} />
         <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
         <span className="topbar-divider" />
+        <Button icon="text" tip="Add text" shortcut="t" disabled={!isReady} onClick={textTool.addText} />
         <Button icon="map" tip="Draw the site again" onClick={() => navigate.editSite(project)}>
           Edit site
         </Button>
@@ -198,10 +206,34 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         <Button icon="sidebar" tip="Inspector" shortcut="i" isActive={isInspectorOpen} onClick={toggleInspector} />
       </header>
 
+      <PaletteSwatches.Provider value={swatches}>
       <div className="sheet-body">
         <div className="sheet-main">
           <div className="canvas-wrap">
-            <Canvas svg={preview.svg} controls={canvas} onZoom={setZoom} />
+            <Canvas
+              svg={preview.svg}
+              controls={canvas}
+              onZoom={setZoom}
+              onPaperPointerDown={textTool.onPaperPointerDown}
+              onPaperDoubleClick={textTool.onPaperDoubleClick}
+              overlay={(view) =>
+                preview.svg && (
+                  <TextOverlay
+                    view={view}
+                    svg={preview.svg}
+                    look={look}
+                    selectedId={textTool.selectedId}
+                    editingId={textTool.editingId}
+                    drag={textTool.drag}
+                    diagramName={diagram?.name ?? ""}
+                    onLook={history.change}
+                    onSeal={history.seal}
+                    onEditEnd={() => textTool.setEditingId(null)}
+                    onDeleted={() => textTool.setSelectedId(null)}
+                  />
+                )
+              }
+            />
             {!preview.svg && <CanvasMessage catalogError={catalogError} previewError={preview.error} onRetry={onRetryCatalog} hasScene={project.has_scene} />}
             {preview.svg && preview.error && (
               <div className="canvas-error" role="alert">
@@ -223,6 +255,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           {catalog && <Inspector catalog={catalog} project={project} look={look} thumbnails={thumbnails} onLook={history.change} onSeal={history.seal} />}
         </div>
       </div>
+      </PaletteSwatches.Provider>
 
       {isExportOpen && diagram && (
         <ExportDialog look={look} diagramName={diagram.name} diagramCount={diagrams.length} onClose={() => setExportOpen(false)} />
@@ -268,4 +301,12 @@ function CanvasMessage({
     );
   }
   return <div className="canvas-message"><div className="canvas-loading" aria-label="Rendering" /></div>;
+}
+
+// The palette roles a colour picker offers on this sheet, in one place.
+const SWATCH_ROLES: (keyof Palette)[] = ["ink", "paper", "figure", "accent", "water", "green", "muted", "ground"];
+
+/** The theme's palette as picker swatches. Picking one for text keeps the role, so it follows theme changes. */
+function paletteSwatches(palette: Palette): Swatch[] {
+  return SWATCH_ROLES.map((role) => ({ value: `@${role}`, colour: palette[role], label: role[0].toUpperCase() + role.slice(1) }));
 }

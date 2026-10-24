@@ -8,6 +8,8 @@ A sheet is rendered once, by the core, as an SVG document sized in millimetres. 
 
 Styling is split in two on purpose. A **diagram** decides which layers show and how buildings are classified (by age, use, height), and knows nothing about colour. A **theme** decides how things look, using named palette roles like `@figure` and `@muted` instead of raw colours. Any diagram works with any theme, and changing a theme restyles the whole series at once. `crates/core/src/diagram.rs` spells out the exact order in which the two combine.
 
+Sheet text follows the same idea. The core writes every title, subtitle and text box as a group carrying its id, anchor and resolved style in `data-*` attributes (`crates/core/src/render/text.rs`). The app reads those back off the SVG to select, drag and edit text, so it never has to guess where the layout put the title.
+
 ## Layout
 
 ```text

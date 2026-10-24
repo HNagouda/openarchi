@@ -41,6 +41,23 @@ What changed in each version of openarchi, newest first.
 
 - Project files are about six times smaller, and large sites open in a fraction of the time and memory. Projects from 0.1.0 still open and are stored the new way on their next save.
 
+### Text on the sheet
+
+- The title and subtitle can be set in any of the three bundled fonts (Inter, Source Serif 4, IBM Plex Mono), bold or italic, at a size in points, aligned left, centre or right, in any colour and opacity.
+- Drag the title or subtitle anywhere on the sheet. The legend moves up into the space it left, and the toolbar's reset button puts it back in the automatic layout.
+- Press T to add your own text box. Double-click any text to edit it in place, use the arrow keys to nudge it (Shift for 10 mm), and Delete removes a text box. Every change undoes with ⌘Z.
+- Bold and italic print with real bold and italic faces in PDF and PNG, not a slanted copy.
+- An assistant can add, restyle, move and delete text through the new `edit_text` tool.
+
+### Colours
+
+- Every colour in the inspector opens a picker with a saturation square, hue and opacity sliders, hex and RGB fields, the theme's palette and your recent colours. All of it works from the keyboard.
+- A text colour picked from the theme's palette stays linked to the theme, so it changes with the theme.
+
+### Under the hood
+
+- Project files move to format 2. Files from 0.1.0 open as before, with their title in the automatic layout.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

@@ -58,13 +58,8 @@ pub struct Layout {
 
 impl Layout {
     pub fn new(sheet: &Sheet) -> Layout {
-        let (portrait_width, portrait_height) = sheet.paper.size_mm();
         let is_landscape = sheet.landscape && sheet.paper != Paper::Square;
-        let (width, height) = if is_landscape {
-            (portrait_height, portrait_width)
-        } else {
-            (portrait_width, portrait_height)
-        };
+        let (width, height) = sheet.size_mm();
         let unit = width.min(height) / REFERENCE_SHORT_SIDE_MM;
         let margin = MARGIN_MM * unit;
         let gutter = GUTTER_MM * unit;

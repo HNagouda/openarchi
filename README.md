@@ -77,6 +77,7 @@ On Windows, Ctrl takes the place of ⌘.
 - **C**, **R** and **P** draw a circle, rectangle or polygon. **Return** finishes a polygon and **Esc** stops drawing.
 - Click a drawn site to select it, then drag it to move it or drag a handle to resize it. **Delete** removes it.
 - **1 to 9** switch diagrams, and **[** and **]** step through themes.
+- **T** adds a text box. With a text selected, **Return** edits it, the arrow keys nudge it (with **⇧** by 10 mm) and **Delete** removes a text box.
 - **⌘Z** undoes the last change to the site or the sheet and **⇧⌘Z** redoes it (**Ctrl+Y** also redoes on Windows).
 - **⌘=** and **⌘−** zoom the map or the sheet, and **⌘0** fits the site or the sheet back in the window.
 - **⌘E** exports and **I** hides or shows the inspector.

@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{json, Value};
 
 use crate::project::{packed_scene, Project, PROJECT_FORMAT_VERSION};
 use crate::scene::Scene;
@@ -9,7 +9,7 @@ use crate::{Error, Result};
 /// Each format change adds one step here, oldest first, so a file from any
 /// version walks up through every step.
 pub fn migrate(mut value: Value) -> Result<Project> {
-    let Some(version) = value.get("format_version").and_then(Value::as_u64) else {
+    let Some(mut version) = value.get("format_version").and_then(Value::as_u64) else {
         return Err(Error::Invalid(
             "not an openarchi project: format_version is missing".to_string(),
         ));
@@ -25,7 +25,13 @@ pub fn migrate(mut value: Value) -> Result<Project> {
 
     if version == 1 {
         value = v1_to_v2(value)?;
+        version = 2;
     }
+    if version == 2 {
+        value = v2_to_v3(value);
+        version = 3;
+    }
+    debug_assert_eq!(version, u64::from(PROJECT_FORMAT_VERSION));
 
     serde_json::from_value(value)
         .map_err(|e| Error::Invalid(format!("not a valid openarchi project: {e}")))
@@ -40,4 +46,22 @@ fn v1_to_v2(mut value: Value) -> Result<Value> {
     }
     value["format_version"] = Value::from(2);
     Ok(value)
+}
+
+/// Version 3 lets the title and subtitle be styled and moved, and adds text
+/// boxes. An older sheet keeps its automatic layout and theme type.
+fn v2_to_v3(mut value: Value) -> Value {
+    if let Some(sheet) = value
+        .pointer_mut("/look/sheet")
+        .and_then(Value::as_object_mut)
+    {
+        sheet.insert("title_style".to_string(), json!({}));
+        sheet.insert("subtitle_style".to_string(), json!({}));
+        sheet.insert("title_position".to_string(), Value::Null);
+        sheet.insert("subtitle_position".to_string(), Value::Null);
+        sheet.insert("texts".to_string(), json!([]));
+    }
+    value["format_version"] = Value::from(3);
+
+    value
 }

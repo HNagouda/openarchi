@@ -11,7 +11,7 @@ use super::svg::escape;
 use crate::theme::Typography;
 
 /// Cap height as a share of the font size, close for all three bundled families.
-const CAP_HEIGHT_EM: f64 = 0.72;
+pub(super) const CAP_HEIGHT_EM: f64 = 0.72;
 const ELLIPSIS: char = '\u{2026}';
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,17 +30,19 @@ pub enum Kind {
     Credit,
     /// The quiet openarchi mark.
     Mark,
+    /// A text box the user added.
+    Note,
 }
 
-struct Spec {
-    size: f64,
-    weight: u16,
-    tracking_em: f64,
-    is_uppercase: bool,
-    is_italic: bool,
-    is_accent: bool,
-    opacity: f64,
-    line_height: f64,
+pub(super) struct Spec {
+    pub size: f64,
+    pub weight: u16,
+    pub tracking_em: f64,
+    pub is_uppercase: bool,
+    pub is_italic: bool,
+    pub is_accent: bool,
+    pub opacity: f64,
+    pub line_height: f64,
 }
 
 pub struct Typesetter {
@@ -62,7 +64,7 @@ impl Typesetter {
         }
     }
 
-    fn spec(&self, kind: Kind) -> Spec {
+    pub(super) fn spec(&self, kind: Kind) -> Spec {
         let caps = self.is_uppercase_theme;
         let base = Spec {
             size: 2.7,
@@ -138,6 +140,11 @@ impl Typesetter {
                 opacity: 0.45,
                 ..base
             },
+            Kind::Note => Spec {
+                size: 3.3,
+                line_height: 1.3,
+                ..base
+            },
         };
 
         Spec {
@@ -162,6 +169,7 @@ impl Typesetter {
             &self.cased(text, &spec),
             &self.face,
             spec.weight,
+            spec.is_italic,
             spec.size,
             spec.tracking_em,
         )
@@ -173,6 +181,7 @@ impl Typesetter {
             &self.cased(text, &spec),
             &self.face,
             spec.weight,
+            spec.is_italic,
             spec.size,
             spec.tracking_em,
             max_width,
