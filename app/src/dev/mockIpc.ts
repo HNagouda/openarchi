@@ -6,6 +6,7 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { chosenVariant } from "../lib/diagrams";
+import { answerPalette, withPaletteEdits } from "./mockPalettes";
 import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Sheet, SunMoment, View } from "../lib/types";
 
 const FIXTURES = "/dev-fixtures";
@@ -101,10 +102,12 @@ type Args = Record<string, unknown>;
 
 async function answer(command: string, args: Args) {
   const project = PROJECTS.find((entry) => entry.id === args.id);
+  const palette = await answerPalette(command, args, fixture.catalog, (shown) => answer("render_preview", { look: shown }));
+  if (palette !== undefined) return palette;
   if (command === "library_path") return "/Users/you/Documents/openarchi";
   if (command === "list_projects") return PROJECTS;
   if (command === "list_trash") return TRASH;
-  if (command === "get_catalog") return fixture.catalog;
+  if (command === "get_catalog") return withPaletteEdits(fixture.catalog);
   if (command === "project_thumbnail") return project?.has_scene && project.look ? picture(project.look) : null;
   if (command === "open_project" && project) {
     openLook = project.look ?? openLook;

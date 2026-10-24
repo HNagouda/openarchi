@@ -1,6 +1,7 @@
 //! Writes what the app's dev-only IPC mock serves: the catalog, the
 //! Westermarkt fixture's area and layers, and every diagram in every theme as
-//! an SVG preview and a PNG thumbnail. With it the front end runs in a plain
+//! an SVG preview and a PNG thumbnail. One palette made from a few swatches
+//! stands in for the user's own, with what the palette editor asks for. With it the front end runs in a plain
 //! browser, which is how the screenshots in docs/screenshots are taken.
 //!
 //! cargo run --release -p openarchi-core --example app_fixtures   # writes app/dev-fixtures/
@@ -12,6 +13,7 @@ use std::path::Path;
 use openarchi_core::analysis::{self, PARTS};
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
 use openarchi_core::export::render_png;
+use openarchi_core::palette::{self, PaletteCheck, PaletteDraft, RoleChoice};
 use openarchi_core::project::Look;
 use openarchi_core::ratios;
 use openarchi_core::render::{render_svg, RenderInput};
@@ -19,6 +21,7 @@ use openarchi_core::scene::{Layer, Scene};
 use openarchi_core::sheet::Sheet;
 use openarchi_core::sources::cache::TileCache;
 use openarchi_core::sources::grid::Tile;
+use openarchi_core::theme::Theme;
 use openarchi_core::view::{View, ViewMode};
 use serde_json::json;
 
@@ -29,6 +32,10 @@ const RECORDED_ANALYSIS: &str = "tests/fixtures/analysis-cache/tiles-v1";
 const ENVIRONMENT_FIXTURE: &str = "tests/fixtures/westerkerk-environment.scene.json";
 /// Wide enough for a gallery card on a Retina screen.
 const THUMBNAIL_WIDTH_PX: u32 = 560;
+/// The user's own palette in the mock: five colours from a palette generator.
+const SAMPLE_PALETTE: &str = "f79f79, f7d08a, e3f09b, 87b6a7, 5b5941";
+const SAMPLE_PALETTE_ID: &str = "westermarkt-sample";
+const SAMPLE_PALETTE_NAME: &str = "Westermarkt sample";
 
 fn main() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -43,6 +50,7 @@ fn main() {
     let environment: Scene = serde_json::from_str(&text).expect("parse the environment fixture");
     add_environment(&mut scene, environment);
     write_catalog(&scene, &out_dir);
+    write_palette(&out_dir);
     write_analysis(&scene, &out_dir);
 
     let sheet = Sheet {
@@ -62,7 +70,7 @@ fn main() {
         })
         .collect();
     for (diagram, variant) in drawings {
-        for theme in builtin_themes() {
+        for theme in fixture_themes() {
             let look = Look {
                 diagram_id: diagram.id.clone(),
                 variant: variant.clone(),
@@ -96,11 +104,63 @@ fn main() {
     println!("fixtures in {}", out_dir.display());
 }
 
+/// The built-in themes, then the sample palette, as the app lists the user's own after them.
+fn fixture_themes() -> Vec<Theme> {
+    let mut themes = builtin_themes();
+    themes.push(sample_palette().theme);
+    themes
+}
+
+/// The sample palette as the editor checks it, with the rule filling every role.
+fn sample_palette() -> PaletteCheck {
+    let draft = PaletteDraft {
+        name: SAMPLE_PALETTE_NAME.to_string(),
+        swatches: palette::parse(SAMPLE_PALETTE).expect("read the sample palette"),
+        roles: RoleChoice::default(),
+        typography: None,
+        based_on: None,
+    };
+    palette::check(&draft, SAMPLE_PALETTE_ID).expect("build the sample palette")
+}
+
+/// What the palette editor asks for: the swatches an import finds, the check
+/// of the sample, and of every palette a draft of it and its unchanged check,
+/// "palette/draft--paper.json" and "palette/check--paper.json".
+fn write_palette(out_dir: &Path) {
+    let folder = out_dir.join("palette");
+    fs::create_dir_all(&folder).expect("create the palette folder");
+    let swatches = palette::parse(SAMPLE_PALETTE).expect("read the sample palette");
+    fs::write(
+        folder.join("swatches.json"),
+        serde_json::to_string(&swatches).expect("serialise the swatches"),
+    )
+    .expect("write the swatches");
+    fs::write(
+        folder.join("check.json"),
+        serde_json::to_string(&sample_palette()).expect("serialise the check"),
+    )
+    .expect("write the check");
+    for theme in fixture_themes() {
+        let draft = palette::draft_from(&theme, &theme.name);
+        let unchanged = palette::check_copy(&draft, &theme.id, &theme).expect("check the draft");
+        fs::write(
+            folder.join(format!("check--{}.json", theme.id)),
+            serde_json::to_string(&unchanged).expect("serialise the check"),
+        )
+        .expect("write the check");
+        fs::write(
+            folder.join(format!("draft--{}.json", theme.id)),
+            serde_json::to_string(&draft).expect("serialise the draft"),
+        )
+        .expect("write the draft");
+    }
+}
+
 /// The ratios in every theme, as `get_ratios` returns them, "ratios/paper.json".
 fn write_ratios(scene: &Scene, out_dir: &Path) {
     let folder = out_dir.join("ratios");
     fs::create_dir_all(&folder).expect("create the ratios folder");
-    for theme in builtin_themes() {
+    for theme in fixture_themes() {
         let ratios = ratios::compute(scene, &theme).expect("work out the ratios");
         fs::write(
             folder.join(format!("{}.json", theme.id)),
@@ -118,7 +178,7 @@ fn write_explode_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
         .iter()
         .find(|diagram| diagram.id == "context")
         .expect("the context diagram");
-    for theme in builtin_themes() {
+    for theme in fixture_themes() {
         let look = Look {
             diagram_id: diagram.id.clone(),
             theme_id: theme.id.clone(),
@@ -178,7 +238,7 @@ fn write_analysis(scene: &Scene, out_dir: &Path) {
         }
     }
 
-    for theme in builtin_themes() {
+    for theme in fixture_themes() {
         for part in PARTS {
             let sections =
                 analysis::part(part, scene, &theme, &cache).expect("draw the analysis part");
@@ -235,7 +295,7 @@ fn write_catalog(scene: &Scene, out_dir: &Path) {
     let fixture = json!({
         "catalog": {
             "diagrams": builtin_diagrams(),
-            "themes": builtin_themes(),
+            "themes": fixture_themes(),
             "warnings": [],
             "layers": layers,
         },
