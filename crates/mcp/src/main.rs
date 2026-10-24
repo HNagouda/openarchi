@@ -8,6 +8,7 @@ mod look;
 mod palettes;
 mod reports;
 mod resolve;
+mod sections;
 mod server;
 mod sheet_inputs;
 mod sheets;

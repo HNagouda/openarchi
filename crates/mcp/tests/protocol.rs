@@ -36,7 +36,7 @@ const WESTERKERK_ENVIRONMENT: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 28] = [
+const TOOLS: [&str; 29] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -65,6 +65,7 @@ const TOOLS: [&str; 28] = [
     "add_pin",
     "move_pin",
     "remove_pin",
+    "set_section",
 ];
 
 /// A running server, initialized, with its own empty library.
@@ -1073,6 +1074,71 @@ fn pins_are_added_moved_relabelled_and_removed() {
 
     let message = server.call_err("remove_pin", json!({ "id": id, "pin_id": "pin-9" }));
     assert!(message.contains("pin-2"), "{message}");
+}
+
+#[test]
+fn a_section_line_is_drawn_flipped_shown_and_cleared_as_in_the_app() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+
+    // Like the greyed-out Section button, the section view waits for a line.
+    let message = server.call_err(
+        "set_look",
+        json!({ "id": id, "view": { "mode": "section" } }),
+    );
+    assert!(message.contains("set_section"), "{message}");
+
+    let drawn = server.call_ok(
+        "set_section",
+        json!({
+            "id": id,
+            "from": { "lon": 4.8825, "lat": 52.3745 },
+            "to": { "lon": 4.8855, "lat": 52.3745 },
+        }),
+    );
+    assert_eq!(drawn["section"]["depth_m"], json!(60.0));
+    let from_lon = drawn["section"]["from"]["lon"].as_f64().unwrap();
+    assert!((from_lon - 4.8825).abs() < 1e-6, "{drawn}");
+
+    let flipped = server.call_ok(
+        "set_section",
+        json!({ "id": id, "flip": true, "depth_m": 80 }),
+    );
+    assert_eq!(flipped["section"]["from"], drawn["section"]["to"]);
+    assert_eq!(flipped["section"]["depth_m"], json!(80.0));
+
+    let shown = server.call_ok(
+        "set_look",
+        json!({ "id": id, "view": { "mode": "section" } }),
+    );
+    assert_eq!(shown["view"]["mode"], json!("section"));
+    let sheets = server.call_ok("list_sheets", json!({ "id": id }));
+    assert_eq!(sheets["sheets"][0]["section"], flipped["section"]);
+
+    // Removing the line takes the sheet back to the plan it can still draw.
+    let cleared = server.call_ok("set_section", json!({ "id": id, "clear": true }));
+    assert_eq!(cleared, json!({ "section": null, "view": "plan" }));
+}
+
+#[test]
+fn a_section_line_too_short_or_off_the_site_is_refused() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    let short = server.call_err(
+        "set_section",
+        json!({ "id": id, "from": { "lon": 4.8840, "lat": 52.3745 }, "to": { "lon": 4.88401, "lat": 52.3745 } }),
+    );
+    assert!(short.contains("at least 5 m"), "{short}");
+    let far = server.call_err(
+        "set_section",
+        json!({ "id": id, "from": { "lon": 4.95, "lat": 52.37 }, "to": { "lon": 4.96, "lat": 52.37 } }),
+    );
+    assert!(far.contains("inside the area the sheet draws"), "{far}");
+    let half = server.call_err(
+        "set_section",
+        json!({ "id": id, "to": { "lon": 4.8850, "lat": 52.3745 } }),
+    );
+    assert!(half.contains("both from and to"), "{half}");
 }
 
 #[test]

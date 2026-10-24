@@ -18,7 +18,7 @@ use crate::sheet_inputs::{AddPin, AddSheet, EditPin, PinId};
 #[tool_router(router = sheet_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "List a project's sheet tabs in order. Each has its number (pass it as `tab` to set_look, edit_text, render_preview, get_ratios and export), name, diagram, variant, theme, view, sub-selection (a smaller area inside the site the sheet zooms to, or null for the whole site) and whether it hides the pins."
+        description = "List a project's sheet tabs in order. Each has its number (pass it as `tab` to set_look, edit_text, render_preview, get_ratios and export), name, diagram, variant, theme, view, sub-selection (a smaller area inside the site the sheet zooms to, or null for the whole site) and whether it hides the pins, and its section line (null until set_section draws one)."
     )]
     async fn list_sheets(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self
@@ -165,6 +165,7 @@ fn sheets_of(project: &Project) -> Value {
                 "scale": look.sheet.scale,
                 "selection": look.selection,
                 "hide_pins": look.hide_pins,
+                "section": crate::sections::section_of(look)["section"],
             })
         })
         .collect();

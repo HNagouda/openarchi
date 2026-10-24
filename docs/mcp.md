@@ -74,6 +74,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `set_look` | Changes the diagram and its variant, theme, sheet, single layers, the view and the sun's date and time, on the first sheet tab or the one `tab` names |
 | `list_sheets`, `add_sheet` | Lists a project's sheet tabs, and adds one copied from another, optionally framing a smaller area inside the site that it zooms to |
 | `list_pins`, `add_pin`, `move_pin`, `remove_pin` | Marks landmarks with a pin, star, flag or dot and a label, shown on every sheet that does not hide pins |
+| `set_section` | Draws, moves, flips or clears a sheet's section line, from A to A' in longitude and latitude, and sets how far beyond it the section shows buildings and trees |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
@@ -94,7 +95,7 @@ Some diagrams answer one question with a choice of measure. Air quality has the 
 
 ## How does an assistant switch to a tilted view?
 
-`set_look` takes a `view` and a `sun` next to the sheet fields, and like the rest of the look only the fields you pass change. `view.mode` is `plan`, `axonometric` (the site tilted, with buildings at their measured height) or `explode` (several diagrams stacked as tilted plates). `rotation_deg` turns the site on the paper, `tilt_deg` sets how steeply the viewer looks down (15 to 80, 35 by default), `plates` lists the diagram ids to stack with the top plate first, and `stacking: true` packs the plates closer. A plate of a diagram with variants shows its first, and `"air-quality:pm25"` picks one.
+`set_look` takes a `view` and a `sun` next to the sheet fields, and like the rest of the look only the fields you pass change. `view.mode` is `plan`, `axonometric` (the site tilted, with buildings at their measured height), `explode` (several diagrams stacked as tilted plates) or `section` (along the line `set_section` drew). `rotation_deg` turns the site on the paper, `tilt_deg` sets how steeply the viewer looks down (15 to 80, 35 by default), `plates` lists the diagram ids to stack with the top plate first, and `stacking: true` packs the plates closer. A plate of a diagram with variants shows its first, and `"air-quality:pm25"` picks one.
 
 `sheet.show_context` turns the neighbourhood around the site on or off: the buildings, roads, water and green outside the boundary, drawn greyed in the palette. New projects start with it on, and projects from before it start with it off and have no neighbourhood until their site is fetched again. It never enters the legend, the ratios or the analysis.
 
@@ -106,6 +107,14 @@ Some diagrams answer one question with a choice of measure. Air quality has the 
   "view": { "mode": "explode", "plates": ["building-use", "building-age", "landscape", "context"] },
   "sun": { "month": 6, "day": 21, "hour": 17 }
 }
+```
+
+## How does an assistant cut a section?
+
+A section needs a line first, as in the app, where the Section view is greyed out until one is drawn. `set_section` takes `from` (A) and `to` (A') as longitude and latitude, both inside the site or its neighbourhood and at least 5 m apart, and `depth_m` for how far beyond the line buildings and trees are drawn (60 m to start, at most 500). The section looks to the left of the line as you walk from A to A'; `flip: true` swaps the ends to look the other way. Then `set_look` with `view.mode` `section` shows it, and `render_preview` draws it. `clear: true` removes the line and puts a sheet in the section view back on its plan. `list_sheets` shows each tab's line.
+
+```json
+{ "id": "2026-10-24-westermarkt-3f9a", "from": { "lon": 4.8825, "lat": 52.3745 }, "to": { "lon": 4.8855, "lat": 52.3745 }, "depth_m": 80 }
 ```
 
 ## Trying it from a terminal

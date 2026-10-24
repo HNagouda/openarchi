@@ -9,7 +9,7 @@ use openarchi_core::project::Look;
 use openarchi_core::scene::Layer;
 use openarchi_core::sheet::Sheet;
 use openarchi_core::theme::LayerOverride;
-use openarchi_core::view::{SunMoment, View, MAX_TILT_DEG, MIN_TILT_DEG};
+use openarchi_core::view::{SunMoment, View, ViewMode, MAX_TILT_DEG, MIN_TILT_DEG};
 
 use crate::inputs::{OverrideInput, SheetInput, SunInput, ViewInput};
 
@@ -26,6 +26,14 @@ pub fn updated_look(
 ) -> Result<Look, String> {
     let (diagram_id, variant) =
         diagram.unwrap_or_else(|| (look.diagram_id.clone(), look.variant.clone()));
+    let view = updated_view(&look.view, view.unwrap_or_default())?;
+    // As in the app, where the Section view is greyed out until a line is drawn.
+    if view.mode == ViewMode::Section && look.section.is_none() {
+        return Err(
+            "this sheet has no section line yet; draw one with set_section before choosing the section view"
+                .to_string(),
+        );
+    }
 
     Ok(Look {
         diagram_id,
@@ -33,9 +41,9 @@ pub fn updated_look(
         theme_id: theme_id.unwrap_or_else(|| look.theme_id.clone()),
         sheet: updated_sheet(&look.sheet, sheet.unwrap_or_default())?,
         overrides: updated_overrides(&look.overrides, overrides.unwrap_or_default())?,
-        view: updated_view(&look.view, view.unwrap_or_default())?,
+        view,
         sun: updated_sun(&look.sun, sun.unwrap_or_default())?,
-        // The tab's name, sub-selection and pin toggle are not set_look's to change.
+        // The tab's name, sub-selection, pin toggle and section line are not set_look's to change.
         ..look.clone()
     })
 }

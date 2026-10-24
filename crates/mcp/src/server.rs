@@ -72,7 +72,7 @@ impl OpenArchi {
     pub fn new(library_root: PathBuf) -> Self {
         OpenArchi {
             library_root,
-            tool_router: Self::tool_router() + Self::sheet_tools(),
+            tool_router: Self::tool_router() + Self::sheet_tools() + Self::section_tools(),
         }
     }
 
