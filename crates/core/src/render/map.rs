@@ -101,7 +101,11 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
         let fitting_mm_per_m = zone.width.min(zone.height) / (2.0 * walk_reach_m);
         scale = fitted_scale(sheet.scale, fitting_mm_per_m);
         projection = projection.scaled_to(1000.0 / scale as f64);
-        reach_m = Some(walk_reach_m.max(site_reach(input.scene, projection.ground_centre)));
+        // The frame takes in the whole site too, but stops at the drawing zone,
+        // so a site larger than the walk is cut off rather than run into the legend.
+        let zone_reach_m = zone.width.min(zone.height) / 2.0 / projection.mm_per_m;
+        let site_reach_m = site_reach(input.scene, projection.ground_centre);
+        reach_m = Some(walk_reach_m.max(site_reach_m).min(zone_reach_m));
     }
     let spec = MapSpec {
         diagram: input.diagram,

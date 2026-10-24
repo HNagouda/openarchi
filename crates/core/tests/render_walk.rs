@@ -109,6 +109,28 @@ fn the_transit_plan_labels_its_stops_and_lists_their_lines() {
 }
 
 #[test]
+fn a_site_larger_than_its_walk_is_cut_off_at_the_drawing_zone() {
+    let mut scene = walk_scene();
+    // Five times the walk: at the scale that fits the walk, it would run off the paper.
+    scene.boundary = circle(5000.0);
+
+    let svg = svg_for(&scene, "transit");
+    let clip = svg
+        .split(r#"<clipPath id="frame-clip"><circle"#)
+        .nth(1)
+        .expect("a circle frame");
+    let radius: f64 = clip
+        .split(r#"r=""#)
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .and_then(|value| value.parse().ok())
+        .expect("a radius");
+
+    // A3 landscape is 297 mm high; the frame must stay inside it.
+    assert!(radius < 297.0 / 2.0, "the frame is {radius} mm in radius");
+}
+
+#[test]
 fn walk_diagrams_without_a_walk_stay_at_the_site() {
     let svg = svg_for(&scene(), "walkability");
     assert!(svg.contains("1:2500"));
