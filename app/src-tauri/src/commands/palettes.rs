@@ -1,5 +1,5 @@
 //! The palette editor: importing swatches, checking a draft, previewing the
-//! open sheet in it, and saving, renaming, deleting and restoring the user's
+//! open sheet in it, and saving, deleting and restoring the user's
 //! own palettes. The rules all live in `openarchi_core::palette`.
 
 use openarchi_core::palette::{self, PaletteCheck, PaletteDraft, Swatch};
@@ -95,29 +95,6 @@ pub async fn save_palette(
         library.save_theme(&theme).map_err(text)?;
         forget_catalog(&state);
         Ok(theme)
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn rename_palette(
-    state: State<'_, Shared>,
-    id: String,
-    name: String,
-) -> Result<(), String> {
-    let state = state.inner().clone();
-    blocking(move || {
-        let name = name.trim().to_string();
-        if name.is_empty() {
-            return Err("A palette needs a name.".to_string());
-        }
-        let theme = Theme {
-            name,
-            ..find(&state, &id)?
-        };
-        state.library()?.save_theme(&theme).map_err(text)?;
-        forget_catalog(&state);
-        Ok(())
     })
     .await
 }

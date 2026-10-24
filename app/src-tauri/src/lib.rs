@@ -84,7 +84,6 @@ pub fn run() {
             palettes::render_palette_preview,
             palettes::palette_draft,
             palettes::save_palette,
-            palettes::rename_palette,
             palettes::delete_palette,
             palettes::restore_palette,
         ])
