@@ -138,6 +138,16 @@ Sheets can now show the site in three dimensions and the sun over it.
 
 - `set_look` takes `view` and `sun`, so an assistant can switch views, pick the plates and set the moment for the sun diagrams.
 
+### Neighbourhood
+
+- Every sheet can show the neighbourhood around the site: buildings, roads, water and green outside the boundary, drawn in the sheet's palette but greyed towards the paper with thinner lines, so the site stays the thing you look at. It fills the drawing area and never reaches the title, legend, scale bar or credits column.
+- In the axonometric the neighbours stand up at their measured height among the site's own buildings, in a pale roof colour and with softer light. In an explode view the bottom plate widens into a disc of neighbourhood under the stack.
+- The neighbourhood never shows up in the legend, the ratios or the analysis. Those still describe only the drawn site.
+- Neighbourhood in the Sheet section of the inspector turns it on and off, and ⌘Z undoes it. New sheets start with it on. Projects from before have no neighbourhood until the site is fetched again, and open with it off.
+- A fetch also downloads the neighbourhood: 250 to 500 m around the site, depending on its size. It reuses the tiles along the site's edge and runs alongside the OpenStreetMap request, so a fetch takes about as long as before.
+- DXF exports put the neighbourhood on layers of its own, `OA-CONTEXT-BUILDING`, `OA-CONTEXT-ROAD` and so on, in grey.
+- `set_look` takes `sheet.show_context`.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.
