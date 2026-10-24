@@ -13,55 +13,142 @@ use super::layout::Rect;
 /// Hundredths of a millimetre per millimetre.
 const HUNDREDTHS: f64 = 100.0;
 
-/// How the ground maps onto the paper: a fixed scale, centred in the drawing zone.
+/// How the ground maps onto the paper: a fixed scale around a centre, and in
+/// the tilted views a turn and a foreshortening of the ground.
+///
+/// The view frame is the ground turned by the rotation: `u` runs left to right
+/// on the paper and `v` away from the viewer, so a larger `v` is further back.
 #[derive(Debug, Clone, Copy)]
 pub struct Projection {
     /// Paper millimetres per ground metre: 1000 / scale.
     pub mm_per_m: f64,
     /// The ground point that lands on `paper_centre`.
-    ground_centre: (f64, f64),
+    pub ground_centre: (f64, f64),
     pub paper_centre: (f64, f64),
+    /// Cosine and sine of the rotation; (1, 0) in plan.
+    rotation: (f64, f64),
+    /// How much the ground shortens up the paper: 1 in plan, sin(tilt) when tilted.
+    pub squash: f64,
+    /// How far a metre of height rises on the paper per metre of ground: 0 in plan, cos(tilt) when tilted.
+    pub rise: f64,
 }
 
 impl Projection {
     /// Centres the boundary's bounding box in `zone` at `scale` (2500 for 1:2500).
     pub fn new(boundary: &Polygon<f64>, scale: u32, zone: &Rect) -> Projection {
-        let ground_centre = boundary
-            .bounding_rect()
-            .map(|rect| (rect.center().x, rect.center().y))
-            .unwrap_or((0.0, 0.0));
         Projection {
             mm_per_m: 1000.0 / scale as f64,
-            ground_centre,
+            ground_centre: ground_centre(boundary),
             paper_centre: zone.centre(),
+            rotation: (1.0, 0.0),
+            squash: 1.0,
+            rise: 0.0,
         }
+    }
+
+    /// A tilted view: the ground turned counterclockwise by `rotation_deg`,
+    /// then seen from `tilt_deg` above the horizon.
+    pub fn tilted(
+        ground_centre: (f64, f64),
+        mm_per_m: f64,
+        rotation_deg: f64,
+        tilt_deg: f64,
+    ) -> Projection {
+        let rotation = rotation_deg.to_radians();
+        let tilt = tilt_deg.to_radians();
+        Projection {
+            mm_per_m,
+            ground_centre,
+            paper_centre: (0.0, 0.0),
+            rotation: (rotation.cos(), rotation.sin()),
+            squash: tilt.sin(),
+            rise: tilt.cos(),
+        }
+    }
+
+    /// True for a plain plan, where circles stay circles and squares stay upright.
+    pub fn is_plan(&self) -> bool {
+        self.squash == 1.0 && self.rotation == (1.0, 0.0)
+    }
+
+    /// The same view with the ground centre landing somewhere else on the paper.
+    pub fn moved_to(self, paper_centre: (f64, f64)) -> Projection {
+        Projection {
+            paper_centre,
+            ..self
+        }
+    }
+
+    /// The same view at another scale.
+    pub fn scaled_to(self, mm_per_m: f64) -> Projection {
+        Projection { mm_per_m, ..self }
+    }
+
+    /// The same view laid flat, for drawing on the ground plane only.
+    pub fn flat(self) -> Projection {
+        Projection { rise: 0.0, ..self }
+    }
+
+    /// Ground metres to the view frame, in metres: (across, away from the viewer).
+    pub fn to_view(self, x: f64, y: f64) -> (f64, f64) {
+        self.turn(x - self.ground_centre.0, y - self.ground_centre.1)
+    }
+
+    /// A ground direction (east, north) in the view frame.
+    pub fn turn(self, east: f64, north: f64) -> (f64, f64) {
+        let (cos, sin) = self.rotation;
+        (east * cos - north * sin, east * sin + north * cos)
     }
 
     /// Ground metres (y north) to paper millimetres (y down).
     pub fn to_paper(self, x: f64, y: f64) -> (f64, f64) {
+        self.to_paper_at(x, y, 0.0)
+    }
+
+    /// A point `z` metres above the ground to paper millimetres.
+    pub fn to_paper_at(self, x: f64, y: f64, z: f64) -> (f64, f64) {
+        let (u, v) = self.to_view(x, y);
         let (centre_x, centre_y) = self.paper_centre;
         (
-            centre_x + (x - self.ground_centre.0) * self.mm_per_m,
-            centre_y - (y - self.ground_centre.1) * self.mm_per_m,
+            centre_x + u * self.mm_per_m,
+            centre_y - (v * self.squash + z * self.rise) * self.mm_per_m,
         )
     }
 
-    /// Paper millimetres back to ground metres.
+    /// Paper millimetres back to ground metres, on the ground.
     pub fn to_ground(self, x: f64, y: f64) -> (f64, f64) {
         let (centre_x, centre_y) = self.paper_centre;
+        let u = (x - centre_x) / self.mm_per_m;
+        let v = -(y - centre_y) / (self.mm_per_m * self.squash);
+        let (cos, sin) = self.rotation;
         (
-            self.ground_centre.0 + (x - centre_x) / self.mm_per_m,
-            self.ground_centre.1 - (y - centre_y) / self.mm_per_m,
+            self.ground_centre.0 + u * cos + v * sin,
+            self.ground_centre.1 - u * sin + v * cos,
         )
     }
 
-    fn to_hundredths(self, coord: Coord<f64>) -> (i64, i64) {
+    /// Which way north points on the paper, in degrees clockwise from straight up.
+    pub fn north_angle_deg(self) -> f64 {
+        let (cos, sin) = self.rotation;
+        // North (0, 1) lands at u = -sin, v = cos.
+        (-sin).atan2(cos * self.squash).to_degrees()
+    }
+
+    pub fn to_hundredths(self, coord: Coord<f64>) -> (i64, i64) {
         let (x, y) = self.to_paper(coord.x, coord.y);
         (
             (x * HUNDREDTHS).round() as i64,
             (y * HUNDREDTHS).round() as i64,
         )
     }
+}
+
+/// The middle of the boundary's bounding box, or the origin for an empty boundary.
+pub fn ground_centre(boundary: &Polygon<f64>) -> (f64, f64) {
+    boundary
+        .bounding_rect()
+        .map(|rect| (rect.center().x, rect.center().y))
+        .unwrap_or((0.0, 0.0))
 }
 
 /// 1234 -> "12.34", 1200 -> "12", -5 -> "-0.05".
@@ -182,9 +269,24 @@ fn push_ring(
     projection: &Projection,
     closed: bool,
 ) -> bool {
-    let mut points: Vec<(i64, i64)> = Vec::with_capacity(ring.0.len());
-    for coord in &ring.0 {
-        let point = projection.to_hundredths(*coord);
+    let points = ring.0.iter().map(|coord| projection.to_hundredths(*coord));
+    push_points(data, points, closed)
+}
+
+/// Appends paper points in millimetres as path data, like `push_ring`.
+pub fn push_paper_points(data: &mut String, points: &[(f64, f64)], closed: bool) -> bool {
+    let hundredths = points.iter().map(|&(x, y)| {
+        (
+            (x * HUNDREDTHS).round() as i64,
+            (y * HUNDREDTHS).round() as i64,
+        )
+    });
+    push_points(data, hundredths, closed)
+}
+
+fn push_points(data: &mut String, rounded: impl Iterator<Item = (i64, i64)>, closed: bool) -> bool {
+    let mut points: Vec<(i64, i64)> = Vec::new();
+    for point in rounded {
         if points.last() != Some(&point) {
             points.push(point);
         }

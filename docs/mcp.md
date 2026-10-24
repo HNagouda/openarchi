@@ -68,13 +68,27 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `create_project` | Makes a project from a circle, rectangle or polygon |
 | `fetch_site` | Downloads buildings, roads, water, green and terrain into the project |
 | `list_diagrams`, `list_themes` | Shows the diagrams and themes to choose from |
-| `set_look` | Changes the diagram, theme, sheet or single layers |
+| `set_look` | Changes the diagram, theme, sheet, single layers, the view and the sun's date and time |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
 | `export` | Writes SVG, PDF, PNG or DXF |
 | `create_theme` | Saves a new theme, which the app picks up too |
 | `delete_project`, `restore_project` | Moves a project to Recently Deleted and back |
+
+## How does an assistant switch to a tilted view?
+
+`set_look` takes a `view` and a `sun` next to the sheet fields, and like the rest of the look only the fields you pass change. `view.mode` is `plan`, `axonometric` (the site tilted, with buildings at their measured height) or `explode` (several diagrams stacked as tilted plates). `rotation_deg` turns the site on the paper, `tilt_deg` sets how steeply the viewer looks down (15 to 80, 35 by default), `plates` lists the diagram ids to stack with the top plate first, and `stacking: true` packs the plates closer.
+
+`sun` is a day and a Dutch clock time, summer time included. The sun path and shadow diagrams are drawn for it, and the axonometric uses it to light its walls and cast its shadows. It starts at 21 March, 13:00, the equinox near solar noon.
+
+```json
+{
+  "id": "2026-10-24-westermarkt-3f9a",
+  "view": { "mode": "explode", "plates": ["building-use", "building-age", "landscape", "context"] },
+  "sun": { "month": 6, "day": 21, "hour": 17 }
+}
+```
 
 ## Trying it from a terminal
 

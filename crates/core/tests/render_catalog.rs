@@ -22,7 +22,7 @@ fn builtins_come_in_picker_order_with_the_defaults_first() {
 
     assert_eq!(diagrams[0], "context");
     assert_eq!(themes[0], "paper");
-    assert_eq!(diagrams.len(), 9);
+    assert_eq!(diagrams.len(), 11);
     assert!(themes.len() >= 6);
     assert_eq!(Sheet::default().scale, 2500);
 }

@@ -14,6 +14,7 @@ use crate::area::Area;
 use crate::scene::{Layer, Scene};
 use crate::sheet::Sheet;
 use crate::theme::LayerOverride;
+use crate::view::{SunMoment, View};
 
 /// Bump when the file shape changes, and add a step to `library::migrate`.
 /// Version 2 stores the scene compressed. Version 3 adds styled, movable sheet text.
@@ -45,6 +46,12 @@ pub struct Look {
     pub sheet: Sheet,
     #[serde(default)]
     pub overrides: BTreeMap<Layer, LayerOverride>,
+    /// Plan, axonometric or explode. Older projects have none and open as a plan.
+    #[serde(default)]
+    pub view: View,
+    /// The moment the sun path and shadow diagrams are drawn for.
+    #[serde(default)]
+    pub sun: SunMoment,
 }
 
 impl Default for Look {
@@ -54,6 +61,8 @@ impl Default for Look {
             theme_id: "paper".to_string(),
             sheet: Sheet::default(),
             overrides: BTreeMap::new(),
+            view: View::default(),
+            sun: SunMoment::default(),
         }
     }
 }

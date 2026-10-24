@@ -18,6 +18,8 @@ pub mod scene;
 pub mod sheet;
 pub mod site;
 pub mod sources;
+pub mod sun;
 pub mod theme;
+pub mod view;
 
 pub use error::{Error, Result};

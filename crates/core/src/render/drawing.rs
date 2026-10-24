@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 use super::classify::{self, UNKNOWN_LABEL};
 use super::color;
-use super::frame::FRAME_CLIP_ID;
+
 use super::geometry::{decimal, mm, paper_shapes, PaperShapes, Projection};
 use super::style::ResolvedLayer;
 use super::svg::{escape, layer_attributes, paint_attributes};
@@ -35,8 +35,17 @@ pub fn layer_slug(layer: Layer) -> String {
     name.unwrap_or_default().replace('_', "-")
 }
 
-pub fn pattern_id(layer: Layer) -> String {
-    format!("pattern-{}", layer_slug(layer))
+pub fn pattern_id(scope: &str, layer: Layer) -> String {
+    format!("{scope}pattern-{}", layer_slug(layer))
+}
+
+/// Where one map goes: its projection, the clip of its frame, and a prefix
+/// that keeps ids unique when a sheet holds several maps.
+#[derive(Debug, Clone, Copy)]
+pub struct Canvas<'a> {
+    pub projection: Projection,
+    pub clip_id: &'a str,
+    pub scope: &'a str,
 }
 
 pub fn write_layer(
@@ -45,9 +54,11 @@ pub fn write_layer(
     features: &[&Feature],
     diagram: &Diagram,
     theme: &Theme,
-    projection: &Projection,
+    canvas: &Canvas,
 ) -> Drawn {
-    let slug = layer_slug(resolved.layer);
+    let projection = &canvas.projection;
+    let scope = canvas.scope;
+    let slug = format!("{scope}{}", layer_slug(resolved.layer));
     let classes = resolved.classes.as_ref();
     let classify = diagram
         .classify
@@ -64,14 +75,18 @@ pub fn write_layer(
 
     let style = &resolved.style;
     let fill = if style.pattern.is_some() {
-        Some(format!("url(#{})", pattern_id(resolved.layer)))
+        Some(format!("url(#{})", pattern_id(scope, resolved.layer)))
     } else {
         style.fill.clone()
     };
     let _ = write!(
         out,
-        r#"<g {} clip-path="url(#{FRAME_CLIP_ID})" fill-rule="evenodd"{}>"#,
-        layer_attributes(&format!("layer-{slug}"), resolved.layer.label()),
+        r#"<g {} clip-path="url(#{})" fill-rule="evenodd"{}>"#,
+        layer_attributes(
+            &format!("{scope}layer-{}", layer_slug(resolved.layer)),
+            resolved.layer.label()
+        ),
+        canvas.clip_id,
         paint_attributes(style, fill.as_deref())
     );
     if resolved.style.shadow_mm > 0.0 {
@@ -181,6 +196,16 @@ fn write_features(
     }
 }
 
+/// The darker of ink and black, so a translucent shadow reads on every theme.
+pub fn shadow_colour(theme: &Theme) -> String {
+    let ink = color::resolve(&theme.palette, "@ink").unwrap_or_else(|_| "#000000".to_string());
+    if color::luminance(&ink) < 0.5 {
+        ink
+    } else {
+        "#000000".to_string()
+    }
+}
+
 /// All footprints as one path, shifted south-east under the buildings.
 fn write_shadow(
     out: &mut String,
@@ -197,12 +222,7 @@ fn write_shadow(
     if shapes.areas.is_empty() {
         return;
     }
-    let ink = color::resolve(&theme.palette, "@ink").unwrap_or_else(|_| "#000000".to_string());
-    let shadow = if color::luminance(&ink) < 0.5 {
-        ink
-    } else {
-        "#000000".to_string()
-    };
+    let shadow = shadow_colour(theme);
 
     let _ = write!(
         out,

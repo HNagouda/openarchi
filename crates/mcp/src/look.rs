@@ -9,8 +9,9 @@ use openarchi_core::project::Look;
 use openarchi_core::scene::Layer;
 use openarchi_core::sheet::Sheet;
 use openarchi_core::theme::LayerOverride;
+use openarchi_core::view::{SunMoment, View, MAX_TILT_DEG, MIN_TILT_DEG};
 
-use crate::inputs::{OverrideInput, SheetInput};
+use crate::inputs::{OverrideInput, SheetInput, SunInput, ViewInput};
 
 /// The look with every passed field replaced and the rest kept.
 pub fn updated_look(
@@ -19,13 +20,53 @@ pub fn updated_look(
     theme_id: Option<String>,
     sheet: Option<SheetInput>,
     overrides: Option<BTreeMap<String, Option<OverrideInput>>>,
+    view: Option<ViewInput>,
+    sun: Option<SunInput>,
 ) -> Result<Look, String> {
     Ok(Look {
         diagram_id: diagram_id.unwrap_or_else(|| look.diagram_id.clone()),
         theme_id: theme_id.unwrap_or_else(|| look.theme_id.clone()),
         sheet: updated_sheet(&look.sheet, sheet.unwrap_or_default())?,
         overrides: updated_overrides(&look.overrides, overrides.unwrap_or_default())?,
+        view: updated_view(&look.view, view.unwrap_or_default())?,
+        sun: updated_sun(&look.sun, sun.unwrap_or_default())?,
     })
+}
+
+/// Plate ids are checked against the catalog by the caller.
+fn updated_view(view: &View, changes: ViewInput) -> Result<View, String> {
+    let tilt_deg = changes.tilt_deg.unwrap_or(view.tilt_deg);
+    if !(MIN_TILT_DEG..=MAX_TILT_DEG).contains(&tilt_deg) {
+        return Err(format!(
+            "tilt_deg must be between {MIN_TILT_DEG} and {MAX_TILT_DEG}, got {tilt_deg}"
+        ));
+    }
+    if changes.plates.as_ref().is_some_and(Vec::is_empty) {
+        return Err("plates needs at least one diagram id".to_string());
+    }
+
+    Ok(View {
+        mode: changes.mode.map(Into::into).unwrap_or(view.mode),
+        rotation_deg: changes
+            .rotation_deg
+            .map_or(view.rotation_deg, |degrees| degrees.rem_euclid(360.0)),
+        tilt_deg,
+        plates: changes.plates.unwrap_or_else(|| view.plates.clone()),
+        stacking: changes.stacking.unwrap_or(view.stacking),
+    })
+}
+
+fn updated_sun(sun: &SunMoment, changes: SunInput) -> Result<SunMoment, String> {
+    let moment = SunMoment {
+        month: changes.month.unwrap_or(sun.month),
+        day: changes.day.unwrap_or(sun.day),
+        hour: changes.hour.unwrap_or(sun.hour),
+        minute: changes.minute.unwrap_or(sun.minute),
+    };
+    match moment.problem() {
+        Some(problem) => Err(format!("sun: {problem}")),
+        None => Ok(moment),
+    }
 }
 
 fn updated_sheet(sheet: &Sheet, changes: SheetInput) -> Result<Sheet, String> {
@@ -128,9 +169,10 @@ fn is_colour(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use openarchi_core::sheet::{Frame, Paper};
+    use openarchi_core::view::ViewMode;
 
     use super::*;
-    use crate::inputs::{FrameInput, PaperInput};
+    use crate::inputs::{FrameInput, PaperInput, ViewModeInput};
 
     #[test]
     fn only_passed_sheet_fields_change() {
@@ -141,7 +183,7 @@ mod tests {
             ..SheetInput::default()
         };
 
-        let updated = updated_look(&look, None, None, Some(sheet), None).unwrap();
+        let updated = updated_look(&look, None, None, Some(sheet), None, None, None).unwrap();
 
         assert_eq!(updated.sheet.paper, Paper::A1);
         assert_eq!(updated.sheet.title, "Westermarkt");
@@ -153,7 +195,16 @@ mod tests {
     #[test]
     fn diagram_and_theme_ids_are_replaced_when_passed() {
         let look = Look::default();
-        let updated = updated_look(&look, Some("figure-ground".into()), None, None, None).unwrap();
+        let updated = updated_look(
+            &look,
+            Some("figure-ground".into()),
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        .unwrap();
 
         assert_eq!(updated.diagram_id, "figure-ground");
         assert_eq!(updated.theme_id, look.theme_id);
@@ -176,7 +227,7 @@ mod tests {
             ),
         ]);
 
-        let updated = updated_look(&look, None, None, None, Some(changes)).unwrap();
+        let updated = updated_look(&look, None, None, None, Some(changes), None, None).unwrap();
 
         assert!(!updated.overrides.contains_key(&Layer::Water));
         assert!(updated.overrides.contains_key(&Layer::Tree));
@@ -189,7 +240,16 @@ mod tests {
     #[test]
     fn unknown_layer_names_the_valid_ones() {
         let changes = BTreeMap::from([("buildings".to_string(), None)]);
-        let error = updated_look(&Look::default(), None, None, None, Some(changes)).unwrap_err();
+        let error = updated_look(
+            &Look::default(),
+            None,
+            None,
+            None,
+            Some(changes),
+            None,
+            None,
+        )
+        .unwrap_err();
         assert!(error.contains("\"building\""), "{error}");
     }
 
@@ -206,6 +266,54 @@ mod tests {
 
         assert!(layer_override("water", colour).is_err());
         assert!(layer_override("water", opacity).is_err());
+    }
+
+    #[test]
+    fn view_fields_change_one_at_a_time() {
+        let view = ViewInput {
+            mode: Some(ViewModeInput::Axonometric),
+            rotation_deg: Some(-30.0),
+            ..ViewInput::default()
+        };
+
+        let updated = updated_view(&View::default(), view).unwrap();
+
+        assert_eq!(updated.mode, ViewMode::Axonometric);
+        assert_eq!(updated.rotation_deg, 330.0);
+        assert_eq!(updated.plates, View::default().plates);
+    }
+
+    #[test]
+    fn a_tilt_out_of_range_and_an_empty_stack_are_refused() {
+        let steep = ViewInput {
+            tilt_deg: Some(90.0),
+            ..ViewInput::default()
+        };
+        let empty = ViewInput {
+            plates: Some(Vec::new()),
+            ..ViewInput::default()
+        };
+
+        assert!(updated_view(&View::default(), steep).is_err());
+        assert!(updated_view(&View::default(), empty).is_err());
+    }
+
+    #[test]
+    fn sun_keeps_the_fields_not_passed_and_refuses_31_june() {
+        let afternoon = SunInput {
+            hour: Some(16),
+            ..SunInput::default()
+        };
+        let impossible = SunInput {
+            month: Some(6),
+            day: Some(31),
+            ..SunInput::default()
+        };
+
+        let updated = updated_sun(&SunMoment::default(), afternoon).unwrap();
+
+        assert_eq!((updated.month, updated.day, updated.hour), (3, 21, 16));
+        assert!(updated_sun(&SunMoment::default(), impossible).is_err());
     }
 
     #[test]

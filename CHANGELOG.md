@@ -58,6 +58,24 @@ What changed in each version of openarchi, newest first.
 
 - Project files move to format 2. Files from 0.1.0 open as before, with their title in the automatic layout.
 
+Sheets can now show the site in three dimensions and the sun over it.
+
+### Views
+
+- The View section in the inspector switches a sheet between Plan, Axonometric and Explode, and every view exports to SVG, PDF and PNG like a plan.
+- Axonometric tilts the site and stands every building up at its measured height. Roofs keep the diagram's colours, so building age, height and use read on the roofs. Walls are lit by the sun at the sheet's date and time, buildings cast soft shadows, and trees stand up as a trunk and a crown. A slider turns the site, and the north arrow turns with it.
+- Buildings with no measured height stand at 9 m and are greyed, so the guess never passes for data.
+- Explode stacks several diagrams of the site as tilted plates with dotted guides down the sides and a label on each plate. Add, remove and reorder the plates in the inspector, and switch on Stacked close for a tighter stack. The stack shrinks to fit the paper.
+
+### Sun
+
+- Two new diagrams. Sun path draws the sun's arcs on 21 June, the equinox and 21 December over the site, with hour marks and the range of the sun through the year. Shadow draws the shadows of buildings and trees at a chosen date and time.
+- The date and time default to 21 March at 13:00, the equinox near solar noon, and can be changed in the inspector or by an assistant.
+
+### Assistants
+
+- `set_look` takes `view` and `sun`, so an assistant can switch views, pick the plates and set the moment for the sun diagrams.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

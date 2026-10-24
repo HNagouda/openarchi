@@ -27,7 +27,8 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 
 ## What it does
 
-- **Nine diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, landscape, movement and parcels. Each one answers one question, and the filmstrip at the bottom shows the whole series at once.
+- **Eleven diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, landscape, movement, parcels, sun path and shadow. Each one answers one question, and the filmstrip at the bottom shows the whole series at once.
+- **The site in three dimensions.** An axonometric view stands every building up at its measured height, lit by the sun at the date and time you choose, and an explode view stacks several diagrams as plates so you can read them against each other.
 - **Themes that keep a series together.** Eight built-in themes (Paper, Ink, Mono, Polder, Blueprint, Terracotta, Midnight, Pastel) restyle every diagram at once, so a set of sheets reads as one family. Tweak any layer's fill, line or opacity on top.
 - **Real data, cleanly drawn.** Buildings with year built, use and height, road surfaces at their true width, water, green, trees, parcels and terrain contours, from the Dutch government's open registers.
 - **Sheets ready to print.** A3 to A0 or a square for social posts, at a real scale like 1:2500, with a legend, north arrow, scale bar and the data credits.
@@ -43,6 +44,14 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
   <tr>
     <td align="center">Context, in Paper</td>
     <td align="center">Building age, in Midnight</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/axonometric--building-use--pastel.png" alt="Axonometric building use diagram of Westermarkt in the Pastel theme, buildings standing at their height"></td>
+    <td><img src="docs/screenshots/explode--midnight.png" alt="Explode view of Westermarkt in the Midnight theme, five diagrams stacked as plates"></td>
+  </tr>
+  <tr>
+    <td align="center">Building use as an axonometric, in Pastel</td>
+    <td align="center">Five diagrams exploded, in Midnight</td>
   </tr>
 </table>
 

@@ -7,6 +7,7 @@ import { LayersSection } from "./LayersSection";
 import { RatiosPanel } from "./RatiosPanel";
 import { SheetSection } from "./SheetSection";
 import { ThemeSection } from "./ThemeSection";
+import { ViewSection } from "./ViewSection";
 
 type Tab = "style" | "ratios";
 
@@ -64,6 +65,7 @@ export function Inspector({ catalog, project, look, thumbnails, onLook, onSeal }
               onSeal={onSeal}
             />
           )}
+          <ViewSection diagrams={catalog.diagrams} look={look} onLook={onLook} onSeal={onSeal} />
           <SheetSection look={look} onLook={onLook} onSeal={onSeal} />
         </>
       )}

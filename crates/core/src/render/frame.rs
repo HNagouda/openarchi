@@ -1,10 +1,15 @@
 //! The shape the drawing is cropped to, and the site boundary drawn on top.
+//!
+//! The frame is worked out on the ground, in metres, and then projected, so the
+//! same circle becomes an ellipse and the same square a parallelogram when the
+//! view is tilted.
 
+use std::f64::consts::TAU;
 use std::fmt::Write;
 
-use geo::{BooleanOps, Polygon};
+use geo::{BooleanOps, BoundingRect, Polygon};
 
-use super::geometry::{decimal, mm, polygon_path, Projection};
+use super::geometry::{decimal, mm, polygon_path, push_paper_points, Projection};
 use super::layout::Rect;
 use super::svg::layer_attributes;
 use crate::area::Area;
@@ -12,24 +17,30 @@ use crate::scene::Scene;
 use crate::sheet::Frame;
 use crate::theme::Palette;
 
-pub const FRAME_CLIP_ID: &str = "frame-clip";
 /// The site outline in the accent colour: strong enough to find, thin enough to stay a line.
 const SITE_STROKE_MM: f64 = 0.5;
 /// The frame edge in ink, a hairline.
 const FRAME_STROKE_MM: f64 = 0.2;
 const FRAME_STROKE_OPACITY: f64 = 0.7;
+/// Points on a circle frame when it has to be a polygon: for fitting and outlines.
+const CIRCLE_POINTS: usize = 96;
 
 #[derive(Debug, Clone)]
 enum Shape {
+    /// Centre and radius on the ground, in metres.
     Circle { centre: (f64, f64), radius: f64 },
-    Square { x: f64, y: f64, side: f64 },
-    Outline { path: String },
+    /// Corners on the ground, in metres, counterclockwise from the south-west.
+    Square { corners: [(f64, f64); 4] },
+    /// Path data on paper, and half the smaller side of the site in metres.
+    Outline { path: String, half: f64 },
 }
 
 #[derive(Debug, Clone)]
 pub struct FrameShape {
     shape: Shape,
+    projection: Projection,
     boundary_path: String,
+    clip_id: String,
     /// The frame had to shrink to fit the drawing zone, so part of the site is cut off.
     is_cropped: bool,
     /// The frame edge differs from the site outline and gets its own hairline.
@@ -37,62 +48,74 @@ pub struct FrameShape {
 }
 
 impl FrameShape {
-    pub fn new(frame: Frame, scene: &Scene, projection: &Projection, zone: &Rect) -> FrameShape {
-        let boundary_path = polygon_path(&scene.boundary, projection);
-        let corners: Vec<(f64, f64)> = scene
-            .boundary
-            .exterior()
-            .0
-            .iter()
-            .map(|c| projection.to_paper(c.x, c.y))
-            .collect();
-        let centre = projection.paper_centre;
-        let (min_x, max_x, min_y, max_y) = extent(&corners, centre);
+    /// `crop_zone` is the drawing zone a plan must stay inside; tilted views
+    /// are scaled to fit beforehand and pass `None`. `scope` keeps ids unique
+    /// when one sheet holds several frames.
+    pub fn new(
+        frame: Frame,
+        scene: &Scene,
+        projection: &Projection,
+        crop_zone: Option<&Rect>,
+        scope: &str,
+    ) -> FrameShape {
+        let projection = *projection;
+        let boundary_path = polygon_path(&scene.boundary, &projection);
+        let centre = projection.ground_centre;
+        let (half_width, half_height) = half_extent(&scene.boundary);
+        // The most the frame may reach from the centre, in ground metres, before the zone cuts it.
+        let (reach_x, reach_y) = match crop_zone {
+            Some(zone) => (
+                zone.width / 2.0 / projection.mm_per_m,
+                zone.height / 2.0 / projection.mm_per_m,
+            ),
+            None => (f64::INFINITY, f64::INFINITY),
+        };
+        let clip_id = format!("{scope}frame-clip");
 
         match frame {
             Frame::Circle => {
-                let site_radius = corners
-                    .iter()
-                    .map(|&(x, y)| ((x - centre.0).powi(2) + (y - centre.1).powi(2)).sqrt())
-                    .fold(0.0, f64::max);
-                let radius = site_radius.min(zone.width / 2.0).min(zone.height / 2.0);
+                let site_radius = circle_radius(scene, centre);
+                let radius = site_radius.min(reach_x).min(reach_y);
                 let is_cropped = radius < site_radius - 0.01;
                 let is_circle_site = matches!(scene.area, Area::Circle { .. });
                 FrameShape {
                     shape: Shape::Circle { centre, radius },
+                    projection,
                     boundary_path,
+                    clip_id,
                     is_cropped,
                     has_own_edge: is_cropped || !is_circle_site,
                 }
             }
             Frame::Square => {
-                let site_side = (max_x - min_x).min(max_y - min_y);
-                let side = site_side.min(zone.width).min(zone.height);
+                let site_half = half_width.min(half_height);
+                let half = site_half.min(reach_x).min(reach_y);
                 FrameShape {
                     shape: Shape::Square {
-                        x: centre.0 - side / 2.0,
-                        y: centre.1 - side / 2.0,
-                        side,
+                        corners: square_corners(centre, half),
                     },
+                    projection,
                     boundary_path,
-                    is_cropped: side < (max_x - min_x).max(max_y - min_y) - 0.01,
+                    clip_id,
+                    is_cropped: half < half_width.max(half_height) - 0.01,
                     has_own_edge: true,
                 }
             }
             Frame::Area => {
-                let is_cropped = min_x < zone.x
-                    || max_x > zone.right()
-                    || min_y < zone.y
-                    || max_y > zone.bottom();
+                let is_cropped = half_width > reach_x || half_height > reach_y;
                 // Too big for the zone: crop the outline itself, so the frame stays one plain shape.
-                let path = if is_cropped {
-                    cropped_outline(&scene.boundary, projection, zone)
-                } else {
-                    boundary_path.clone()
+                let path = match crop_zone {
+                    Some(zone) if is_cropped => cropped_outline(&scene.boundary, &projection, zone),
+                    _ => boundary_path.clone(),
                 };
                 FrameShape {
-                    shape: Shape::Outline { path },
+                    shape: Shape::Outline {
+                        path,
+                        half: half_width.min(half_height),
+                    },
+                    projection,
                     boundary_path,
+                    clip_id,
                     is_cropped,
                     has_own_edge: is_cropped,
                 }
@@ -100,46 +123,46 @@ impl FrameShape {
         }
     }
 
+    pub fn clip_id(&self) -> &str {
+        &self.clip_id
+    }
+
     pub fn write_defs(&self, out: &mut String) {
         let _ = write!(
             out,
-            r#"<clipPath id="{FRAME_CLIP_ID}">{}</clipPath>"#,
+            r#"<clipPath id="{}">{}</clipPath>"#,
+            self.clip_id,
             self.element("")
         );
     }
 
     /// The open ground inside the frame, under every layer.
-    pub fn write_ground(&self, out: &mut String, ground: &str) {
+    pub fn write_ground(&self, out: &mut String, ground: &str, id: &str) {
         let _ = writeln!(
             out,
-            r#"<g {} clip-path="url(#{FRAME_CLIP_ID})">{}</g>"#,
-            layer_attributes("ground", "Ground"),
+            r#"<g {} clip-path="url(#{})">{}</g>"#,
+            layer_attributes(id, "Ground"),
+            self.clip_id,
             self.element(&format!(r#" fill="{ground}""#))
         );
     }
 
     /// The site outline in the accent colour, and the frame edge when it is not the same line.
-    pub fn write_outlines(&self, out: &mut String, palette: &Palette) {
-        let _ = write!(out, "<g {}>", layer_attributes("site", "Site"));
+    pub fn write_outlines(&self, out: &mut String, palette: &Palette, id: &str) {
+        let _ = write!(out, "<g {}>", layer_attributes(id, "Site"));
         if self.has_own_edge {
-            let edge = format!(
-                r#" fill="none" stroke="{}" stroke-width="{}" stroke-opacity="{}""#,
-                palette.ink,
-                mm(FRAME_STROKE_MM),
-                decimal(FRAME_STROKE_OPACITY)
-            );
-            out.push_str(&self.element(&edge));
+            out.push_str(&self.edge(&palette.ink));
         }
         if !self.boundary_path.is_empty() {
             // Uncropped, the outline sits on the frame edge and would lose its outer half to the clip.
             let clip = if self.is_cropped {
-                format!(r#" clip-path="url(#{FRAME_CLIP_ID})""#)
+                format!(r#" clip-path="url(#{})""#, self.clip_id)
             } else {
                 String::new()
             };
             let _ = write!(
                 out,
-                r#"<path id="site-boundary" d="{}" fill="none" stroke="{}" stroke-width="{}" stroke-linejoin="round"{clip}/>"#,
+                r#"<path id="{id}-boundary" d="{}" fill="none" stroke="{}" stroke-width="{}" stroke-linejoin="round"{clip}/>"#,
                 self.boundary_path,
                 palette.accent,
                 mm(SITE_STROKE_MM)
@@ -148,44 +171,136 @@ impl FrameShape {
         out.push_str("</g>\n");
     }
 
+    /// The frame edge alone, as a hairline in `colour`.
+    pub fn edge(&self, colour: &str) -> String {
+        let edge = format!(
+            r#" fill="none" stroke="{colour}" stroke-width="{}" stroke-opacity="{}""#,
+            mm(FRAME_STROKE_MM),
+            decimal(FRAME_STROKE_OPACITY)
+        );
+        self.element(&edge)
+    }
+
+    /// The largest circle the frame holds, on the ground: centre and radius in metres.
+    pub fn horizon(&self) -> ((f64, f64), f64) {
+        match &self.shape {
+            Shape::Circle { centre, radius } => (*centre, *radius),
+            Shape::Square { corners } => {
+                let half = (corners[1].0 - corners[0].0) / 2.0;
+                (self.projection.ground_centre, half)
+            }
+            Shape::Outline { half, .. } => (self.projection.ground_centre, *half),
+        }
+    }
+
     fn element(&self, attributes: &str) -> String {
+        let projection = &self.projection;
         match &self.shape {
             Shape::Circle { centre, radius } => {
-                format!(
-                    r#"<circle cx="{}" cy="{}" r="{}"{attributes}/>"#,
-                    mm(centre.0),
-                    mm(centre.1),
-                    mm(*radius)
-                )
+                let (x, y) = projection.to_paper(centre.0, centre.1);
+                let rx = radius * projection.mm_per_m;
+                if projection.is_plan() {
+                    format!(
+                        r#"<circle cx="{}" cy="{}" r="{}"{attributes}/>"#,
+                        mm(x),
+                        mm(y),
+                        mm(rx)
+                    )
+                } else {
+                    // A turned circle is still a circle, so only the foreshortening shows.
+                    format!(
+                        r#"<ellipse cx="{}" cy="{}" rx="{}" ry="{}"{attributes}/>"#,
+                        mm(x),
+                        mm(y),
+                        mm(rx),
+                        mm(rx * projection.squash)
+                    )
+                }
             }
-            Shape::Square { x, y, side } => {
-                format!(
-                    r#"<rect x="{}" y="{}" width="{s}" height="{s}"{attributes}/>"#,
-                    mm(*x),
-                    mm(*y),
-                    s = mm(*side)
-                )
+            Shape::Square { corners } => {
+                let points: Vec<(f64, f64)> = corners
+                    .iter()
+                    .map(|&(x, y)| projection.to_paper(x, y))
+                    .collect();
+                let mut data = String::new();
+                push_paper_points(&mut data, &points, true);
+                format!(r#"<path d="{data}"{attributes}/>"#)
             }
-            Shape::Outline { path } => format!(r#"<path d="{path}"{attributes}/>"#),
+            Shape::Outline { path, .. } => format!(r#"<path d="{path}"{attributes}/>"#),
         }
     }
 }
 
+/// The frame's outline on the ground, in metres, before any cropping. Tilted
+/// views fit their scale to this.
+pub fn ground_outline(frame: Frame, scene: &Scene, centre: (f64, f64)) -> Vec<(f64, f64)> {
+    match frame {
+        Frame::Circle => {
+            let radius = circle_radius(scene, centre);
+            (0..CIRCLE_POINTS)
+                .map(|index| {
+                    let angle = index as f64 / CIRCLE_POINTS as f64 * TAU;
+                    (
+                        centre.0 + radius * angle.cos(),
+                        centre.1 + radius * angle.sin(),
+                    )
+                })
+                .collect()
+        }
+        Frame::Square => {
+            let (half_width, half_height) = half_extent(&scene.boundary);
+            square_corners(centre, half_width.min(half_height)).to_vec()
+        }
+        Frame::Area => scene
+            .boundary
+            .exterior()
+            .0
+            .iter()
+            .map(|c| (c.x, c.y))
+            .collect(),
+    }
+}
+
+/// The furthest boundary point from the centre, in metres.
+fn circle_radius(scene: &Scene, centre: (f64, f64)) -> f64 {
+    scene
+        .boundary
+        .exterior()
+        .0
+        .iter()
+        .map(|c| ((c.x - centre.0).powi(2) + (c.y - centre.1).powi(2)).sqrt())
+        .fold(0.0, f64::max)
+}
+
+/// Half the boundary's width and height, in metres.
+fn half_extent(boundary: &Polygon<f64>) -> (f64, f64) {
+    boundary
+        .bounding_rect()
+        .map(|rect| (rect.width() / 2.0, rect.height() / 2.0))
+        .unwrap_or((0.0, 0.0))
+}
+
+fn square_corners(centre: (f64, f64), half: f64) -> [(f64, f64); 4] {
+    let (x, y) = centre;
+    [
+        (x - half, y - half),
+        (x + half, y - half),
+        (x + half, y + half),
+        (x - half, y + half),
+    ]
+}
+
 /// The boundary cut to the drawing zone, as path data.
 fn cropped_outline(boundary: &Polygon<f64>, projection: &Projection, zone: &Rect) -> String {
-    let (left, top) = projection.to_ground(zone.x, zone.y);
-    let (right, bottom) = projection.to_ground(zone.right(), zone.bottom());
-    let zone_on_ground = Polygon::new(
-        vec![
-            (left, bottom),
-            (right, bottom),
-            (right, top),
-            (left, top),
-            (left, bottom),
-        ]
-        .into(),
-        vec![],
-    );
+    let corners = [
+        projection.to_ground(zone.x, zone.bottom()),
+        projection.to_ground(zone.right(), zone.bottom()),
+        projection.to_ground(zone.right(), zone.y),
+        projection.to_ground(zone.x, zone.y),
+    ];
+    let mut ring = corners.to_vec();
+    ring.push(corners[0]);
+    let zone_on_ground = Polygon::new(ring.into(), vec![]);
 
     boundary
         .intersection(&zone_on_ground)
@@ -195,30 +310,14 @@ fn cropped_outline(boundary: &Polygon<f64>, projection: &Projection, zone: &Rect
         .collect()
 }
 
-/// Min and max x and y of the points, or the centre alone when there are none.
-fn extent(points: &[(f64, f64)], centre: (f64, f64)) -> (f64, f64, f64, f64) {
-    let mut bounds = (centre.0, centre.0, centre.1, centre.1);
-    for (index, &(x, y)) in points.iter().enumerate() {
-        if index == 0 {
-            bounds = (x, x, y, y);
-        }
-        bounds = (
-            bounds.0.min(x),
-            bounds.1.max(x),
-            bounds.2.min(y),
-            bounds.3.max(y),
-        );
-    }
-
-    bounds
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn extent_of_no_points_is_the_centre() {
-        assert_eq!(extent(&[], (5.0, 6.0)), (5.0, 5.0, 6.0, 6.0));
+    fn square_corners_run_counterclockwise_from_the_south_west() {
+        let corners = square_corners((0.0, 0.0), 1.0);
+        assert_eq!(corners[0], (-1.0, -1.0));
+        assert_eq!(corners[2], (1.0, 1.0));
     }
 }

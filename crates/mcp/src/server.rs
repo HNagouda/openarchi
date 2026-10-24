@@ -179,7 +179,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id, theme_id, sheet fields, and per-layer overrides. Returns the whole new look. Earlier versions stay in the project's backups."
+        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id, theme_id, sheet fields, per-layer overrides, the view (plan, axonometric with buildings standing up, or explode with several diagrams stacked as plates) and the sun's date and time for the sun path and shadow diagrams. Returns the whole new look. Earlier versions stay in the project's backups."
     )]
     async fn set_look(&self, Parameters(input): Parameters<SetLook>) -> CallToolResult {
         let result = self
@@ -190,6 +190,10 @@ impl OpenArchi {
                 if let Some(theme_id) = &input.theme_id {
                     find_theme(&library.themes_dir(), theme_id)?;
                 }
+                let plates = input.view.as_ref().and_then(|view| view.plates.as_ref());
+                for plate in plates.into_iter().flatten() {
+                    find_diagram(plate)?;
+                }
 
                 let mut project = library.load(&input.id).map_err(text)?;
                 project.look = updated_look(
@@ -198,6 +202,8 @@ impl OpenArchi {
                     input.theme_id,
                     input.sheet,
                     input.overrides,
+                    input.view,
+                    input.sun,
                 )?;
                 library.save(&mut project).map_err(text)?;
                 Ok(project.look)

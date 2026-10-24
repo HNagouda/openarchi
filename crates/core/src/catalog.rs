@@ -16,7 +16,7 @@ const MIN_CATEGORY_COLOURS: usize = 6;
 const THEME_EXTENSION: &str = "json";
 
 /// Built-in diagrams in picker order, in one place.
-const BUILTIN_DIAGRAMS: [(&str, &str); 9] = [
+const BUILTIN_DIAGRAMS: [(&str, &str); 11] = [
     ("context", include_str!("../assets/diagrams/context.json")),
     (
         "figure-ground",
@@ -44,6 +44,8 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 9] = [
     ),
     ("movement", include_str!("../assets/diagrams/movement.json")),
     ("parcels", include_str!("../assets/diagrams/parcels.json")),
+    ("sun-path", include_str!("../assets/diagrams/sun-path.json")),
+    ("shadow", include_str!("../assets/diagrams/shadow.json")),
 ];
 
 /// Built-in themes in picker order, in one place. "paper" is the default look.

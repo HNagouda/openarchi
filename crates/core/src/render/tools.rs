@@ -37,7 +37,7 @@ pub fn write_tools(
     let ink = &furniture.palette.ink;
     let mut bar_x = x;
     if furniture.sheet.show_north_arrow {
-        write_north_arrow(out, typesetter, x, top, ink);
+        write_north_arrow(out, typesetter, x, top, ink, furniture.north_deg);
         bar_x = x + ARROW_WIDTH * unit + ARROW_TO_BAR * unit;
     }
     if furniture.sheet.show_scale_bar {
@@ -48,26 +48,49 @@ pub fn write_tools(
 }
 
 /// A split needle: the west half solid, the east half outlined, "N" above.
-fn write_north_arrow(out: &mut String, typesetter: &Typesetter, x: f64, top: f64, ink: &str) {
+/// In a turned view the needle turns with the drawing to keep pointing north.
+fn write_north_arrow(
+    out: &mut String,
+    typesetter: &Typesetter,
+    x: f64,
+    top: f64,
+    ink: &str,
+    north_deg: f64,
+) {
     let unit = typesetter.unit;
     let half = ARROW_WIDTH * unit / 2.0;
     let centre_x = x + half;
-    let label_baseline = top + typesetter.cap_height(Kind::Heading);
+    let cap_height = typesetter.cap_height(Kind::Heading);
+    let label_baseline = top + cap_height;
+    let tip_y = label_baseline + ARROW_LABEL_GAP * unit;
+    let base_y = tip_y + ARROW_HEIGHT * unit;
+    let notch_y = base_y - ARROW_HEIGHT * unit * 0.28;
+    let middle_y = (tip_y + base_y) / 2.0;
+
+    // The "N" swings round the needle's middle with it and stays upright.
+    let angle = north_deg.to_radians();
+    let reach = middle_y - (label_baseline - cap_height / 2.0);
     typesetter.write(
         out,
-        centre_x,
-        label_baseline,
+        centre_x + reach * angle.sin(),
+        middle_y - reach * angle.cos() + cap_height / 2.0,
         "N",
         Kind::Heading,
         Some("middle"),
     );
-
-    let tip_y = label_baseline + ARROW_LABEL_GAP * unit;
-    let base_y = tip_y + ARROW_HEIGHT * unit;
-    let notch_y = base_y - ARROW_HEIGHT * unit * 0.28;
+    let turn = if north_deg.abs() < 0.01 {
+        String::new()
+    } else {
+        format!(
+            r#" transform="rotate({} {} {})""#,
+            decimal(north_deg),
+            mm(centre_x),
+            mm(middle_y)
+        )
+    };
     let _ = write!(
         out,
-        r#"<g id="north-arrow" stroke="{ink}" stroke-width="{w}" stroke-linejoin="miter"><path d="M{cx} {tip}L{left} {base}L{cx} {notch}z" fill="{ink}"/><path d="M{cx} {tip}L{right} {base}L{cx} {notch}z" fill="none"/></g>"#,
+        r#"<g id="north-arrow" stroke="{ink}" stroke-width="{w}" stroke-linejoin="miter"{turn}><path d="M{cx} {tip}L{left} {base}L{cx} {notch}z" fill="{ink}"/><path d="M{cx} {tip}L{right} {base}L{cx} {notch}z" fill="none"/></g>"#,
         w = mm(BAR_STROKE_MM * unit.min(1.4)),
         cx = mm(centre_x),
         tip = mm(tip_y),

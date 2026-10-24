@@ -1,32 +1,40 @@
 //! Resolves a scene, diagram, theme and sheet into one SVG document.
 //!
-//! This SVG is the single source of truth for 2D: the app shows it as the
-//! preview, and PDF and PNG are converted from it. It is sized in millimetres
-//! with a viewBox in millimetres, so one user unit is one millimetre of paper.
+//! This SVG is the single source of truth: the app shows it as the preview, and
+//! PDF and PNG are converted from it. It is sized in millimetres with a viewBox
+//! in millimetres, so one user unit is one millimetre of paper. The tilted
+//! views are drawn here too, as plain shapes, so they export like a plan does.
 
 mod classify;
 mod color;
 mod drawing;
+mod explode;
 mod fonts;
 mod frame;
 mod furniture;
 mod geometry;
 mod layout;
 mod legend;
+mod map;
+mod order;
 mod patterns;
+mod shadow;
+mod solid;
 mod style;
+mod sunpath;
 mod svg;
 mod text;
 mod tools;
 mod typeset;
 
-use std::collections::BTreeMap;
 use std::fmt::Write;
 
 use crate::diagram::Diagram;
 use crate::project::Look;
-use crate::scene::{Feature, Layer, Scene};
+use crate::scene::Scene;
+use crate::sheet::Sheet;
 use crate::theme::Theme;
+use crate::view::ViewMode;
 use crate::Result;
 
 // Shared with the catalog (validating themes) and export (fonts, CAD layer names).
@@ -39,11 +47,10 @@ pub(crate) use classify::{build as build_classes, class_of};
 pub(crate) use color::{mix, resolve as resolve_colour, sample_ramp};
 pub(crate) use fonts::Face;
 pub(crate) use svg::{escape, layer_attributes};
+pub use solid::DEFAULT_HEIGHT_M;
 
-use drawing::{pattern_id, write_layer};
-use frame::FrameShape;
 use furniture::Furniture;
-use geometry::{mm, Projection};
+use geometry::mm;
 use layout::Layout;
 use text::SheetTexts;
 use typeset::Typesetter;
@@ -58,34 +65,32 @@ pub struct RenderInput<'a> {
 
 /// The full sheet as an SVG document, sized in millimetres.
 pub fn render_svg(input: &RenderInput) -> Result<String> {
-    let sheet = &input.look.sheet;
-    if sheet.scale == 0 {
+    let look = input.look;
+    if look.sheet.scale == 0 {
         return Err(crate::Error::Invalid(
             "scale must be at least 1, as in 1:2500".to_string(),
         ));
     }
-    let palette = &input.theme.palette;
-    let layout = Layout::new(sheet);
-    let projection = Projection::new(&input.scene.boundary, sheet.scale, &layout.drawing);
-    let frame = FrameShape::new(sheet.frame, input.scene, &projection, &layout.drawing);
-    let layers = style::resolve_layers(input.diagram, input.theme, input.look)?;
-    let features = features_by_layer(input.scene);
-
-    let mut out = String::with_capacity(estimated_size(input.scene));
-    write_header(&mut out, &layout);
-    out.push_str("<defs>");
-    frame.write_defs(&mut out);
-    for resolved in &layers {
-        if let Some(pattern) = &resolved.style.pattern {
-            out.push_str(&patterns::pattern_def(
-                &pattern_id(resolved.layer),
-                pattern,
-                resolved.style.fill.as_deref(),
-            ));
-        }
+    if let Some(problem) = look.sun.problem() {
+        return Err(crate::Error::Invalid(format!("sun: {problem}")));
     }
-    out.push_str("</defs>\n");
+    let palette = &input.theme.palette;
+    let layout = Layout::new(&look.sheet);
+    let typesetter = Typesetter::new(
+        &input.theme.typography,
+        layout.unit,
+        &palette.ink,
+        &palette.accent,
+    );
+    let drawing = match look.view.mode {
+        ViewMode::Plan => map::plan(input, &layout, &typesetter)?,
+        ViewMode::Axonometric => map::axonometric(input, &layout, &typesetter)?,
+        ViewMode::Explode => explode::render(input, &layout, &typesetter)?,
+    };
 
+    let mut out = String::with_capacity(estimated_size(drawing.body.len()));
+    write_header(&mut out, &layout);
+    let _ = writeln!(out, "<defs>{}</defs>", drawing.defs);
     let _ = writeln!(
         out,
         r#"<rect id="paper" width="{}" height="{}" fill="{}"/>"#,
@@ -93,41 +98,24 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         mm(layout.height),
         palette.paper
     );
-    frame.write_ground(&mut out, &palette.ground);
-    let mut drawn = Vec::with_capacity(layers.len());
-    for resolved in &layers {
-        let layer_features = features
-            .get(&resolved.layer)
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        drawn.push(write_layer(
-            &mut out,
-            resolved,
-            layer_features,
-            input.diagram,
-            input.theme,
-            &projection,
-        ));
-    }
-    frame.write_outlines(&mut out, palette);
+    out.push_str(&drawing.body);
 
-    let typesetter = Typesetter::new(
-        &input.theme.typography,
-        layout.unit,
-        &palette.ink,
-        &palette.accent,
-    );
-    let texts = SheetTexts::resolve(sheet, &typesetter, palette)?;
+    // The furniture describes the drawing as drawn: a fitted scale, a turned north.
+    let sheet = Sheet {
+        scale: drawing.scale,
+        show_scale_bar: look.sheet.show_scale_bar && drawing.has_scale_bar,
+        ..look.sheet.clone()
+    };
+    let texts = SheetTexts::resolve(&sheet, &typesetter, palette)?;
     let furniture = Furniture {
         texts: &texts,
-        sheet,
+        sheet: &sheet,
         scene: input.scene,
-        diagram_name: &input.diagram.name,
+        diagram_name: &drawing.title_name,
         palette,
-        mm_per_m: projection.mm_per_m,
-        legend: sheet
-            .show_legend
-            .then(|| legend::build(&layers, &drawn, input.diagram, &palette.accent)),
+        mm_per_m: drawing.mm_per_m,
+        north_deg: drawing.north_deg,
+        legend: drawing.legend,
     };
     furniture::write(&mut out, &furniture, &layout, &typesetter);
     out.push_str("</svg>\n");
@@ -145,16 +133,7 @@ fn write_header(out: &mut String, layout: &Layout) {
     );
 }
 
-fn features_by_layer(scene: &Scene) -> BTreeMap<Layer, Vec<&Feature>> {
-    let mut grouped: BTreeMap<Layer, Vec<&Feature>> = BTreeMap::new();
-    for feature in &scene.features {
-        grouped.entry(feature.layer).or_default().push(feature);
-    }
-
-    grouped
-}
-
-/// About 120 bytes of SVG per feature, so the buffer rarely has to grow.
-fn estimated_size(scene: &Scene) -> usize {
-    16_384 + scene.features.len() * 120
+/// The drawing plus room for the header and furniture, so the buffer rarely has to grow.
+fn estimated_size(body_len: usize) -> usize {
+    16_384 + body_len
 }

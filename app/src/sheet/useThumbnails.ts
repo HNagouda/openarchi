@@ -26,7 +26,9 @@ export function useThumbnails(look: Look, diagrams: Diagram[], revision: number,
       for (const diagram of diagrams) {
         if (isCancelled) return;
         try {
-          const url = await renderThumbnail({ ...look, diagram_id: diagram.id }, THUMBNAIL_WIDTH_PX);
+          // An explode view stacks the same plates whatever the diagram, so each frame shows its plan.
+          const view = look.view.mode === "explode" ? { ...look.view, mode: "plan" as const } : look.view;
+          const url = await renderThumbnail({ ...look, diagram_id: diagram.id, view }, THUMBNAIL_WIDTH_PX);
           if (!isCancelled) setThumbnails((current) => ({ ...current, [diagram.id]: url }));
         } catch {
           // A diagram that cannot render keeps its placeholder; the preview reports the error.

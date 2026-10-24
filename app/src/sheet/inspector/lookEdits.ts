@@ -1,9 +1,26 @@
 // Small, pure edits to a Look, so inspector controls stay one line each.
 
-import type { Layer, LayerOverride, Look, Palette, Sheet, Theme } from "../../lib/types";
+import type { Layer, LayerOverride, Look, Palette, Sheet, SunMoment, Theme, View } from "../../lib/types";
 
 export function withSheet(look: Look, patch: Partial<Sheet>): Look {
   return { ...look, sheet: { ...look.sheet, ...patch } };
+}
+
+export function withView(look: Look, patch: Partial<View>): Look {
+  return { ...look, view: { ...look.view, ...patch } };
+}
+
+export function withSun(look: Look, patch: Partial<SunMoment>): Look {
+  return { ...look, sun: { ...look.sun, ...patch } };
+}
+
+/** The plate at `index` swapped with its neighbour `by` places away; out of range does nothing. */
+export function withPlateMoved(look: Look, index: number, by: number): Look {
+  const target = index + by;
+  const plates = [...look.view.plates];
+  if (target < 0 || target >= plates.length) return look;
+  [plates[index], plates[target]] = [plates[target], plates[index]];
+  return withView(look, { plates });
 }
 
 /** Sets or clears override fields; `null` clears one. An empty override is removed entirely. */

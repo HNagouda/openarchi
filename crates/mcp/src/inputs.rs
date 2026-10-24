@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 use openarchi_core::area::{Area, LonLat};
 use openarchi_core::export::ExportFormat;
 use openarchi_core::sheet::{Frame, Paper};
+use openarchi_core::view::ViewMode;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -80,6 +81,57 @@ pub struct SetLook {
     /// "road", "water" and so on, as in list_diagrams). Passing a layer replaces
     /// its override; passing null for a layer removes it.
     pub overrides: Option<BTreeMap<String, Option<OverrideInput>>>,
+    /// Plan, axonometric (buildings standing up) or explode (several diagrams
+    /// stacked as plates). Only the fields you pass change.
+    pub view: Option<ViewInput>,
+    /// The date and Dutch clock time the sun path and shadow diagrams, and the
+    /// lighting of the axonometric, are drawn for. Only the fields you pass change.
+    pub sun: Option<SunInput>,
+}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct ViewInput {
+    pub mode: Option<ViewModeInput>,
+    /// Turns the site counterclockwise on the paper, in degrees. 0 keeps north up.
+    pub rotation_deg: Option<f64>,
+    /// How steeply the viewer looks down, 15 to 80 degrees. Defaults to 35.
+    pub tilt_deg: Option<f64>,
+    /// Diagram ids from list_diagrams to stack in the explode view, top plate
+    /// first, like ["building-use", "building-age", "landscape", "context"].
+    pub plates: Option<Vec<String>>,
+    /// True packs the explode plates close together like a stack of sheets.
+    pub stacking: Option<bool>,
+}
+
+/// "plan" looks straight down. "axonometric" tilts the site and extrudes
+/// buildings to their height. "explode" stacks the chosen plates.
+#[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ViewModeInput {
+    Plan,
+    Axonometric,
+    Explode,
+}
+
+impl From<ViewModeInput> for ViewMode {
+    fn from(mode: ViewModeInput) -> Self {
+        match mode {
+            ViewModeInput::Plan => ViewMode::Plan,
+            ViewModeInput::Axonometric => ViewMode::Axonometric,
+            ViewModeInput::Explode => ViewMode::Explode,
+        }
+    }
+}
+
+/// Dutch clock time (summer time included), on any day of the year.
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+pub struct SunInput {
+    /// 1 to 12.
+    pub month: Option<u32>,
+    pub day: Option<u32>,
+    /// 0 to 23.
+    pub hour: Option<u32>,
+    pub minute: Option<u32>,
 }
 
 /// The paper the diagram is laid out on.

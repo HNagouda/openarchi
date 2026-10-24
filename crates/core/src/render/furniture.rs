@@ -47,6 +47,8 @@ pub struct Furniture<'a> {
     pub diagram_name: &'a str,
     pub palette: &'a Palette,
     pub mm_per_m: f64,
+    /// Which way north points on the paper, in degrees clockwise from straight up.
+    pub north_deg: f64,
     pub legend: Option<Legend>,
     pub texts: &'a SheetTexts<'a>,
 }

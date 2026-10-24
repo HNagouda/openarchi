@@ -2,6 +2,10 @@
 //! sheet layouts, into target/render-samples/, and times a 1 km site.
 //!
 //! cargo run --release -p openarchi-core --example render_samples [diagram] [theme]
+//! cargo run --release -p openarchi-core --example render_samples views [folder]
+//!
+//! The second form renders the axonometric, explode, sun path and shadow
+//! samples, with timings, into `folder` (target/render-samples/views by default).
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -13,12 +17,112 @@ use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::scene::Scene;
 use openarchi_core::sheet::{Align, Frame, Paper, Position, Sheet, TextBox, TextStyle};
+use openarchi_core::view::{SunMoment, View, ViewMode};
 
 const FIXTURE: &str = "tests/fixtures/westermarkt.scene.json";
 const SAMPLE_WIDTH_PX: u32 = 1800;
 /// Copies of the fixture laid side by side to stand in for a 1 km radius site.
 const BIG_SITE_GRID: i32 = 3;
 const BIG_SITE_SPACING_M: f64 = 600.0;
+const VIEWS_ARGUMENT: &str = "views";
+
+/// The view samples: file name, diagram, theme and view mode.
+const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 9] = [
+    (
+        "axo--building-height--paper",
+        "building-height",
+        "paper",
+        ViewMode::Axonometric,
+    ),
+    (
+        "axo--building-height--midnight",
+        "building-height",
+        "midnight",
+        ViewMode::Axonometric,
+    ),
+    (
+        "axo--context--paper",
+        "context",
+        "paper",
+        ViewMode::Axonometric,
+    ),
+    (
+        "axo--building-use--pastel",
+        "building-use",
+        "pastel",
+        ViewMode::Axonometric,
+    ),
+    ("axo--shadow--mono", "shadow", "mono", ViewMode::Axonometric),
+    ("explode--paper", "context", "paper", ViewMode::Explode),
+    (
+        "explode--midnight",
+        "context",
+        "midnight",
+        ViewMode::Explode,
+    ),
+    ("sun-path--paper", "sun-path", "paper", ViewMode::Plan),
+    ("shadow--paper", "shadow", "paper", ViewMode::Plan),
+];
+
+/// Axonometric, explode, sun path and shadow samples, each timed.
+fn write_views(scene: &Scene, out_dir: &Path) {
+    std::fs::create_dir_all(out_dir).expect("create the views folder");
+    let diagrams = builtin_diagrams();
+    let themes = builtin_themes();
+    for (name, diagram_id, theme_id, mode) in VIEW_SAMPLES {
+        let diagram = diagrams
+            .iter()
+            .find(|d| d.id == diagram_id)
+            .expect("diagram exists");
+        let theme = themes
+            .iter()
+            .find(|t| t.id == theme_id)
+            .expect("theme exists");
+        let look = Look {
+            diagram_id: diagram_id.to_string(),
+            theme_id: theme_id.to_string(),
+            sheet: Sheet {
+                title: "Westermarkt".to_string(),
+                subtitle: "Amsterdam, 300 m around the Westerkerk".to_string(),
+                ..Sheet::default()
+            },
+            view: View {
+                mode,
+                rotation_deg: if mode == ViewMode::Axonometric {
+                    30.0
+                } else {
+                    0.0
+                },
+                ..View::default()
+            },
+            sun: SunMoment {
+                hour: if diagram_id == "shadow" { 16 } else { 13 },
+                ..SunMoment::default()
+            },
+            ..Look::default()
+        };
+        let input = RenderInput {
+            scene,
+            diagram,
+            theme,
+            look: &look,
+        };
+        let started = Instant::now();
+        let svg = render_svg(&input).expect("render the view");
+        let svg_time = started.elapsed();
+        let started = Instant::now();
+        let png = render_png(&input, SAMPLE_WIDTH_PX).expect("rasterise the view");
+        let png_time = started.elapsed();
+        println!(
+            "{name}: SVG {:.0} KB in {:.0} ms, PNG {SAMPLE_WIDTH_PX} px in {:.0} ms (SVG included)",
+            svg.len() as f64 / 1024.0,
+            svg_time.as_secs_f64() * 1000.0,
+            png_time.as_secs_f64() * 1000.0
+        );
+        std::fs::write(out_dir.join(format!("{name}.png")), png).expect("write the view");
+    }
+    println!("views in {}", out_dir.display());
+}
 
 fn main() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -30,6 +134,13 @@ fn main() {
 
     let only_diagram = std::env::args().nth(1);
     let only_theme = std::env::args().nth(2);
+    if only_diagram.as_deref() == Some(VIEWS_ARGUMENT) {
+        let views_dir = only_theme
+            .map(PathBuf::from)
+            .unwrap_or_else(|| out_dir.join("views"));
+        write_views(&scene, &views_dir);
+        return;
+    }
     let sheet = Sheet {
         title: "Westermarkt".to_string(),
         subtitle: "Amsterdam, 300 m around the Westerkerk".to_string(),
@@ -235,15 +346,24 @@ fn time_big_site(scene: &Scene, out_dir: &Path) {
 
     let diagrams = builtin_diagrams();
     let themes = builtin_themes();
-    let look = Look {
-        sheet: Sheet {
-            scale: 7500,
-            title: "1 km test".to_string(),
-            ..Sheet::default()
-        },
-        ..Look::default()
-    };
-    for diagram_id in ["context", "building-use"] {
+    let runs = [
+        ("context", ViewMode::Plan),
+        ("building-use", ViewMode::Plan),
+        ("building-use", ViewMode::Axonometric),
+    ];
+    for (diagram_id, mode) in runs {
+        let look = Look {
+            sheet: Sheet {
+                scale: 7500,
+                title: "1 km test".to_string(),
+                ..Sheet::default()
+            },
+            view: View {
+                mode,
+                ..View::default()
+            },
+            ..Look::default()
+        };
         let diagram = diagrams
             .iter()
             .find(|d| d.id == diagram_id)
@@ -261,14 +381,14 @@ fn time_big_site(scene: &Scene, out_dir: &Path) {
         let png = render_png(&input, SAMPLE_WIDTH_PX).expect("rasterise the big site");
         let png_time = started.elapsed();
         println!(
-            "1 km site, {diagram_id}: {} features ({polygons} polygons), SVG {:.0} KB in {:.0} ms, PNG {SAMPLE_WIDTH_PX} px in {:.0} ms (SVG included)",
+            "1 km site, {diagram_id} {mode:?}: {} features ({polygons} polygons), SVG {:.0} KB in {:.0} ms, PNG {SAMPLE_WIDTH_PX} px in {:.0} ms (SVG included)",
             big.features.len(),
             svg.len() as f64 / 1024.0,
             svg_time.as_secs_f64() * 1000.0,
             png_time.as_secs_f64() * 1000.0
         );
-        std::fs::write(out_dir.join(format!("big-site--{diagram_id}.png")), png)
-            .expect("write the big site");
+        let name = format!("big-site--{diagram_id}--{mode:?}").to_lowercase();
+        std::fs::write(out_dir.join(format!("{name}.png")), png).expect("write the big site");
     }
     let _: PathBuf = out_dir.to_path_buf();
 }

@@ -1,0 +1,18 @@
+{
+  "id": "sun-path",
+  "name": "Sun path",
+  "description": "Where the sun stands over the site through the year: the solstice and equinox arcs, hour by hour.",
+  "layers": [
+    "green",
+    "water",
+    "building"
+  ],
+  "emphasis": null,
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": null,
+  "solar": "sun_path"
+}

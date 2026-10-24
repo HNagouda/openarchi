@@ -39,6 +39,19 @@ pub struct Diagram {
     #[serde(default)]
     pub as_figure: Vec<Layer>,
     pub classify: Option<Classify>,
+    /// A computed sun drawing on top of the layers. Needs no data beyond
+    /// building heights and the site's position.
+    #[serde(default)]
+    pub solar: Option<Solar>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Solar {
+    /// The sun's daily arcs on the solstices and equinox, over the plan.
+    SunPath,
+    /// Building shadows at the look's date and time.
+    Shadow,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -20,7 +20,7 @@ use crate::theme::LayerStyle;
 
 const DEFAULT_TITLE: &str = "Legend";
 const CONTEXT_LABEL: &str = "Context";
-const SITE_LABEL: &str = "Site boundary";
+pub const SITE_LABEL: &str = "Site boundary";
 /// For a row shared by many layers, which in practice are the open surfaces.
 const OPEN_GROUND_LABEL: &str = "Open ground";
 /// Rows merged from more layers than this are labelled by what they share, not by name.
@@ -223,7 +223,7 @@ pub fn write(
 
 fn swatch_for(layer: Layer, style: &LayerStyle) -> Swatch {
     let fill = if style.pattern.is_some() {
-        Some(format!("url(#{})", pattern_id(layer)))
+        Some(format!("url(#{})", pattern_id("", layer)))
     } else {
         style.fill.clone()
     };

@@ -1,0 +1,19 @@
+{
+  "id": "shadow",
+  "name": "Shadow",
+  "description": "Which streets and gardens the buildings put in shade, at the chosen date and time.",
+  "layers": [
+    "green",
+    "water",
+    "tree",
+    "building"
+  ],
+  "emphasis": "building",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": null,
+  "solar": "shadow"
+}

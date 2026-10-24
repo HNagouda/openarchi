@@ -75,11 +75,27 @@ export type LayerOverride = {
   opacity?: number | null;
 };
 
+export type ViewMode = "plan" | "axonometric" | "explode";
+
+export type View = {
+  mode: ViewMode;
+  rotation_deg: number;
+  tilt_deg: number;
+  /** Diagram ids stacked in the explode view, top plate first. */
+  plates: string[];
+  stacking: boolean;
+};
+
+/** A day and Dutch clock time, for the sun path, shadows and axonometric lighting. */
+export type SunMoment = { month: number; day: number; hour: number; minute: number };
+
 export type Look = {
   diagram_id: string;
   theme_id: string;
   sheet: Sheet;
   overrides: Partial<Record<Layer, LayerOverride>>;
+  view: View;
+  sun: SunMoment;
 };
 
 export type Palette = {
@@ -120,6 +136,8 @@ export type Diagram = {
   layers: Layer[];
   emphasis: Layer | null;
   mute_others: boolean;
+  /** A computed sun drawing on top of the layers. */
+  solar?: "sun_path" | "shadow" | null;
 };
 
 export type Catalog = {
