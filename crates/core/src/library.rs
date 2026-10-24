@@ -17,6 +17,7 @@
 
 mod files;
 mod migrate;
+mod themes;
 
 use std::cmp::Reverse;
 use std::fs;

@@ -47,7 +47,7 @@ pub use fonts::FAMILIES as FONT_FAMILIES;
 pub(crate) use fonts::{is_bundled as is_bundled_font, BUNDLED as BUNDLED_FONTS};
 // Shared with ratios, so its rows take the same classes and colours as the diagrams.
 pub(crate) use classify::{build as build_classes, class_of};
-pub(crate) use color::{mix, resolve as resolve_colour, sample_ramp};
+pub(crate) use color::{mix, resolve as resolve_colour, rgb, sample_ramp};
 pub(crate) use fonts::Face;
 pub use solid::DEFAULT_HEIGHT_M;
 pub(crate) use svg::{escape, layer_attributes};

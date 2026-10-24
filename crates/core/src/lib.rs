@@ -14,6 +14,7 @@ pub mod error;
 pub mod export;
 pub mod geocode;
 pub mod library;
+pub mod palette;
 pub mod project;
 pub mod ratios;
 pub mod render;
