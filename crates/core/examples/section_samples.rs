@@ -163,7 +163,6 @@ fn look_of(diagram_id: &str, mode: ViewMode, line: &SectionLine) -> Look {
         diagram_id: diagram_id.to_string(),
         sheet: Sheet {
             title: "Section through the site".to_string(),
-            subtitle: "Looking north".to_string(),
             show_context: true,
             ..Sheet::default()
         },
