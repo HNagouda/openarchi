@@ -1,11 +1,12 @@
 //! Projects in the library: list, open, rename, delete, restore, save.
 
+use std::sync::Arc;
 use std::time::Instant;
 
 use openarchi_core::area::Area;
 use openarchi_core::library::ProjectSummary;
 use openarchi_core::pin::Pin;
-use openarchi_core::project::{Look, Project};
+use openarchi_core::project::{packed_scene, Look, Project};
 use openarchi_core::report::Report;
 use openarchi_core::scene::{Credit, Layer, Scene};
 use serde::Serialize;
@@ -70,12 +71,63 @@ pub fn view_of(open: &OpenProject) -> ProjectView {
     }
 }
 
-/// Saves through the library and remembers that we did, for the watcher.
-pub fn save_project(state: &AppState, project: &mut Project) -> Result<(), String> {
+/// Saves a project that is not open through the library and remembers that
+/// we did, for the watcher.
+fn save_project(state: &AppState, project: &mut Project) -> Result<(), String> {
     lock(&state.own_saves).insert(project.id.clone(), Instant::now());
     state.library()?.save(project).map_err(text)?;
     lock(&state.own_saves).insert(project.id.clone(), Instant::now());
     Ok(())
+}
+
+/// Saves the open project as it is in memory and returns its new modified
+/// time. Packing the scene takes most of a save, so it is packed once after
+/// opening or fetching and the text is reused while the scene stays the same.
+pub fn save_open_project(state: &AppState) -> Result<String, String> {
+    let (mut project, scene, packed) = match lock(&state.open).as_ref() {
+        Some(open) => (
+            open.project.clone(),
+            open.scene.clone(),
+            open.packed_scene.clone(),
+        ),
+        None => return Err("No project is open.".to_string()),
+    };
+    let packed = match (scene, packed) {
+        (Some(scene), None) => Some(pack_and_keep(state, &scene)?),
+        (_, packed) => packed,
+    };
+
+    let library = state.library()?;
+    lock(&state.own_saves).insert(project.id.clone(), Instant::now());
+    match &packed {
+        Some(packed) => library.save_with_packed_scene(&mut project, packed),
+        None => library.save(&mut project),
+    }
+    .map_err(text)?;
+    lock(&state.own_saves).insert(project.id.clone(), Instant::now());
+
+    if let Some(open) = lock(&state.open).as_mut() {
+        if open.project.id == project.id {
+            open.project.modified = project.modified.clone();
+        }
+    }
+    Ok(project.modified)
+}
+
+/// Packs `scene` outside the lock, so previews keep rendering meanwhile.
+fn pack_and_keep(state: &AppState, scene: &Arc<Scene>) -> Result<Arc<String>, String> {
+    let packed = Arc::new(packed_scene::pack(scene).map_err(text)?);
+    if let Some(open) = lock(&state.open).as_mut() {
+        // A fetch may have replaced the scene while this one was packed.
+        let is_same_scene = open
+            .scene
+            .as_ref()
+            .is_some_and(|current| Arc::ptr_eq(current, scene));
+        if is_same_scene {
+            open.packed_scene = Some(packed.clone());
+        }
+    }
+    Ok(packed)
 }
 
 fn open_in_state(state: &AppState, project: Project) -> ProjectView {
@@ -154,19 +206,11 @@ pub async fn close_project(state: State<'_, Shared>) -> Result<(), String> {
 pub async fn save_look(state: State<'_, Shared>, look: Look) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let mut project = match lock(&state.open).as_mut() {
-            Some(open) => {
-                open.project.look = look;
-                open.to_project()
-            }
+        match lock(&state.open).as_mut() {
+            Some(open) => open.project.look = look,
             None => return Err("No project is open.".to_string()),
-        };
-        save_project(&state, &mut project)?;
-
-        if let Some(open) = lock(&state.open).as_mut() {
-            open.project.modified = project.modified.clone();
         }
-        Ok(project.modified)
+        save_open_project(&state)
     })
     .await
 }
@@ -184,21 +228,19 @@ pub async fn rename_project(
             return Err("A project needs a name.".to_string());
         }
 
-        let open_copy = match lock(&state.open).as_mut() {
+        let is_open = match lock(&state.open).as_mut() {
             Some(open) if open.project.id == id => {
                 open.project.name = name.clone();
-                Some(open.to_project())
+                true
             }
-            _ => None,
+            _ => false,
         };
-        let mut project = match open_copy {
-            Some(project) => project,
-            None => {
-                let mut project = state.library()?.load(&id).map_err(text)?;
-                project.name = name;
-                project
-            }
-        };
+        if is_open {
+            return save_open_project(&state).map(|_| ());
+        }
+
+        let mut project = state.library()?.load(&id).map_err(text)?;
+        project.name = name;
         save_project(&state, &mut project)
     })
     .await

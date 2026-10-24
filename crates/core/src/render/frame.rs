@@ -7,7 +7,7 @@
 use std::f64::consts::TAU;
 use std::fmt::Write;
 
-use geo::{BooleanOps, BoundingRect, Polygon};
+use geo::{BooleanOps, BoundingRect, Polygon, Rect as GroundRect};
 
 use super::geometry::{decimal, mm, polygon_path, push_paper_points, Projection};
 use super::layout::Rect;
@@ -45,6 +45,9 @@ pub struct FrameShape {
     is_cropped: bool,
     /// The frame edge differs from the site outline and gets its own hairline.
     has_own_edge: bool,
+    /// The box on the ground, in metres, that holds everything the frame
+    /// shows; `None` when the frame shows the whole site.
+    ground_bounds: Option<GroundRect<f64>>,
 }
 
 impl FrameShape {
@@ -85,6 +88,7 @@ impl FrameShape {
                     clip_id,
                     is_cropped,
                     has_own_edge: is_cropped || !is_circle_site,
+                    ground_bounds: Some(box_around(centre, radius, radius)),
                 }
             }
             Frame::Square => {
@@ -99,6 +103,7 @@ impl FrameShape {
                     clip_id,
                     is_cropped: half < half_width.max(half_height) - 0.01,
                     has_own_edge: true,
+                    ground_bounds: Some(box_around(centre, half, half)),
                 }
             }
             Frame::Area => {
@@ -118,6 +123,7 @@ impl FrameShape {
                     clip_id,
                     is_cropped,
                     has_own_edge: is_cropped,
+                    ground_bounds: is_cropped.then(|| box_around(centre, reach_x, reach_y)),
                 }
             }
         }
@@ -152,11 +158,16 @@ impl FrameShape {
             clip_id: format!("{scope}frame-clip"),
             is_cropped: false,
             has_own_edge: true,
+            ground_bounds: Some(box_around(centre, reach_m, reach_m)),
         }
     }
 
     pub fn clip_id(&self) -> &str {
         &self.clip_id
+    }
+
+    pub fn ground_bounds(&self) -> Option<GroundRect<f64>> {
+        self.ground_bounds
     }
 
     pub fn write_defs(&self, out: &mut String) {
@@ -310,6 +321,15 @@ fn half_extent(boundary: &Polygon<f64>) -> (f64, f64) {
         .bounding_rect()
         .map(|rect| (rect.width() / 2.0, rect.height() / 2.0))
         .unwrap_or((0.0, 0.0))
+}
+
+/// The ground box `half_width` and `half_height` metres around `centre`.
+fn box_around(centre: (f64, f64), half_width: f64, half_height: f64) -> GroundRect<f64> {
+    let (x, y) = centre;
+    GroundRect::new(
+        (x - half_width, y - half_height),
+        (x + half_width, y + half_height),
+    )
 }
 
 fn square_corners(centre: (f64, f64), half: f64) -> [(f64, f64); 4] {

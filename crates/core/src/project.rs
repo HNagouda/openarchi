@@ -38,7 +38,13 @@ pub struct Project {
     pub modified: String,
     pub area: Area,
     /// `None` until the site has been fetched.
-    #[serde(with = "packed_scene")]
+    /// Left out of the file while `None`, so `Library::save_with_packed_scene`
+    /// can write the packed text in its place.
+    #[serde(
+        with = "packed_scene",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub scene: Option<Scene>,
     /// The first sheet. Projects from before sheets had tabs have only this one.
     pub look: Look,

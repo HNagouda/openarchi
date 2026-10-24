@@ -9,6 +9,7 @@ use std::fmt::Write;
 use geo::{BoundingRect, Coord, Geometry, LineString, Polygon};
 
 use super::layout::Rect;
+use super::simplify;
 
 /// Hundredths of a millimetre per millimetre.
 const HUNDREDTHS: f64 = 100.0;
@@ -291,6 +292,7 @@ fn push_points(data: &mut String, rounded: impl Iterator<Item = (i64, i64)>, clo
             points.push(point);
         }
     }
+    let mut points = simplify::simplified(&points);
     if closed && points.len() > 1 && points.first() == points.last() {
         points.pop();
     }

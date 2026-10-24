@@ -187,13 +187,44 @@ impl Library {
 
     /// Writes atomically, backs up the previous version, stamps `modified`.
     pub fn save(&self, project: &mut Project) -> Result<()> {
+        self.write(project, serde_json::to_vec)
+    }
+
+    /// Like `save`, for a project whose `scene` is `None` and whose scene was
+    /// already packed with `packed_scene::pack`. Packing takes most of a save
+    /// and only a fetch changes the scene, so the app packs it once and keeps it.
+    pub fn save_with_packed_scene(&self, project: &mut Project, packed_scene: &str) -> Result<()> {
+        if project.scene.is_some() {
+            return Err(Error::Invalid(
+                "a project saved with a packed scene must not carry the scene itself".to_string(),
+            ));
+        }
+        #[derive(Serialize)]
+        struct Stored<'a> {
+            #[serde(flatten)]
+            project: &'a Project,
+            scene: &'a str,
+        }
+        self.write(project, |project| {
+            serde_json::to_vec(&Stored {
+                project,
+                scene: packed_scene,
+            })
+        })
+    }
+
+    fn write(
+        &self,
+        project: &mut Project,
+        encode: impl FnOnce(&Project) -> serde_json::Result<Vec<u8>>,
+    ) -> Result<()> {
         let path = self.project_path(&project.id)?;
         project.format_version = PROJECT_FORMAT_VERSION;
         project.modified = now_rfc3339();
 
         // Compact rather than pretty: a scene holds many thousands of
         // coordinates, and indentation roughly doubles the file.
-        let bytes = serde_json::to_vec(project).map_err(|e| Error::Format {
+        let bytes = encode(project).map_err(|e| Error::Format {
             path: path.display().to_string(),
             detail: e.to_string(),
         })?;
@@ -348,5 +379,7 @@ fn no_project(id: &str) -> Error {
     Error::Invalid(format!("no project with id '{id}'"))
 }
 
+#[cfg(test)]
+mod packed_save_tests;
 #[cfg(test)]
 mod tests;

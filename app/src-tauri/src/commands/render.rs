@@ -4,16 +4,18 @@
 use std::sync::Arc;
 
 use base64::Engine;
+use openarchi_core::area::Area;
 use openarchi_core::catalog;
 use openarchi_core::export::render_png;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::scene::{Layer, Scene};
+use openarchi_core::selection;
 use tauri::State;
 
 use crate::guard::{blocking, text};
-use crate::state::{lock, AppState, Catalog, LayerInfo, Shared};
+use crate::state::{lock, AppState, Catalog, Framed, LayerInfo, Shared};
 
 fn read_catalog(state: &AppState) -> Catalog {
     let diagrams = catalog::builtin_diagrams();
@@ -89,6 +91,54 @@ pub fn open_scene(state: &AppState) -> Result<Arc<Scene>, String> {
     }
 }
 
+/// Enough for every sheet area of a few tabs at once.
+const FRAMED_KEPT: usize = 4;
+
+/// The open scene as a sheet shows it: cut to `selection` when there is one.
+/// Cut scenes are kept, so a render with the same area does not cut again.
+pub fn shown_scene(state: &AppState, selection: Option<&Area>) -> Result<Arc<Scene>, String> {
+    let scene = open_scene(state)?;
+    let Some(selection) = selection else {
+        return Ok(scene);
+    };
+    let is_match =
+        |framed: &Framed| Arc::ptr_eq(&framed.source, &scene) && &framed.selection == selection;
+    if let Some(framed) = lock(&state.framed).iter().find(|framed| is_match(framed)) {
+        return Ok(framed.scene.clone());
+    }
+
+    let cut = Arc::new(selection::framed(&scene, selection).map_err(text)?);
+    let mut kept = lock(&state.framed);
+    // Cuts of a scene that is no longer open only hold memory.
+    kept.retain(|framed| Arc::ptr_eq(&framed.source, &scene));
+    kept.push(Framed {
+        source: scene,
+        selection: selection.clone(),
+        scene: cut.clone(),
+    });
+    if kept.len() > FRAMED_KEPT {
+        kept.remove(0);
+    }
+    Ok(cut)
+}
+
+/// `look` drawn on the scene its sheet shows. The look's own selection is
+/// dropped, since the scene is already cut to it.
+fn render_shown<T>(
+    state: &AppState,
+    look: &Look,
+    pins: &[Pin],
+    work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
+) -> Result<T, String> {
+    let scene = shown_scene(state, look.selection.as_ref())?;
+    let catalog = current_catalog(state);
+    let whole = Look {
+        selection: None,
+        ..look.clone()
+    };
+    with_input(&catalog, &scene, &whole, pins, work)
+}
+
 fn png_data_url(bytes: &[u8]) -> String {
     let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
     format!("data:image/png;base64,{encoded}")
@@ -112,12 +162,7 @@ pub async fn render_preview(
     pins: Vec<Pin>,
 ) -> Result<String, String> {
     let state = state.inner().clone();
-    blocking(move || {
-        let scene = open_scene(&state)?;
-        let catalog = current_catalog(&state);
-        with_input(&catalog, &scene, &look, &pins, render_svg)
-    })
-    .await
+    blocking(move || render_shown(&state, &look, &pins, render_svg)).await
 }
 
 /// A PNG of the open project in `look`, for the diagram column. Pins would
@@ -130,11 +175,7 @@ pub async fn render_thumbnail(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
-        let catalog = current_catalog(&state);
-        let bytes = with_input(&catalog, &scene, &look, &[], |input| {
-            render_png(input, width)
-        })?;
+        let bytes = render_shown(&state, &look, &[], |input| render_png(input, width))?;
         Ok(png_data_url(&bytes))
     })
     .await

@@ -29,7 +29,7 @@ use crate::theme::Theme;
 /// terraced house. Such buildings are greyed so nobody reads the guess as data.
 pub const DEFAULT_HEIGHT_M: f64 = 9.0;
 /// Trees carry no height in the data. A mature street tree in a Dutch town.
-const TREE_HEIGHT_M: f64 = 10.0;
+pub const TREE_HEIGHT_M: f64 = 10.0;
 const TREE_CROWN_RADIUS_M: f64 = 3.0;
 /// How far a building of unknown height moves towards the unknown colour.
 const ESTIMATED_GREY: f64 = 0.65;

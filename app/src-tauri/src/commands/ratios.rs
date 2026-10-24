@@ -4,12 +4,11 @@ use std::path::Path;
 
 use openarchi_core::area::Area;
 use openarchi_core::ratios::{self, ChartStyle, Ratios};
-use openarchi_core::selection;
 use openarchi_core::theme::Theme;
 use tauri::State;
 
 use crate::commands::export::slug;
-use crate::commands::render::{current_catalog, open_scene};
+use crate::commands::render::{current_catalog, shown_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
@@ -23,8 +22,7 @@ pub async fn get_ratios(
 ) -> Result<Ratios, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
-        let scene = selection::framed_or_whole(&scene, selection.as_ref()).map_err(text)?;
+        let scene = shown_scene(&state, selection.as_ref())?;
         let theme = find_theme(&state, &theme_id)?;
         ratios::compute(&scene, &theme).map_err(text)
     })
@@ -53,8 +51,7 @@ pub async fn export_ratios(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
-        let scene = selection::framed_or_whole(&scene, selection.as_ref()).map_err(text)?;
+        let scene = shown_scene(&state, selection.as_ref())?;
         let theme = find_theme(&state, &theme_id)?;
         let ratios = ratios::compute(&scene, &theme).map_err(text)?;
         let extension = Path::new(&path)

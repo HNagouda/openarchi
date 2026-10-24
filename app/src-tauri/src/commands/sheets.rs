@@ -6,7 +6,7 @@ use openarchi_core::project::Look;
 use openarchi_core::render::fitting_scale as fit;
 use tauri::State;
 
-use crate::commands::library::save_project;
+use crate::commands::library::save_open_project;
 use crate::commands::render::open_scene;
 use crate::guard::{blocking, text};
 use crate::state::{lock, Shared};
@@ -24,20 +24,14 @@ pub async fn save_sheets(
         for pin in &pins {
             pin.check().map_err(text)?;
         }
-        let mut project = match lock(&state.open).as_mut() {
+        match lock(&state.open).as_mut() {
             Some(open) => {
                 open.project.set_sheets(sheets).map_err(text)?;
                 open.project.pins = pins;
-                open.to_project()
             }
             None => return Err("No project is open.".to_string()),
-        };
-        save_project(&state, &mut project)?;
-
-        if let Some(open) = lock(&state.open).as_mut() {
-            open.project.modified = project.modified.clone();
         }
-        Ok(project.modified)
+        save_open_project(&state)
     })
     .await
 }

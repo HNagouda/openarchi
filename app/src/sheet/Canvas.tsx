@@ -2,9 +2,11 @@
 //
 // The SVG is laid out at the zoomed size rather than scaled with a CSS
 // transform, so WebKit redraws the vectors and the sheet stays crisp at
-// every zoom. Only the offset uses a transform.
+// every zoom. Laying out a large sheet again is slow, though, so while a
+// zoom is under way the paper is scaled with a transform, and laid out at
+// the new size once the zoom settles. The offset always uses a transform.
 
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { clamp } from "../lib/format";
 
 const MM_TO_PX = 96 / 25.4;
@@ -15,6 +17,8 @@ const ZOOM_STEP = 1.25;
 const FIT_PADDING_PX = 48;
 // Trackpad pinch arrives as small ctrl-wheel deltas; this turns them into a smooth factor.
 const PINCH_SENSITIVITY = 0.01;
+// How long the zoom must rest before the sheet is laid out sharp at its new size.
+const ZOOM_SETTLE_MS = 160;
 
 export type CanvasControls = {
   zoomIn: () => void;
@@ -27,7 +31,8 @@ export type CanvasControls = {
 /** The paper as it sits on screen, for things drawn over it or dragged on it. */
 export type PaperView = {
   getPaper: () => HTMLDivElement | null;
-  /** Screen pixels per paper millimetre at the current zoom. */
+  /** Pixels per paper millimetre inside the paper and its overlay, before the
+   * transform that scales them during a zoom. */
   pxPerMm: number;
   toMm: (clientX: number, clientY: number) => { x: number; y: number };
 };
@@ -69,6 +74,8 @@ export function Canvas({ svg, controls, onZoom, overlay, onPaperPointerDown, onP
   const viewport = useRef<HTMLDivElement>(null);
   const paper = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<View>({ zoom: 1, x: 0, y: 0 });
+  // The zoom the paper is laid out at; `view.zoom` runs ahead of it during a zoom.
+  const [laidZoom, setLaidZoom] = useState(1);
   const [isPanning, setPanning] = useState(false);
   const size = svg ? sheetSize(svg) : null;
   const sizeKey = size ? `${Math.round(size.width)}x${Math.round(size.height)}` : "";
@@ -92,6 +99,8 @@ export function Canvas({ svg, controls, onZoom, overlay, onPaperPointerDown, onP
       x: (element.clientWidth - current.width * zoom) / 2,
       y: (element.clientHeight - current.height * zoom) / 2,
     });
+    // A fit is one step, not a gesture, so it is laid out sharp straight away.
+    setLaidZoom(zoom);
   }, []);
 
   /** Zooms by `factor`, keeping the point under (`atX`, `atY`) in place. */
@@ -125,6 +134,12 @@ export function Canvas({ svg, controls, onZoom, overlay, onPaperPointerDown, onP
   }, [sizeKey, fit]);
 
   useEffect(() => onZoom(view.zoom), [view.zoom, onZoom]);
+
+  useEffect(() => {
+    if (view.zoom === laidZoom) return;
+    const timer = window.setTimeout(() => setLaidZoom(view.zoom), ZOOM_SETTLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [view.zoom, laidZoom]);
 
   // Keep the sheet fitted while the window or the inspector resizes, if it was fitted.
   useEffect(() => {
@@ -192,14 +207,25 @@ export function Canvas({ svg, controls, onZoom, overlay, onPaperPointerDown, onP
     };
   }, [zoomBy]);
 
-  const pxPerMm = view.zoom * MM_TO_PX;
-  const paperView: PaperView = {
-    getPaper: () => paper.current,
-    pxPerMm,
-    toMm: (clientX, clientY) => {
-      const rect = paper.current?.getBoundingClientRect();
-      return { x: (clientX - (rect?.left ?? 0)) / pxPerMm, y: (clientY - (rect?.top ?? 0)) / pxPerMm };
-    },
+  // Kept the same object between pans, so overlays that measure the SVG
+  // when the view changes do not measure it again on every frame.
+  const paperView: PaperView = useMemo(
+    () => ({
+      getPaper: () => paper.current,
+      pxPerMm: laidZoom * MM_TO_PX,
+      toMm: (clientX, clientY) => {
+        // The rectangle is on screen, transform included, so it divides by the live zoom.
+        const rect = paper.current?.getBoundingClientRect();
+        const screenPxPerMm = latest.current.view.zoom * MM_TO_PX;
+        return { x: (clientX - (rect?.left ?? 0)) / screenPxPerMm, y: (clientY - (rect?.top ?? 0)) / screenPxPerMm };
+      },
+    }),
+    [laidZoom],
+  );
+  const paperStyle = size && {
+    width: size.width * laidZoom,
+    height: size.height * laidZoom,
+    transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom / laidZoom})`,
   };
 
   const startPan = (event: React.PointerEvent) => {
@@ -229,26 +255,10 @@ export function Canvas({ svg, controls, onZoom, overlay, onPaperPointerDown, onP
       }}
     >
       {svg && size && (
-        <div
-          ref={paper}
-          className="paper"
-          style={{
-            width: size.width * view.zoom,
-            height: size.height * view.zoom,
-            transform: `translate(${view.x}px, ${view.y}px)`,
-          }}
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
+        <div ref={paper} className="paper" style={paperStyle ?? undefined} dangerouslySetInnerHTML={{ __html: svg }} />
       )}
       {svg && size && overlay && (
-        <div
-          className="paper-overlay"
-          style={{
-            width: size.width * view.zoom,
-            height: size.height * view.zoom,
-            transform: `translate(${view.x}px, ${view.y}px)`,
-          }}
-        >
+        <div className="paper-overlay" style={paperStyle ?? undefined}>
           {overlay(paperView)}
         </div>
       )}

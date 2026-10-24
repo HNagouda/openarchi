@@ -8,7 +8,7 @@ use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::render::{current_catalog, open_scene};
+use crate::commands::render::{current_catalog, shown_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
@@ -40,7 +40,12 @@ pub async fn render_palette_preview(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
+        let scene = shown_scene(&state, look.selection.as_ref())?;
+        // The scene is already cut to the sheet area.
+        let look = Look {
+            selection: None,
+            ..look
+        };
         let catalog = current_catalog(&state);
         let theme = checked(&state, &draft, DRAFT_ID)?.theme;
         // The editor is modal, so the saved pins are the ones on the sheet.

@@ -8,6 +8,7 @@ use geo::CoordsIter;
 
 use super::color;
 use super::context::{self, ContextArea, Neighbourhood};
+use super::cull;
 use super::drawing::{pattern_id, shadow_colour, write_layer, Canvas, Drawn};
 use super::frame::{ground_outline, FrameShape};
 use super::geometry::{ground_centre, Projection};
@@ -331,14 +332,23 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     if spec.has_volume {
         massing::lighten(&mut layers, look, theme);
     }
-    let features = features_by_layer(scene, diagram);
+    let location = sun::site_location(&scene.area);
+    let sun = sun::position_at(location, &look.sun);
+    let features = cull::within_frame(
+        features_by_layer(scene, diagram),
+        frame.ground_bounds(),
+        cull::caster_margin(
+            tallest_building(scene).max(solid::TREE_HEIGHT_M),
+            spec.has_volume || diagram.solar == Some(Solar::Shadow),
+            &sun,
+            &spec.projection,
+        ),
+    );
     let canvas = Canvas {
         projection,
         clip_id: frame.clip_id(),
         scope,
     };
-    let location = sun::site_location(&scene.area);
-    let sun = sun::position_at(location, &look.sun);
     let neighbourhood = Neighbourhood::of(scene, look.sheet.show_context, spec.context, scope);
 
     let mut defs = String::new();
