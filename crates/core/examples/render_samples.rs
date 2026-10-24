@@ -6,6 +6,11 @@
 //!
 //! The second form renders the axonometric, explode, sun path and shadow
 //! samples, with timings, into `folder` (target/render-samples/views by default).
+//!
+//! cargo run --release -p openarchi-core --example render_samples scene <scene.json> <folder> [diagram]
+//!
+//! The third form renders a scene written by `fetch_site` in every theme, for
+//! looking at layers the checked-in fixture does not hold.
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -25,6 +30,7 @@ const SAMPLE_WIDTH_PX: u32 = 1800;
 const BIG_SITE_GRID: i32 = 3;
 const BIG_SITE_SPACING_M: f64 = 600.0;
 const VIEWS_ARGUMENT: &str = "views";
+const SCENE_ARGUMENT: &str = "scene";
 
 /// The view samples: file name, diagram, theme and view mode.
 const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 9] = [
@@ -134,6 +140,14 @@ fn main() {
 
     let only_diagram = std::env::args().nth(1);
     let only_theme = std::env::args().nth(2);
+    if only_diagram.as_deref() == Some(SCENE_ARGUMENT) {
+        let arguments: Vec<String> = std::env::args().skip(2).collect();
+        let [scene_path, folder, rest @ ..] = arguments.as_slice() else {
+            panic!("usage: render_samples scene <scene.json> <folder> [diagram]");
+        };
+        write_scene(Path::new(scene_path), Path::new(folder), rest.first());
+        return;
+    }
     if only_diagram.as_deref() == Some(VIEWS_ARGUMENT) {
         let views_dir = only_theme
             .map(PathBuf::from)
@@ -179,6 +193,40 @@ fn main() {
         write_layouts(&scene, &out_dir);
         write_custom_text(&scene, &out_dir);
         time_big_site(&scene, &out_dir);
+    }
+    println!("samples in {}", out_dir.display());
+}
+
+/// Every diagram, or just `only`, in every theme, from a fetched scene.
+fn write_scene(scene_path: &Path, out_dir: &Path, only: Option<&String>) {
+    std::fs::create_dir_all(out_dir).expect("create the folder");
+    let text = std::fs::read_to_string(scene_path).expect("read the scene");
+    let scene: Scene = serde_json::from_str(&text).expect("parse the scene");
+    for diagram in builtin_diagrams() {
+        if only.is_some_and(|id| *id != diagram.id) {
+            continue;
+        }
+        for theme in builtin_themes() {
+            let look = Look {
+                diagram_id: diagram.id.clone(),
+                theme_id: theme.id.clone(),
+                sheet: Sheet {
+                    title: diagram.name.clone(),
+                    subtitle: "300 m around the site".to_string(),
+                    ..Sheet::default()
+                },
+                ..Look::default()
+            };
+            let input = RenderInput {
+                scene: &scene,
+                diagram: &diagram,
+                theme: &theme,
+                look: &look,
+            };
+            let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
+            let name = format!("{}--{}.png", diagram.id, theme.id);
+            std::fs::write(out_dir.join(name), png).expect("write the sample");
+        }
     }
     println!("samples in {}", out_dir.display());
 }

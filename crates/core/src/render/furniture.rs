@@ -14,7 +14,7 @@ use super::svg::layer_attributes;
 use super::text::{self, SheetTexts};
 use super::tools::{write_tools, TOOLS_HEIGHT};
 use super::typeset::{Kind, Typesetter};
-use crate::scene::Scene;
+use crate::scene::{Layer, Scene};
 use crate::sheet::{Sheet, SUBTITLE_ID, TITLE_ID};
 use crate::theme::Palette;
 
@@ -45,6 +45,8 @@ pub struct Furniture<'a> {
     pub sheet: &'a Sheet,
     pub scene: &'a Scene,
     pub diagram_name: &'a str,
+    /// The layers the diagram draws, which decide the sources credited.
+    pub diagram_layers: &'a [Layer],
     pub palette: &'a Palette,
     pub mm_per_m: f64,
     /// Which way north points on the paper, in degrees clockwise from straight up.
@@ -314,7 +316,7 @@ fn write_credits_and_mark(
         &furniture.palette.ink,
     );
 
-    let text = credits_text(furniture.scene);
+    let text = credits_text(furniture.scene, furniture.diagram_layers);
     if !furniture.sheet.show_credits || text.is_empty() {
         return bottom - typesetter.cap_height(Kind::Mark);
     }
@@ -352,16 +354,24 @@ fn write_mark(out: &mut String, typesetter: &Typesetter, x: f64, baseline: f64, 
     typesetter.write(out, x + 3.0 * radius, baseline, MARK_TEXT, Kind::Mark, None);
 }
 
-/// "Sources: BGT, Kadaster, CC BY 4.0; ... Retrieved 2026-10-24."
-fn credits_text(scene: &Scene) -> String {
-    if scene.credits.is_empty() {
-        return String::new();
-    }
+/// "Sources: BGT, Kadaster, CC BY 4.0; ... Retrieved 2026-10-24." A source
+/// tied to layers is credited only when the diagram draws one of them.
+fn credits_text(scene: &Scene, diagram_layers: &[Layer]) -> String {
     let sources: Vec<String> = scene
         .credits
         .iter()
+        .filter(|credit| {
+            credit.layers.is_empty()
+                || credit
+                    .layers
+                    .iter()
+                    .any(|layer| diagram_layers.contains(layer))
+        })
         .map(|credit| format!("{} ({})", credit.name, credit.license))
         .collect();
+    if sources.is_empty() {
+        return String::new();
+    }
     let date: String = scene.fetched_at.chars().take(10).collect();
     let retrieved = if date.is_empty() {
         String::new()

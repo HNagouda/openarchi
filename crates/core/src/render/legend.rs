@@ -8,7 +8,6 @@
 
 use std::fmt::Write;
 
-use super::classify::UNKNOWN_LABEL;
 use super::drawing::{pattern_id, Drawn};
 use super::geometry::{decimal, mm};
 use super::layout::Rect;
@@ -32,6 +31,9 @@ const LABEL_GAP: f64 = 2.6;
 const ROW_PITCH: f64 = 5.4;
 const COLUMN_GAP: f64 = 5.0;
 const TITLE_GAP: f64 = 4.2;
+/// From the title's baseline to the note's, and the most lines a note may take.
+const NOTE_GAP: f64 = 1.6;
+const MAX_NOTE_LINES: usize = 2;
 const SITE_STROKE_MM: f64 = 0.5;
 const MIN_SWATCH_STROKE_MM: f64 = 0.1;
 const SWATCH_EDGE_OPACITY: f64 = 0.3;
@@ -68,11 +70,14 @@ pub struct Row {
 #[derive(Debug, Clone)]
 pub struct Legend {
     pub title: String,
+    /// Unit, source and year under the title, for a classified diagram that has them.
+    pub note: Option<String>,
     pub rows: Vec<Row>,
 }
 
 pub fn build(layers: &[ResolvedLayer], drawn: &[Drawn], diagram: &Diagram, accent: &str) -> Legend {
     let mut title = DEFAULT_TITLE.to_string();
+    let mut note = None;
     let mut class_rows: Vec<Row> = Vec::new();
     let mut theme_rows: Vec<(Vec<Layer>, Swatch)> = Vec::new();
     let mut figure: Option<(Vec<Layer>, Swatch)> = None;
@@ -87,6 +92,7 @@ pub fn build(layers: &[ResolvedLayer], drawn: &[Drawn], diagram: &Diagram, accen
         match (resolved.role, &resolved.classes) {
             (Role::Classified, Some(classes)) => {
                 title = classes.title.clone();
+                note = classes.note.clone();
                 for (class, &is_present) in classes.classes.iter().zip(&drawn.classes_present) {
                     if is_present {
                         class_rows.push(Row {
@@ -97,7 +103,7 @@ pub fn build(layers: &[ResolvedLayer], drawn: &[Drawn], diagram: &Diagram, accen
                 }
                 if drawn.has_unknown {
                     class_rows.push(Row {
-                        label: UNKNOWN_LABEL.to_string(),
+                        label: classes.unknown_label.clone(),
                         swatch: with_fill(&swatch, &classes.unknown_fill),
                     });
                 }
@@ -153,7 +159,7 @@ pub fn build(layers: &[ResolvedLayer], drawn: &[Drawn], diagram: &Diagram, accen
         },
     });
 
-    Legend { title, rows }
+    Legend { title, note, rows }
 }
 
 /// Draws the legend inside `area`, in as few columns as fit, at most
@@ -166,7 +172,23 @@ pub fn write(
     max_columns: usize,
 ) {
     let unit = typesetter.unit;
-    let header = typesetter.cap_height(Kind::Heading) + TITLE_GAP * unit;
+    let note_lines = match &legend.note {
+        Some(note) => {
+            let mut lines = typesetter.wrap(note, Kind::Credit, area.width);
+            lines.truncate(MAX_NOTE_LINES);
+            lines
+        }
+        None => Vec::new(),
+    };
+    let note_pitch = typesetter.line_pitch(Kind::Credit);
+    let note_height = if note_lines.is_empty() {
+        0.0
+    } else {
+        NOTE_GAP * unit
+            + typesetter.cap_height(Kind::Credit)
+            + note_pitch * (note_lines.len() - 1) as f64
+    };
+    let header = typesetter.cap_height(Kind::Heading) + note_height + TITLE_GAP * unit;
     let rows_that_fit = (((area.height - header) / (ROW_PITCH * unit))
         .floor()
         .max(1.0)) as usize;
@@ -199,6 +221,20 @@ pub fn write(
         Kind::Heading,
         None,
     );
+    let first_note_baseline = area.y
+        + typesetter.cap_height(Kind::Heading)
+        + NOTE_GAP * unit
+        + typesetter.cap_height(Kind::Credit);
+    for (index, line) in note_lines.iter().enumerate() {
+        typesetter.write(
+            out,
+            area.x,
+            first_note_baseline + note_pitch * index as f64,
+            line,
+            Kind::Credit,
+            None,
+        );
+    }
     let rows_per_column = rows.len().div_ceil(columns);
     let column_width = (area.width - COLUMN_GAP * unit * (columns - 1) as f64) / columns as f64;
     let label_width = column_width - (SWATCH_WIDTH + LABEL_GAP) * unit;

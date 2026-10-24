@@ -285,13 +285,21 @@ fn text(
 }
 
 fn site_line(ratios: &Ratios) -> String {
-    format!(
+    let mut line = format!(
         "Site {} · {} buildings · coverage {:.0} % · floor area ratio {:.2}",
         area_text(ratios.site_area_m2),
         grouped(ratios.building_count as f64),
         ratios.coverage * 100.0,
         ratios.floor_area_ratio
-    )
+    );
+    if let Some(ratio) = ratios.bag_floor_area_ratio {
+        line.push_str(&format!(" ({ratio:.2} from BAG)"));
+    }
+    if let Some(dwellings) = ratios.dwellings {
+        line.push_str(&format!(" · {} dwellings", grouped(f64::from(dwellings))));
+    }
+
+    line
 }
 
 fn total_text(group: &Group) -> String {

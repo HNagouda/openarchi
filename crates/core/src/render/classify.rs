@@ -1,7 +1,7 @@
 //! Puts each feature of the classified layer into a class, and gives each class its colour.
 
 use super::color;
-use crate::diagram::{Attribute, Classify, Scheme};
+use crate::diagram::{Attribute, Classify, Ramp, Scheme};
 use crate::scene::Feature;
 use crate::theme::Theme;
 use crate::{Error, Result};
@@ -22,13 +22,17 @@ pub struct Class {
 #[derive(Debug, Clone)]
 pub struct Classes {
     pub title: String,
+    pub note: Option<String>,
     pub classes: Vec<Class>,
+    pub unknown_label: String,
     pub unknown_fill: String,
 }
 
 pub fn build(classify: &Classify, theme: &Theme) -> Result<Classes> {
     let classes = match &classify.scheme {
-        Scheme::Sequential { breaks, labels } => sequential_classes(breaks, labels, theme)?,
+        Scheme::Sequential { breaks, labels } => {
+            sequential_classes(breaks, labels, ramp_of(theme, classify.ramp), theme)?
+        }
         Scheme::Categorical { categories } => {
             let labels: Vec<&str> = categories
                 .iter()
@@ -40,9 +44,22 @@ pub fn build(classify: &Classify, theme: &Theme) -> Result<Classes> {
 
     Ok(Classes {
         title: classify.title.clone(),
+        note: classify.note.clone(),
         classes,
+        unknown_label: classify
+            .unknown_label
+            .clone()
+            .unwrap_or_else(|| UNKNOWN_LABEL.to_string()),
         unknown_fill: color::resolve(&theme.palette, "@unknown")?,
     })
+}
+
+/// The theme's colours for `ramp`, its main ramp when it has no such one.
+pub fn ramp_of(theme: &Theme, ramp: Ramp) -> &[String] {
+    match ramp {
+        Ramp::Water if !theme.water_ramp.is_empty() => &theme.water_ramp,
+        _ => &theme.ramp,
+    }
 }
 
 /// Index into `Classes::classes`, or `None` when the attribute is unknown.
@@ -67,7 +84,12 @@ pub fn class_of(feature: &Feature, classify: &Classify) -> Option<usize> {
 }
 
 /// n breaks make n + 1 classes, coloured evenly along the ramp.
-fn sequential_classes(breaks: &[f64], labels: &[String], theme: &Theme) -> Result<Vec<Class>> {
+fn sequential_classes(
+    breaks: &[f64],
+    labels: &[String],
+    ramp: &[String],
+    theme: &Theme,
+) -> Result<Vec<Class>> {
     if labels.len() != breaks.len() + 1 {
         return Err(Error::Invalid(format!(
             "a sequential scheme with {} breaks needs {} labels, got {}",
@@ -76,7 +98,7 @@ fn sequential_classes(breaks: &[f64], labels: &[String], theme: &Theme) -> Resul
             labels.len()
         )));
     }
-    let ramp = resolved_list(&theme.ramp, theme, "ramp")?;
+    let ramp = resolved_list(ramp, theme, "ramp")?;
     let fills = color::sample_ramp(&ramp, labels.len());
 
     Ok(labels
@@ -129,6 +151,9 @@ fn numeric_value(feature: &Feature, attribute: Attribute) -> Option<f64> {
     match attribute {
         Attribute::YearBuilt => feature.attributes.year_built.map(f64::from),
         Attribute::HeightM => feature.attributes.height_m,
+        Attribute::Value => feature.attributes.value,
+        Attribute::Dwellings => feature.attributes.dwellings.map(f64::from),
+        Attribute::FloorAreaM2 => feature.attributes.floor_area_m2,
         Attribute::UseClass => None,
     }
 }
@@ -141,6 +166,8 @@ fn text_value(feature: &Feature, attribute: Attribute) -> Option<String> {
             .clone()
             .filter(|value| !value.trim().is_empty()),
         Attribute::YearBuilt => feature.attributes.year_built.map(|year| year.to_string()),
-        Attribute::HeightM => feature.attributes.height_m.map(|height| height.to_string()),
+        Attribute::HeightM | Attribute::Value | Attribute::Dwellings | Attribute::FloorAreaM2 => {
+            numeric_value(feature, attribute).map(|value| value.to_string())
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 use std::fmt::Write;
 
-use super::classify::{self, UNKNOWN_LABEL};
+use super::classify;
 use super::color;
 
 use super::geometry::{decimal, mm, paper_shapes, PaperShapes, Projection};
@@ -131,7 +131,7 @@ pub fn write_layer(
                 write_class_group(
                     out,
                     &format!("{slug}-unknown"),
-                    UNKNOWN_LABEL,
+                    &classes.unknown_label,
                     &classes.unknown_fill,
                     &unknown,
                     style.radius_mm,

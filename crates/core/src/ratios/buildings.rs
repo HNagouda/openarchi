@@ -110,7 +110,7 @@ pub fn floor_area_m2(buildings: &[&Feature]) -> f64 {
 
 /// Counts buildings into a diagram's classes, with its labels and colours.
 /// Mixed use falls in the class the diagram draws it in.
-fn classified(
+pub(super) fn classified(
     id: &str,
     buildings: &[&Feature],
     classify: &Classify,
@@ -137,7 +137,7 @@ fn classified(
     Ok(finish(id, &classify.title, Unit::Buildings, rows, None))
 }
 
-fn diagram_classify(id: &str) -> Result<Classify> {
+pub(super) fn diagram_classify(id: &str) -> Result<Classify> {
     catalog::builtin_diagrams()
         .into_iter()
         .find(|diagram| diagram.id == id)

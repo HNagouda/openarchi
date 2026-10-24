@@ -16,7 +16,7 @@ const MIN_CATEGORY_COLOURS: usize = 6;
 const THEME_EXTENSION: &str = "json";
 
 /// Built-in diagrams in picker order, in one place.
-const BUILTIN_DIAGRAMS: [(&str, &str); 11] = [
+const BUILTIN_DIAGRAMS: [(&str, &str); 20] = [
     ("context", include_str!("../assets/diagrams/context.json")),
     (
         "figure-ground",
@@ -46,6 +46,37 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 11] = [
     ("parcels", include_str!("../assets/diagrams/parcels.json")),
     ("sun-path", include_str!("../assets/diagrams/sun-path.json")),
     ("shadow", include_str!("../assets/diagrams/shadow.json")),
+    // Environment and population, from RIVM, LIWO, CBS and BAG units.
+    (
+        "traffic-noise",
+        include_str!("../assets/diagrams/traffic-noise.json"),
+    ),
+    (
+        "noise-all-sources",
+        include_str!("../assets/diagrams/noise-all-sources.json"),
+    ),
+    (
+        "air-quality",
+        include_str!("../assets/diagrams/air-quality.json"),
+    ),
+    (
+        "air-quality-pm10",
+        include_str!("../assets/diagrams/air-quality-pm10.json"),
+    ),
+    (
+        "air-quality-pm25",
+        include_str!("../assets/diagrams/air-quality-pm25.json"),
+    ),
+    ("flood", include_str!("../assets/diagrams/flood.json")),
+    ("slope", include_str!("../assets/diagrams/slope.json")),
+    (
+        "population",
+        include_str!("../assets/diagrams/population.json"),
+    ),
+    (
+        "households",
+        include_str!("../assets/diagrams/households.json"),
+    ),
 ];
 
 /// Built-in themes in picker order, in one place. "paper" is the default look.
@@ -193,6 +224,16 @@ pub(crate) fn theme_problems(theme: &Theme) -> Vec<String> {
     }
     for (index, value) in theme.ramp.iter().enumerate() {
         check_colour(&format!("ramp[{index}]"), value, &mut problems);
+    }
+    // Optional, but a water ramp that is there must be usable on its own.
+    if !theme.water_ramp.is_empty() && theme.water_ramp.len() < MIN_RAMP_COLOURS {
+        problems.push(format!(
+            "water_ramp needs at least {MIN_RAMP_COLOURS} colours, got {}",
+            theme.water_ramp.len()
+        ));
+    }
+    for (index, value) in theme.water_ramp.iter().enumerate() {
+        check_colour(&format!("water_ramp[{index}]"), value, &mut problems);
     }
     for (index, value) in theme.categories.iter().enumerate() {
         check_colour(&format!("categories[{index}]"), value, &mut problems);

@@ -1,0 +1,41 @@
+{
+  "id": "population",
+  "name": "Population",
+  "description": "How many people live in each 100 m square, from CBS statistics.",
+  "layers": [
+    "population",
+    "water",
+    "building"
+  ],
+  "emphasis": "population",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "population",
+    "attribute": "value",
+    "title": "Residents per 100 m square",
+    "note": "Counts rounded to 5; squares where nobody lives are left blank. CBS, 2024.",
+    "scheme": {
+      "kind": "sequential",
+      "breaks": [
+        25,
+        50,
+        100,
+        200,
+        400
+      ],
+      "labels": [
+        "Under 25",
+        "25–50",
+        "50–100",
+        "100–200",
+        "200–400",
+        "400 or more"
+      ]
+    },
+    "unknown_label": "Kept secret by CBS (few residents)"
+  }
+}

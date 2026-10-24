@@ -23,6 +23,14 @@
     "#8E4434",
     "#5C2A26"
   ],
+  "water_ramp": [
+    "#BFD5D6",
+    "#97B9BE",
+    "#6E98A3",
+    "#4E7787",
+    "#34586A",
+    "#1F3B4B"
+  ],
   "categories": [
     "#E7C982",
     "#B8473A",
@@ -42,6 +50,54 @@
     "uppercase_labels": false
   },
   "layers": {
+    "population": {
+      "fill": "@muted",
+      "stroke": "@paper",
+      "stroke_mm": 0.2,
+      "pattern": null
+    },
+    "slope": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "flood": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "pm25": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "pm10": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "no2": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "all_noise": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "road_noise": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
     "unpaved": {
       "fill": "#D8DACA",
       "stroke": "#D8DACA",

@@ -61,6 +61,26 @@ pub struct Classify {
     pub scheme: Scheme,
     /// Legend title, for example "Year built".
     pub title: String,
+    /// A small line under the legend title: the unit, the source and its year.
+    #[serde(default)]
+    pub note: Option<String>,
+    /// Which theme ramp a sequential scheme takes its colours from.
+    #[serde(default)]
+    pub ramp: Ramp,
+    /// The legend label for features without a value, when "Unknown" would
+    /// mislead: CBS keeps some cells secret on purpose.
+    #[serde(default)]
+    pub unknown_label: Option<String>,
+}
+
+/// A theme's colour ramps. A theme without the asked-for ramp uses its main one.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Ramp {
+    #[default]
+    Main,
+    /// Shallow to deep water, for flood depth.
+    Water,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,6 +89,10 @@ pub enum Attribute {
     YearBuilt,
     UseClass,
     HeightM,
+    /// A band's lower edge, or the residents of a statistics cell.
+    Value,
+    Dwellings,
+    FloorAreaM2,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

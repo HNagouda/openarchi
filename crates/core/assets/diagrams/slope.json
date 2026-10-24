@@ -1,0 +1,41 @@
+{
+  "id": "slope",
+  "name": "Slope",
+  "description": "How steep the ground is, from the AHN terrain model, for paths, ramps and drainage.",
+  "layers": [
+    "slope",
+    "water",
+    "contour",
+    "building"
+  ],
+  "emphasis": "slope",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "slope",
+    "attribute": "value",
+    "title": "Slope",
+    "note": "Percent, from the AHN4 terrain model, flown 2020–2022. 5 % is the steepest path without landings.",
+    "scheme": {
+      "kind": "sequential",
+      "breaks": [
+        2,
+        5,
+        8,
+        12,
+        25
+      ],
+      "labels": [
+        "Under 2 %",
+        "2–5 %",
+        "5–8 %",
+        "8–12 %",
+        "12–25 %",
+        "25 % and steeper"
+      ]
+    }
+  }
+}

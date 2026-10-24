@@ -112,6 +112,7 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         sheet: &sheet,
         scene: input.scene,
         diagram_name: &drawing.title_name,
+        diagram_layers: &input.diagram.layers,
         palette,
         mm_per_m: drawing.mm_per_m,
         north_deg: drawing.north_deg,
