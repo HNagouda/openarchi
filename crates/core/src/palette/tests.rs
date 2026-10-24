@@ -107,6 +107,30 @@ fn low_contrast_ink_is_named_with_its_wcag_ratio() {
     let warning = check.warnings.first().expect("a contrast warning");
     assert!(warning.contains("4.5:1"), "{warning}");
     assert!(warning.contains("#F79F79"), "{warning}");
+    assert!(!check.is_readable);
+}
+
+#[test]
+fn a_faint_accent_warns_but_still_reads() {
+    // Black ink and buildings on white, with a pale yellow accent.
+    let check = check(&draft("000000, ffffff, fff3b0"), "faint").unwrap();
+    assert!(check
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("accent")));
+    assert!(check.is_readable);
+}
+
+#[test]
+fn every_builtin_palette_duplicates_as_readable() {
+    for theme in builtin_themes() {
+        let copy = draft_from(&theme, "Copy");
+        assert!(
+            check_copy(&copy, "copy", &theme).unwrap().is_readable,
+            "{}",
+            theme.id
+        );
+    }
 }
 
 #[test]

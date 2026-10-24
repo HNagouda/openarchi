@@ -83,6 +83,9 @@ pub struct PaletteCheck {
     pub roles: Vec<RoleColour>,
     /// Plain sentences, each naming the colours and the WCAG ratio they miss.
     pub warnings: Vec<String>,
+    /// Text and buildings both meet their WCAG ratio on the paper. The editor
+    /// refuses to save a palette that does not; a faint accent only warns.
+    pub is_readable: bool,
 }
 
 /// The whole theme for `draft`, saved under `id`, with its contrast warnings.
@@ -90,11 +93,13 @@ pub fn check(draft: &PaletteDraft, id: &str) -> Result<PaletteCheck> {
     let roles = resolve(&draft.swatches, &draft.roles)?;
     let theme = derive::theme(draft, id, &roles)?;
     let warnings = contrast_warnings(&theme);
+    let is_readable = is_readable(&theme);
 
     Ok(PaletteCheck {
         theme,
         roles,
         warnings,
+        is_readable,
     })
 }
 
@@ -119,10 +124,12 @@ pub fn check_copy(draft: &PaletteDraft, id: &str, base: &Theme) -> Result<Palett
         ..base.clone()
     };
     let warnings = contrast_warnings(&theme);
+    let is_readable = is_readable(&theme);
     Ok(PaletteCheck {
         theme,
         roles: mixed.roles,
         warnings,
+        is_readable,
     })
 }
 
@@ -173,6 +180,13 @@ fn swatch_index(swatches: &mut Vec<Swatch>, hex: &str) -> usize {
     }
     swatches.push(Swatch { hex, name: None });
     swatches.len() - 1
+}
+
+/// Text in ink on paper and the buildings against paper, the two a sheet cannot do without.
+fn is_readable(theme: &Theme) -> bool {
+    let palette = &theme.palette;
+    contrast_ratio(&palette.ink, &palette.paper) >= TEXT_CONTRAST
+        && contrast_ratio(&palette.figure, &palette.paper) >= GRAPHIC_CONTRAST
 }
 
 /// Text in ink on paper, the buildings and the accent line against paper.
