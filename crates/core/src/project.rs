@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
+use crate::report::Report;
 use crate::scene::{Layer, Scene};
 use crate::sheet::Sheet;
 use crate::theme::LayerOverride;
@@ -36,6 +37,10 @@ pub struct Project {
     #[serde(with = "packed_scene")]
     pub scene: Option<Scene>,
     pub look: Look,
+    /// Pages the user laid out from the project's charts, analysis and sheets.
+    /// Older projects have none.
+    #[serde(default)]
+    pub reports: Vec<Report>,
 }
 
 /// What the user chose, by reference. The renderer resolves ids through the catalog.

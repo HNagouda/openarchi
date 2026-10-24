@@ -165,6 +165,7 @@ impl Library {
             area,
             scene: None,
             look: Look::default(),
+            reports: Vec::new(),
         };
         project.look.sheet.title = project.name.clone();
         project.look.sheet.frame = frame_for(&project.area);

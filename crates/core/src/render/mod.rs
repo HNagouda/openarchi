@@ -54,12 +54,14 @@ pub(crate) use svg::{escape, layer_attributes};
 // Shared with the analysis pages, which wrap their notes like sheet text.
 pub(crate) use color::luminance;
 pub(crate) use fonts::{text_width, wrap as wrap_text};
+// Shared with report text blocks, so they are set exactly like sheet text.
+pub(crate) use text::{close_group, open_group, write_lines, StyledText};
+pub(crate) use typeset::{Kind as TextKind, Typesetter};
 
 use furniture::Furniture;
 use geometry::mm;
 use layout::Layout;
 use text::SheetTexts;
-use typeset::Typesetter;
 
 /// Everything the renderer needs, already resolved from ids.
 pub struct RenderInput<'a> {

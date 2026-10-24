@@ -246,7 +246,7 @@ fn write_row_text(out: &mut String, row: &Row, unit: Unit, x: f64, y: f64, paint
 }
 
 /// A wedge from `start` to `end` radians, clockwise from twelve o'clock.
-fn slice_path((cx, cy): (f64, f64), radius: f64, start: f64, end: f64) -> String {
+pub(crate) fn slice_path((cx, cy): (f64, f64), radius: f64, start: f64, end: f64) -> String {
     // A full circle has no wedge edges; an arc to its own start draws nothing.
     if end - start >= TAU - 1e-9 {
         return format!(
@@ -302,7 +302,7 @@ fn site_line(ratios: &Ratios) -> String {
     line
 }
 
-fn total_text(group: &Group) -> String {
+pub(crate) fn total_text(group: &Group) -> String {
     match group.unit {
         Unit::SquareMetres => area_text(group.total),
         Unit::Buildings => format!("{} buildings", grouped(group.total)),
@@ -312,7 +312,7 @@ fn total_text(group: &Group) -> String {
     }
 }
 
-fn value_text(value: f64, unit: Unit) -> String {
+pub(crate) fn value_text(value: f64, unit: Unit) -> String {
     match unit {
         Unit::SquareMetres => area_text(value),
         Unit::Buildings | Unit::Parcels | Unit::Places | Unit::Stops => grouped(value),

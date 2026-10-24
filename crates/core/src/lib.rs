@@ -16,6 +16,7 @@ pub mod library;
 pub mod project;
 pub mod ratios;
 pub mod render;
+pub mod report;
 pub mod scene;
 pub mod sheet;
 pub mod site;

@@ -276,7 +276,7 @@ fn write_heading(out: &mut String, title: &str, y: f64, paint: &Paint) -> f64 {
 
 /// Wrapped text from `y` (the top of the first line). Returns the y below it.
 #[allow(clippy::too_many_arguments)]
-pub(super) fn paragraph(
+pub(crate) fn paragraph(
     out: &mut String,
     content: &str,
     x: f64,

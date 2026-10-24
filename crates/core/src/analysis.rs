@@ -45,7 +45,10 @@ use crate::{Error, Result};
 pub use a4::report_pages;
 pub use climate::Climate;
 pub use figure::Figure;
+// Shared with report blocks, so they draw in the same colours and type.
+pub(crate) use figure::{text, Paint};
 pub use location::Location;
+pub(crate) use page::paragraph;
 pub use page::{report_svg, section_svg};
 pub use rain::Rain;
 pub use summary::{SiteSummary, Surroundings};
