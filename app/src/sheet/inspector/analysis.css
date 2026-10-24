@@ -1,0 +1,144 @@
+/* The inspector's Analysis view. The charts are prints from the core in the
+   sheet's palette, so they sit on the panel like small sheets on the desk;
+   the words around them use the app tokens like every other panel. */
+
+.analysis-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.analysis-intro {
+  flex: 1;
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.analysis-empty {
+  padding: 12px 16px;
+}
+
+.analysis-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+  margin: 0 0 14px;
+}
+
+.analysis-facts > div {
+  min-width: 0;
+}
+
+.analysis-facts dt {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.analysis-facts dd {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+/* A hairline and a soft shadow, as the sheet preview has, so a paper-white
+   chart still has an edge on a paper-white panel. */
+.analysis-figure {
+  overflow: hidden;
+  margin: 0 0 10px;
+  border-radius: var(--radius-s);
+  box-shadow: var(--print-shadow);
+  line-height: 0;
+}
+
+.analysis-figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.analysis-caption {
+  margin: 0 0 10px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.analysis-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+/* The red pencil marks each piece of advice, as on the exported page. */
+.analysis-notes li {
+  position: relative;
+  padding-left: 14px;
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.analysis-notes li::before {
+  content: "";
+  position: absolute;
+  top: 0.72em;
+  left: 0;
+  width: 8px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--brand);
+}
+
+.analysis-source {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.analysis-waiting {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.analysis-waiting p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* A blank print where the chart will come, breathing slowly while it waits. */
+.analysis-placeholder {
+  height: 132px;
+  border-radius: var(--radius-s);
+  background: var(--paper-blank);
+  box-shadow: var(--print-shadow);
+  animation: analysis-breathe 1.6s var(--ease) infinite alternate;
+}
+
+@keyframes analysis-breathe {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .analysis-placeholder {
+    animation: none;
+  }
+}

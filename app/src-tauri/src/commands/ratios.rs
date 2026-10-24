@@ -70,7 +70,7 @@ pub async fn export_ratios(
     .await
 }
 
-fn find_theme(state: &AppState, id: &str) -> Result<Theme, String> {
+pub fn find_theme(state: &AppState, id: &str) -> Result<Theme, String> {
     current_catalog(state)
         .themes
         .into_iter()
