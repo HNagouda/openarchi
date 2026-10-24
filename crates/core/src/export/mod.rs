@@ -1,8 +1,10 @@
 //! Files that leave the app. PDF and PNG come from the rendered SVG; DXF is
-//! written from the scene directly so CAD users get real layers.
+//! written from the scene directly so CAD users get real layers. Laser cutting
+//! files are written from the scene too, see `laser`.
 
 mod convert;
 mod dxf;
+pub mod laser;
 
 use std::path::Path;
 
