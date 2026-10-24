@@ -1,43 +1,53 @@
 /* The palette editor: a live sheet on the left, the controls on the right. */
 
+/* The editor takes the window's height, so the sheet can be as large as it fits
+   and only the controls scroll. The Dialog itself sizes to its content. */
+.dialog:has(> .dialog-body > .palette-editor) {
+  height: calc(100vh - 96px);
+}
+
+.dialog-body:has(> .palette-editor) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .palette-editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 470px;
-  gap: 20px;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) clamp(340px, 26vw, 440px);
+  gap: 24px;
   min-height: 0;
 }
 
 /* * ==== live preview ==== */
 
-/* The controls are taller than the sheet, so the sheet stays in view while they scroll. */
 .palette-preview {
-  position: sticky;
-  top: 0;
-  align-self: start;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
-  padding: 14px;
+  min-height: 0;
+  padding: 16px;
   border-radius: var(--radius);
   background: var(--canvas);
 }
 
 .palette-preview-sheet {
   width: 100%;
-  box-shadow: var(--paper-shadow);
+  height: 100%;
   line-height: 0;
 }
 
-/* The core sizes the sheet in millimetres; here it fills the column. */
+/* The core sizes the sheet in millimetres; here it fits the box, whichever way the paper turns. */
 .palette-preview-sheet svg {
   width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 .palette-preview-waiting {
   color: var(--text-3);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 /* * ==== controls ==== */
@@ -45,15 +55,34 @@
 .palette-controls {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
   min-width: 0;
+  min-height: 0;
+  padding-right: 4px;
+  overflow-y: auto;
 }
 
-.palette-pick-and-roles {
-  display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
+.palette-step {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.palette-step-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.palette-name {
+  height: 38px;
+  font-size: 15px;
+}
+
+.palette-picker {
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--sunken);
 }
 
 /* * ==== import ==== */
@@ -61,7 +90,7 @@
 .import-box {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 6px;
   margin: -6px;
   border-radius: var(--radius);
@@ -74,12 +103,12 @@
 
 .import-text {
   height: auto;
-  min-height: 44px;
-  padding: 6px 8px;
+  min-height: 64px;
+  padding: 8px 10px;
   resize: vertical;
   font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 .import-actions {
@@ -95,7 +124,7 @@
 .import-error {
   margin: 0;
   color: var(--danger);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.45;
 }
 
@@ -104,7 +133,7 @@
 .swatch-strip {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .swatch-cell {
@@ -112,8 +141,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  width: 38px;
+  gap: 4px;
+  width: 52px;
   transition: transform var(--fast) var(--ease), opacity var(--fast) var(--ease);
 }
 
@@ -126,16 +155,16 @@
   content: "";
   position: absolute;
   top: 0;
-  left: -5px;
+  left: -6px;
   width: 2px;
-  height: 38px;
+  height: 52px;
   border-radius: 1px;
   background: var(--accent);
 }
 
 .swatch-chip {
-  width: 38px;
-  height: 38px;
+  width: 52px;
+  height: 52px;
   border: 0;
   border-radius: var(--radius);
   box-shadow: inset 0 0 0 1px var(--swatch-edge);
@@ -159,27 +188,27 @@
 .swatch-hex {
   color: var(--text-2);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
 }
 
 .swatch-roles {
-  min-height: 12px;
+  min-height: 13px;
   color: var(--text-3);
-  font-size: 9.5px;
+  font-size: 11px;
   text-align: center;
   line-height: 1.2;
 }
 
 .swatch-remove {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -6px;
+  right: -6px;
   display: none;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -197,8 +226,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 52px;
+  height: 52px;
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius);
   background: transparent;
@@ -210,101 +239,72 @@
   color: var(--text);
 }
 
-/* * ==== roles ==== */
+/* * ==== readability ==== */
 
-.role-list {
+.palette-readable {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: flex-start;
+  gap: 6px;
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.role-row {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  column-gap: 8px;
-  row-gap: 4px;
-}
-
-.role-chip {
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-s);
-  box-shadow: inset 0 0 0 1px var(--swatch-edge);
-}
-
-.role-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.role-name {
-  font-size: 12.5px;
-  font-weight: 500;
-}
-
-.role-paints,
-.role-reason {
-  color: var(--text-3);
-  font-size: 11.5px;
-  font-weight: 400;
-}
-
-.role-reason {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-}
-
-.role-pins {
-  grid-column: 2;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.role-auto {
-  height: 18px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: var(--radius-s);
-  background: var(--sunken);
   color: var(--text-2);
-  font-size: 11px;
+  font-size: 12.5px;
+  line-height: 1.45;
 }
 
-.role-auto.is-on {
-  background: var(--accent-soft);
+.palette-readable svg {
+  flex: none;
+  margin-top: 1px;
   color: var(--accent);
-  font-weight: 500;
 }
-
-.role-pin {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-s);
-  box-shadow: inset 0 0 0 1px var(--swatch-edge);
-}
-
-.role-pin.is-on {
-  box-shadow: inset 0 0 0 1px var(--swatch-edge), 0 0 0 2px var(--accent);
-}
-
-/* * ==== warnings and footer ==== */
 
 .palette-warnings {
   margin: 0;
-  padding: 8px 10px 8px 26px;
+  padding: 10px 12px 10px 28px;
   border-radius: var(--radius);
-  background: var(--danger-soft);
+  background: var(--sunken);
   color: var(--text);
-  font-size: 12px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
+
+/* Text or buildings that do not read: the palette cannot be saved like this. */
+.palette-warnings.is-blocking {
+  background: var(--danger-soft);
+}
+
+/* * ==== fine-tuning ==== */
+
+.palette-advanced {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.palette-advanced summary {
+  color: var(--text-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.palette-advanced summary:hover {
+  color: var(--text);
+}
+
+.palette-advanced[open] summary {
+  margin-bottom: 14px;
+}
+
+.palette-copy {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 16px;
+}
+
+.palette-copy .field-label {
+  margin-right: 4px;
+}
+
+/* * ==== footer ==== */
 
 .palette-footer {
   display: flex;
@@ -313,29 +313,32 @@
   width: 100%;
 }
 
-.palette-copy {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.palette-copy .field-label {
-  margin-right: 4px;
-}
-
 .palette-footer-gap {
   flex: 1;
 }
 
-/* A narrow window stacks the preview over the controls. */
-@media (max-width: 1100px) {
+.palette-save-blocked {
+  margin-right: 6px;
+  color: var(--danger);
+  font-size: 12.5px;
+}
+
+/* A narrow window stacks the sheet over the controls, and the whole editor scrolls. */
+@media (max-width: 900px) {
+  .dialog-body:has(> .palette-editor) {
+    overflow: auto;
+  }
+
   .palette-editor {
     grid-template-columns: 1fr;
   }
 
   .palette-preview {
-    position: static;
-    min-height: 240px;
+    height: 320px;
+  }
+
+  .palette-controls {
+    overflow: visible;
   }
 }
 

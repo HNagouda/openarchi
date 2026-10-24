@@ -1,6 +1,7 @@
-// The palette's swatches in a row. Click one to edit it; drag one along the
-// row to reorder. From the keyboard: arrows choose, Alt with an arrow moves
-// the chosen swatch, Delete removes it.
+// The palette's swatches in a row. Click one to open its colour picker, again
+// to close it; drag one along the row to reorder. From the keyboard: arrows
+// move between swatches, Enter opens one, Alt with an arrow moves it, Delete
+// removes it.
 
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { PaletteSwatch } from "../../lib/palette";
@@ -12,7 +13,8 @@ const DRAG_THRESHOLD_PX = 4;
 
 type Props = {
   swatches: PaletteSwatch[];
-  selected: number;
+  /** The swatch whose picker is open, or null. */
+  selected: number | null;
   onSelect: (index: number) => void;
   onMove: (from: number, to: number) => void;
   onRemove: (index: number) => void;
@@ -53,10 +55,13 @@ export function SwatchStrip({ swatches, selected, onSelect, onMove, onRemove, on
     setDrag(null);
   };
 
+  const focusChip = (index: number) => row.current?.querySelectorAll<HTMLElement>(".swatch-chip")[index]?.focus();
+
   const onKey = (event: KeyboardEvent, index: number) => {
     const step = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
     if (step !== 0 && event.altKey) onMove(index, index + step);
-    else if (step !== 0) onSelect(Math.min(swatches.length - 1, Math.max(0, index + step)));
+    else if (step !== 0) focusChip(Math.min(swatches.length - 1, Math.max(0, index + step)));
+    else if (event.key === "Enter" || event.key === " ") onSelect(index);
     else if (event.key === "Delete" || event.key === "Backspace") onRemove(index);
     else return;
     event.preventDefault();

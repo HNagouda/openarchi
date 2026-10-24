@@ -1,30 +1,32 @@
-// The palette editor: the open sheet drawn live in the draft on the left; the
-// name, import, swatches, a colour wheel and the roles on the right. Undo and
-// redo inside it step through the draft, not the sheet.
+// The palette editor: the open sheet drawn live in the draft on the left, and
+// on the right the short path most palettes take: paste or pick colours, check
+// they read, name the palette, save. Which colour paints which role, and
+// copying the palette out as text, wait behind one disclosure. Undo and redo
+// inside it step through the draft, not the sheet.
 
 import { useContext, useEffect, useState } from "react";
 import { CommandContext, type CommandHandler } from "../../lib/commands";
 import { errorText } from "../../lib/ipc";
-import { paletteText, savePalette, type ExportFormat, type PaletteDraft, type Role } from "../../lib/palette";
+import { savePalette, type PaletteDraft, type Role } from "../../lib/palette";
 import type { Look, Theme } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { ColorPicker } from "../../ui/ColorPicker";
 import { Dialog } from "../../ui/Dialog";
 import { useToast } from "../../ui/Toasts";
+import { CopyAs } from "./CopyAs";
 import { addSwatch, moveSwatch, pinRole, recolourSwatch, removeSwatch } from "./draftEdits";
 import { ImportBox } from "./ImportBox";
+import { Readability } from "./Readability";
 import { RoleList } from "./RoleList";
 import { SwatchStrip } from "./SwatchStrip";
 import { useDraftHistory } from "./useDraftHistory";
 import { usePalettePreview } from "./usePalettePreview";
 import "./palette.css";
 
-const DIALOG_WIDTH_PX = 1180;
-const EXPORTS: { format: ExportFormat; label: string }[] = [
-  { format: "json", label: "JSON" },
-  { format: "csv", label: "CSV" },
-  { format: "hex", label: "Hex list" },
-];
+// As wide as the window allows, up to where a wider sheet stops helping.
+const DIALOG_WIDTH = "min(1720px, calc(100vw - 48px))";
+// The colour a new swatch starts as when none is chosen.
+const NEW_SWATCH_HEX = "#888888";
 
 type Props = {
   title: string;
@@ -39,15 +41,18 @@ type Props = {
 export function PaletteEditor({ title, initial, editingId, look, onClose, onSaved }: Props) {
   const history = useDraftHistory(initial);
   const { draft } = history;
-  const [selected, setSelected] = useState(0);
+  // The swatch whose colour picker is open; none at first, so the editor opens calm.
+  const [selected, setSelected] = useState<number | null>(null);
   const [isSaving, setSaving] = useState(false);
   const preview = usePalettePreview(draft, look);
   const toast = useToast();
   useDraftCommands(history.undo, history.redo);
 
-  const swatch = draft.swatches[Math.min(selected, draft.swatches.length - 1)];
+  const swatch = selected === null ? null : draft.swatches[Math.min(selected, draft.swatches.length - 1)];
   const rolesOf = (index: number) =>
     (preview.check?.roles ?? []).filter((colour) => colour.swatch === index).map((colour) => colour.role);
+  const isReadable = preview.check?.is_readable ?? false;
+  const canSave = !isSaving && isReadable && draft.name.trim() !== "";
 
   const save = async () => {
     setSaving(true);
@@ -59,39 +64,23 @@ export function PaletteEditor({ title, initial, editingId, look, onClose, onSave
     }
   };
 
-  const copy = async (format: ExportFormat, label: string) => {
-    try {
-      await navigator.clipboard.writeText(paletteText(draft.swatches, format));
-      toast(`Copied the palette as ${label}`);
-    } catch (reason) {
-      toast(`Couldn't copy the palette. ${errorText(reason)}`, { isError: true });
-    }
-  };
-
   const footer = (
     <div className="palette-footer">
-      <span className="palette-copy">
-        <span className="field-label">Copy as</span>
-        {EXPORTS.map(({ format, label }) => (
-          <Button key={format} variant="ghost" onClick={() => copy(format, label)}>
-            {label}
-          </Button>
-        ))}
-      </span>
       <Button icon="undo" tip="Undo" shortcut="mod+z" disabled={!history.canUndo} onClick={history.undo} />
       <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
       <span className="palette-footer-gap" />
+      {preview.check && !isReadable && <span className="palette-save-blocked">Fix the contrast to save</span>}
       <Button variant="secondary" onClick={onClose}>
         Cancel
       </Button>
-      <Button variant="primary" disabled={isSaving || draft.name.trim() === ""} onClick={save}>
+      <Button variant="primary" disabled={!canSave} onClick={save}>
         {editingId ? "Save" : "Save palette"}
       </Button>
     </div>
   );
 
   return (
-    <Dialog title={title} onClose={onClose} width={DIALOG_WIDTH_PX} footer={footer}>
+    <Dialog title={title} onClose={onClose} width={DIALOG_WIDTH} footer={footer}>
       <div className="palette-editor">
         <div className="palette-preview">
           {/* The core's own SVG of the open sheet; no pasted text goes into it. */}
@@ -101,81 +90,68 @@ export function PaletteEditor({ title, initial, editingId, look, onClose, onSave
         </div>
 
         <div className="palette-controls">
-          <label className="field-stack">
-            <span className="field-label">Name</span>
-            <input
-              className="text-input"
-              value={draft.name}
-              placeholder="Name this palette"
-              onChange={(event) => history.change({ ...draft, name: event.target.value }, "name")}
-              onKeyDown={(event) => event.stopPropagation()}
-            />
-          </label>
-
-          <div className="field-stack">
-            <span className="field-label">Import from a palette generator</span>
+          <section className="palette-step">
+            <h3 className="palette-step-title">Colours</h3>
             <ImportBox
               onImport={(swatches) => {
                 history.change({ ...draft, swatches, roles: {}, based_on: null });
-                setSelected(0);
+                setSelected(null);
               }}
             />
-          </div>
-
-          <div className="field-stack">
-            <span className="field-label">Swatches</span>
             <SwatchStrip
               swatches={draft.swatches}
               selected={selected}
-              onSelect={setSelected}
+              onSelect={(index) => setSelected(index === selected ? null : index)}
               onMove={(from, to) => {
                 history.change(moveSwatch(draft, from, to));
                 setSelected(Math.min(Math.max(to, 0), draft.swatches.length - 1));
               }}
               onRemove={(index) => {
                 history.change(removeSwatch(draft, index));
-                setSelected(Math.max(0, index - 1));
+                setSelected(null);
               }}
               onAdd={() => {
-                history.change(addSwatch(draft, swatch?.hex ?? "#888888"));
+                history.change(addSwatch(draft, swatch?.hex ?? NEW_SWATCH_HEX));
                 setSelected(draft.swatches.length);
               }}
               rolesOf={rolesOf}
             />
-          </div>
-
-          <div className="palette-pick-and-roles">
-            {swatch && (
+            {swatch && selected !== null && (
               <div className="palette-picker" onPointerUp={history.seal} onBlur={history.seal}>
                 <ColorPicker
-                  hasWheel
                   value={swatch.hex}
                   onChange={(hex) => history.change(recolourSwatch(draft, selected, hex), `swatch-${selected}`)}
                 />
               </div>
             )}
-            <div className="field-stack palette-roles">
-              <span className="field-label">Roles</span>
-              {preview.check && (
-                <RoleList
-                  roles={preview.check.roles}
-                  swatches={draft.swatches}
-                  onPin={(role: Role, index) => history.change(pinRole(draft, role, index))}
-                />
-              )}
-            </div>
-          </div>
+            {preview.check && <Readability warnings={preview.check.warnings} isReadable={isReadable} />}
+          </section>
 
-          {preview.check && preview.check.warnings.length > 0 && (
-            <ul className="palette-warnings" aria-label="Contrast">
-              {preview.check.warnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          )}
-          {preview.check && preview.check.warnings.length === 0 && (
-            <p className="inspector-note">Text and buildings read clearly on this paper (WCAG 2.1 contrast).</p>
-          )}
+          <section className="palette-step">
+            <label className="palette-step-title" htmlFor="palette-name">
+              Name
+            </label>
+            <input
+              id="palette-name"
+              className="text-input palette-name"
+              value={draft.name}
+              placeholder="Name this palette"
+              onChange={(event) => history.change({ ...draft, name: event.target.value }, "name")}
+              onKeyDown={(event) => event.stopPropagation()}
+            />
+          </section>
+
+          <details className="palette-advanced">
+            <summary>Fine-tune which colour paints what</summary>
+            {preview.check && (
+              <RoleList
+                roles={preview.check.roles}
+                swatches={draft.swatches}
+                onPin={(role: Role, index) => history.change(pinRole(draft, role, index))}
+              />
+            )}
+            <CopyAs swatches={draft.swatches} />
+          </details>
         </div>
       </div>
     </Dialog>

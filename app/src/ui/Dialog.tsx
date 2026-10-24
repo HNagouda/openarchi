@@ -5,7 +5,8 @@ type Props = {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
-  width?: number;
+  /** Pixels, or a CSS length such as "min(1600px, 100vw)" for a dialog that sizes to the window. */
+  width?: number | string;
   /** Sheets drop from the top bar like a macOS sheet; panels sit centred. */
   placement?: "sheet" | "center";
 };
