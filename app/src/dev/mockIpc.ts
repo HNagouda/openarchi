@@ -5,7 +5,7 @@
 
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
-import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Sheet } from "../lib/types";
+import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Sheet, SunMoment, View } from "../lib/types";
 
 const FIXTURES = "/dev-fixtures";
 const MAX_AREA_M2 = 4_000_000;
@@ -30,8 +30,18 @@ const SHEET: Sheet = {
   texts: [],
 };
 
+// The core's defaults from crates/core/src/view.rs.
+const VIEW: View = {
+  mode: "plan",
+  rotation_deg: 0,
+  tilt_deg: 35,
+  plates: ["building-use", "building-age", "landscape", "movement", "context"],
+  stacking: false,
+};
+const SUN: SunMoment = { month: 3, day: 21, hour: 13, minute: 0 };
+
 function look(diagram_id: string, theme_id: string, patch: Partial<Sheet> = {}): Look {
-  return { diagram_id, theme_id, sheet: { ...SHEET, ...patch }, overrides: {} };
+  return { diagram_id, theme_id, sheet: { ...SHEET, ...patch }, overrides: {}, view: VIEW, sun: SUN };
 }
 
 const PROJECTS: ProjectSummary[] = [

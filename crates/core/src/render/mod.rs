@@ -46,8 +46,8 @@ pub(crate) use fonts::{is_bundled as is_bundled_font, BUNDLED as BUNDLED_FONTS};
 pub(crate) use classify::{build as build_classes, class_of};
 pub(crate) use color::{mix, resolve as resolve_colour, sample_ramp};
 pub(crate) use fonts::Face;
-pub(crate) use svg::{escape, layer_attributes};
 pub use solid::DEFAULT_HEIGHT_M;
+pub(crate) use svg::{escape, layer_attributes};
 
 use furniture::Furniture;
 use geometry::mm;
