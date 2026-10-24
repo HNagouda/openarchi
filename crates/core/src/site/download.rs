@@ -11,11 +11,13 @@ use std::vec;
 
 use geo::{Polygon, Rect};
 
+use super::environment::{self, Raster, RIVM_RASTERS};
 use super::Source;
 use crate::sources::cache::TileCache;
 use crate::sources::grid::{tiles_covering, tiles_touching, Tile, TILE_M};
 use crate::sources::pdok::Record;
-use crate::sources::{ahn, bag, bgt, brk, osm};
+use crate::sources::raster::{self, Grid};
+use crate::sources::{ahn, bag, bag_units, bgt, brk, cbs, osm, wcs};
 use crate::{Error, Result};
 
 /// Requests in flight at once. With 32, an uncached 1 km site arrives in about
@@ -39,6 +41,12 @@ pub enum Dataset {
     Brk,
     AhnSurface,
     AhnTerrain,
+    /// One environmental raster, placed by its own GeoTIFF.
+    Raster(Raster),
+    /// The CBS 100 m statistics of one year.
+    Cbs(i32),
+    /// BAG verblijfsobjecten, the units inside buildings.
+    BagUnits,
     /// One Overpass answer for every site centred in the tile, reaching this
     /// many metres around the tile's centre. See `sources/osm`.
     Osm(u32),
@@ -49,6 +57,7 @@ pub enum Payload {
     Records(Vec<Record>),
     /// Elevation cells, row by row from the north.
     Cells(Vec<f32>),
+    Raster(Grid),
     /// An Overpass answer as it arrived, parsed when the scene is put together.
     Osm(Vec<u8>),
 }
@@ -71,6 +80,10 @@ impl Dataset {
             Dataset::Bag => Source::Bag,
             Dataset::Brk => Source::Brk,
             Dataset::AhnSurface | Dataset::AhnTerrain => Source::Ahn,
+            Dataset::Raster(Raster::Flood) => Source::Liwo,
+            Dataset::Raster(_) => Source::Rivm,
+            Dataset::Cbs(_) => Source::Cbs,
+            Dataset::BagUnits => Source::BagUnits,
             Dataset::Osm(_) => Source::Osm,
         }
     }
@@ -83,6 +96,9 @@ impl Dataset {
             Dataset::Brk => "brk-perceel".to_string(),
             Dataset::AhnSurface => format!("ahn-{}", ahn::SURFACE_COVERAGE),
             Dataset::AhnTerrain => format!("ahn-{}", ahn::TERRAIN_COVERAGE),
+            Dataset::Raster(raster) => format!("wcs-{}", raster.coverage().id),
+            Dataset::Cbs(year) => format!("cbs-vierkant100-{year}"),
+            Dataset::BagUnits => "bag-verblijfsobject".to_string(),
             Dataset::Osm(radius_m) => format!("osm-r{radius_m}"),
         }
     }
@@ -96,6 +112,8 @@ pub fn tiles_for(boundary: &Polygon<f64>, bbox: Rect<f64>) -> Vec<(Dataset, Tile
         bgt::COLLECTIONS.into_iter().map(Dataset::Bgt).collect();
     vector_datasets.push(Dataset::Bag);
     vector_datasets.push(Dataset::Brk);
+    vector_datasets.push(Dataset::BagUnits);
+    vector_datasets.extend(cbs::YEARS.map(Dataset::Cbs));
 
     let mut jobs = Vec::new();
     for tile in tiles_touching(boundary) {
@@ -106,6 +124,12 @@ pub fn tiles_for(boundary: &Polygon<f64>, bbox: Rect<f64>) -> Vec<(Dataset, Tile
     for tile in tiles_covering(ahn::extent(bbox)) {
         jobs.push((Dataset::AhnSurface, tile));
         jobs.push((Dataset::AhnTerrain, tile));
+    }
+    for tile in environment::tiles(bbox) {
+        for raster in RIVM_RASTERS {
+            jobs.push((Dataset::Raster(raster), tile));
+        }
+        jobs.push((Dataset::Raster(Raster::Flood), tile));
     }
 
     jobs
@@ -135,6 +159,9 @@ pub fn fetch_from_pdok(dataset: Dataset, tile: Tile) -> Result<Payload> {
         Dataset::Brk => brk::fetch_tile(rect).map(Payload::Records),
         Dataset::AhnSurface => ahn::fetch_tile(ahn::SURFACE_COVERAGE, rect).map(Payload::Cells),
         Dataset::AhnTerrain => ahn::fetch_tile(ahn::TERRAIN_COVERAGE, rect).map(Payload::Cells),
+        Dataset::Raster(raster) => wcs::fetch(&raster.coverage(), rect).map(Payload::Raster),
+        Dataset::Cbs(year) => cbs::fetch_tile(year, rect).map(Payload::Records),
+        Dataset::BagUnits => bag_units::fetch_tile(rect).map(Payload::Records),
         // Not PDOK, but fetched and cached through the same pool and cache.
         Dataset::Osm(radius_m) => osm::fetch(tile, radius_m).map(Payload::Osm),
     }
@@ -226,6 +253,7 @@ fn store(cache: &TileCache, dataset: Dataset, tile: Tile, payload: &Payload) -> 
             ))
         })?,
         Payload::Cells(cells) => cells.iter().flat_map(|cell| cell.to_le_bytes()).collect(),
+        Payload::Raster(grid) => raster::to_bytes(grid),
         Payload::Osm(body) => body.clone(),
     };
     cache.write(&dataset.cache_name(), tile, &bytes)
@@ -245,9 +273,12 @@ fn decode(dataset: Dataset, bytes: &[u8]) -> Result<Payload> {
                 .collect();
             Ok(Payload::Cells(cells))
         }
-        Dataset::Bgt(_) | Dataset::Bag | Dataset::Brk => serde_json::from_slice(bytes)
-            .map(Payload::Records)
-            .map_err(|error| corrupt(error.to_string())),
+        Dataset::Raster(_) => raster::from_bytes(bytes).map(Payload::Raster),
+        Dataset::Bgt(_) | Dataset::Bag | Dataset::Brk | Dataset::Cbs(_) | Dataset::BagUnits => {
+            serde_json::from_slice(bytes)
+                .map(Payload::Records)
+                .map_err(|error| corrupt(error.to_string()))
+        }
         Dataset::Osm(_) => Ok(Payload::Osm(bytes.to_vec())),
     }
 }

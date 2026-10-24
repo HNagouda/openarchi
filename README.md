@@ -27,7 +27,7 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 
 ## What it does
 
-- **Fifteen diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, landscape, movement, parcels, sun path, shadow, business, facilities, transit and walkability. Each one answers one question, and the filmstrip at the bottom shows the whole series at once.
+- **Twenty-four diagrams from one site.** Context, figure-ground, open space, building use, building age, building height, landscape, movement, parcels, sun path, shadow, business, facilities, transit, walkability, traffic noise, noise from all sources, air quality (NO₂, PM10 and PM2.5), flood depth, slope, population and dwellings. Each one answers one question, and the filmstrip at the bottom shows the whole series at once.
 - **The neighbourhood on foot.** Walk times of 5, 10 and 15 minutes from the site over the real footpath network, with the schools, shops, health care and transit stops within reach.
 - **The site in three dimensions.** An axonometric view stands every building up at its measured height, lit by the sun at the date and time you choose, and an explode view stacks several diagrams as plates so you can read them against each other.
 - **Palettes that keep a series together.** Eight built-in palettes (Paper, Ink, Mono, Polder, Blueprint, Terracotta, Midnight, Pastel) restyle every diagram at once, so a set of sheets reads as one family. Tweak any layer's fill, line or opacity on top.

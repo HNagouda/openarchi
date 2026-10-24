@@ -1,0 +1,39 @@
+{
+  "id": "air-quality",
+  "name": "Air quality",
+  "description": "Yearly mean nitrogen dioxide, mostly from traffic, against the WHO guideline.",
+  "layers": [
+    "no2",
+    "building"
+  ],
+  "emphasis": "no2",
+  "mute_others": true,
+  "highlight": [],
+  "as_figure": [],
+  "classify": {
+    "layer": "no2",
+    "attribute": "value",
+    "title": "Nitrogen dioxide (NO₂)",
+    "note": "Annual mean in µg/m³. WHO guideline 10, EU limit 40 (20 from 2030). RIVM, 2024.",
+    "scheme": {
+      "kind": "sequential",
+      "breaks": [
+        10,
+        15,
+        20,
+        25,
+        30,
+        40
+      ],
+      "labels": [
+        "Under 10 µg/m³",
+        "10–15 µg/m³",
+        "15–20 µg/m³",
+        "20–25 µg/m³",
+        "25–30 µg/m³",
+        "30–40 µg/m³",
+        "40 µg/m³ and above"
+      ]
+    }
+  }
+}

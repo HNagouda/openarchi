@@ -28,6 +28,15 @@ pub fn to_csv(ratios: &Ratios) -> String {
         "{SITE_GROUP},Floor area ratio,{:.2},ratio,",
         ratios.floor_area_ratio
     );
+    if let Some(ratio) = ratios.bag_floor_area_ratio {
+        let _ = writeln!(out, "{SITE_GROUP},Floor area ratio (BAG),{ratio:.2},ratio,");
+    }
+    if let Some(dwellings) = ratios.dwellings {
+        let _ = writeln!(out, "{SITE_GROUP},Dwellings,{dwellings},dwellings,");
+    }
+    if let Some(residents) = ratios.residents {
+        let _ = writeln!(out, "{SITE_GROUP},Residents,{residents:.0},residents,");
+    }
 
     for group in &ratios.groups {
         for row in &group.rows {

@@ -174,6 +174,7 @@ mod tests {
             credits: vec![],
             fetched_at: "2026-10-24T12:00:00Z".to_string(),
             warnings: vec!["AHN did not answer".to_string()],
+            measured: Default::default(),
             walk: None,
         }
     }

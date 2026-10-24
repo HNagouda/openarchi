@@ -10,7 +10,7 @@ use openarchi_core::area::Area;
 use openarchi_core::export::{self, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
-use openarchi_core::{catalog, geocode, ratios, site, walk};
+use openarchi_core::{catalog, environment, geocode, ratios, site, walk};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -50,7 +50,7 @@ site-analysis diagrams (figure-ground, building age, heights, uses, green and wa
 A typical session: search_places to find the site, create_project with an area around \
 it, fetch_site to download the site data, list_diagrams and list_themes, set_look to \
 choose and tune the style, edit_text to style, move or add text on the sheet, \
-render_preview to look at the sheet, get_ratios for the \
+render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
 numbers behind it (land use, building use, coverage, floor area ratio), and export to \
 write a file. Projects live in the same library as the openarchi app, so the user sees every \
 project you make there. delete_project moves a project to Recently Deleted and \
@@ -302,6 +302,25 @@ impl OpenArchi {
                         input.id
                     )
                 })
+            })
+            .await;
+        reply(result)
+    }
+
+    #[tool(
+        description = "Get the site's environment in numbers: road traffic noise (mean and highest Lden in dB) and all noise sources together, annual mean NO2, PM10 and PM2.5 in µg/m³, the deepest flood water and the share of the site it reaches in LIWO's extremely-small-chance scenario (under 1 in 30,000 a year), the steepest slope in percent, CBS residents and households (each 100 m square counted by its share inside the site, plus how many squares CBS keeps secret), and BAG dwellings and floor area. Each source's year is included. A figure is null when its source was not reached. The site must have been fetched first."
+    )]
+    async fn get_environment(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
+        let result = self
+            .with_library(move |library| {
+                let project = library.load(&input.id).map_err(text)?;
+                let Some(scene) = &project.scene else {
+                    return Err(format!(
+                        "project '{}' has no site data yet; call fetch_site first",
+                        input.id
+                    ));
+                };
+                Ok(environment::summarise(scene))
             })
             .await;
         reply(result)

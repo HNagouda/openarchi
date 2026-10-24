@@ -14,6 +14,7 @@ use crate::crs::wgs84_to_rd;
 use crate::sources::cache::MAX_AGE;
 use crate::sources::grid::{Tile, TILE_M};
 use crate::sources::pdok::Record;
+use crate::sources::raster::Grid;
 
 const WESTERMARKT: LonLat = LonLat {
     lon: 4.8840,
@@ -43,7 +44,8 @@ fn building_on_a_tile_edge() -> Geometry<f64> {
 }
 
 /// PDOK as a test sees it: one building, wherever a tile overlaps it, flat
-/// ground at 1 m with roofs at 11 m, and nothing else. Counts every request.
+/// ground at 1 m with roofs at 11 m, 50 everywhere on every environmental
+/// raster, and nothing else. Counts every request.
 fn fake_pdok(requests: &AtomicUsize, dataset: Dataset, tile: Tile) -> Result<Payload> {
     requests.fetch_add(1, Ordering::SeqCst);
     let building = building_on_a_tile_edge();
@@ -58,6 +60,14 @@ fn fake_pdok(requests: &AtomicUsize, dataset: Dataset, tile: Tile) -> Result<Pay
         }])),
         Dataset::AhnSurface => Ok(Payload::Cells(vec![11.0; CELLS_PER_TILE])),
         Dataset::AhnTerrain => Ok(Payload::Cells(vec![1.0; CELLS_PER_TILE])),
+        Dataset::Raster(_) => Ok(Payload::Raster(Grid {
+            west: tile.rect().min().x,
+            north: tile.rect().max().y,
+            cell_m: 25.0,
+            width: 10,
+            height: 10,
+            values: vec![50.0; 100],
+        })),
         Dataset::Osm(_) => Ok(Payload::Osm(br#"{"elements": []}"#.to_vec())),
         _ => Ok(Payload::Records(Vec::new())),
     }
@@ -94,7 +104,12 @@ fn fetching_the_same_site_again_makes_no_requests() {
 
     assert!(first > 0);
     assert_eq!(second, 0);
-    assert_eq!(scene.credits.len(), SOURCES.len());
+    let credited = SOURCES
+        .iter()
+        .filter(|source| source.credit().is_some())
+        .count();
+    assert_eq!(scene.credits.len(), credited);
+    assert_eq!(scene.measured.no2_ug_m3.map(|stats| stats.mean), Some(50.0));
 }
 
 #[test]
@@ -168,7 +183,11 @@ fn a_failed_tile_leaves_its_source_out_and_a_retry_fetches_only_that_tile() {
     let scene = build_scene_with(&area, &cache, &one_parcel_tile_fails, &|_| {}).unwrap();
     let (_, retried) = fetch_counting(&area, &cache);
 
-    assert_eq!(scene.credits.len(), SOURCES.len() - 1);
+    let credited = SOURCES
+        .iter()
+        .filter(|source| source.credit().is_some())
+        .count();
+    assert_eq!(scene.credits.len(), credited - 1);
     assert!(scene.warnings[0].starts_with("Parcels could not be fetched"));
     assert_eq!(retried, 1);
 }

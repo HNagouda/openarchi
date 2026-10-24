@@ -73,7 +73,9 @@ That returned a 5,013 byte float GeoTIFF in 0.21 s: 40 x 40 cells at 10 m, value
 
 The EU noise maps from the Environmental Noise Directive only cover major roads and agglomerations at a coarser level, and the RIVM map already includes them, so they were not tested.
 
-#! NOTE[noise, licence] : The RIVM capabilities give no licence; confirm the Atlas Leefomgeving terms (likely CC0 or CC BY) before shipping
+The RIVM capabilities give no licence, and neither do the Atlas Leefomgeving terms of use (`Gebruiksvoorwaarden Atlasleefomgeving.pdf`, 2019), which only say that each map's own owner is responsible for it. data.overheid.nl does say it: dataset `5589` (road traffic noise, Lden) lists `rivm_20250101_Geluid_lden_wegverkeer_2022` as "Publiek domein", the Public Domain Mark 1.0, with RIVM as owner, and the 2024 NO2 concentration maps are listed the same way. openarchi credits "RIVM Atlas Leefomgeving" with that licence.
+
+The "actueel" coverages give the dated coverage they point at as their first keyword in the capabilities. On 2026-10-24 road noise and all sources pointed at the 2022 maps (`alo__rivm_20250101_Geluid_lden_wegverkeer_2022`, `alo__rivm_20250801_Geluid_lden_allebronnen_2022`) and the air quality maps at 2024 (`alo__rivm_nsl_20260401_gm_NO22024` and the PM10 and PM2.5 versions). openarchi asks for the dated ids, because the legend has to name the year. The road noise tiles are 16-bit integers, not floats, and the air quality grid starts 11.6 m east and 2.9 m south of round numbers (a 250 m tile from x 120 500 comes back from x 120 511.6), so every tile is placed by the georeferencing in its own GeoTIFF.
 
 ## Where does flood risk come from?
 
@@ -87,7 +89,9 @@ https://basisinformatie-overstromingen.nl/geoserver/LIWO_Basis/ows?service=WCS&v
 
 It returned 26,004 bytes in 0.34 s, 80 x 80 cells at 5 m, maximum 0.82 m in the window, nodata `-9999`. Rainfall flooding (the stress test layer `Bovenregionale_stresstest_wateroverlast_Waterdiepte`) returned no feature at the Westerkerk, so it does not cover every municipality.
 
-#! NOTE[flood] : Confirm which probability each Kaart1 to Kaart5 stands for before labelling the legend
+The WMS layers have an empty abstract, so the capabilities do not say which probability each map stands for. LIWO's method report does: "Technische uitgangspunten en methode LIWO afgeleide kaarten" (Deltares, 11211536-000-ZWS-0003, 21 November 2025), table 2-1, numbers them 1 grote kans (more than 1 in 30 a year), 2 middelgrote kans (1 in 30 to 1 in 300), 3 kleine kans (1 in 300 to 1 in 3,000), 4 zeer kleine kans (1 in 3,000 to 1 in 30,000) and 5 extreem kleine kans (less than 1 in 30,000). Each map includes every scenario with a chance at least as large as its class, so Kaart5 is the fullest picture of where water can reach. The Flood depth diagram uses Kaart5 and says so in its legend. Over the 300 m around the Westerkerk it reaches 0.82 m and covers 35 % of the site.
+
+#! NOTE[flood, licence] : The LIWO capabilities say "Fees none, AccessConstraints none" but name no licence; ask liwo@rws.nl which one applies
 
 ## Is there population and household data per block?
 
@@ -99,7 +103,7 @@ The 100 m grid lives at `https://api.pdok.nl/cbs/vierkantstatistieken100m/ogc/v1
 https://api.pdok.nl/cbs/vierkantstatistieken100m/ogc/v1/collections/vierkant100/items?f=json&bbox=4.8835,52.3740,4.8845,52.3750&jaarcode=2023
 ```
 
-That took 0.96 s and returned three cells, for example `E1206N4875`: `aantal_inwoners` 140, `aantal_woningen` 85, `aantal_part_huishoudens` 85, `aantal_eenpersoonshuishoudens` 50, `gemiddelde_woz_waarde_woning` 813. `jaarcode=2024` is the newest (0.55 s, inwoners 135, WOZ `-99995` meaning not yet available) and `2025` returns nothing. The value `-99997` means suppressed for privacy, which happens in cells with few residents, so the diagram needs a "no data" class. Counts are rounded to 5.
+That took 0.96 s and returned three cells, for example `E1206N4875`: `aantal_inwoners` 140, `aantal_woningen` 85, `aantal_part_huishoudens` 85, `aantal_eenpersoonshuishoudens` 50, `gemiddelde_woz_waarde_woning` 813. `jaarcode=2024` is the newest (0.55 s, inwoners 135, WOZ `-99995` meaning not yet available) and `2025` returns nothing. The value `-99997` means suppressed for privacy, which happens in cells with few residents, so the diagram needs a "no data" class. Counts are rounded to 5. Fetching a whole 300 m site at once, some tile requests answered `500` even after one retry, and the same requests worked a minute later.
 
 The 500 m grid (`.../vierkantstatistieken500m/ogc/v1/collections/vierkant500/items`) has the same fields and also 1971 (`aantal_inwoners_1971` 5550), but without a year filter it took 9.4 s.
 

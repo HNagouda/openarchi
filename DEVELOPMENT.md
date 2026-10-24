@@ -58,6 +58,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | --- | --- |
 | A new data source or country | a module in `crates/core/src/sources/`, called from `site.rs` |
 | A new layer | `Layer` in `scene.rs` (the one list), then a style in every theme |
+| A new raster from a WCS | a `Coverage` in its source module, fetched by `sources/wcs.rs`, turned into bands in `site/environment.rs` with the breaks of the diagram that draws it |
 | A new diagram | a JSON file in `crates/core/assets/diagrams/`, listed in `catalog.rs` |
 | A new theme | a JSON file in `crates/core/assets/themes/`, listed in `catalog.rs` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
