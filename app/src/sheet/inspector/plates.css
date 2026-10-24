@@ -1,0 +1,74 @@
+/* The explode view's plate list. A dragged row lifts off the panel like a
+   card picked up, and the rows it passes slide aside to show where it will land. */
+
+.plate-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plate-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding-right: 2px;
+  border-radius: var(--radius);
+  outline: none;
+  transition: background var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+.plate-row:hover,
+.plate-row:focus-visible {
+  background: var(--hover);
+}
+
+.plate-row:focus-visible {
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+
+.plate-grip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 30px;
+  color: var(--text-3);
+  cursor: grab;
+  touch-action: none;
+}
+
+.plate-row:hover .plate-grip {
+  color: var(--text);
+}
+
+.plate-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plate-list.is-dragging,
+.plate-list.is-dragging .plate-grip {
+  cursor: grabbing;
+}
+
+/* Hover would light up every row the drag passes over. */
+.plate-list.is-dragging .plate-row:not(.is-lifted) {
+  background: transparent;
+  transition: transform var(--medium) var(--ease);
+}
+
+.plate-row.is-lifted {
+  z-index: 1;
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  transition: none;
+}
