@@ -120,7 +120,7 @@ export function ExportDialog({ look, diagramName, diagramCount, onClose }: Props
           <span className="field-note">
             {settings.scope === "one"
               ? `${diagramName}, as it looks now.`
-              : "One file per diagram, all in this theme and sheet, into a folder you choose."}
+              : "One file per diagram, all in this palette and sheet, into a folder you choose."}
           </span>
         </div>
         {error && <p className="export-error">{error}</p>}

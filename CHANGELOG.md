@@ -21,7 +21,9 @@ What changed in each version of openarchi, newest first.
 ### Sheets
 
 - Every layer row shows a chevron, the same one the section headers use, so it is clear the row opens to its fill, line and opacity. The eye to hide a layer sits at the end of the row.
-- Themes are picked from a compact menu, like choosing a font: the closed control shows the current theme and its colours, and the open menu lists every theme with its colours, your own themes in their own group. [ and ] still step through them.
+- Themes are now called palettes in the app.
+- Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
+- Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
 
 ### Ratios
 

@@ -160,7 +160,7 @@ export function Home({ navigate, catalog, catalogError, onRetryCatalog }: Props)
           )}
           {catalogError && !libraryError && (
             <div className="home-notice">
-              <Problem title="Diagrams and themes aren't available yet." detail={catalogError}>
+              <Problem title="Diagrams and palettes aren't available yet." detail={catalogError}>
                 <Button variant="secondary" onClick={onRetryCatalog}>
                   Try again
                 </Button>

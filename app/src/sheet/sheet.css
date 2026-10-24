@@ -209,8 +209,7 @@
   animation: fade-in var(--medium) var(--ease);
 }
 
-.frame-blank,
-.diagram-blank {
+.frame-blank {
   width: 100%;
   height: 100%;
   background: linear-gradient(100deg, transparent 30%, var(--hover) 50%, transparent 70%) var(--canvas);
@@ -309,63 +308,7 @@
   color: var(--text);
 }
 
-/* * ==== diagram picker ==== */
-
-.diagram-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px 8px;
-}
-
-.diagram-tile {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  min-width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  text-align: left;
-}
-
-.diagram-picture {
-  aspect-ratio: 1.414;
-  border-radius: var(--radius-s);
-  background: var(--canvas);
-  box-shadow: var(--card-shadow);
-  overflow: hidden;
-  display: flex;
-  transition: box-shadow var(--fast) var(--ease);
-}
-
-.diagram-picture img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.diagram-tile:hover .diagram-picture {
-  box-shadow: 0 0 0 1px var(--line-strong);
-}
-
-.diagram-tile.is-selected .diagram-picture {
-  box-shadow: 0 0 0 2px var(--accent);
-}
-
-.diagram-name {
-  font-size: 11.5px;
-  color: var(--text-2);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.diagram-tile.is-selected .diagram-name {
-  color: var(--text);
-  font-weight: 500;
-}
-
-/* * ==== theme picker ==== */
+/* * ==== palette picker ==== */
 
 .section-keys {
   display: inline-flex;

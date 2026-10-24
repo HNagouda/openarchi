@@ -120,7 +120,7 @@ function Assistant() {
       <p>
         An assistant such as Claude can work in your projects through <code>openarchi-mcp</code>, a small program that
         ships with openarchi. Ask for a site analysis in plain words; the assistant draws the site, picks the diagram and
-        theme, and exports. Its changes show up here as they happen, and every one can be undone.
+        palette, and exports. Its changes show up here as they happen, and every one can be undone.
       </p>
       <h4>Claude Code</h4>
       <CopyLine text={CLAUDE_CODE_COMMAND} />
