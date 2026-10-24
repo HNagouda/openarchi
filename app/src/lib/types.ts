@@ -210,3 +210,18 @@ export type Ratios = {
   groups: RatioGroup[];
 };
 export type ChartStyle = "bar" | "pie";
+
+/** The parts of the analysis, each loaded on its own; see crates/core/src/analysis.rs. */
+export type AnalysisPart = "location" | "site" | "climate" | "rain";
+export type AnalysisFigure = { id: string; width_mm: number; height_mm: number; svg: string };
+export type AnalysisSection = {
+  id: string;
+  title: string;
+  facts: { label: string; value: string }[];
+  figures: AnalysisFigure[];
+  caption: string | null;
+  notes: string[];
+  source: string;
+  credits: Credit[];
+  warnings: string[];
+};

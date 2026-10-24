@@ -30,6 +30,7 @@ crates/core/            the library: no window, no async
   src/walk.rs           walk bands from the site centre and the 15 minute neighbourhood
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
+  src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
   src/export/           SVG -> PDF and PNG, scene -> DXF
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
   src/project.rs        one site plus the look the user chose
@@ -63,6 +64,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new theme | a JSON file in `crates/core/assets/themes/`, listed in `catalog.rs` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
 | A new export format | `crates/core/src/export/` |
+| A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs`, the rule in `notes.rs` |
 | A new assistant tool | `crates/mcp/src/server.rs` |
 | A screen or control | `app/src/<screen>/`, with the Tauri command in `app/src-tauri/src/commands/` |
 
@@ -85,6 +87,7 @@ To work on looks without the app, fetch a site once and render every diagram in 
 ```sh
 cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300 .scratch/site.json
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
+cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, target/analysis-samples/
 ```
 
 To work on the front end in a plain browser, render the fixtures once and start Vite on its own. Outside Tauri, `app/src/dev/mockIpc.ts` answers every command from those fixtures, so the gallery, the sheet and the site step all work without the Rust side. This is how the screenshots in `docs/screenshots/` are taken. The mock is loaded only in dev, so it never reaches a release build.

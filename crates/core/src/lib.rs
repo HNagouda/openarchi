@@ -3,6 +3,7 @@
 //! The app and the MCP server are thin shells over this crate, so a site looks
 //! the same whether a person or an assistant asked for it.
 
+pub mod analysis;
 pub mod area;
 pub mod catalog;
 pub mod crs;

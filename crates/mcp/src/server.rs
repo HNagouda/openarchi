@@ -10,7 +10,7 @@ use openarchi_core::area::Area;
 use openarchi_core::export::{self, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
-use openarchi_core::{catalog, environment, geocode, ratios, site, walk};
+use openarchi_core::{analysis, catalog, environment, geocode, ratios, site, walk};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -51,7 +51,8 @@ A typical session: search_places to find the site, create_project with an area a
 it, fetch_site to download the site data, list_diagrams and list_themes, set_look to \
 choose and tune the style, edit_text to style, move or add text on the sheet, \
 render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
-numbers behind it (land use, building use, coverage, floor area ratio), and export to \
+numbers behind it (land use, building use, coverage, floor area ratio), get_analysis \
+for the location, climate and design notes, and export to \
 write a file. Projects live in the same library as the openarchi app, so the user sees every \
 project you make there. delete_project moves a project to Recently Deleted and \
 restore_project brings it back.";
@@ -302,6 +303,26 @@ impl OpenArchi {
                         input.id
                     )
                 })
+            })
+            .await;
+        reply(result)
+    }
+
+    #[tool(
+        description = "Get the site analysis: location (address, municipality, province, coordinates), a site summary (area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use, shares of green, water and paved ground, and facilities, shops and transit stops within a walk when the walk was fetched), the climate from a PVGIS typical year (monthly temperature, humidity, global and direct sun, outdoor comfort hours per band, wind roses by season, direct sun by direction), and 30 years of monthly rain from the nearest KNMI station. Each section comes with design notes: short rule-based advice for the architect. Climate and rain need the network the first time; if one cannot be fetched it is left out and named in `warnings`. The site must have been fetched first."
+    )]
+    async fn get_analysis(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
+        let result = self
+            .with_library(move |library| {
+                let project = library.load(&input.id).map_err(text)?;
+                let Some(scene) = &project.scene else {
+                    return Err(format!(
+                        "project '{}' has no site data yet; call fetch_site first",
+                        input.id
+                    ));
+                };
+                let theme = find_theme(&library.themes_dir(), &project.look.theme_id)?;
+                analysis::report(scene, &theme, &library.tile_cache()).map_err(text)
             })
             .await;
         reply(result)

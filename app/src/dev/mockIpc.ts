@@ -9,6 +9,8 @@ import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, S
 
 const FIXTURES = "/dev-fixtures";
 const MAX_AREA_M2 = 4_000_000;
+// How long the mock pretends PVGIS and KNMI take, so the loading state shows.
+const SLOW_PART_MS = 1200;
 
 type Fixture = { catalog: Catalog; area: Area; credits: Credit[]; layers_present: Layer[] };
 
@@ -114,6 +116,13 @@ async function answer(command: string, args: Args) {
   if (command === "measure_area") return { m2: circleArea(args.area as Area), max_m2: MAX_AREA_M2, in_netherlands: true };
   if (command === "create_project") return view({ id: "new", name: String(args.name), modified: new Date().toISOString(), has_scene: false, look: null });
   if (command === "export_file_name") return "westermarkt.svg";
+  if (command === "get_analysis") {
+    // Climate and rain wait on PVGIS and KNMI in the app, so the mock waits too.
+    const isSlow = args.part === "climate" || args.part === "rain";
+    if (isSlow) await new Promise((resolve) => setTimeout(resolve, SLOW_PART_MS));
+    return fetch(`${FIXTURES}/analysis/${args.part}--${args.themeId}.json`).then((response) => response.json());
+  }
+  if (command === "analysis_file_name") return args.sectionId ? `westermarkt-${args.sectionId}.svg` : "westermarkt-analysis.pdf";
   // Saves, renames, window theme and the like: nothing to show for them here.
   return null;
 }

@@ -51,6 +51,9 @@ pub(crate) use color::{mix, resolve as resolve_colour, sample_ramp};
 pub(crate) use fonts::Face;
 pub use solid::DEFAULT_HEIGHT_M;
 pub(crate) use svg::{escape, layer_attributes};
+// Shared with the analysis pages, which wrap their notes like sheet text.
+pub(crate) use color::luminance;
+pub(crate) use fonts::{text_width, wrap as wrap_text};
 
 use furniture::Furniture;
 use geometry::mm;

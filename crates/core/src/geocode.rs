@@ -94,9 +94,70 @@ fn parse_point(text: &str) -> Result<LonLat> {
     }
 }
 
+const REVERSE_URL: &str = "https://api.pdok.nl/bzk/locatieserver/search/v3_1/reverse";
+const REVERSE_FIELDS: &str = "weergavenaam,afstand";
+/// An address further from the site centre than this does not describe the site.
+const MAX_ADDRESS_DISTANCE_M: f64 = 250.0;
+
+#[derive(Deserialize)]
+struct ReverseAnswer {
+    response: ReverseResponse,
+}
+
+#[derive(Deserialize)]
+struct ReverseResponse {
+    docs: Vec<ReverseDocument>,
+}
+
+#[derive(Deserialize)]
+struct ReverseDocument {
+    weergavenaam: String,
+    afstand: f64,
+}
+
+/// The registered address nearest to `location`, "Westermarkt 68, Amsterdam",
+/// or `None` when the nearest is too far away to describe it.
+pub fn nearest_address(location: LonLat) -> Result<Option<String>> {
+    let lat = location.lat.to_string();
+    let lon = location.lon.to_string();
+    let body = http::get(
+        SERVICE,
+        REVERSE_URL,
+        &[
+            ("lat", lat.as_str()),
+            ("lon", lon.as_str()),
+            ("type", "adres"),
+            ("rows", "1"),
+            ("fl", REVERSE_FIELDS),
+        ],
+    )?;
+    let answer: ReverseAnswer = serde_json::from_slice(&body).map_err(|error| Error::Data {
+        service: SERVICE.to_string(),
+        detail: error.to_string(),
+    })?;
+
+    Ok(answer
+        .response
+        .docs
+        .into_iter()
+        .find(|document| document.afstand <= MAX_ADDRESS_DISTANCE_M)
+        .map(|document| document.weergavenaam))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_reverse_answer_gives_the_nearest_address_within_reach() {
+        let body = r#"{"response": {"docs": [{"weergavenaam": "Westermarkt 68, Amsterdam", "afstand": 13.89}]}}"#;
+        let answer: ReverseAnswer = serde_json::from_str(body).unwrap();
+        assert_eq!(
+            answer.response.docs[0].weergavenaam,
+            "Westermarkt 68, Amsterdam"
+        );
+        assert!(answer.response.docs[0].afstand <= MAX_ADDRESS_DISTANCE_M);
+    }
 
     #[test]
     fn a_well_known_text_point_becomes_lon_and_lat() {

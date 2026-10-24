@@ -4,6 +4,8 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  AnalysisPart,
+  AnalysisSection,
   Area,
   AreaSize,
   Catalog,
@@ -78,3 +80,11 @@ export const ratiosFileName = () => invoke<string>("ratios_file_name");
 /** CSV or SVG, by the extension of `path`. */
 export const exportRatios = (themeId: string, style: ChartStyle, path: string) =>
   invoke<string>("export_ratios", { themeId, style, path });
+
+export const getAnalysis = (part: AnalysisPart, themeId: string) =>
+  invoke<AnalysisSection[]>("get_analysis", { part, themeId });
+/** With a section id, that section's name; without, the whole analysis's. */
+export const analysisFileName = (sectionId: string | null) => invoke<string>("analysis_file_name", { sectionId });
+/** SVG or PDF, by the extension of `path`. Without a section id, the whole analysis. */
+export const exportAnalysis = (themeId: string, sectionId: string | null, path: string) =>
+  invoke<string>("export_analysis", { themeId, sectionId, path });

@@ -23,6 +23,12 @@ const WESTERMARKT_SCENE: &str = concat!(
     "/../core/tests/fixtures/westermarkt.scene.json"
 );
 
+/// The analysis answers the core recorded for the Westermarkt, as tile cache files.
+const RECORDED_ANALYSIS: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../core/tests/fixtures/analysis-cache/tiles-v1"
+);
+
 /// A small recorded scene with noise, air, flood, slope, population and dwellings.
 const WESTERKERK_ENVIRONMENT: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -30,7 +36,7 @@ const WESTERKERK_ENVIRONMENT: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 17] = [
+const TOOLS: [&str; 18] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -43,6 +49,7 @@ const TOOLS: [&str; 17] = [
     "render_preview",
     "get_ratios",
     "get_neighbourhood",
+    "get_analysis",
     "get_environment",
     "export",
     "create_theme",
@@ -433,6 +440,54 @@ fn get_neighbourhood_counts_places_per_walk_band_and_explains_a_missing_walk() {
     assert_eq!(bands[1]["minutes"], json!(10));
     assert_eq!(bands[1]["businesses"][0]["group"], json!("food_drink"));
     assert_eq!((food(0), food(1), food(2)), (0, 1, 1));
+}
+
+#[test]
+fn get_analysis_returns_location_climate_and_notes_from_the_cache() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+    let library = Library::at(server.library.path()).unwrap();
+    let mut project = library.load(&id).unwrap();
+    let scene: Scene =
+        serde_json::from_str(&std::fs::read_to_string(WESTERMARKT_SCENE).unwrap()).unwrap();
+    project.scene = Some(scene);
+    library.save(&mut project).unwrap();
+    seed_analysis_cache(&server.library.path().join("cache"));
+
+    let report = server.call_ok("get_analysis", json!({ "id": id }));
+    assert_eq!(report["location"]["municipality"], json!("Amsterdam"));
+    assert_eq!(report["climate"]["months"].as_array().unwrap().len(), 12);
+    assert!(report["summary"]["coverage"].as_f64().unwrap() > 0.0);
+    let sections: Vec<&str> = report["notes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|entry| entry["section"].as_str().unwrap())
+        .collect();
+    assert!(
+        sections.contains(&"wind") && sections.contains(&"sun"),
+        "{sections:?}"
+    );
+}
+
+/// Copies the answers the core recorded for the Westermarkt into a library's
+/// tile cache, dated now so none counts as stale, so get_analysis runs offline.
+/// Rain is recorded up to 2025; from 2027 on the server asks KNMI for newer
+/// years, and the test does not depend on that answer.
+fn seed_analysis_cache(cache: &std::path::Path) {
+    let recorded = std::path::Path::new(RECORDED_ANALYSIS);
+    for dataset in std::fs::read_dir(recorded).unwrap() {
+        let dataset = dataset.unwrap().path();
+        let target = cache.join("tiles-v1").join(dataset.file_name().unwrap());
+        std::fs::create_dir_all(&target).unwrap();
+        for file in std::fs::read_dir(&dataset).unwrap() {
+            let file = file.unwrap().path();
+            let copy = target.join(file.file_name().unwrap());
+            std::fs::copy(&file, &copy).unwrap();
+            let handle = std::fs::File::options().write(true).open(&copy).unwrap();
+            handle.set_modified(std::time::SystemTime::now()).unwrap();
+        }
+    }
 }
 
 #[test]
