@@ -33,6 +33,7 @@ crates/core/            the library: no window, no async
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
   src/export/           SVG -> PDF and PNG, scene -> DXF
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
+  src/palette.rs        a user's palette: a few swatches turned into a whole theme, with a contrast check
   src/catalog/          finding a diagram by id, and the old ids of diagrams folded into variants
   src/project.rs        one site plus its sheets (looks) and pins
   src/pin.rs            landmarks in RD New metres, shown on every sheet
@@ -67,6 +68,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new diagram | a JSON file in `crates/core/assets/diagrams/` with its `group`, listed in `catalog.rs` next to its group |
 | Another measure for an existing diagram | a variant in that diagram's JSON; a diagram folded into another keeps its old id in `catalog/lookup.rs` |
 | A new theme | a JSON file in `crates/core/assets/themes/`, listed in `catalog.rs` |
+| How a palette of swatches becomes a theme (import formats, the role rule, contrast checks, mixed colours) | `crates/core/src/palette/`; the editor is `app/src/sheet/palette/` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
 | Something drawn on top of every view, like pins | a module in `crates/core/src/render/`, placed with `SheetDrawing::ground` |
 | A new kind of tab in the sheet workspace | a `TabKind` in `app/src/sheet/tabs/TabBar.tsx` |
@@ -94,6 +96,7 @@ To work on looks without the app, fetch a site once and render every diagram in 
 ```sh
 cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300 .scratch/site.json
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
+cargo run --release -p openarchi-core --example palette_samples  # every diagram in a palette made from swatches, target/render-samples/palette/
 cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, and the A4 PDF, target/analysis-samples/
 ```
 

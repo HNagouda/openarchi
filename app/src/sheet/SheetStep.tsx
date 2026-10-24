@@ -43,7 +43,8 @@ type Props = {
   project: ProjectView;
   catalog: Catalog | null;
   catalogError: string | null;
-  onRetryCatalog: () => void;
+  /** Reads the catalog again; also after a palette was saved or deleted. */
+  onRetryCatalog: () => Promise<unknown> | void;
   navigate: Navigate;
 };
 
@@ -368,7 +369,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
           <ColumnResizer column={INSPECTOR_COLUMN} />
-          {catalog && <Inspector catalog={catalog} project={project} look={look} onLook={history.changeLook} onSeal={history.seal} />}
+          {catalog && (
+            <Inspector catalog={catalog} project={project} look={look} onLook={history.changeLook} onSeal={history.seal} onCatalogChanged={onRetryCatalog} />
+          )}
         </div>
       </div>
       </PaletteSwatches.Provider>

@@ -3,18 +3,12 @@
 //! The theme is checked by `catalog::read_theme`, the same function the app
 //! uses to load themes, so a theme that saves here is one the app will open.
 
-use std::fs;
 use std::io::Write;
-use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use openarchi_core::catalog;
 use openarchi_core::library::Library;
 use openarchi_core::theme::Theme;
 use serde_json::{Map, Value};
-
-/// Replaced user themes go here, under the library's Recently Deleted folder.
-const REPLACED_THEMES_FOLDER: &str = "trash/themes";
 
 pub fn save_user_theme(library: &Library, theme_json: Map<String, Value>) -> Result<Theme, String> {
     let id = theme_id(&theme_json)?;
@@ -25,14 +19,8 @@ pub fn save_user_theme(library: &Library, theme_json: Map<String, Value>) -> Res
     }
 
     let theme = validate(&Value::Object(theme_json))?;
-    let themes_dir = library.themes_dir();
-    let target = themes_dir.join(format!("{id}.json"));
-    if target.exists() {
-        set_aside(library.root(), &target, &id)?;
-    }
-
-    let text = serde_json::to_string_pretty(&theme).map_err(|e| e.to_string())?;
-    write_atomically(&target, text.as_bytes())?;
+    // The library moves a theme it replaces to Recently Deleted first.
+    library.save_theme(&theme).map_err(|e| e.to_string())?;
     Ok(theme)
 }
 
@@ -66,35 +54,6 @@ fn validate(theme: &Value) -> Result<Theme, String> {
     draft.flush().map_err(|e| e.to_string())?;
 
     catalog::read_theme(draft.path()).map_err(|e| format!("the theme is not valid: {e}"))
-}
-
-/// Moves the theme being replaced into Recently Deleted, so redesigning a
-/// theme never loses the earlier one.
-fn set_aside(root: &Path, current: &Path, id: &str) -> Result<(), String> {
-    let folder = root.join(REPLACED_THEMES_FOLDER);
-    fs::create_dir_all(&folder).map_err(|e| format!("{}: {e}", folder.display()))?;
-
-    let millis = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|elapsed| elapsed.as_millis())
-        .unwrap_or_default();
-    let target = folder.join(format!("{id}-{millis}.json"));
-    fs::rename(current, &target).map_err(|e| format!("{}: {e}", current.display()))
-}
-
-/// Temp file plus rename, as the library saves projects, so a crash never
-/// leaves half a theme that the app would report as broken.
-fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), String> {
-    let temp = path.with_extension("json.tmp");
-    let describe = |e: std::io::Error| format!("{}: {e}", path.display());
-
-    let mut file = fs::File::create(&temp).map_err(describe)?;
-    file.write_all(bytes).map_err(describe)?;
-    file.sync_all().map_err(describe)?;
-    // Windows cannot rename a file that is still open.
-    drop(file);
-
-    fs::rename(&temp, path).map_err(describe)
 }
 
 #[cfg(test)]

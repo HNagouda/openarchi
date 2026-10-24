@@ -26,6 +26,7 @@ mod radiant;
 mod rain;
 mod roses;
 mod sections;
+mod source_lines;
 mod summary;
 mod utci;
 
@@ -115,6 +116,8 @@ pub struct Report {
 #[derive(Debug, Clone, Serialize)]
 pub struct SectionNotes {
     pub section: String,
+    /// Where the section's numbers come from, the same line the inspector shows under its title.
+    pub source: String,
     pub notes: Vec<String>,
 }
 
@@ -154,10 +157,18 @@ pub fn report(scene: &Scene, theme: &Theme, cache: &TileCache) -> Result<Report>
     let summary = summary::summarise(scene, &ratios);
     let mut warnings = location.warnings.clone();
     let mut credits = location::credits();
-    let mut notes = vec![SectionNotes {
-        section: "site".to_string(),
-        notes: notes::site_notes(&summary),
-    }];
+    let mut notes = vec![
+        SectionNotes {
+            section: "location".to_string(),
+            source: source_lines::location(),
+            notes: Vec::new(),
+        },
+        SectionNotes {
+            section: "site".to_string(),
+            source: source_lines::site(&summary),
+            notes: notes::site_notes(&summary),
+        },
+    ];
 
     let climate = match climate(scene, cache) {
         Ok((climate, climate_warnings)) => {
@@ -177,6 +188,7 @@ pub fn report(scene: &Scene, theme: &Theme, cache: &TileCache) -> Result<Report>
             credits.push(knmi::credit());
             notes.push(SectionNotes {
                 section: "rain".to_string(),
+                source: sections::rain_source(&rain),
                 notes: notes::rain_notes(&rain),
             });
             Some(rain)

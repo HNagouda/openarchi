@@ -1,17 +1,25 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import type { Theme } from "../../lib/types";
+import type { Look, Theme } from "../../lib/types";
 import { Keys } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { Section } from "../../ui/Section";
+import { PaletteActions } from "../palette/PaletteActions";
 import { paletteStrip } from "./lookEdits";
 
 // Built-in themes carry this author; anything else came from the user's themes folder.
 const BUILTIN_AUTHOR = "openarchi";
 
-type Props = { themes: Theme[]; selectedId: string; onSelect: (id: string) => void };
+type Props = {
+  themes: Theme[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  /** For the palette editor's live preview of the sheet. */
+  look: Look;
+  onCatalogChanged: () => Promise<unknown> | void;
+};
 
 /** A palette picker that works like a font menu: the current palette closed, every palette open. [ and ] step through them. */
-export function ThemeSection({ themes, selectedId, onSelect }: Props) {
+export function ThemeSection({ themes, selectedId, onSelect, look, onCatalogChanged }: Props) {
   const [isOpen, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -81,6 +89,13 @@ export function ThemeSection({ themes, selectedId, onSelect }: Props) {
           <Icon name="chevronUpDown" size={14} />
         </button>
         {selected && <p className="inspector-note">{selected.description}</p>}
+        <PaletteActions
+          theme={selected}
+          isOwn={selected !== undefined && selected.author !== BUILTIN_AUTHOR}
+          look={look}
+          onSelect={onSelect}
+          onCatalogChanged={onCatalogChanged}
+        />
 
         {isOpen && (
           <div className="theme-menu" role="listbox" aria-label="Palettes" onKeyDown={onListKey}>

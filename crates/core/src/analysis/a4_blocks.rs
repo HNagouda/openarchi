@@ -45,6 +45,19 @@ pub fn section_block(section: &Section, paint: &Paint) -> Block {
         layer_attributes(&section.id, &section.title)
     );
     let mut y = heading(&mut body, &section.title, paint);
+    // Where the numbers come from, right under the title, as in the inspector.
+    y = paragraph(
+        &mut body,
+        &section.source,
+        0.0,
+        y,
+        CONTENT_MM,
+        SMALL_MM,
+        SMALL_LINE_MM,
+        &paint.secondary,
+        paint,
+    );
+    y += BLOCK_GAP_MM / 2.0;
     y = facts(&mut body, section, y, paint);
 
     let mut left = y;
@@ -137,7 +150,7 @@ fn facts(out: &mut String, section: &Section, y: f64, paint: &Paint) -> f64 {
     y + rows as f64 * FACT_ROW_MM + BLOCK_GAP_MM / 2.0
 }
 
-/// Caption, notes, warnings and source, top to bottom. Returns the y below.
+/// Caption, notes and warnings, top to bottom. Returns the y below.
 fn text_column(
     out: &mut String,
     section: &Section,
@@ -191,9 +204,8 @@ fn text_column(
         y += BLOCK_GAP_MM / 2.0;
         y = small(out, warning, y);
     }
-    y += BLOCK_GAP_MM / 2.0;
 
-    small(out, &section.source, y)
+    y
 }
 
 /// The parts that could not be fetched, so a reader knows what is missing.

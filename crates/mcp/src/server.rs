@@ -23,6 +23,7 @@ use crate::inputs::{
     SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
+use crate::palettes::{self, ImportPalette};
 use crate::resolve::{check_plate, chosen_diagram, find_theme, with_render_input};
 use crate::summary::summarize;
 use crate::text::edited_sheet;
@@ -398,6 +399,26 @@ impl OpenArchi {
             })
             .await;
         reply(result)
+    }
+
+    #[tool(
+        description = "Import a palette from what a palette generator exports or copies (hex codes, JSON, an SVG of swatches, an XML palette, or a link ending in dash-joined codes) and save it as a theme. The colours fill the roles by a fixed rule: the lightest quiet swatch is the paper (a colourful one is softened to a pale tint), the darkest is the ink, the darkest that stands out from the paper is the buildings, the most colourful is the accent, and the swatches nearest blue and green are water and green. Returns the id, each role with the swatch it came from and why, and warnings where text or buildings fall below the WCAG contrast ratios. save=false only checks."
+    )]
+    async fn import_palette(&self, Parameters(input): Parameters<ImportPalette>) -> CallToolResult {
+        reply(
+            self.with_library(move |library| palettes::import(library, input))
+                .await,
+        )
+    }
+
+    #[tool(
+        description = "List the palettes the user made or imported, with their swatches. Built-in themes are in list_themes."
+    )]
+    async fn list_user_palettes(&self) -> CallToolResult {
+        reply(
+            self.with_library(|library| Ok(palettes::list_user(library)))
+                .await,
+        )
     }
 
     #[tool(

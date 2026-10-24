@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::palette::PaletteSource;
 use crate::scene::Layer;
 
 /// Bump when a saved theme can no longer be read as-is, and migrate old ones on load.
@@ -33,6 +34,10 @@ pub struct Theme {
     pub typography: Typography,
     /// Styles for each layer. A layer missing here is not drawn.
     pub layers: BTreeMap<Layer, LayerStyle>,
+    /// The swatches a palette made in the app was built from, so the palette
+    /// editor can open it again. Built-in and hand-written themes have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<PaletteSource>,
 }
 
 /// Named colour roles, all "#RRGGBB".

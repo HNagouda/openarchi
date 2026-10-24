@@ -20,6 +20,7 @@ mod environment;
 mod nature;
 mod parcels;
 mod places;
+mod sources;
 
 use std::collections::BTreeMap;
 
@@ -110,6 +111,8 @@ pub struct Group {
     pub rows: Vec<Row>,
     /// One plain sentence the rows cannot say, such as how floors were estimated.
     pub note: Option<String>,
+    /// Where the numbers come from, shown right under the title: "Buildings from BAG, the ground from BGT."
+    pub source: String,
 }
 
 /// What a group's values measure.
@@ -156,6 +159,9 @@ pub fn compute(scene: &Scene, theme: &Theme) -> Result<Ratios> {
     groups.extend(places::groups(scene, theme)?);
     groups.extend(environment::groups(scene, &buildings, theme)?);
     groups.retain(|group| group.total > 0.0);
+    for group in &mut groups {
+        group.source = sources::line(&group.id, scene);
+    }
 
     let footprint_m2 = areas.get(&Layer::Building).copied().unwrap_or(0.0);
     let bag_floor_area_m2 = buildings
@@ -197,6 +203,7 @@ fn finish(id: &str, title: &str, unit: Unit, rows: Vec<Row>, note: Option<String
         total,
         rows,
         note,
+        source: String::new(),
     }
 }
 
@@ -269,7 +276,7 @@ fn land_use(areas: &BTreeMap<Layer, f64>, site_area_m2: f64, theme: &Theme) -> R
         ));
     }
 
-    let note = "Buildings come from BAG and the ground from BGT, so the shares are of their sum, which can differ slightly from the site area.";
+    let note = "The two registers are surveyed apart, so the shares are of their sum, which can differ slightly from the site area.";
     Ok(finish(
         "land_use",
         "Land use",

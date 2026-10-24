@@ -36,16 +36,21 @@ export function App() {
   const appearance = useAppearance();
   const screenHandler = useRef<CommandHandler | null>(null);
 
-  const loadCatalog = useCallback(() => {
-    getCatalog()
-      .then((loaded) => {
-        setCatalog(loaded);
-        setCatalogError(null);
-      })
-      .catch((error) => setCatalogError(errorText(error)));
-  }, []);
+  // Returns the read, so a palette saved in the editor is in the catalog before the sheet picks it.
+  const loadCatalog = useCallback(
+    () =>
+      getCatalog()
+        .then((loaded) => {
+          setCatalog(loaded);
+          setCatalogError(null);
+        })
+        .catch((error) => setCatalogError(errorText(error))),
+    [],
+  );
 
-  useEffect(loadCatalog, [loadCatalog]);
+  useEffect(() => {
+    loadCatalog();
+  }, [loadCatalog]);
 
   const navigate = useMemo<Navigate>(
     () => ({

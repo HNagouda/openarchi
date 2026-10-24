@@ -36,7 +36,7 @@ const WESTERKERK_ENVIRONMENT: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 24] = [
+const TOOLS: [&str; 26] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -53,6 +53,8 @@ const TOOLS: [&str; 24] = [
     "get_environment",
     "export",
     "create_theme",
+    "import_palette",
+    "list_user_palettes",
     "delete_project",
     "restore_project",
     "list_sheets",
@@ -491,6 +493,10 @@ fn get_ratios_returns_groups_that_add_up_in_the_requested_theme() {
         .map(|row| row["share"].as_f64().unwrap())
         .sum();
     assert!((shares - 1.0).abs() < 1e-9, "{shares}");
+    assert_eq!(
+        land_use["source"],
+        json!("Buildings from BAG, the ground from BGT.")
+    );
     let message = server.call_err("get_ratios", json!({ "id": id, "theme_id": "nope" }));
     assert!(message.contains("list_themes"), "{message}");
 }
@@ -582,6 +588,10 @@ fn get_analysis_returns_location_climate_and_notes_from_the_cache() {
         sections.contains(&"wind") && sections.contains(&"sun"),
         "{sections:?}"
     );
+    for entry in report["notes"].as_array().unwrap() {
+        let source = entry["source"].as_str().unwrap();
+        assert!(!source.is_empty(), "{} has no source", entry["section"]);
+    }
 }
 
 /// Copies the answers the core recorded for the Westermarkt into a library's
@@ -923,4 +933,50 @@ fn a_pin_outside_the_site_or_before_a_fetch_is_refused() {
         json!({ "id": id, "location": { "lon": 4.95, "lat": 52.37 } }),
     );
     assert!(message.contains("outside the fetched site"), "{message}");
+}
+
+#[test]
+fn import_palette_saves_a_theme_set_look_can_use_and_lists_it() {
+    let mut server = Server::start();
+    let imported = server.call_ok(
+        "import_palette",
+        json!({
+            "text": "https://palettes.example/f79f79-f7d08a-e3f09b-87b6a7-5b5941",
+            "name": "Sea glass"
+        }),
+    );
+    assert_eq!(imported["id"], json!("sea-glass"));
+    assert_eq!(imported["palette"]["ink"], json!("#5B5941"));
+    assert_eq!(imported["roles"].as_array().unwrap().len(), 6);
+    assert!(server.library.path().join("themes/sea-glass.json").exists());
+
+    let id = server.create_westermarkt();
+    server.call_ok("set_look", json!({ "id": id, "theme_id": "sea-glass" }));
+
+    let listed = server.call_ok("list_user_palettes", json!({}));
+    let palettes = listed["palettes"].as_array().unwrap();
+    assert_eq!(palettes.len(), 1);
+    assert_eq!(palettes[0]["swatches"].as_array().unwrap().len(), 5);
+}
+
+#[test]
+fn import_palette_without_saving_only_checks_and_junk_names_the_problem() {
+    let mut server = Server::start();
+    let checked = server.call_ok(
+        "import_palette",
+        json!({ "text": "f7d08a, f79f79", "save": false }),
+    );
+    assert_eq!(checked["id"], json!(null));
+    assert!(checked["warnings"][0].as_str().unwrap().contains("4.5:1"));
+    assert!(!server
+        .library
+        .path()
+        .join("themes/imported-palette.json")
+        .exists());
+
+    let message = server.call_err("import_palette", json!({ "text": "hello there" }));
+    assert!(
+        message.contains("\"hello\" is not a hex colour"),
+        "{message}"
+    );
 }
