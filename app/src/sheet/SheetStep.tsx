@@ -233,7 +233,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
 
   return (
     <div className="sheet-step">
-      <header className="topbar" data-tauri-drag-region>
+      {/* Under the report editor the sheet is out of reach of Tab and the screen reader. */}
+      <header className="topbar" data-tauri-drag-region inert={isReportsOpen}>
         <Button icon="back" tip="All projects" shortcut="mod+shift+h" onClick={leave} />
         <Button icon="sidebarLeft" tip="Diagrams" shortcut="d" isActive={isDiagramsOpen} onClick={toggleDiagrams} />
         <div className="topbar-title" data-tauri-drag-region>
@@ -246,7 +247,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
         <span className="topbar-divider" />
         <Button icon="text" tip="Add text" shortcut="t" disabled={!isReady} onClick={textTool.addText} />
-        <Button icon="text" tip="Lay out a report of this site" disabled={!catalog} onClick={() => setReportsOpen(true)}>
+        <Button icon="report" tip="Lay out a report of this site" disabled={!catalog} onClick={() => setReportsOpen(true)}>
           Reports
         </Button>
         <Button icon="map" tip="Draw the site again" onClick={() => navigate.editSite(project)}>
@@ -259,7 +260,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       </header>
 
       <PaletteSwatches.Provider value={swatches}>
-      <div className="sheet-body">
+      <div className="sheet-body" inert={isReportsOpen}>
         <div className={isDiagramsOpen ? "diagram-slot is-open" : "diagram-slot"}>
           <DiagramColumn
             diagrams={diagrams}

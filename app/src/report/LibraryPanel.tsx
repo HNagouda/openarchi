@@ -5,6 +5,7 @@
 import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Icon } from "../ui/Icon";
 import type { LibraryGroup, LibraryItem } from "./library";
+import "./library.css";
 
 // Every group, in the order the panel lists them.
 const GROUPS: LibraryGroup[] = ["Ratios", "Analysis", "Sheets", "Text"];

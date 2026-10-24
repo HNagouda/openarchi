@@ -56,7 +56,7 @@ export function ratiosItems(ratios: Ratios): LibraryItem[] {
     key: `ratios-${group.id}`,
     group: "Ratios",
     label: group.title,
-    detail: `${group.rows.length} rows`,
+    detail: group.rows.length === 1 ? "1 row" : `${group.rows.length} rows`,
     content: { kind: "ratios", group: group.id, style: "bars" },
     size: { width: CHART_WIDTH_MM, height: ratiosHeight(group, "bars") },
   }));

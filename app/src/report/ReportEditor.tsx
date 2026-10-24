@@ -24,8 +24,12 @@ const MM_TO_PX = 96 / 25.4;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.25;
-// Room left and right of the widest page when fitting.
-const FIT_PADDING_PX = 64;
+// Room left and right of the widest page when fitting: the stack's 32 px
+// padding on each side and a scrollbar, so fitting never scrolls sideways.
+const FIT_PADDING_PX = 80;
+// Room above and below a fitted page: the stack's top padding, the page's
+// header and the zoom control under it, so one whole page shows on a tall desk.
+const FIT_VERTICAL_PX = 140;
 // Arrow keys move a block this far, with Shift ten times as far.
 const NUDGE_MM = 1;
 const NUDGE_SHIFT_MM = 10;
@@ -77,8 +81,14 @@ export function ReportEditor({ project, catalog, report, onChange, onSeal, contr
 
   const fit = useCallback(() => {
     const width = main.current?.clientWidth ?? 0;
+    const height = main.current?.clientHeight ?? 0;
     const widest = Math.max(...report.pages.map((page) => pageSize(page).width));
-    if (width > 0) setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, (width - FIT_PADDING_PX) / (widest * MM_TO_PX))));
+    const tallest = Math.max(...report.pages.map((page) => pageSize(page).height));
+    const across = (width - FIT_PADDING_PX) / (widest * MM_TO_PX);
+    const down = (height - FIT_VERTICAL_PX) / (tallest * MM_TO_PX);
+    // Rounded down to a whole percent, so the fitted page never spills by a pixel.
+    const fitted = Math.floor(Math.min(across, down) * 100) / 100;
+    if (width > 0) setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, fitted)));
   }, [report.pages]);
   const zoomBy = (factor: number) => setZoom((current) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current * factor)));
   useImperativeHandle(controls, () => ({ zoomIn: () => zoomBy(ZOOM_STEP), zoomOut: () => zoomBy(1 / ZOOM_STEP), fit }), [fit]);

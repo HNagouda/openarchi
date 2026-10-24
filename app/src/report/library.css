@@ -1,0 +1,160 @@
+/* The block library on the left of the report editor, and the ghost a drag carries. */
+
+.report-library {
+  flex: none;
+  width: var(--diagram-column-width);
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.report-panel-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 49px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.report-panel-title {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.report-library-loading {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  border-top-color: var(--text-2);
+  animation: spin 0.8s linear infinite;
+}
+
+.report-library-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 12px 2px;
+  padding: 0 8px;
+  height: 28px;
+  border-radius: var(--radius);
+  background: var(--sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text-3);
+}
+
+.report-library-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.report-library-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 8px 16px;
+}
+
+.library-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 8px 4px 4px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  text-align: left;
+  cursor: grab;
+  touch-action: none;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+
+.library-item:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.library-item.is-dragged {
+  opacity: 0.5;
+}
+
+.library-thumb {
+  flex: none;
+  width: 56px;
+  height: 40px;
+  border-radius: var(--radius-s);
+  background: var(--canvas);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.library-thumb svg,
+.library-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.library-glyph {
+  color: var(--text-3);
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.library-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.library-name,
+.library-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-name {
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.library-detail {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.library-problem {
+  margin: 10px 4px 0;
+}
+
+.library-ghost {
+  position: fixed;
+  z-index: 40;
+  transform: translate(12px, 12px);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  color: var(--text);
+  font-size: 12.5px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+

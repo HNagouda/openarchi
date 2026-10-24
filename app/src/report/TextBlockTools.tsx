@@ -4,7 +4,7 @@
 // The bar shows the style as the core resolved it, read off the block's own
 // SVG, so "palette" values read as what is actually printed.
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReportBlock, TextStyle } from "../lib/types";
 import { readTexts, type SheetText } from "../sheet/text/sheetTexts";
 import { TextToolbar } from "../sheet/text/TextToolbar";
@@ -86,6 +86,21 @@ function BlockEditor({ block, text, pxPerMm, onCommit, onDone }: EditorProps) {
   useLayoutEffect(() => {
     field.current?.focus();
     field.current?.select();
+  }, []);
+
+  // A click elsewhere on the page ends editing by removing the field, often
+  // before its blur arrives, so the words are kept on the way out as well.
+  const latest = useRef({ draft, onCommit });
+  latest.current = { draft, onCommit };
+  useEffect(() => {
+    const original = block.content.text;
+    return () => {
+      if (isDone.current || latest.current.draft === original) return;
+      isDone.current = true;
+      latest.current.onCommit(latest.current.draft);
+    };
+    // Only on the way out: the original words are the ones editing began with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const finish = (value: string | null) => {

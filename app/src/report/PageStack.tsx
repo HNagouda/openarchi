@@ -8,6 +8,7 @@ import { Button } from "../ui/Button";
 import { addPage, deletePage, movePage } from "./edits";
 import type { Handle } from "./geometry";
 import { PageView, type Live } from "./PageView";
+import "./pages.css";
 
 // A press that moves less than this is not a drag.
 const DRAG_START_PX = 3;
@@ -64,6 +65,16 @@ export function PageStack(props: Props) {
     setDrag(null);
   };
 
+  // The new page becomes the current one, so the library adds to it, and scrolls into view.
+  const addAfter = (index: number) => {
+    onChange(addPage(report, index));
+    onPage(index + 1);
+    window.requestAnimationFrame(() => {
+      const slots = stack.current?.querySelectorAll(".report-page-slot");
+      slots?.[index + 1]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+  };
+
   const shift = (from: number, to: number) => {
     onChange(movePage(report, from, to));
     onPage(to);
@@ -93,7 +104,7 @@ export function PageStack(props: Props) {
               <span className="report-page-actions">
                 <Button icon="chevronUp" tip="Move page up" disabled={index === 0} onClick={() => shift(index, index - 1)} />
                 <Button icon="chevronDown" tip="Move page down" disabled={index === report.pages.length - 1} onClick={() => shift(index, index + 1)} />
-                <Button icon="plus" tip="Add a page after this one" onClick={() => onChange(addPage(report, index))} />
+                <Button icon="plus" tip="Add a page after this one" onClick={() => addAfter(index)} />
                 <Button icon="trash" tip="Delete page" disabled={report.pages.length <= 1} onClick={() => onChange(deletePage(report, index))} />
               </span>
             </header>
@@ -117,7 +128,7 @@ export function PageStack(props: Props) {
           </section>
         );
       })}
-      <Button icon="plus" variant="secondary" className="report-add-page" onClick={() => onChange(addPage(report, report.pages.length - 1))}>
+      <Button icon="plus" variant="secondary" className="report-add-page" onClick={() => addAfter(report.pages.length - 1)}>
         Add page
       </Button>
     </div>

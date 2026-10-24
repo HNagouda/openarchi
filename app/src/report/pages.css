@@ -1,0 +1,224 @@
+/* The report's pages on the desk: page headers, blocks, selection handles and snap guides. */
+
+.report-main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: var(--canvas);
+}
+
+.report-stack {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  /* "safe" keeps a page wider than the desk reachable from its left edge when zoomed in. */
+  align-items: safe center;
+  gap: 28px;
+  padding: 24px 32px 72px;
+}
+
+.report-page-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-page-slot.is-drop-above::before,
+.report-page-slot.is-drop-below::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.report-page-slot.is-drop-above::before {
+  top: -15px;
+}
+
+.report-page-slot.is-drop-below::after {
+  bottom: -15px;
+}
+
+.report-page-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  color: var(--text-3);
+  font-size: 11.5px;
+}
+
+.report-page-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  box-shadow: var(--card-shadow);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  cursor: grab;
+  touch-action: none;
+}
+
+.report-page-slot.is-current .report-page-grip {
+  box-shadow: 0 0 0 1.5px var(--accent);
+  color: var(--accent);
+}
+
+.report-page-paper {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.report-page-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--fast) var(--ease);
+}
+
+.report-page-slot:hover .report-page-actions,
+.report-page-slot.is-current .report-page-actions,
+.report-page-actions:focus-within {
+  opacity: 1;
+}
+
+.report-page-wrap {
+  position: relative;
+}
+
+.report-page {
+  position: relative;
+  background: var(--paper-blank);
+  box-shadow: var(--paper-shadow);
+}
+
+.report-page-content {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.report-backdrop,
+.report-backdrop > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.report-block {
+  position: absolute;
+  cursor: move;
+  touch-action: none;
+}
+
+.report-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow var(--fast) var(--ease);
+  pointer-events: none;
+}
+
+.report-block:hover::after {
+  box-shadow: inset 0 0 0 1px var(--accent-soft), 0 0 0 1px var(--focus);
+}
+
+.report-block.is-loading {
+  background: linear-gradient(100deg, transparent 30%, var(--hover) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.report-block-picture,
+.report-block-picture > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.report-block.is-editing .report-block-picture {
+  visibility: hidden;
+}
+
+.report-block-error {
+  position: absolute;
+  inset: 0;
+  padding: 6px;
+  color: var(--danger);
+  font-size: 11px;
+}
+
+.report-selection {
+  position: absolute;
+  box-shadow: 0 0 0 1px var(--accent);
+  pointer-events: none;
+}
+
+.report-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 2px;
+  background: var(--paper-blank);
+  box-shadow: 0 0 0 1px var(--accent);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.report-handle.is-nw { left: 0; top: 0; cursor: nwse-resize; }
+.report-handle.is-n { left: 50%; top: 0; cursor: ns-resize; }
+.report-handle.is-ne { left: 100%; top: 0; cursor: nesw-resize; }
+.report-handle.is-e { left: 100%; top: 50%; cursor: ew-resize; }
+.report-handle.is-se { left: 100%; top: 100%; cursor: nwse-resize; }
+.report-handle.is-s { left: 50%; top: 100%; cursor: ns-resize; }
+.report-handle.is-sw { left: 0; top: 100%; cursor: nesw-resize; }
+.report-handle.is-w { left: 0; top: 50%; cursor: ew-resize; }
+
+/* The red pencil: a snap line, the one warm mark in the chrome. */
+.report-guide {
+  position: absolute;
+  background: var(--brand);
+  pointer-events: none;
+}
+
+.report-guide.is-x {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+
+.report-guide.is-y {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+
+.report-text-editor {
+  white-space: pre-wrap;
+  overflow: visible;
+  background: color-mix(in srgb, var(--paper-blank) 70%, transparent);
+  box-shadow: 0 0 0 1px var(--accent);
+  z-index: 2;
+}
+
+.report-add-page {
+  flex: none;
+}
+
