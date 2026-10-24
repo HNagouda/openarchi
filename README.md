@@ -35,7 +35,7 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 - **Palettes that keep a series together.** Eight built-in palettes (Paper, Ink, Mono, Polder, Blueprint, Terracotta, Midnight, Pastel) restyle every diagram at once, so a set of sheets reads as one family. Make your own from a few colours on a hue wheel or from a palette generator's export; openarchi gives each colour its job and checks the contrast. Tweak any layer's fill, line or opacity on top.
 - **Real data, cleanly drawn.** Buildings with year built, use and height, road surfaces at their true width, water, green, trees, parcels and terrain contours, from the Dutch government's open registers.
 - **Reports you lay out yourself.** Drag ratios, analysis charts, design notes, whole sheets and your own text onto A4 to A1 pages, drawn live in the palette you choose, and export the report as one PDF or an SVG or PNG per page.
-- **Several sheets per site, with your own landmarks.** Each tab is its own sheet, and can zoom in on part of the site, with ratios for just that part. Drag pins, stars, flags or numbered markers onto the sheet and label them; they show on every sheet.
+- **Several sheets per site, with your own landmarks.** Each tab is its own sheet, and can zoom in on part of the site, with ratios for just that part. Drag pins, stars, flags or dots onto the sheet and label them; they show on every sheet.
 - **Sheets ready to print.** A3 to A0 or a square for social posts, at a real scale like 1:2500, with a legend, north arrow, scale bar and the data credits.
 - **Exports that open properly.** SVG and PDF with named layers for Illustrator, Affinity and InDesign, PNG at any resolution, and DXF in real Dutch coordinates (RD New) for AutoCAD and Rhino.
 - **Hard to lose work.** Projects save as you go, every save keeps a backup, ⌘Z undoes every change, and deleted projects wait in Recently Deleted.
@@ -78,7 +78,7 @@ You only need to do this once. Each release also lists `SHA256SUMS.txt`, to chec
 
 1. **Draw a site.** Press ⌘N, search for an address, and draw a circle, rectangle or polygon around it (C, R or P). Sites can be up to 4 km².
 2. **Fetch it.** openarchi downloads the buildings, surfaces, parcels and terrain for that area. A 300 m circle takes a few seconds.
-3. **Pick a diagram and a palette.** Pick a diagram in the column on the left, or press 1 to 9 or ↑ and ↓. [ and ] step through palettes. The sheet updates as you go.
+3. **Pick a diagram and a palette.** Pick a diagram in the column on the left, or step through them with ↑ and ↓. [ and ] step through palettes. The sheet updates as you go.
 4. **Export.** Press ⌘E for this diagram or the whole series, as SVG, PDF, PNG or DXF.
 
 The first time you open openarchi, a short tour walks through this. Help > Show Tour opens it again.
@@ -90,7 +90,7 @@ On Windows, Ctrl takes the place of ⌘.
 - **⌘N** starts a new project, **⌘O** or **Return** opens the selected one, and **Delete** moves it to Recently Deleted.
 - **C**, **R** and **P** draw a circle, rectangle or polygon. **Return** finishes a polygon and **Esc** stops drawing.
 - Click a drawn site to select it, then drag it to move it or drag a handle to resize it. **Delete** removes it.
-- **1 to 9** jump to the first nine diagrams, **↑** and **↓** step through all of them, **←** and **→** switch a diagram's measure (NO₂, PM10 or PM2.5 for air quality), and **[** and **]** step through palettes.
+- **↑** and **↓** step through the diagrams, **←** and **→** switch a diagram's measure (NO₂, PM10 or PM2.5 for air quality), and **[** and **]** step through palettes.
 - **T** adds a text box. With a text selected, **Return** edits it, the arrow keys nudge it (with **⇧** by 10 mm) and **Delete** removes a text box.
 - In a report, the arrow keys nudge the selected block (with **⇧** by 10 mm), **⌘D** duplicates it, **⌘]** and **⌘[** bring it forward or send it back, and **Delete** removes it.
 - **Ctrl+Tab** and **Ctrl+⇧+Tab** step through the sheet tabs, as do **⌘⌥→** and **⌘⌥←** on a Mac. With a pin selected, **Return** edits its label, the arrow keys nudge it and **Delete** removes it.

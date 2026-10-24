@@ -344,13 +344,6 @@
   font-size: 11px;
 }
 
-.diagram-key {
-  flex: none;
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-}
-
 .diagram-variants {
   padding: 2px 6px 6px;
   animation: fade-in var(--medium) var(--ease);

@@ -4,7 +4,7 @@ import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
 import { Toggle } from "../../ui/Toggle";
 import { plateOptions } from "../../lib/diagrams";
-import { withSun, withView } from "./lookEdits";
+import { withSheet, withSun, withView } from "./lookEdits";
 import { PlateList } from "./PlateList";
 
 const MODES: { value: ViewMode; label: string; tip: string }[] = [
@@ -27,7 +27,7 @@ type Props = {
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
-/** Plan, axonometric or explode, plus the sun's date and time where it shows. */
+/** Plan, axonometric or explode, whether the neighbourhood shows, and the sun's date and time where it shows. */
 export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const view = look.view;
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
@@ -39,6 +39,8 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
     <Section id="view" title="View">
       <div className="sheet-fields">
         <Segmented label="View" value={view.mode} options={MODES} onChange={(mode) => onLook(withView(look, { mode }))} />
+        {/* The neighbourhood around the site, and around a sheet's smaller area the rest of the site too. */}
+        <Toggle label="Neighbourhood" isOn={look.sheet.show_context} onChange={(show_context) => onLook(withSheet(look, { show_context }))} />
 
         {isTilted && (
           <div className="field-stack">

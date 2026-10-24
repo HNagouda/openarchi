@@ -53,10 +53,6 @@ export async function answerPalette(command: string, args: Args, catalog: Catalo
     deleted.delete(SAMPLE_ID);
     return sampleTheme(catalog);
   }
-  if (command === "rename_palette") {
-    names.set(String(args.id), String(args.name));
-    return null;
-  }
   if (command === "delete_palette") {
     deleted.add(String(args.id));
     return String(args.id);

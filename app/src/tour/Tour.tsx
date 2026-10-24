@@ -30,8 +30,8 @@ const STEPS: Step[] = [
     body: (
       <>
         Each diagram answers one question about the site, like what is built and what is open. The column on the
-        left lists the whole series by theme; <Keys shortcut="1" /> to <Keys shortcut="9" /> jump to the first nine
-        and the arrow keys step through them all. Some diagrams, like air quality, switch between measures.
+        left lists the whole series by theme, and <Keys shortcut="↑" /> and <Keys shortcut="↓" /> step through them.
+        Some diagrams, like air quality, switch between measures with <Keys shortcut="←" /> and <Keys shortcut="→" />.
       </>
     ),
   },

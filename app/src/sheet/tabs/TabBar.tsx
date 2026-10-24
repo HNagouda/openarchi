@@ -2,19 +2,15 @@
 // spreadsheet lists its sheets. Click to switch, double-click to rename, drag
 // to reorder, right-click (or the dots on the open tab) for the rest.
 //
-// The bar knows tabs only by kind, label and position, so another kind of
-// tab, such as a report, can sit in the same bar; the parent decides what
-// each kind opens.
+// Tabs are sheets and nothing else: reports and the analysis have their own
+// places, so every tab opens a sheet.
 
 import { useRef, useState, type ReactNode } from "react";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import "./tabs.css";
 
-// Every kind a tab can be, in one place. A report tab will be the second.
-export type TabKind = "sheet";
-
-export type Tab = { key: string; kind: TabKind; label: string };
+export type Tab = { key: string; label: string };
 
 // A press that moves less than this is a click, not a drag.
 const DRAG_THRESHOLD_PX = 4;

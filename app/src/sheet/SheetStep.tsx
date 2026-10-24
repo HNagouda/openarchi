@@ -23,8 +23,6 @@ import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
 import { TextOverlay } from "./text/TextOverlay";
 import { useTextTool } from "./text/useTextTool";
-import { PlateDropLine } from "./plates/PlateDropLine";
-import { usePlateDrag } from "./plates/usePlateDrag";
 import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
 import { PaletteSwatches } from "../ui/ColorPicker";
 import { paletteSwatches } from "./paletteSwatches";
@@ -55,7 +53,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
   const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
   const [isExportOpen, setExportOpen] = useState(false);
-  // The report editor opens over the sheet until reports become a sheet tab.
+  // The report editor opens over the sheet; the tabs below hold sheets only.
   const [isReportsOpen, setReportsOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
   const canvas = useRef<CanvasControls>(null);
@@ -77,7 +75,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const swatches = theme ? paletteSwatches(theme.palette) : [];
   const isEditable = !isExportOpen && !isAreaOpen && !isReportsOpen && isReady;
   const textTool = useTextTool(look, { change: history.changeLook, seal: history.seal }, canvas, preview.svg, isEditable);
-  const plateDrag = usePlateDrag(look, { change: history.changeLook }, preview.svg);
   const pinTool = usePinTool({
     pins: book.pins,
     onPins: history.changePins,
@@ -187,10 +184,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   });
 
   usePlainKeys((key, event) => {
-    if (/^[1-9]$/.test(key)) {
-      const target = diagrams[Number(key) - 1];
-      if (target) selectDiagram(target.id);
-    }
     if (key === "[") stepTheme(-1);
     if (key === "]") stepTheme(1);
     if (key.toLowerCase() === "i" && !event.repeat) toggleInspector();
@@ -263,13 +256,12 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
                   textTool.setSelectedId(null);
                   return true;
                 }
-                return textTool.onPaperPointerDown(event, view) || plateDrag.onPaperPointerDown(event, view);
+                return textTool.onPaperPointerDown(event, view);
               }}
               onPaperDoubleClick={(event, view) => pinTool.onPaperDoubleClick(event, view) || textTool.onPaperDoubleClick(event, view)}
               overlay={(view) =>
                 preview.svg && (
                   <>
-                    <PlateDropLine view={view} drag={plateDrag.drag} />
                     <PinOverlay
                       view={view}
                       svg={preview.svg}

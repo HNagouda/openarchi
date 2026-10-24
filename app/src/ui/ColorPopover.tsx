@@ -59,7 +59,7 @@ export function ColorPopover({ anchor, label, onClose, children }: Props) {
   }, [anchor]);
 
   return createPortal(
-    // data-modal-open keeps single-key shortcuts (1 to 9, [ and ]) from firing while the picker has focus.
+    // data-modal-open keeps single-key shortcuts ([ and ], D, I) from firing while the picker has focus.
     <div ref={panel} className="color-popover" role="dialog" aria-label={label} data-modal-open style={place}>
       {children}
     </div>,

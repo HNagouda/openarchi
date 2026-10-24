@@ -34,7 +34,6 @@ export const renderPalettePreview = (look: Look, draft: PaletteDraft) =>
 export const paletteDraft = (themeId: string, name: string) => invoke<PaletteDraft>("palette_draft", { themeId, name });
 /** Without an id, a new palette with an id made from its name. */
 export const savePalette = (draft: PaletteDraft, id: string | null) => invoke<Theme>("save_palette", { draft, id });
-export const renamePalette = (id: string, name: string) => invoke<void>("rename_palette", { id, name });
 /** Returns the name it is kept under in Recently Deleted. */
 export const deletePalette = (id: string) => invoke<string>("delete_palette", { id });
 export const restorePalette = (kept: string) => invoke<Theme>("restore_palette", { kept });

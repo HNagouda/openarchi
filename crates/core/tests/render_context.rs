@@ -1,13 +1,15 @@
 mod render_support;
 
+use openarchi_core::area::Area;
 use openarchi_core::catalog::builtin_themes;
+use openarchi_core::crs::rd_to_wgs84;
 use openarchi_core::export::{export, ExportFormat};
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::scene::Scene;
 use openarchi_core::sheet::Sheet;
 use openarchi_core::view::ViewMode;
-use render_support::{diagram, look, scene, scene_with_neighbourhood, theme};
+use render_support::{diagram, look, scene, scene_with_neighbourhood, theme, ORIGIN};
 
 const FURNITURE_GROUP: &str = r#"<g id="furniture""#;
 
@@ -71,6 +73,20 @@ fn a_hidden_neighbourhood_is_not_drawn() {
     look.sheet.show_context = false;
     let svg = svg_of(&scene_with_neighbourhood(), &look, "paper");
     assert!(!svg.contains("context-clip"));
+}
+
+#[test]
+fn the_rest_of_the_site_around_a_smaller_area_follows_the_neighbourhood_toggle() {
+    let mut look = look();
+    look.selection = Some(Area::Circle {
+        center: rd_to_wgs84(ORIGIN.0 - 80.0, ORIGIN.1 + 80.0),
+        radius_m: 60.0,
+    });
+    for is_shown in [true, false] {
+        look.sheet.show_context = is_shown;
+        let svg = svg_of(&scene_with_neighbourhood(), &look, "paper");
+        assert_eq!(svg.contains(r#"id="context-building""#), is_shown);
+    }
 }
 
 #[test]

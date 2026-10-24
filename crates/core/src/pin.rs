@@ -27,7 +27,9 @@ pub struct Pin {
     pub y: f64,
 }
 
-/// The markers a pin can be, in the order the app's palette offers them.
+/// The markers a pin can be, in the order the app's palette offers them. The
+/// app no longer offers `Number`, which read as an error badge, but projects
+/// and assistants that already use it still draw it.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PinIcon {

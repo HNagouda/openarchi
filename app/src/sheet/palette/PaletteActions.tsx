@@ -1,14 +1,14 @@
 // The buttons under the palette picker: make a new palette, duplicate the
-// current one, and edit, rename or delete one of the user's own. Choosing
+// current one, and edit or delete one of the user's own. A palette is renamed
+// in the editor, so its name shows only once in the inspector. Choosing
 // the saved palette goes through the look's undo history like any palette
 // change; a deleted palette sits in Recently Deleted and the toast brings it back.
 
 import { useState } from "react";
 import { errorText } from "../../lib/ipc";
-import { deletePalette, emptyDraft, paletteDraft, renamePalette, restorePalette, type PaletteDraft } from "../../lib/palette";
+import { deletePalette, emptyDraft, paletteDraft, restorePalette, type PaletteDraft } from "../../lib/palette";
 import type { Look, Theme } from "../../lib/types";
 import { Button } from "../../ui/Button";
-import { EditableText } from "../../ui/EditableText";
 import { useToast } from "../../ui/Toasts";
 import { PaletteEditor } from "./PaletteEditor";
 
@@ -23,7 +23,7 @@ type Props = {
   isOwn: boolean;
   look: Look;
   onSelect: (id: string) => void;
-  /** Reads the palettes again after one was saved, renamed or deleted. */
+  /** Reads the palettes again after one was saved or deleted. */
   onCatalogChanged: () => Promise<unknown> | void;
 };
 
@@ -47,11 +47,6 @@ export function PaletteActions({ theme, isOwn, look, onSelect, onCatalogChanged 
     paletteDraft(theme.id, theme.name)
       .then((draft) => setEditing({ title: `Edit ${theme.name}`, draft, id: theme.id }))
       .catch(fail("open the palette"));
-  };
-
-  const rename = (name: string) => {
-    if (!theme) return;
-    renamePalette(theme.id, name).then(onCatalogChanged).catch(fail("rename the palette"));
   };
 
   const remove = async () => {
@@ -84,12 +79,6 @@ export function PaletteActions({ theme, isOwn, look, onSelect, onCatalogChanged 
 
   return (
     <>
-      {isOwn && theme && (
-        <div className="palette-own">
-          <span className="field-label">Your palette</span>
-          <EditableText className="palette-own-name" value={theme.name} onCommit={rename} />
-        </div>
-      )}
       <div className="palette-actions">
         <Button icon="plus" variant="ghost" tip="Make a palette, or import one from a palette generator" onClick={openNew}>
           New
@@ -99,7 +88,7 @@ export function PaletteActions({ theme, isOwn, look, onSelect, onCatalogChanged 
         </Button>
         {isOwn && (
           <>
-            <Button variant="ghost" tip="Change its swatches and roles" onClick={openEdit}>
+            <Button variant="ghost" tip="Change its name, swatches and roles" onClick={openEdit}>
               Edit
             </Button>
             <Button icon="trash" variant="ghost" tip="Move it to Recently Deleted" onClick={remove} />

@@ -21,14 +21,6 @@ export function PinGlyph({ icon, size = 16 }: { icon: PinIcon; size?: number }) 
         </>
       )}
       {icon === "dot" && <circle cx="8" cy="8" r="3.4" fill="currentColor" />}
-      {icon === "number" && (
-        <>
-          <circle cx="8" cy="8" r="6" fill="currentColor" />
-          <text x="8" y="11" textAnchor="middle" fontSize="8.5" fontWeight="600" fill="var(--surface-raised)">
-            1
-          </text>
-        </>
-      )}
     </svg>
   );
 }

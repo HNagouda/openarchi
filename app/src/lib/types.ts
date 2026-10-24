@@ -122,6 +122,7 @@ export type Look = {
 };
 
 // crates/core/src/pin.rs
+// "number" is no longer offered in the app, but older projects still hold numbered pins.
 export type PinIcon = "pin" | "star" | "flag" | "dot" | "number";
 /** A landmark in RD New metres, shown on every sheet that does not hide pins. */
 export type Pin = { id: string; icon: PinIcon; label: string; x: number; y: number };
