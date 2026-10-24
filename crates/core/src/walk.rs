@@ -281,6 +281,7 @@ mod tests {
                 paths: walk.paths,
                 places: walk.places,
             }),
+            editions: Default::default(),
         };
 
         let neighbourhood = neighbourhood(&scene).unwrap();

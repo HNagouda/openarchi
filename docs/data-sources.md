@@ -75,7 +75,7 @@ The EU noise maps from the Environmental Noise Directive only cover major roads 
 
 The RIVM capabilities give no licence, and neither do the Atlas Leefomgeving terms of use (`Gebruiksvoorwaarden Atlasleefomgeving.pdf`, 2019), which only say that each map's own owner is responsible for it. data.overheid.nl does say it: dataset `5589` (road traffic noise, Lden) lists `rivm_20250101_Geluid_lden_wegverkeer_2022` as "Publiek domein", the Public Domain Mark 1.0, with RIVM as owner, and the 2024 NO2 concentration maps are listed the same way. openarchi credits "RIVM Atlas Leefomgeving" with that licence.
 
-The "actueel" coverages give the dated coverage they point at as their first keyword in the capabilities. On 2026-10-24 road noise and all sources pointed at the 2022 maps (`alo__rivm_20250101_Geluid_lden_wegverkeer_2022`, `alo__rivm_20250801_Geluid_lden_allebronnen_2022`) and the air quality maps at 2024 (`alo__rivm_nsl_20260401_gm_NO22024` and the PM10 and PM2.5 versions). openarchi asks for the dated ids, because the legend has to name the year. The road noise tiles are 16-bit integers, not floats, and the air quality grid starts 11.6 m east and 2.9 m south of round numbers (a 250 m tile from x 120 500 comes back from x 120 511.6), so every tile is placed by the georeferencing in its own GeoTIFF.
+The "actueel" coverages give the dated coverage they point at as their first keyword in the capabilities. On 2026-10-24 road noise and all sources pointed at the 2022 maps (`alo__rivm_20250101_Geluid_lden_wegverkeer_2022`, `alo__rivm_20250801_Geluid_lden_allebronnen_2022`) and the air quality maps at 2024 (`alo__rivm_nsl_20260401_gm_NO22024` and the PM10 and PM2.5 versions). openarchi asks for the dated ids, because the legend has to name the year, and finds the newest one when a site is fetched (see "How does openarchi find the newest edition?" below). The road noise tiles are 16-bit integers, not floats, and the air quality grid starts 11.6 m east and 2.9 m south of round numbers (a 250 m tile from x 120 500 comes back from x 120 511.6), so every tile is placed by the georeferencing in its own GeoTIFF.
 
 ## Where does flood risk come from?
 
@@ -93,6 +93,22 @@ The WMS layers have an empty abstract, so the capabilities do not say which prob
 
 #! NOTE[flood, licence] : The LIWO capabilities say "Fees none, AccessConstraints none" but name no licence; ask liwo@rws.nl which one applies
 
+## How does openarchi find the newest edition?
+
+Every dated source publishes a new year on its own schedule, and the services of other countries will too, so no year is pinned in code. When a site is fetched, each source asks its own service which editions it has, and the sheet, the ratios, the Analysis tab and `get_environment` all quote the year that was used. The scene keeps those years in `editions`, so a saved project goes on naming 2022 after RIVM publishes 2023; fetching the site again picks up the new year.
+
+RIVM is asked through its WCS capabilities (`https://data.rivm.nl/geo/wcs?service=WCS&version=2.0.1&request=GetCapabilities&sections=Contents`). The document is 11.4 MB with about 15,000 coverages, 0.35 MB gzipped, and took about 1 s on 2026-10-24. Of the ids starting `alo__rivm_`, each map takes the newest year, and of that year the latest publication date, among ids shaped exactly like `alo__rivm_<yyyymmdd>_Geluid_lden_wegverkeer_<yyyy>` or `alo__rivm_nsl_<yyyymmdd>_gm_NO2<yyyy>`. The exact shape matters, because the list also has variants like `alo__rivm_nsl_20210101_gm_NO22019_Int_v2` and the undated "actueel" aliases. On 2026-10-24 this picked the same ids as before: road noise and all sources 2022, NO2, PM10 and PM2.5 2024. Rail noise already has 2023 and industry 2024, which openarchi does not draw yet.
+
+CBS is asked with one square per year, `.../vierkant100/items?f=json&limit=1&jaarcode=2025`, going back from last year until one answers with `"numberReturned":1`. Each question takes about 50 ms; on 2026-10-24 2025 answered `"numberReturned":0` and 2024 answered with a square.
+
+Both answers are kept in the tile cache for a day (`edition-rivm` and `edition-cbs`), so only the first fetch of a day asks, and both are asked at the same time, with a 5 s limit and no retries. When a service cannot be asked, the fetch uses the last answer it gave, or else the edition named in the source module, and adds a fetch warning that the year may not be the newest. Each edition's tiles are cached under their own id (`wcs-alo__rivm_nsl_20260401_gm_NO22024`, `cbs-vierkant100-2024`), so a new edition is downloaded fresh and never mixed with tiles of the old one.
+
+For the uncached 1.32 km² site at Eindhoven Centraal (`fetch_site -- 5.4797 51.4433 648`), the PDOK, RIVM and LIWO tiles finished at 8.6 s before this change and at 9.5 s after it, of which 1.2 s was asking for editions at the start. The whole fetch took 50.9 s before and 51.2 s after, because the Overpass query (about 48 s) runs alongside. With every tile and the editions cached it took 1.8 s both before and after.
+
+LIWO cannot be asked. Its WCS and WMS serve only the current release under undated names (`LIWO_Basis__MaximaleWaterdiepteNederland_Kaart5`), the DescribeCoverage has no metadata, and the WMS layers have no abstract or keywords, so openarchi still quotes the 2025 release that the method report describes. AHN is the same: PDOK's `dsm_05m` and `dtm_05m` carry no edition, and the slope legend names AHN4 by hand.
+
+#! NOTE[flood, edition] : LIWO names no release in its services; ask liwo@rws.nl whether there is an endpoint that says which release Kaart5 shows
+
 ## Is there population and household data per block?
 
 Yes, through PDOK in three resolutions, all CC BY 4.0 (credit "CBS").
@@ -103,7 +119,7 @@ The 100 m grid lives at `https://api.pdok.nl/cbs/vierkantstatistieken100m/ogc/v1
 https://api.pdok.nl/cbs/vierkantstatistieken100m/ogc/v1/collections/vierkant100/items?f=json&bbox=4.8835,52.3740,4.8845,52.3750&jaarcode=2023
 ```
 
-That took 0.96 s and returned three cells, for example `E1206N4875`: `aantal_inwoners` 140, `aantal_woningen` 85, `aantal_part_huishoudens` 85, `aantal_eenpersoonshuishoudens` 50, `gemiddelde_woz_waarde_woning` 813. `jaarcode=2024` is the newest (0.55 s, inwoners 135, WOZ `-99995` meaning not yet available) and `2025` returns nothing. The value `-99997` means suppressed for privacy, which happens in cells with few residents, so the diagram needs a "no data" class. Counts are rounded to 5. Fetching a whole 300 m site at once, some tile requests answered `500` even after one retry, and the same requests worked a minute later.
+That took 0.96 s and returned three cells, for example `E1206N4875`: `aantal_inwoners` 140, `aantal_woningen` 85, `aantal_part_huishoudens` 85, `aantal_eenpersoonshuishoudens` 50, `gemiddelde_woz_waarde_woning` 813. `jaarcode=2024` is the newest (0.55 s, inwoners 135, WOZ `-99995` meaning not yet available) and `2025` returns nothing, so openarchi fetches the newest year it finds and the year before it, and takes each figure from the newest year that has it. The value `-99997` means suppressed for privacy, which happens in cells with few residents, so the diagram needs a "no data" class. Counts are rounded to 5. Fetching a whole 300 m site at once, some tile requests answered `500` even after one retry, and the same requests worked a minute later.
 
 The 500 m grid (`.../vierkantstatistieken500m/ogc/v1/collections/vierkant500/items`) has the same fields and also 1971 (`aantal_inwoners_1971` 5550), but without a year filter it took 9.4 s.
 

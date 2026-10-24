@@ -9,6 +9,7 @@
 
 mod boundary;
 mod download;
+mod editions;
 mod environment;
 #[cfg(test)]
 mod tests;
@@ -20,6 +21,8 @@ use geo::{BoundingRect, Coord, Geometry, MapCoords, Polygon, Rect};
 
 use self::boundary::{boundary_in_rd, site_centre};
 use self::download::{Dataset, Download, Fetcher, Payload};
+pub(crate) use self::editions::years_before_editions_were_kept;
+use self::editions::Editions;
 use self::environment::{Raster, RIVM_RASTERS};
 use crate::area::Area;
 use crate::environment::Measured;
@@ -114,12 +117,23 @@ pub fn build_scene(
     cache: &TileCache,
     on_progress: &dyn Fn(Progress),
 ) -> Result<Scene> {
-    build_scene_with(area, cache, &download::fetch_from_pdok, on_progress)
+    let (editions, edition_warnings) = editions::find(cache);
+    let mut scene = build_scene_with(
+        area,
+        cache,
+        &editions,
+        &download::fetch_from_pdok,
+        on_progress,
+    )?;
+    scene.warnings.extend(edition_warnings);
+
+    Ok(scene)
 }
 
 fn build_scene_with(
     area: &Area,
     cache: &TileCache,
+    editions: &Editions,
     fetch: &Fetcher<'_>,
     on_progress: &dyn Fn(Progress),
 ) -> Result<Scene> {
@@ -132,7 +146,7 @@ fn build_scene_with(
     // The one Overpass query takes 30 s or more, so it goes first: queued
     // behind several hundred tiles it would start last and finish last.
     let mut jobs = vec![download::osm_job(origin, &boundary)];
-    jobs.extend(download::tiles_for(&boundary, bbox));
+    jobs.extend(download::tiles_for(&boundary, bbox, editions));
     // Every tile, then heights and contours, then walk times, then clipping.
     let total = jobs.len() + 3;
     let report = |step: &str, done: usize| {
@@ -153,7 +167,7 @@ fn build_scene_with(
         mut warnings,
         mut measured,
         has_base,
-    } = join(downloads, bbox, &boundary);
+    } = join(downloads, bbox, &boundary, editions);
     if !has_base {
         return Err(Error::Network {
             service: "PDOK".to_string(),
@@ -212,6 +226,7 @@ fn build_scene_with(
         warnings,
         measured,
         walk,
+        editions: editions.years(),
     })
 }
 
@@ -253,7 +268,12 @@ struct Joined {
 
 /// Joins the tiles of each source. A source missing even one tile is left out
 /// whole, because a layer with a hole in it would look like real emptiness.
-fn join(mut downloads: Vec<Download>, bbox: Rect<f64>, boundary: &Polygon<f64>) -> Joined {
+fn join(
+    mut downloads: Vec<Download>,
+    bbox: Rect<f64>,
+    boundary: &Polygon<f64>,
+    editions: &Editions,
+) -> Joined {
     // Tiles finish in any order; sorting keeps the scene the same every time.
     downloads.sort_by_key(|download| (download.tile.row, download.tile.column));
 
@@ -286,7 +306,8 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>, boundary: &Polygon<f64>) 
     let units = (!failed.contains_key(&Source::BagUnits))
         .then(|| bag_units::totals_per_building(&take(Dataset::BagUnits)));
     let mut bands_of = |raster: Raster, joined: &mut Joined| {
-        let tiles = rasters.remove(&Dataset::Raster(raster)).unwrap_or_default();
+        let dataset = Dataset::Raster(raster, editions.raster(raster).clone());
+        let tiles = rasters.remove(&dataset).unwrap_or_default();
         let (features, stats) = environment::raster_bands(raster, &tiles, boundary);
         joined.features.extend(features);
         environment::record(&mut joined.measured, raster, stats);
@@ -327,7 +348,7 @@ fn join(mut downloads: Vec<Download>, bbox: Rect<f64>, boundary: &Polygon<f64>) 
             }
             Source::Liwo => bands_of(Raster::Flood, &mut joined),
             Source::Cbs => {
-                let years = cbs::YEARS.map(|year| take(Dataset::Cbs(year)));
+                let years = cbs::years(editions.population).map(|year| take(Dataset::Cbs(year)));
                 joined.features.extend(cbs::to_features(years.into()));
             }
             Source::BagUnits => {}

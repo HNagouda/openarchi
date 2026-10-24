@@ -20,7 +20,12 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::scene::Layer;
+use crate::scene::{Layer, Scene};
+
+/// Stands in a legend note for the year of the data.
+const YEAR_PLACEHOLDER: &str = "{year}";
+/// What a note says when the scene does not know the year of its data.
+const UNKNOWN_YEAR: &str = "year unknown";
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Diagram {
@@ -137,6 +142,8 @@ pub struct Classify {
     /// Legend title, for example "Year built".
     pub title: String,
     /// A small line under the legend title: the unit, the source and its year.
+    /// Write the year as `{year}`; `note_for` fills in the year of the data
+    /// the scene holds, which depends on when the site was fetched.
     #[serde(default)]
     pub note: Option<String>,
     /// Which theme ramp a sequential scheme takes its colours from.
@@ -146,6 +153,20 @@ pub struct Classify {
     /// mislead: CBS keeps some cells secret on purpose.
     #[serde(default)]
     pub unknown_label: Option<String>,
+}
+
+impl Classify {
+    /// The note with `{year}` replaced by the year of the classified layer's
+    /// data in `scene`: "Lden in dB. RIVM, 2022."
+    pub fn note_for(&self, scene: &Scene) -> Option<String> {
+        let year = match scene.year_of(self.layer) {
+            Some(year) => year.to_string(),
+            None => UNKNOWN_YEAR.to_string(),
+        };
+        self.note
+            .as_ref()
+            .map(|note| note.replace(YEAR_PLACEHOLDER, &year))
+    }
 }
 
 /// A theme's colour ramps. A theme without the asked-for ramp uses its main one.

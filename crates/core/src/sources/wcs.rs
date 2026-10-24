@@ -9,6 +9,7 @@
 //! for: the RIVM air quality grid starts 11.6 m east of a round number.
 
 use std::io::Cursor;
+use std::time::Duration;
 
 use tiff::decoder::{Decoder, DecodingResult};
 use tiff::tags::Tag;
@@ -22,15 +23,52 @@ use geo::Rect;
 /// say so in the file. Nothing measured here comes near this.
 const NODATA_ABOVE: f32 = 1.0e30;
 
-/// One coverage on one WCS 2.0.1 service.
+const COVERAGE_ID_TAG: &str = "<wcs:CoverageId>";
+
+/// One coverage on one WCS 2.0.1 service. The id is borrowed, because a
+/// dated id is often found at fetch time rather than named in code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Coverage {
+pub struct Coverage<'a> {
     /// Names the service in error messages: "RIVM".
     pub service: &'static str,
     pub url: &'static str,
-    pub id: &'static str,
+    pub id: &'a str,
     /// The axis labels the service expects in `subset`: ("x", "y") or ("X", "Y").
     pub axes: (&'static str, &'static str),
+}
+
+/// Every coverage id the service at `url` lists, for finding the newest
+/// dated one. Asked once, within `timeout`.
+pub fn list_coverage_ids(service: &str, url: &str, timeout: Duration) -> Result<Vec<String>> {
+    let query = [
+        ("service", "WCS"),
+        ("version", "2.0.1"),
+        ("request", "GetCapabilities"),
+        // Leaves out the service description; the list is all we read.
+        ("sections", "Contents"),
+    ];
+    let body = http::get_once_within(service, url, &query, timeout)?;
+    let ids = coverage_ids(&String::from_utf8_lossy(&body));
+    if ids.is_empty() {
+        return Err(Error::Data {
+            service: service.to_string(),
+            detail: "the capabilities list no coverages".to_string(),
+        });
+    }
+
+    Ok(ids)
+}
+
+/// The text of every `<wcs:CoverageId>` in a capabilities document. A plain
+/// scan rather than an XML parser: the ids are plain names, and RIVM's
+/// document is 11 MB.
+pub fn coverage_ids(capabilities: &str) -> Vec<String> {
+    capabilities
+        .split(COVERAGE_ID_TAG)
+        .skip(1)
+        .filter_map(|rest| rest.split('<').next())
+        .map(|id| id.trim().to_string())
+        .collect()
 }
 
 /// The cells of `coverage` that the service returns for `rect` (RD New),

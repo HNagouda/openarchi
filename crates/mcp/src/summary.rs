@@ -176,6 +176,7 @@ mod tests {
             warnings: vec!["AHN did not answer".to_string()],
             measured: Default::default(),
             walk: None,
+            editions: Default::default(),
         }
     }
 

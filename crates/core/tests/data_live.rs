@@ -146,7 +146,7 @@ fn the_rivm_and_liwo_rasters_answer_on_their_own_grids() {
             y: 487_750.0,
         },
     );
-    let noise = wcs::fetch(&rivm::ROAD_NOISE, tile).unwrap();
+    let noise = wcs::fetch(&rivm::coverage(rivm::ROAD_NOISE.known), tile).unwrap();
     assert_eq!((noise.width, noise.height, noise.cell_m), (25, 25, 10.0));
     assert!(noise
         .values
@@ -154,7 +154,7 @@ fn the_rivm_and_liwo_rasters_answer_on_their_own_grids() {
         .all(|value| (30.0..90.0).contains(value)));
 
     // The air quality grid starts 11.6 m east of the tile.
-    let no2 = wcs::fetch(&rivm::NO2, tile).unwrap();
+    let no2 = wcs::fetch(&rivm::coverage(rivm::NO2.known), tile).unwrap();
     assert_eq!(no2.cell_m, 25.0);
     assert!((no2.west - 120_511.6).abs() < 0.01, "{}", no2.west);
 
@@ -164,4 +164,24 @@ fn the_rivm_and_liwo_rasters_answer_on_their_own_grids() {
         flood.values.iter().any(|value| value.is_nan()),
         "dry cells are no data"
     );
+}
+
+#[test]
+#[ignore = "needs the network"]
+fn rivm_lists_an_edition_of_every_map_at_least_as_new_as_the_known_one() {
+    use openarchi_core::sources::rivm;
+
+    let ids = rivm::list_ids().unwrap();
+    for map in rivm::MAPS {
+        let newest = rivm::newest(&map, &ids).unwrap();
+        assert!(newest.year >= rivm::known(&map).year, "{}", newest.id);
+    }
+}
+
+#[test]
+#[ignore = "needs the network"]
+fn cbs_has_squares_for_a_year_at_least_as_new_as_the_known_one() {
+    use openarchi_core::sources::cbs;
+
+    assert!(cbs::latest_year().unwrap() >= cbs::KNOWN_YEAR);
 }

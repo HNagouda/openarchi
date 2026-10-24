@@ -59,6 +59,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | Change | Where |
 | --- | --- |
 | A new data source or country | a module in `crates/core/src/sources/`, called from `site.rs` |
+| A source published in yearly editions | a function in its source module that asks the service for the newest one, called through `sources/edition.rs` from `site/editions.rs`, with the year in `Scene::editions` and `{year}` in the legend note |
 | A new layer | `Layer` in `scene.rs` (the one list), then a style in every theme |
 | A new raster from a WCS | a `Coverage` in its source module, fetched by `sources/wcs.rs`, turned into bands in `site/environment.rs` with the breaks of the diagram that draws it |
 | A new diagram | a JSON file in `crates/core/assets/diagrams/` with its `group`, listed in `catalog.rs` next to its group |
@@ -112,4 +113,4 @@ Projects are JSON files with a `format_version`. When the shape changes, bump `P
 
 The scene inside a project is stored as zstd-compressed JSON in base64 (`project/packed_scene.rs`), because it is nearly the whole file and its JSON shrinks about sixfold. The rest of the file stays readable JSON, so the project list never unpacks a scene.
 
-Downloaded data lives in `<library>/cache/`, shared by every project. Each source is fetched in tiles of a fixed 250 m grid over RD New, and each tile is kept for 30 days, so redrawing a site, or drawing the one next door, only downloads the tiles it has not seen. The cache deletes its oldest tiles past 1 GB. The `fetch_site` example uses `target/tile-cache` instead, so working on the data layer never touches your library.
+Downloaded data lives in `<library>/cache/`, shared by every project. Each source is fetched in tiles of a fixed 250 m grid over RD New, and each tile is kept for 30 days, so redrawing a site, or drawing the one next door, only downloads the tiles it has not seen. The cache deletes its oldest tiles past 1 GB. It also keeps which edition of RIVM and CBS data is newest, for a day, and each edition's tiles in a folder of their own, so a new year is downloaded fresh. The `fetch_site` example uses `target/tile-cache` instead, so working on the data layer never touches your library.

@@ -13,6 +13,7 @@ use crate::diagram::Scheme;
 use crate::environment::Measured;
 use crate::scene::{Feature, Layer};
 use crate::sources::bands::{self, Gaps, Lowest};
+use crate::sources::edition::Edition;
 use crate::sources::grid::{tiles_covering, Tile};
 use crate::sources::raster::{self, Grid, Stats};
 use crate::sources::slope::slope_percent;
@@ -45,14 +46,14 @@ pub const RIVM_RASTERS: [Raster; 5] = [
 ];
 
 impl Raster {
-    pub fn coverage(self) -> Coverage {
+    /// The coverage that holds `edition` of this raster.
+    pub fn coverage(self, edition: &Edition) -> Coverage<'_> {
         match self {
-            Raster::RoadNoise => rivm::ROAD_NOISE,
-            Raster::AllNoise => rivm::ALL_NOISE,
-            Raster::No2 => rivm::NO2,
-            Raster::Pm10 => rivm::PM10,
-            Raster::Pm25 => rivm::PM25,
-            Raster::Flood => liwo::FLOOD_DEPTH,
+            Raster::Flood => Coverage {
+                id: &edition.id,
+                ..liwo::FLOOD_DEPTH
+            },
+            _ => rivm::coverage(&edition.id),
         }
     }
 

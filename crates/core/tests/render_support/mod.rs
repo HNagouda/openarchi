@@ -150,6 +150,7 @@ pub fn scene() -> Scene {
         warnings: vec![],
         measured: Default::default(),
         walk: None,
+        editions: Default::default(),
     }
 }
 

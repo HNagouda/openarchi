@@ -51,6 +51,17 @@ impl TileCache {
 
     /// The tile's bytes, or `None` when it was never fetched or is older than `MAX_AGE`.
     pub fn read(&self, dataset: &str, tile: Tile) -> Result<Option<Vec<u8>>> {
+        self.read_within(dataset, tile, MAX_AGE)
+    }
+
+    /// The tile's bytes, or `None` when it was never fetched or is older than
+    /// `max_age`. For answers that go out of date sooner than map data does.
+    pub fn read_within(
+        &self,
+        dataset: &str,
+        tile: Tile,
+        max_age: Duration,
+    ) -> Result<Option<Vec<u8>>> {
         let path = self.tile_path(dataset, tile);
         let metadata = match fs::metadata(&path) {
             Ok(metadata) => metadata,
@@ -58,7 +69,7 @@ impl TileCache {
             Err(error) => return Err(Error::io(&path, error)),
         };
         let modified = metadata.modified().map_err(|e| Error::io(&path, e))?;
-        if is_stale(modified) {
+        if is_older_than(modified, max_age) {
             return Ok(None);
         }
 
@@ -101,7 +112,7 @@ impl TileCache {
 
         let mut kept = Vec::new();
         for (path, modified, size) in self.tile_files()? {
-            if is_stale(modified) {
+            if is_older_than(modified, MAX_AGE) {
                 fs::remove_file(&path).map_err(|e| Error::io(&path, e))?;
             } else {
                 kept.push((path, modified, size));
@@ -149,10 +160,10 @@ impl TileCache {
 }
 
 /// A clock set backwards makes a tile look new; that only delays a refetch.
-fn is_stale(modified: SystemTime) -> bool {
+fn is_older_than(modified: SystemTime, max_age: Duration) -> bool {
     SystemTime::now()
         .duration_since(modified)
-        .is_ok_and(|age| age > MAX_AGE)
+        .is_ok_and(|age| age > max_age)
 }
 
 fn remove(path: &Path) -> Result<()> {

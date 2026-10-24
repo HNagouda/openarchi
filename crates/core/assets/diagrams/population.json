@@ -18,7 +18,7 @@
     "layer": "population",
     "attribute": "value",
     "title": "Residents per 100 m square",
-    "note": "Counts rounded to 5; squares where nobody lives are left blank. CBS, 2024.",
+    "note": "Counts rounded to 5; squares where nobody lives are left blank. CBS, {year}.",
     "scheme": {
       "kind": "sequential",
       "breaks": [

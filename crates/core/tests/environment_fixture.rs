@@ -72,6 +72,27 @@ fn the_noise_legend_gives_unit_and_year_and_the_sheet_credits_rivm() {
 }
 
 #[test]
+fn legends_and_ratios_quote_the_year_of_the_edition_the_scene_was_fetched_in() {
+    let mut scene = westerkerk();
+    scene.editions.insert(Layer::RoadNoise, 2023);
+    scene.editions.insert(Layer::Population, 2025);
+
+    assert!(svg_of(&scene, "noise:road", "paper").contains("RIVM, 2023."));
+    assert!(svg_of(&scene, "population", "paper").contains("CBS, 2025."));
+    for diagram_id in ENVIRONMENT_DIAGRAMS {
+        assert!(!svg_of(&scene, diagram_id, "paper").contains("{year}"));
+    }
+    let theme = builtin_themes().into_iter().next().unwrap();
+    let ratios = ratios::compute(&scene, &theme).unwrap();
+    let noise = ratios
+        .groups
+        .iter()
+        .find(|group| group.id == "road_noise")
+        .unwrap();
+    assert!(noise.note.as_deref().unwrap().ends_with("RIVM, 2023."));
+}
+
+#[test]
 fn the_look_variant_picks_the_measure_air_quality_colours() {
     let diagram = builtin_diagrams()
         .into_iter()
@@ -137,7 +158,9 @@ fn the_summary_matches_what_the_services_said_at_the_westerkerk() {
     assert!(summary.no2_mean_ug_m3.unwrap() > 10.0);
     assert!(summary.residents.unwrap() > 100.0);
     assert!(summary.dwellings.unwrap() > 50);
-    assert_eq!(summary.noise_year, 2022);
+    // Fetched before scenes kept their editions, so it gets the years pinned then.
+    assert_eq!(summary.noise_year, Some(2022));
+    assert_eq!(summary.population_year, Some(2024));
 }
 
 #[test]

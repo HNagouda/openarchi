@@ -11,9 +11,11 @@ use std::vec;
 
 use geo::{Polygon, Rect};
 
+use super::editions::Editions;
 use super::environment::{self, Raster, RIVM_RASTERS};
 use super::Source;
 use crate::sources::cache::TileCache;
+use crate::sources::edition::Edition;
 use crate::sources::grid::{tiles_covering, tiles_touching, Tile, TILE_M};
 use crate::sources::pdok::Record;
 use crate::sources::raster::{self, Grid};
@@ -33,7 +35,7 @@ pub const CELLS_PER_TILE: usize = ((TILE_M / ahn::CELL_M) * (TILE_M / ahn::CELL_
 const CELL_BYTES: usize = std::mem::size_of::<f32>();
 
 /// One thing fetched per tile and cached on its own.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Dataset {
     /// One BGT collection, such as "wegdeel".
     Bgt(&'static str),
@@ -41,8 +43,8 @@ pub enum Dataset {
     Brk,
     AhnSurface,
     AhnTerrain,
-    /// One environmental raster, placed by its own GeoTIFF.
-    Raster(Raster),
+    /// One edition of an environmental raster, placed by its own GeoTIFF.
+    Raster(Raster, Edition),
     /// The CBS 100 m statistics of one year.
     Cbs(i32),
     /// BAG verblijfsobjecten, the units inside buildings.
@@ -64,7 +66,7 @@ pub enum Payload {
 
 /// How a tile is fetched when the cache does not have it: `fetch_from_pdok`,
 /// or a stand-in in tests.
-pub type Fetcher<'a> = dyn Fn(Dataset, Tile) -> Result<Payload> + Sync + 'a;
+pub type Fetcher<'a> = dyn Fn(&Dataset, Tile) -> Result<Payload> + Sync + 'a;
 
 /// One tile of one dataset, fetched or failed.
 pub struct Download {
@@ -74,29 +76,31 @@ pub struct Download {
 }
 
 impl Dataset {
-    pub fn source(self) -> Source {
+    pub fn source(&self) -> Source {
         match self {
             Dataset::Bgt(_) => Source::Bgt,
             Dataset::Bag => Source::Bag,
             Dataset::Brk => Source::Brk,
             Dataset::AhnSurface | Dataset::AhnTerrain => Source::Ahn,
-            Dataset::Raster(Raster::Flood) => Source::Liwo,
-            Dataset::Raster(_) => Source::Rivm,
+            Dataset::Raster(Raster::Flood, _) => Source::Liwo,
+            Dataset::Raster(..) => Source::Rivm,
             Dataset::Cbs(_) => Source::Cbs,
             Dataset::BagUnits => Source::BagUnits,
             Dataset::Osm(_) => Source::Osm,
         }
     }
 
-    /// The dataset's folder in the cache: "bgt-wegdeel", "ahn-dsm_05m".
-    fn cache_name(self) -> String {
+    /// The dataset's folder in the cache: "bgt-wegdeel", "ahn-dsm_05m". Every
+    /// edition has a folder of its own, so a new one is fetched fresh and never
+    /// mixed with tiles of the one before.
+    fn cache_name(&self) -> String {
         match self {
             Dataset::Bgt(collection) => format!("bgt-{collection}"),
             Dataset::Bag => "bag-pand".to_string(),
             Dataset::Brk => "brk-perceel".to_string(),
             Dataset::AhnSurface => format!("ahn-{}", ahn::SURFACE_COVERAGE),
             Dataset::AhnTerrain => format!("ahn-{}", ahn::TERRAIN_COVERAGE),
-            Dataset::Raster(raster) => format!("wcs-{}", raster.coverage().id),
+            Dataset::Raster(_, edition) => format!("wcs-{}", edition.id),
             Dataset::Cbs(year) => format!("cbs-vierkant100-{year}"),
             Dataset::BagUnits => "bag-verblijfsobject".to_string(),
             Dataset::Osm(radius_m) => format!("{}-r{radius_m}", osm::CACHE_NAME),
@@ -107,18 +111,27 @@ impl Dataset {
 /// Every dataset and tile a site needs. Map data only for tiles the boundary
 /// reaches; elevation for the whole box plus margin, because building heights
 /// and contours need ground beyond the boundary.
-pub fn tiles_for(boundary: &Polygon<f64>, bbox: Rect<f64>) -> Vec<(Dataset, Tile)> {
+pub fn tiles_for(
+    boundary: &Polygon<f64>,
+    bbox: Rect<f64>,
+    editions: &Editions,
+) -> Vec<(Dataset, Tile)> {
     let mut vector_datasets: Vec<Dataset> =
         bgt::COLLECTIONS.into_iter().map(Dataset::Bgt).collect();
     vector_datasets.push(Dataset::Bag);
     vector_datasets.push(Dataset::Brk);
     vector_datasets.push(Dataset::BagUnits);
-    vector_datasets.extend(cbs::YEARS.map(Dataset::Cbs));
+    vector_datasets.extend(cbs::years(editions.population).map(Dataset::Cbs));
+    let mut rasters: Vec<Dataset> = RIVM_RASTERS
+        .into_iter()
+        .map(|raster| Dataset::Raster(raster, editions.raster(raster).clone()))
+        .collect();
+    rasters.push(Dataset::Raster(Raster::Flood, editions.flood.clone()));
 
     let mut jobs = Vec::new();
     for tile in tiles_touching(boundary) {
-        for &dataset in &vector_datasets {
-            jobs.push((dataset, tile));
+        for dataset in &vector_datasets {
+            jobs.push((dataset.clone(), tile));
         }
     }
     for tile in tiles_covering(ahn::extent(bbox)) {
@@ -126,10 +139,9 @@ pub fn tiles_for(boundary: &Polygon<f64>, bbox: Rect<f64>) -> Vec<(Dataset, Tile
         jobs.push((Dataset::AhnTerrain, tile));
     }
     for tile in environment::tiles(bbox) {
-        for raster in RIVM_RASTERS {
-            jobs.push((Dataset::Raster(raster), tile));
+        for dataset in &rasters {
+            jobs.push((dataset.clone(), tile));
         }
-        jobs.push((Dataset::Raster(Raster::Flood), tile));
     }
 
     jobs
@@ -151,7 +163,7 @@ pub fn osm_job(origin: (f64, f64), boundary: &Polygon<f64>) -> (Dataset, Tile) {
     (Dataset::Osm(osm::radius_for(site_radius_m)), tile)
 }
 
-pub fn fetch_from_pdok(dataset: Dataset, tile: Tile) -> Result<Payload> {
+pub fn fetch_from_pdok(dataset: &Dataset, tile: Tile) -> Result<Payload> {
     let rect = tile.rect();
     match dataset {
         Dataset::Bgt(collection) => bgt::fetch_tile(collection, rect).map(Payload::Records),
@@ -159,11 +171,13 @@ pub fn fetch_from_pdok(dataset: Dataset, tile: Tile) -> Result<Payload> {
         Dataset::Brk => brk::fetch_tile(rect).map(Payload::Records),
         Dataset::AhnSurface => ahn::fetch_tile(ahn::SURFACE_COVERAGE, rect).map(Payload::Cells),
         Dataset::AhnTerrain => ahn::fetch_tile(ahn::TERRAIN_COVERAGE, rect).map(Payload::Cells),
-        Dataset::Raster(raster) => wcs::fetch(&raster.coverage(), rect).map(Payload::Raster),
-        Dataset::Cbs(year) => cbs::fetch_tile(year, rect).map(Payload::Records),
+        Dataset::Raster(raster, edition) => {
+            wcs::fetch(&raster.coverage(edition), rect).map(Payload::Raster)
+        }
+        Dataset::Cbs(year) => cbs::fetch_tile(*year, rect).map(Payload::Records),
         Dataset::BagUnits => bag_units::fetch_tile(rect).map(Payload::Records),
         // Not PDOK, but fetched and cached through the same pool and cache.
-        Dataset::Osm(radius_m) => osm::fetch(tile, radius_m).map(Payload::Osm),
+        Dataset::Osm(radius_m) => osm::fetch(tile, *radius_m).map(Payload::Osm),
     }
 }
 
@@ -180,7 +194,7 @@ pub fn download(
     let mut downloads = Vec::with_capacity(jobs.len());
     let mut misses = Vec::new();
     for (dataset, tile) in jobs {
-        match from_cache(cache, dataset, tile) {
+        match from_cache(cache, &dataset, tile) {
             Some(payload) => downloads.push(Download {
                 dataset,
                 tile,
@@ -202,9 +216,9 @@ pub fn download(
             let queue = &queue;
             scope.spawn(move || {
                 while let Some((dataset, tile)) = next_job(queue) {
-                    let payload = fetch(dataset, tile);
+                    let payload = fetch(&dataset, tile);
                     let stored = match &payload {
-                        Ok(payload) => store(cache, dataset, tile, payload),
+                        Ok(payload) => store(cache, &dataset, tile, payload),
                         Err(_) => Ok(()),
                     };
                     let download = Download {
@@ -240,12 +254,12 @@ fn next_job(queue: &Mutex<vec::IntoIter<(Dataset, Tile)>>) -> Option<(Dataset, T
 
 // A tile the cache cannot read or decode is fetched again, which also
 // replaces the broken copy. That is the whole repair, so the error goes no further.
-fn from_cache(cache: &TileCache, dataset: Dataset, tile: Tile) -> Option<Payload> {
+fn from_cache(cache: &TileCache, dataset: &Dataset, tile: Tile) -> Option<Payload> {
     let bytes = cache.read(&dataset.cache_name(), tile).ok()??;
     decode(dataset, &bytes).ok()
 }
 
-fn store(cache: &TileCache, dataset: Dataset, tile: Tile, payload: &Payload) -> Result<()> {
+fn store(cache: &TileCache, dataset: &Dataset, tile: Tile, payload: &Payload) -> Result<()> {
     let bytes = match payload {
         Payload::Records(records) => serde_json::to_vec(records).map_err(|error| {
             Error::Invalid(format!(
@@ -259,7 +273,7 @@ fn store(cache: &TileCache, dataset: Dataset, tile: Tile, payload: &Payload) -> 
     cache.write(&dataset.cache_name(), tile, &bytes)
 }
 
-fn decode(dataset: Dataset, bytes: &[u8]) -> Result<Payload> {
+fn decode(dataset: &Dataset, bytes: &[u8]) -> Result<Payload> {
     let corrupt = |detail: String| Error::Invalid(format!("cached {dataset:?} tile: {detail}"));
     match dataset {
         Dataset::AhnSurface | Dataset::AhnTerrain => {
@@ -273,7 +287,7 @@ fn decode(dataset: Dataset, bytes: &[u8]) -> Result<Payload> {
                 .collect();
             Ok(Payload::Cells(cells))
         }
-        Dataset::Raster(_) => raster::from_bytes(bytes).map(Payload::Raster),
+        Dataset::Raster(..) => raster::from_bytes(bytes).map(Payload::Raster),
         Dataset::Bgt(_) | Dataset::Bag | Dataset::Brk | Dataset::Cbs(_) | Dataset::BagUnits => {
             serde_json::from_slice(bytes)
                 .map(Payload::Records)

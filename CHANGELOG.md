@@ -78,6 +78,13 @@ What changed in each version of openarchi, newest first.
 - Assistants can read noise, air quality, flood depth, slope, residents and dwellings for a site with the new `get_environment` tool.
 - A source that does not answer is tried twice more, the second time after a longer pause, before the site arrives without it.
 
+### Newest editions
+
+- Noise, air quality and population come from the newest year RIVM and CBS publish, found when the site is fetched instead of fixed in openarchi. When RIVM publishes its 2023 noise map, the next fetch uses it and the legend says "RIVM, 2023."
+- A saved project keeps the years it was fetched with, so its legends, ratios, Analysis tab and `get_environment` go on naming the same years until you fetch the site again. Projects from before this change show the years they were fetched with too.
+- When RIVM or CBS cannot be asked which year is newest, the site arrives with the last year they named and a warning that it may not be the newest.
+- Asking takes about a second, once a day; every other fetch that day reuses the answer.
+
 ### Ratios
 
 - The inspector has a Ratios view next to Style: how the site divides up, as bars or pies. Land use and transport by area, building use, floors, height, year built and footprint by building, building coverage and floor area ratio by parcel, and green and water by type.

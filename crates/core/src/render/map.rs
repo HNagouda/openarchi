@@ -437,6 +437,13 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     }
 
     let mut legend = legend::build(&layers, &drawn, diagram, &palette.accent);
+    // The note names the year of the data, which only the scene knows.
+    if legend.note.is_some() {
+        legend.note = diagram
+            .classify
+            .as_ref()
+            .and_then(|classify| classify.note_for(scene));
+    }
     add_lines_to_mode_rows(&mut legend, &transit_lines);
     if has_merged_points {
         add_merged_row(&mut legend, &palette.ink);

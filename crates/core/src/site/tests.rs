@@ -12,6 +12,7 @@ use super::*;
 use crate::area::LonLat;
 use crate::crs::wgs84_to_rd;
 use crate::sources::cache::MAX_AGE;
+use crate::sources::edition::Edition;
 use crate::sources::grid::{Tile, TILE_M};
 use crate::sources::pdok::Record;
 use crate::sources::raster::Grid;
@@ -46,7 +47,7 @@ fn building_on_a_tile_edge() -> Geometry<f64> {
 /// PDOK as a test sees it: one building, wherever a tile overlaps it, flat
 /// ground at 1 m with roofs at 11 m, 50 everywhere on every environmental
 /// raster, and nothing else. Counts every request.
-fn fake_pdok(requests: &AtomicUsize, dataset: Dataset, tile: Tile) -> Result<Payload> {
+fn fake_pdok(requests: &AtomicUsize, dataset: &Dataset, tile: Tile) -> Result<Payload> {
     requests.fetch_add(1, Ordering::SeqCst);
     let building = building_on_a_tile_edge();
     match dataset {
@@ -60,7 +61,7 @@ fn fake_pdok(requests: &AtomicUsize, dataset: Dataset, tile: Tile) -> Result<Pay
         }])),
         Dataset::AhnSurface => Ok(Payload::Cells(vec![11.0; CELLS_PER_TILE])),
         Dataset::AhnTerrain => Ok(Payload::Cells(vec![1.0; CELLS_PER_TILE])),
-        Dataset::Raster(_) => Ok(Payload::Raster(Grid {
+        Dataset::Raster(..) => Ok(Payload::Raster(Grid {
             west: tile.rect().min().x,
             north: tile.rect().max().y,
             cell_m: 25.0,
@@ -73,12 +74,16 @@ fn fake_pdok(requests: &AtomicUsize, dataset: Dataset, tile: Tile) -> Result<Pay
     }
 }
 
-/// Builds the scene for `area` against the fake and returns it with the
-/// number of requests it made.
+/// Builds the scene for `area` against the fake, in the editions named in
+/// code, and returns it with the number of requests it made.
 fn fetch_counting(area: &Area, cache: &TileCache) -> (Scene, usize) {
+    fetch_counting_in(area, cache, &Editions::known())
+}
+
+fn fetch_counting_in(area: &Area, cache: &TileCache, editions: &Editions) -> (Scene, usize) {
     let requests = AtomicUsize::new(0);
-    let fetch = |dataset, tile| fake_pdok(&requests, dataset, tile);
-    let scene = build_scene_with(area, cache, &fetch, &|_| {}).unwrap();
+    let fetch = |dataset: &Dataset, tile| fake_pdok(&requests, dataset, tile);
+    let scene = build_scene_with(area, cache, editions, &fetch, &|_| {}).unwrap();
     (scene, requests.load(Ordering::SeqCst))
 }
 
@@ -110,6 +115,32 @@ fn fetching_the_same_site_again_makes_no_requests() {
         .count();
     assert_eq!(scene.credits.len(), credited);
     assert_eq!(scene.measured.no2_ug_m3.map(|stats| stats.mean), Some(50.0));
+}
+
+#[test]
+fn a_new_edition_is_fetched_fresh_and_the_scene_names_its_year() {
+    let folder = TempDir::new().unwrap();
+    let cache = TileCache::at(folder.path());
+    let area = site(WESTERMARKT);
+    let boundary = boundary::boundary_in_rd(&area).unwrap();
+    let bbox = boundary.bounding_rect().unwrap();
+    let mut newer = Editions::known();
+    newer.no2 = Edition {
+        year: 2025,
+        id: "alo__rivm_nsl_20270401_gm_NO22025".to_string(),
+    };
+    let new_tiles = download::tiles_for(&boundary, bbox, &newer)
+        .into_iter()
+        .filter(|(dataset, _)| matches!(dataset, Dataset::Raster(Raster::No2, _)))
+        .count();
+
+    let (old, _) = fetch_counting(&area, &cache);
+    let (new, refetched) = fetch_counting_in(&area, &cache, &newer);
+
+    assert_eq!(refetched, new_tiles);
+    assert_eq!(old.year_of(Layer::No2), Some(2024));
+    assert_eq!(new.year_of(Layer::No2), Some(2025));
+    assert_eq!(new.year_of(Layer::RoadNoise), Some(2022));
 }
 
 #[test]
@@ -165,13 +196,15 @@ fn a_failed_tile_leaves_its_source_out_and_a_retry_fetches_only_that_tile() {
     let cache = TileCache::at(folder.path());
     let area = site(WESTERMARKT);
     let boundary = boundary::boundary_in_rd(&area).unwrap();
-    let (_, failing_tile) = download::tiles_for(&boundary, boundary.bounding_rect().unwrap())
-        .into_iter()
-        .find(|(dataset, _)| *dataset == Dataset::Brk)
-        .unwrap();
+    let editions = Editions::known();
+    let (_, failing_tile) =
+        download::tiles_for(&boundary, boundary.bounding_rect().unwrap(), &editions)
+            .into_iter()
+            .find(|(dataset, _)| *dataset == Dataset::Brk)
+            .unwrap();
     let requests = AtomicUsize::new(0);
-    let one_parcel_tile_fails = |dataset, tile| {
-        if dataset == Dataset::Brk && tile == failing_tile {
+    let one_parcel_tile_fails = |dataset: &Dataset, tile| {
+        if *dataset == Dataset::Brk && tile == failing_tile {
             return Err(Error::Network {
                 service: "PDOK BRK".to_string(),
                 detail: "timed out".to_string(),
@@ -180,7 +213,8 @@ fn a_failed_tile_leaves_its_source_out_and_a_retry_fetches_only_that_tile() {
         fake_pdok(&requests, dataset, tile)
     };
 
-    let scene = build_scene_with(&area, &cache, &one_parcel_tile_fails, &|_| {}).unwrap();
+    let scene =
+        build_scene_with(&area, &cache, &editions, &one_parcel_tile_fails, &|_| {}).unwrap();
     let (_, retried) = fetch_counting(&area, &cache);
 
     let credited = SOURCES
