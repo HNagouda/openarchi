@@ -72,6 +72,10 @@
   position: absolute;
   left: 0;
   top: 0;
+  /* Its own compositing layer, so a pan moves the painted sheet instead of
+     painting every path again; and the zoom transform scales from the corner. */
+  will-change: transform;
+  transform-origin: 0 0;
   box-shadow: var(--paper-shadow);
   background: var(--paper-blank);
   animation: fade-in var(--medium) var(--ease);
