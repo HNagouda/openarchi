@@ -68,7 +68,7 @@ What changed in each version of openarchi, newest first.
 - Charts are drawn in the sheet's palette and change with it. Export one section or the whole analysis as an SVG or PDF page.
 - Climate and rain are fetched once per site and kept with the other downloaded data. Location and site appear at once; climate and rain show their own loading and error state, and the rest of the analysis works without them.
 - Assistants can read the numbers and the notes with the new `get_analysis` tool.
-- On a sheet that shows part of the site, the Site section sums up that area, like the Ratios view does: its area, buildings, ground cover, noise, air and flood. The view says so at the top and under the Site heading, and names any figure that still describes the whole site. Location, climate and rain stay on the whole site. Exporting the analysis from that sheet, and `get_analysis` with a `tab`, follow the same area.
+- On a sheet that shows part of the site, the Site section sums up that area, like the Ratios view does: its area, buildings, ground cover, noise, air and flood. The line under the Site heading says so, names any figure that still describes the whole site, such as the steepest slope, and notes that places and stops within walking distance are counted from the site's centre. Location, climate and rain stay on the whole site. Exporting the analysis from that sheet, and `get_analysis` with a `tab`, follow the same area.
 
 ### Outdoor comfort and the A4 report
 

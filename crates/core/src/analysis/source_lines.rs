@@ -16,6 +16,9 @@ const ADDRESS_SERVICE: &str = "the PDOK Locatieserver";
 /// which figures moved with the area and which did not.
 const SHEET_AREA_SCOPE: &str =
     "Of this sheet's area only; location, climate and rain are of the whole site.";
+/// The walk is worked out once per site, from its centre, so a sheet area shares it.
+const WALK_FROM_CENTRE: &str =
+    " Places and stops within walking distance are counted from the site's centre.";
 
 pub fn location() -> String {
     format!(
@@ -74,6 +77,9 @@ pub fn site(summary: &SiteSummary) -> String {
     }
     line.push_str(&format!("{}.", parts.join(", ")));
     line.push_str(&whole_site_figures(&environment.whole_site));
+    if summary.is_sheet_area && has_walk {
+        line.push_str(WALK_FROM_CENTRE);
+    }
     line
 }
 

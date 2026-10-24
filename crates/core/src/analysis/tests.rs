@@ -164,7 +164,13 @@ fn the_site_section_shows_noise_air_and_people_from_the_environment() {
 #[test]
 fn on_a_sheet_area_the_site_part_sums_up_that_area_and_says_so() {
     use crate::area::{Area, LonLat};
-    let scene = westermarkt();
+    let mut scene = westermarkt();
+    // An empty walk is enough for the walk counts, and the note about where they start, to appear.
+    scene.walk = Some(crate::scene::Walk {
+        bands: Vec::new(),
+        paths: Vec::new(),
+        places: Vec::new(),
+    });
     let selection = Area::Circle {
         center: LonLat {
             lon: 4.8840,
@@ -183,6 +189,10 @@ fn on_a_sheet_area_the_site_part_sums_up_that_area_and_says_so() {
     assert_ne!(whole[0].facts[0].value, framed[0].facts[0].value);
     assert!(!whole[0].source.contains("sheet's area"));
     assert!(framed[0].source.starts_with("Of this sheet's area only"));
+    // The walk starts at the site centre, which a sheet area's line says when it counts places.
+    let walk_note = "counted from the site's centre";
+    assert!(!whole[0].source.contains(walk_note));
+    assert!(framed[0].source.contains(walk_note), "{}", framed[0].source);
 
     let report = report(&scene, Some(&sheet_area), &theme, &cache).unwrap();
     let area_ratios = ratios::compute(&sheet_area, &theme).unwrap();

@@ -26,9 +26,8 @@ const PARTS: { part: AnalysisPart; title: string; waiting: string }[] = [
 const SVG_FILTER = { name: "SVG page", extensions: ["svg"] };
 const PDF_FILTER = { name: "PDF page", extensions: ["pdf"] };
 
-/** What the intro says, for the whole site and for a sheet with a sub-selection. */
+/** What the intro says for the whole site. On a sheet area the Site part's source line says what it describes. */
 const INTRO_WHOLE_SITE = "Location, site and climate, drawn in the sheet's palette.";
-const INTRO_SHEET_AREA = "Site describes this sheet's area only. Location, climate and rain describe the whole site.";
 
 type Props = { project: ProjectView; themeId: string; selection?: Area | null };
 
@@ -57,7 +56,7 @@ export function AnalysisPanel({ project, themeId, selection = null }: Props) {
   return (
     <div className="analysis">
       <div className="analysis-toolbar">
-        <p className="analysis-intro">{selection ? INTRO_SHEET_AREA : INTRO_WHOLE_SITE}</p>
+        {!selection && <p className="analysis-intro">{INTRO_WHOLE_SITE}</p>}
         <Button icon="export" variant="secondary" tip="Save the whole analysis as one PDF or SVG page" onClick={() => exportTo(null)}>
           Export
         </Button>
