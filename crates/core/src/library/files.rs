@@ -81,7 +81,9 @@ pub(super) fn summarize(path: &Path) -> Result<ProjectSummary> {
         has_scene: fields.scene.is_some(),
         // Summaries skip migration to stay fast, so a look in an older shape
         // is left out rather than failing the whole entry.
-        look: fields.look.and_then(|look| serde_json::from_value(look).ok()),
+        look: fields
+            .look
+            .and_then(|look| serde_json::from_value(look).ok()),
         error: None,
     })
 }

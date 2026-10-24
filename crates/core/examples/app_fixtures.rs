@@ -52,9 +52,11 @@ fn main() {
             };
             let name = format!("{}--{}", diagram.id, theme.id);
             let svg = render_svg(&input).expect("render the preview");
-            fs::write(out_dir.join(format!("previews/{name}.svg")), svg).expect("write the preview");
+            fs::write(out_dir.join(format!("previews/{name}.svg")), svg)
+                .expect("write the preview");
             let png = render_png(&input, THUMBNAIL_WIDTH_PX).expect("render the thumbnail");
-            fs::write(out_dir.join(format!("thumbs/{name}.png")), png).expect("write the thumbnail");
+            fs::write(out_dir.join(format!("thumbs/{name}.png")), png)
+                .expect("write the thumbnail");
         }
     }
 
