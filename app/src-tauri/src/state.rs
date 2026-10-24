@@ -9,6 +9,7 @@ use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 
+use openarchi_core::area::Area;
 use openarchi_core::diagram::Diagram;
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
@@ -30,12 +31,26 @@ pub struct AppState {
     pub own_saves: Mutex<HashMap<String, Instant>>,
     /// Bumped by every fetch and cancel; a fetch whose number is stale is dropped.
     pub fetch_generation: AtomicU64,
+    /// The open scene cut to recent sheet areas, newest last. Cutting a large
+    /// site takes longer than drawing it, and the preview, the thumbnails and
+    /// the ratios all ask for the same area over and over.
+    pub framed: Mutex<Vec<Framed>>,
+}
+
+pub struct Framed {
+    /// The scene it was cut from; a fetch or reload makes a new one.
+    pub source: Arc<Scene>,
+    pub selection: Area,
+    pub scene: Arc<Scene>,
 }
 
 pub struct OpenProject {
     /// The project with `scene` taken out; the scene lives next to it.
     pub project: Project,
     pub scene: Option<Arc<Scene>>,
+    /// The scene as stored text, kept after the first save so later saves
+    /// skip packing it again. Cleared whenever `scene` changes.
+    pub packed_scene: Option<Arc<String>>,
 }
 
 #[derive(Clone, Serialize)]
@@ -62,6 +77,7 @@ impl AppState {
             thumbnails: Mutex::new(HashMap::new()),
             own_saves: Mutex::new(HashMap::new()),
             fetch_generation: AtomicU64::new(0),
+            framed: Mutex::new(Vec::new()),
         }
     }
 
@@ -73,14 +89,11 @@ impl AppState {
 impl OpenProject {
     pub fn from_project(mut project: Project) -> OpenProject {
         let scene = project.scene.take().map(Arc::new);
-        OpenProject { project, scene }
-    }
-
-    /// The full project, scene included, as `Library::save` wants it.
-    pub fn to_project(&self) -> Project {
-        let mut project = self.project.clone();
-        project.scene = self.scene.as_ref().map(|scene| Scene::clone(scene));
-        project
+        OpenProject {
+            project,
+            scene,
+            packed_scene: None,
+        }
     }
 }
 

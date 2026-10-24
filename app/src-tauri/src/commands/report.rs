@@ -13,7 +13,7 @@ use openarchi_core::theme::Theme;
 use tauri::State;
 
 use crate::commands::export::slug;
-use crate::commands::library::save_project;
+use crate::commands::library::save_open_project;
 use crate::commands::ratios::find_theme;
 use crate::commands::render::open_scene;
 use crate::guard::{blocking, text};
@@ -30,19 +30,13 @@ pub async fn save_reports(
         for report in &reports {
             report.check().map_err(text)?;
         }
-        let mut project = match lock(&state.open).as_mut() {
+        match lock(&state.open).as_mut() {
             Some(open) => {
                 open.project.reports = reports;
-                open.to_project()
             }
             None => return Err("No project is open.".to_string()),
-        };
-        save_project(&state, &mut project)?;
-
-        if let Some(open) = lock(&state.open).as_mut() {
-            open.project.modified = project.modified.clone();
         }
-        Ok(project.modified)
+        save_open_project(&state)
     })
     .await
 }

@@ -11,7 +11,7 @@ use openarchi_core::site::{build_scene, Progress};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
-use crate::commands::library::{save_project, view_of, ProjectView};
+use crate::commands::library::{save_open_project, view_of, ProjectView};
 use crate::guard::{blocking, calm, text};
 use crate::state::{lock, AppState, Shared};
 
@@ -123,19 +123,15 @@ fn fetch_and_store(
         return Ok(());
     }
 
-    let mut project = match lock(&state.open).as_mut() {
+    match lock(&state.open).as_mut() {
         Some(open) => {
             open.project.area = area;
             open.scene = Some(Arc::new(scene));
-            open.to_project()
+            open.packed_scene = None;
         }
         None => return Err("The project was closed during the fetch.".to_string()),
-    };
-    save_project(state, &mut project)?;
-    if let Some(open) = lock(&state.open).as_mut() {
-        open.project.modified = project.modified;
     }
-    Ok(())
+    save_open_project(state).map(|_| ())
 }
 
 /// Starts fetching `area` for the open project on a background thread.
@@ -173,3 +169,4 @@ pub async fn current_project(state: State<'_, Shared>) -> Result<ProjectView, St
         None => Err("No project is open.".to_string()),
     }
 }
+
