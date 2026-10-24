@@ -6,6 +6,7 @@ use std::sync::Arc;
 use base64::Engine;
 use openarchi_core::catalog;
 use openarchi_core::export::render_png;
+use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::scene::{Layer, Scene};
@@ -50,6 +51,7 @@ pub fn with_input<T>(
     catalog: &Catalog,
     scene: &Scene,
     look: &Look,
+    pins: &[Pin],
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
     let Some(diagram) = catalog
@@ -72,6 +74,7 @@ pub fn with_input<T>(
         diagram,
         theme,
         look,
+        pins,
     };
     work(&input).map_err(text)
 }
@@ -103,17 +106,22 @@ pub async fn get_catalog(state: State<'_, Shared>) -> Result<Catalog, String> {
 }
 
 #[tauri::command]
-pub async fn render_preview(state: State<'_, Shared>, look: Look) -> Result<String, String> {
+pub async fn render_preview(
+    state: State<'_, Shared>,
+    look: Look,
+    pins: Vec<Pin>,
+) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
         let scene = open_scene(&state)?;
         let catalog = current_catalog(&state);
-        with_input(&catalog, &scene, &look, render_svg)
+        with_input(&catalog, &scene, &look, &pins, render_svg)
     })
     .await
 }
 
-/// A PNG of the open project in `look`, for the diagram column.
+/// A PNG of the open project in `look`, for the diagram column. Pins would
+/// be specks at this size, so they are left off.
 #[tauri::command]
 pub async fn render_thumbnail(
     state: State<'_, Shared>,
@@ -124,7 +132,9 @@ pub async fn render_thumbnail(
     blocking(move || {
         let scene = open_scene(&state)?;
         let catalog = current_catalog(&state);
-        let bytes = with_input(&catalog, &scene, &look, |input| render_png(input, width))?;
+        let bytes = with_input(&catalog, &scene, &look, &[], |input| {
+            render_png(input, width)
+        })?;
         Ok(png_data_url(&bytes))
     })
     .await
@@ -150,7 +160,7 @@ pub async fn project_thumbnail(
             return Ok(None);
         };
         let catalog = current_catalog(&state);
-        let bytes = with_input(&catalog, scene, &project.look, |input| {
+        let bytes = with_input(&catalog, scene, &project.look, &project.pins, |input| {
             render_png(input, width)
         })?;
         let url = png_data_url(&bytes);

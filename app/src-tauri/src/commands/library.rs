@@ -4,6 +4,7 @@ use std::time::Instant;
 
 use openarchi_core::area::Area;
 use openarchi_core::library::ProjectSummary;
+use openarchi_core::pin::Pin;
 use openarchi_core::project::{Look, Project};
 use openarchi_core::scene::{Credit, Layer, Scene};
 use serde::Serialize;
@@ -20,6 +21,9 @@ pub struct ProjectView {
     pub modified: String,
     pub area: Area,
     pub look: Look,
+    /// Every sheet in tab order, the first being `look`.
+    pub sheets: Vec<Look>,
+    pub pins: Vec<Pin>,
     pub has_scene: bool,
     pub fetched_at: Option<String>,
     pub warnings: Vec<String>,
@@ -51,6 +55,8 @@ pub fn view_of(open: &OpenProject) -> ProjectView {
         modified: project.modified.clone(),
         area: project.area.clone(),
         look: project.look.clone(),
+        sheets: project.sheets(),
+        pins: project.pins.clone(),
         has_scene: scene.is_some(),
         fetched_at: scene.map(|scene| scene.fetched_at.clone()),
         warnings: scene

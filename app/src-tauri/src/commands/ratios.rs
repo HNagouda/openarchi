@@ -2,7 +2,9 @@
 
 use std::path::Path;
 
+use openarchi_core::area::Area;
 use openarchi_core::ratios::{self, ChartStyle, Ratios};
+use openarchi_core::selection;
 use openarchi_core::theme::Theme;
 use tauri::State;
 
@@ -11,12 +13,18 @@ use crate::commands::render::{current_catalog, open_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
-/// The ratios of the open site, coloured by `theme_id` so they match the sheet.
+/// The ratios of the open site, or of the sheet's sub-selection, coloured by
+/// `theme_id` so they match the sheet.
 #[tauri::command]
-pub async fn get_ratios(state: State<'_, Shared>, theme_id: String) -> Result<Ratios, String> {
+pub async fn get_ratios(
+    state: State<'_, Shared>,
+    theme_id: String,
+    selection: Option<Area>,
+) -> Result<Ratios, String> {
     let state = state.inner().clone();
     blocking(move || {
         let scene = open_scene(&state)?;
+        let scene = selection::framed_or_whole(&scene, selection.as_ref()).map_err(text)?;
         let theme = find_theme(&state, &theme_id)?;
         ratios::compute(&scene, &theme).map_err(text)
     })
@@ -39,12 +47,14 @@ pub fn ratios_file_name(state: State<'_, Shared>) -> String {
 pub async fn export_ratios(
     state: State<'_, Shared>,
     theme_id: String,
+    selection: Option<Area>,
     style: ChartStyle,
     path: String,
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
         let scene = open_scene(&state)?;
+        let scene = selection::framed_or_whole(&scene, selection.as_ref()).map_err(text)?;
         let theme = find_theme(&state, &theme_id)?;
         let ratios = ratios::compute(&scene, &theme).map_err(text)?;
         let extension = Path::new(&path)

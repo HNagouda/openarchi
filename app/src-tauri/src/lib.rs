@@ -12,7 +12,7 @@ use std::sync::{Arc, Mutex};
 use openarchi_core::library::Library;
 use tauri::Manager;
 
-use crate::commands::{analysis, export, library, ratios, render, site};
+use crate::commands::{analysis, export, library, ratios, render, sheets, site};
 use crate::guard::{calm, text};
 use crate::state::AppState;
 
@@ -56,6 +56,8 @@ pub fn run() {
             render::render_preview,
             render::render_thumbnail,
             render::project_thumbnail,
+            sheets::save_sheets,
+            sheets::fitting_scale,
             site::search_places,
             site::measure_area,
             site::fetch_site,
