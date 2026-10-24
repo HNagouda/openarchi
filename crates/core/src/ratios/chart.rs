@@ -20,6 +20,9 @@ const TITLE_SIZE_MM: f64 = 6.0;
 const SUBTITLE_SIZE_MM: f64 = 2.8;
 const GROUP_TITLE_SIZE_MM: f64 = 3.4;
 const TEXT_SIZE_MM: f64 = 2.8;
+/// The source line under a group title, smaller than the rows.
+const SOURCE_SIZE_MM: f64 = 2.4;
+const SOURCE_GAP_MM: f64 = 3.6;
 
 const SWATCH_MM: f64 = 2.6;
 /// From the swatch's left edge to the label.
@@ -150,8 +153,22 @@ fn write_group_header(out: &mut String, group: &Group, y: f64, paint: &Paint) ->
         "end",
         &total_text(group),
     );
+    if group.source.is_empty() {
+        return y + 3.0;
+    }
 
-    y + 3.0
+    let source_y = y + SOURCE_GAP_MM;
+    text(
+        out,
+        MARGIN_MM,
+        source_y,
+        SOURCE_SIZE_MM,
+        400,
+        &paint.secondary,
+        "start",
+        &group.source,
+    );
+    source_y + 3.0
 }
 
 fn write_bars(out: &mut String, group: &Group, mut y: f64, paint: &Paint) -> f64 {

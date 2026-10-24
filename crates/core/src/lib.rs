@@ -5,6 +5,7 @@
 
 pub mod analysis;
 pub mod area;
+pub mod attribution;
 pub mod catalog;
 pub mod crs;
 pub mod diagram;
