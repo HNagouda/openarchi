@@ -75,9 +75,11 @@ On Windows, Ctrl takes the place of ⌘.
 
 - **⌘N** starts a new project, **⌘O** or **Return** opens the selected one, and **Delete** moves it to Recently Deleted.
 - **C**, **R** and **P** draw a circle, rectangle or polygon. **Return** finishes a polygon and **Esc** stops drawing.
+- Click a drawn site to select it, then drag it to move it or drag a handle to resize it. **Delete** removes it.
 - **1 to 9** switch diagrams, and **[** and **]** step through themes.
-- **⌘Z** undoes the last change and **⇧⌘Z** redoes it.
-- **⌘E** exports, **I** hides or shows the inspector, and **⌘=**, **⌘−** and **⌘0** zoom the sheet.
+- **⌘Z** undoes the last change to the site or the sheet and **⇧⌘Z** redoes it (**Ctrl+Y** also redoes on Windows).
+- **⌘=** and **⌘−** zoom the map or the sheet, and **⌘0** fits the site or the sheet back in the window.
+- **⌘E** exports and **I** hides or shows the inspector.
 - **⌘,** opens settings and **⌘/** lists every shortcut.
 
 ## Where the data comes from

@@ -2,6 +2,16 @@
 
 What changed in each version of openarchi, newest first.
 
+## 0.2.0 (unreleased)
+
+### Sites
+
+- Click a drawn site to select it, drag it to move it, and drag its handles to resize it. A polygon's corners move one by one, and pressing the dot between two corners adds a new one.
+- Delete or the bin in the side panel removes the drawn site.
+- ⌘Z and ⇧⌘Z undo and redo every change to the site: drawing, moving, resizing, deleting and typing a radius.
+- Switch a drawn site between circle, rectangle and polygon. It keeps its centre and its size across.
+- A fit button and ⌘0 bring the map back to the drawn site.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.
