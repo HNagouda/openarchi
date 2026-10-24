@@ -4,12 +4,13 @@
 import type { Pin, PinIcon } from "../../lib/types";
 
 // The markers in the order the palette offers them, in one place; crates/core/src/pin.rs has the same list.
+// The numbered marker is no longer offered, because a white number in a red
+// disc reads as an error badge; pins that already are one still draw.
 export const PIN_ICONS: { icon: PinIcon; label: string }[] = [
   { icon: "pin", label: "Pin" },
   { icon: "star", label: "Star" },
   { icon: "flag", label: "Flag" },
   { icon: "dot", label: "Dot" },
-  { icon: "number", label: "Numbered marker" },
 ];
 
 /** The first "pin-N" id no pin uses yet, as the core picks it. */
