@@ -90,7 +90,7 @@ export function ReportsWorkspace({ project, catalog, previews, sheetThumbnails, 
     <div className="reports-workspace">
       <header className="topbar" data-tauri-drag-region>
         {/* Labelled, unlike the sheet's back button: this screen lies over the sheet and needs an obvious way out. */}
-        <Button icon="back" className="reports-back" tip="Back to the sheet" shortcut="escape" onClick={close}>
+        <Button icon="back" className="reports-back" tip="Back to the sheet" onClick={close}>
           Sheet
         </Button>
         <div className="topbar-title" data-tauri-drag-region>
@@ -128,7 +128,6 @@ export function ReportsWorkspace({ project, catalog, previews, sheetThumbnails, 
           sheetThumbnails={sheetThumbnails}
           onChange={changeReport}
           onSeal={history.seal}
-          onLeave={close}
           controls={zoom}
         />
       ) : (

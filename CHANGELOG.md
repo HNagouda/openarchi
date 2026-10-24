@@ -194,10 +194,10 @@ Sheets can now show the site in three dimensions and the sun over it.
 
 - Millimetre rulers run along the top and the left of the pages, as in a word processor, and follow zoom and scroll. They measure from the corner of the current page and mark the selected block's extent on both.
 - While a block is moved, resized or dragged in from the library, its extent lights up on both rulers and a label under it gives its position and size in millimetres. A block from the library shows a dashed outline of where it will land before you let go.
-- Headings and text are no longer in the library. Add heading and Add text in the page section of the inspector, or **T**, put one across the current page under the last block, selected and ready to type. Reports with text blocks from before open as they were.
+- Headings, text and captions are no longer in the library. Add heading, Add text and Add caption in the page section of the inspector, or **T**, put one across the current page under the last block, selected and ready to type. Reports with text blocks from before open as they were.
 - The library shows a real picture of every block: ratios charts, facts and design notes as well as the analysis charts and sheets. The pictures sit on the palette's paper, so charts of every proportion read as small pages instead of slivers. They are drawn in the background while you work on the sheet, one at a time and after the preview, so the library is full when you open it.
 - The library and the inspector resize by dragging their inner edge, as on the sheet, and keep their widths. Double-click an edge to put it back.
-- The way back to the sheet is a labelled Sheet button at the top left, and **Esc** with nothing selected.
+- The way back to the sheet is a labelled Sheet button at the top left. **Esc** only lets go of the selected block, so the reports are never left by accident.
 
 ### Speed
 

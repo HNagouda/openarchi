@@ -93,6 +93,9 @@ export function ReportInspector(props: Props) {
             <Button icon="text" variant="secondary" tip="Under the last block" shortcut="t" onClick={() => props.onAddText("body")}>
               Add text
             </Button>
+            <Button icon="text" variant="secondary" tip="Under the last block" onClick={() => props.onAddText("caption")}>
+              Add caption
+            </Button>
           </div>
           <Segmented label="Paper" value={page.paper} options={PAPERS} onChange={(paper) => onChange(setPaper(report, pageIndex, paper, page.landscape))} />
           <Segmented

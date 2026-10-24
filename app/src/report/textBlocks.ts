@@ -5,12 +5,13 @@ import type { BlockContent, ReportPage, TextStyle } from "../lib/types";
 import { pageSize } from "./edits";
 import { PAGE_MARGIN_MM, type Rect } from "./geometry";
 
-export type TextKind = "heading" | "body";
+export type TextKind = "heading" | "body" | "caption";
 
 // Every kind of text the inspector offers, in one place.
 const PRESETS: Record<TextKind, { text: string; style: TextStyle; heightMm: number }> = {
   heading: { text: "Heading", style: { size_pt: 24, bold: true }, heightMm: 14 },
   body: { text: "Write about the site here.", style: { size_pt: 10 }, heightMm: 30 },
+  caption: { text: "Caption", style: { size_pt: 7, italic: true }, heightMm: 8 },
 };
 // Room left between the lowest block and the new text under it.
 const GAP_MM = 6;

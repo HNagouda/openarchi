@@ -50,15 +50,13 @@ type Props = {
   sheetThumbnails?: Record<string, string>;
   onChange: (report: Report, mergeKey?: string) => void;
   onSeal: () => void;
-  /** Back to the sheet: Escape with nothing selected. */
-  onLeave: () => void;
   controls?: Ref<ZoomControls>;
 };
 
 /** A block from the library on its way to a page: the page under the pointer and where it would land. */
 type Incoming = { pageIndex: number; rect: { x: number; y: number; width: number; height: number } };
 
-export function ReportEditor({ project, catalog, report, previews, sheetThumbnails, onChange, onSeal, onLeave, controls }: Props) {
+export function ReportEditor({ project, catalog, report, previews, sheetThumbnails, onChange, onSeal, controls }: Props) {
   const look = project.look;
   const themeId = report.theme_id ?? look.theme_id;
   const { diagram_id: _diagram, variant: _variant, theme_id: _theme, ...sheetLook } = look;
@@ -185,9 +183,8 @@ export function ReportEditor({ project, catalog, report, previews, sheetThumbnai
       nudge(...arrows[event.key]);
     }
     if (selectedId && (event.key === "Delete" || event.key === "Backspace")) remove();
-    // The first Escape lets go of the block, the next one goes back to the sheet.
+    // Escape only lets go of the block; leaving the reports is the Sheet button's job, so it never happens by accident.
     if (event.key === "Escape" && selectedId) select(null);
-    else if (event.key === "Escape") onLeave();
     if (event.key.toLowerCase() === "t" && !hasModifier(event) && !event.shiftKey) addText("body");
     if (selectedId && hasModifier(event) && event.key.toLowerCase() === "d") {
       event.preventDefault();
