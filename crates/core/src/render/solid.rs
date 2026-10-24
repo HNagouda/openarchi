@@ -218,7 +218,7 @@ pub fn write(
 }
 
 /// The roof colour: the feature's class, or the layer's own fill.
-fn roof_fill(
+pub(super) fn roof_fill(
     resolved: &ResolvedLayer,
     feature: &Feature,
     diagram: &Diagram,

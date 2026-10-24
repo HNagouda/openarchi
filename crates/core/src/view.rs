@@ -1,6 +1,6 @@
 //! How a sheet looks at the site: straight down, tilted with buildings
-//! standing up, or as a stack of diagrams pulled apart. Also the moment the
-//! sun and shadow diagrams are drawn for.
+//! standing up, as a stack of diagrams pulled apart, or in section. Also the
+//! moment the sun and shadow diagrams are drawn for.
 //!
 //! Both live in the look, and every field has a default, so projects saved
 //! before these existed open as plain plans at the default moment.
@@ -31,6 +31,8 @@ pub enum ViewMode {
     Axonometric,
     /// Several diagrams of the site as flat tilted plates, stacked and labelled.
     Explode,
+    /// An elevation along the sheet's section line: ground, buildings cut and beyond.
+    Section,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
