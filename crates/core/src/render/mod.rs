@@ -8,6 +8,7 @@
 mod classify;
 mod color;
 mod context;
+mod cull;
 mod drawing;
 mod explode;
 mod fit;
@@ -25,6 +26,7 @@ mod patterns;
 mod pins;
 mod points;
 mod shadow;
+mod simplify;
 mod solid;
 mod style;
 mod sunpath;
