@@ -4,6 +4,7 @@
 
 use super::summary::SiteSummary;
 use crate::attribution::{dated, short_name};
+use crate::scene::Layer;
 use crate::sources::{ahn, bag, bgt, boundaries, cbs, liwo, osm, rivm};
 
 /// The address service has no credit of its own: PDOK serves it alongside BAG.
@@ -59,5 +60,39 @@ pub fn site(summary: &SiteSummary) -> String {
         ));
     }
 
-    format!("{}.", parts.join(", "))
+    let mut line = format!("{}.", parts.join(", "));
+    line.push_str(&whole_site_figures(&environment.whole_site));
+    line
+}
+
+/// On a sheet area, which figures still describe the whole site, and why.
+fn whole_site_figures(whole_site: &[Layer]) -> String {
+    let mut text = String::new();
+    if whole_site.iter().any(|layer| *layer != Layer::Slope) {
+        text.push_str(" Noise, air and flood figures are of the whole site, because it was fetched before sheet areas measured their own; fetch it again to measure this area.");
+    }
+    if whole_site.contains(&Layer::Slope) {
+        text.push_str(" The steepest slope is of the whole site.");
+    }
+
+    text
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_new_sheet_area_names_only_the_slope_as_whole_site() {
+        let line = whole_site_figures(&[Layer::Slope]);
+        assert!(line.contains("slope"), "{line}");
+        assert!(!line.contains("fetch it again"), "{line}");
+    }
+
+    #[test]
+    fn an_old_sheet_area_says_to_fetch_again() {
+        let line = whole_site_figures(&[Layer::RoadNoise, Layer::Slope]);
+        assert!(line.contains("fetch it again"), "{line}");
+        assert!(whole_site_figures(&[]).is_empty());
+    }
 }

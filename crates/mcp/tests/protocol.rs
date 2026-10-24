@@ -636,6 +636,30 @@ fn get_environment_gives_noise_flood_and_people_with_their_years() {
     assert!(environment["flood_max_depth_m"].as_f64().unwrap() > 0.0);
     assert!(environment["residents"].as_f64().unwrap() > 0.0);
     assert_eq!(environment["noise_year"], json!(2022));
+    assert_eq!(environment["whole_site"], json!([]));
+
+    // The fixture was fetched before rasters were kept, so a sheet area keeps
+    // the whole site's figures and says which ones they are.
+    server.call_ok(
+        "add_sheet",
+        json!({
+            "id": id,
+            "name": "Westerkerk",
+            "selection": {
+                "kind": "circle",
+                "center": { "lon": 4.8840, "lat": 52.3745 },
+                "radius_m": 40.0,
+            },
+        }),
+    );
+    let part = server.call_ok("get_environment", json!({ "id": id, "tab": 2 }));
+    assert_eq!(
+        part["road_noise_mean_db"],
+        environment["road_noise_mean_db"]
+    );
+    let whole_site = part["whole_site"].as_array().unwrap();
+    assert!(whole_site.contains(&json!("road_noise")), "{whole_site:?}");
+    assert!(whole_site.contains(&json!("slope")), "{whole_site:?}");
 }
 
 #[test]
