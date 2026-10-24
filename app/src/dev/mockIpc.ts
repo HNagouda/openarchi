@@ -6,7 +6,8 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { chosenVariant } from "../lib/diagrams";
-import type { Area, Catalog, Credit, Layer, Look, ProjectSummary, ProjectView, Sheet, SunMoment, View } from "../lib/types";
+import type { Area, Catalog, Credit, Layer, Look, Pin, ProjectSummary, ProjectView, Sheet, SunMoment, View } from "../lib/types";
+import { withMockPins } from "./mockPins";
 
 const FIXTURES = "/dev-fixtures";
 const MAX_AREA_M2 = 4_000_000;
@@ -66,6 +67,12 @@ function summary(id: string, name: string, modified: string, projectLook: Look):
 
 const fixture: Fixture = await fetch(`${FIXTURES}/fixture.json`).then((response) => response.json());
 let openLook: Look = PROJECTS[0].look!;
+// The open project's sheet tabs and pins, as save_sheets last left them.
+let openSheets: Look[] = [openLook];
+let openPins: Pin[] = [];
+// The fixtures are drawn at the default scale; a sheet framing part of the site pretends to zoom in.
+const MOCK_SCALE = 2500;
+const MOCK_SELECTION_SCALE = 1000;
 
 function view(project: ProjectSummary): ProjectView {
   return {
@@ -74,6 +81,8 @@ function view(project: ProjectSummary): ProjectView {
     modified: project.modified,
     area: fixture.area,
     look: project.look ?? look("context", "paper"),
+    sheets: openSheets,
+    pins: openPins,
     has_scene: project.has_scene,
     fetched_at: project.has_scene ? project.modified : null,
     warnings: [],
@@ -107,6 +116,8 @@ async function answer(command: string, args: Args) {
   if (command === "project_thumbnail") return project?.has_scene && project.look ? picture(project.look) : null;
   if (command === "open_project" && project) {
     openLook = project.look ?? openLook;
+    openSheets = [openLook];
+    openPins = [];
     return view(project);
   }
   if (command === "current_project") return view({ ...PROJECTS[0], look: openLook });
@@ -114,9 +125,17 @@ async function answer(command: string, args: Args) {
     openLook = args.look as Look;
     return new Date().toISOString();
   }
+  if (command === "save_sheets") {
+    openSheets = args.sheets as Look[];
+    openPins = args.pins as Pin[];
+    openLook = openSheets[0];
+    return new Date().toISOString();
+  }
+  if (command === "fitting_scale") return (args.look as Look).selection ? MOCK_SELECTION_SCALE : MOCK_SCALE;
   if (command === "render_preview") {
     const shown = args.look as Look;
-    return fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
+    const svg = await fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
+    return shown.hide_pins ? svg : withMockPins(svg, (args.pins as Pin[] | undefined) ?? []);
   }
   if (command === "render_thumbnail") return picture(args.look as Look);
   if (command === "search_places") {

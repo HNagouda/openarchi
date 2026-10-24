@@ -8,7 +8,7 @@ import { errorText, exportRatios, getRatios, ratiosFileName, revealPath } from "
 import { formatArea } from "../../lib/format";
 import { fileManagerName } from "../../lib/platform";
 import { readPreference, writePreference } from "../../lib/storage";
-import type { ChartStyle, ProjectView, RatioGroup, RatioRow, RatioUnit, Ratios } from "../../lib/types";
+import type { Area, ChartStyle, ProjectView, RatioGroup, RatioRow, RatioUnit, Ratios } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { Problem } from "../../ui/Problem";
 import { Section } from "../../ui/Section";
@@ -23,11 +23,12 @@ const count = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
 const percent = new Intl.NumberFormat("en-GB", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const ratio = new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-type Props = { project: ProjectView; themeId: string };
+/** `selection` is the sheet's sub-selection, whose ratios are shown instead of the whole site's. */
+type Props = { project: ProjectView; themeId: string; selection?: Area | null };
 
-export function RatiosPanel({ project, themeId }: Props) {
+export function RatiosPanel({ project, themeId, selection = null }: Props) {
   const [style, setStyle] = useState<ChartStyle>(() => readPreference<ChartStyle>("ratios.style", "bar"));
-  const { ratios, error } = useRatios(themeId, project.has_scene, project.fetched_at);
+  const { ratios, error } = useRatios(themeId, selection, project.has_scene, project.fetched_at);
   const toast = useToast();
 
   const changeStyle = (next: ChartStyle) => {
@@ -45,7 +46,7 @@ export function RatiosPanel({ project, themeId }: Props) {
         ],
       });
       if (!path) return;
-      const written = await exportRatios(themeId, style, path);
+      const written = await exportRatios(themeId, selection, style, path);
       const fileName = written.split(/[\\/]/).pop() ?? written;
       toast(`Exported ${fileName}`, { action: { label: `Show in ${fileManagerName}`, run: () => revealPath(written) } });
     } catch (reason) {
@@ -89,15 +90,16 @@ export function RatiosPanel({ project, themeId }: Props) {
   );
 }
 
-/** Ratios for the open site in `themeId`, again whenever the theme or the fetched site changes. */
-function useRatios(themeId: string, hasScene: boolean, fetchedAt: string | null) {
+/** Ratios for the open site in `themeId`, again whenever the theme, the selection or the fetched site changes. */
+function useRatios(themeId: string, selection: Area | null, hasScene: boolean, fetchedAt: string | null) {
   const [ratios, setRatios] = useState<Ratios | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const selectionKey = JSON.stringify(selection);
 
   useEffect(() => {
     if (!hasScene) return;
     let isCurrent = true;
-    getRatios(themeId)
+    getRatios(themeId, selection)
       .then((result) => {
         if (!isCurrent) return;
         setRatios(result);
@@ -107,7 +109,9 @@ function useRatios(themeId: string, hasScene: boolean, fetchedAt: string | null)
     return () => {
       isCurrent = false;
     };
-  }, [themeId, hasScene, fetchedAt]);
+    // `selectionKey` stands for `selection`, which is a new object on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [themeId, selectionKey, hasScene, fetchedAt]);
 
   return { ratios, error };
 }

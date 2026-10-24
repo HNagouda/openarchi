@@ -111,7 +111,18 @@ export type Look = {
   overrides: Partial<Record<Layer, LayerOverride>>;
   view: View;
   sun: SunMoment;
+  /** The sheet's tab name; empty or missing shows "Sheet N". */
+  name?: string;
+  /** A smaller area inside the fetched site this sheet frames and zooms to. */
+  selection?: Area | null;
+  /** Leaves the project's pins off this sheet. */
+  hide_pins?: boolean;
 };
+
+// crates/core/src/pin.rs
+export type PinIcon = "pin" | "star" | "flag" | "dot" | "number";
+/** A landmark in RD New metres, shown on every sheet that does not hide pins. */
+export type Pin = { id: string; icon: PinIcon; label: string; x: number; y: number };
 
 export type Palette = {
   paper: string;
@@ -196,6 +207,9 @@ export type ProjectView = {
   modified: string;
   area: Area;
   look: Look;
+  /** Every sheet in tab order, the first being `look`. */
+  sheets: Look[];
+  pins: Pin[];
   has_scene: boolean;
   fetched_at: string | null;
   warnings: string[];

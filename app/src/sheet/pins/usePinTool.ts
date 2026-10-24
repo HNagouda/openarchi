@@ -1,0 +1,192 @@
+// Placing, selecting, dragging, relabelling and deleting pins on the sheet.
+//
+// Like text, a drag moves the pin's SVG group directly and only the drop
+// changes the pins, so a move is one undo step. Positions go through the
+// sheet's ground points into RD New metres, so a pin moved on a tilted view
+// lands on the same spot of the ground in every other view.
+
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { usePlainKeys } from "../../lib/keys";
+import type { Pin, PinIcon } from "../../lib/types";
+import type { CanvasControls, PaperView } from "../Canvas";
+import { nextPinId, withChangedPin, withoutPin, withPin } from "./pinEdits";
+import { paperPointAt, paperToRd, pinAt, pinGroup, readPins, type Point } from "./sheetPins";
+
+// A press that moves less than this is a click, not a drag.
+const DRAG_THRESHOLD_PX = 3;
+// Arrow keys nudge by a millimetre of paper, or a centimetre with Shift.
+const NUDGE_MM = 1;
+const NUDGE_LARGE_MM = 10;
+// The outline of the area the sheet draws, which the core writes in plan and axonometric views.
+const BOUNDARY_SELECTOR = "#site-boundary";
+
+export type PinDrag = { id: string; dx: number; dy: number };
+
+type Options = {
+  pins: Pin[];
+  onPins: (next: Pin[], mergeKey?: string) => void;
+  canvas: RefObject<CanvasControls | null>;
+  svg: string | null;
+  isEnabled: boolean;
+  /** Says why a pin could not go where it was dropped. */
+  onRefused: (message: string) => void;
+};
+
+export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: Options) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [drag, setDrag] = useState<PinDrag | null>(null);
+  const latestPins = useRef(pins);
+  latestPins.current = pins;
+
+  // The core's new SVG has the pin where the drop put it.
+  useEffect(() => setDrag(null), [svg]);
+
+  // A pin that undo took away is no longer selected.
+  const isPresent = selectedId === null || pins.some((pin) => pin.id === selectedId);
+  useEffect(() => {
+    if (!isPresent) {
+      setSelectedId(null);
+      setEditingId(null);
+    }
+  }, [isPresent]);
+
+  /** RD New metres for a paper point, or null with the reason told when no pin can go there. */
+  const groundAt = (paper: Element | null, point: Point): Point | null => {
+    const toRd = paperToRd(paper);
+    if (!toRd) {
+      onRefused("This sheet can't take pins until it has been drawn.");
+      return null;
+    }
+    const boundary = paper?.querySelector<SVGPathElement>(BOUNDARY_SELECTOR);
+    if (boundary && !boundary.isPointInFill(new DOMPoint(point.x, point.y))) {
+      onRefused("Pins go inside the outline of the sheet's area.");
+      return null;
+    }
+    return toRd(point);
+  };
+
+  const placeAt = (icon: PinIcon, paper: Element | null, point: Point) => {
+    const place = groundAt(paper, point);
+    if (!place) return;
+    const id = nextPinId(latestPins.current);
+    // Placing and typing the first label merge into one undo step.
+    onPins(withPin(latestPins.current, { id, icon, label: "", ...place }), `pin:${id}`);
+    setSelectedId(id);
+    setEditingId(id);
+  };
+
+  /** A pin dragged from the palette and let go at a screen point. */
+  const dropAt = (icon: PinIcon, clientX: number, clientY: number) => {
+    const hit = paperPointAt(clientX, clientY);
+    if (hit) placeAt(icon, hit.paper, hit.point);
+  };
+
+  /** A pin chosen from the palette without a drag: in the middle of the view. */
+  const placeInView = (icon: PinIcon) => {
+    const centre = canvas.current?.centreMm();
+    if (centre) placeAt(icon, document.querySelector(".paper"), centre);
+  };
+
+  /** Moves the pin, or puts its dragged group back when the spot is refused. */
+  const moveTo = (id: string, paper: Element | null, point: Point) => {
+    const place = groundAt(paper, point);
+    if (place) onPins(withChangedPin(latestPins.current, id, place));
+    else pinGroup(paper, id)?.removeAttribute("transform");
+  };
+
+  const onPaperPointerDown = (event: React.PointerEvent, view: PaperView): boolean => {
+    setDrag(null);
+    const paper = view.getPaper();
+    const point = view.toMm(event.clientX, event.clientY);
+    const hit = pinAt(readPins(paper), point.x, point.y);
+    if (!hit) {
+      setSelectedId(null);
+      setEditingId(null);
+      return false;
+    }
+
+    event.preventDefault();
+    setSelectedId(hit.id);
+    setEditingId(null);
+    const group = pinGroup(paper, hit.id);
+    const start = { x: event.clientX, y: event.clientY };
+    let isDragging = false;
+    let offset = { dx: 0, dy: 0 };
+    const onMove = (move: PointerEvent) => {
+      const distance = Math.hypot(move.clientX - start.x, move.clientY - start.y);
+      if (!isDragging && distance < DRAG_THRESHOLD_PX) return;
+      isDragging = true;
+      offset = { dx: (move.clientX - start.x) / view.pxPerMm, dy: (move.clientY - start.y) / view.pxPerMm };
+      group?.setAttribute("transform", `translate(${offset.dx} ${offset.dy})`);
+      setDrag({ id: hit.id, ...offset });
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      if (!isDragging) return;
+      // The moved group keeps its offset until the core's new SVG replaces it.
+      moveTo(hit.id, paper, { x: hit.x + offset.dx, y: hit.y + offset.dy });
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return true;
+  };
+
+  const onPaperDoubleClick = (event: React.MouseEvent, view: PaperView): boolean => {
+    const point = view.toMm(event.clientX, event.clientY);
+    const hit = pinAt(readPins(view.getPaper()), point.x, point.y);
+    if (!hit) return false;
+    setSelectedId(hit.id);
+    setEditingId(hit.id);
+    return true;
+  };
+
+  const remove = (id: string) => {
+    onPins(withoutPin(latestPins.current, id));
+    setSelectedId(null);
+    setEditingId(null);
+  };
+
+  const nudge = (id: string, dx: number, dy: number) => {
+    // Keys have no pointer to find the paper by; there is only one sheet on screen.
+    const paper = document.querySelector(".paper");
+    const pin = readPins(paper).find((entry) => entry.id === id);
+    if (pin) moveTo(id, paper, { x: pin.x + dx, y: pin.y + dy });
+  };
+
+  usePlainKeys((key, event) => {
+    if (!selectedId) return;
+    if (key === "Escape") setSelectedId(null);
+    if (key === "Enter") {
+      event.preventDefault();
+      setEditingId(selectedId);
+    }
+    if ((key === "Delete" || key === "Backspace") && !event.repeat) remove(selectedId);
+    const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
+    const moves: Record<string, [number, number]> = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    };
+    const move = moves[key];
+    if (move) {
+      event.preventDefault();
+      nudge(selectedId, move[0], move[1]);
+    }
+  }, isEnabled && editingId === null);
+
+  return {
+    selectedId,
+    editingId,
+    drag,
+    setSelectedId,
+    setEditingId,
+    onPaperPointerDown,
+    onPaperDoubleClick,
+    dropAt,
+    placeInView,
+    remove,
+  };
+}

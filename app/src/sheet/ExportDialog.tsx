@@ -6,7 +6,7 @@ import { open, save } from "@tauri-apps/plugin-dialog";
 import { errorText, exportFileName, exportSeries, exportSheet, revealPath } from "../lib/ipc";
 import { fileManagerName } from "../lib/platform";
 import { readPreference, writePreference } from "../lib/storage";
-import type { ExportFormat, Look } from "../lib/types";
+import type { ExportFormat, Look, Pin } from "../lib/types";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { NumberField } from "../ui/NumberField";
@@ -29,9 +29,9 @@ type Settings = { format: ExportFormat; dpi: number; scope: Scope };
 
 // `variantId` is the variant drawn now, so the suggested file name says which.
 // `sheetCount` counts every variant, since the series writes one file for each.
-type Props = { look: Look; diagramName: string; variantId: string | null; sheetCount: number; onClose: () => void };
+type Props = { look: Look; pins: Pin[]; diagramName: string; variantId: string | null; sheetCount: number; onClose: () => void };
 
-export function ExportDialog({ look, diagramName, variantId, sheetCount, onClose }: Props) {
+export function ExportDialog({ look, pins, diagramName, variantId, sheetCount, onClose }: Props) {
   const [settings, setSettings] = useState<Settings>(() =>
     readPreference<Settings>("export", { format: "pdf", dpi: DEFAULT_DPI, scope: "one" }),
   );
@@ -50,7 +50,7 @@ export function ExportDialog({ look, diagramName, variantId, sheetCount, onClose
     const suggested = await exportFileName(look.diagram_id, variantId, settings.format);
     const path = await save({ defaultPath: suggested, filters: [{ name: format.name, extensions: [settings.format] }] });
     if (!path) return false;
-    const written = await exportSheet(look, settings.format, settings.dpi, path);
+    const written = await exportSheet(look, pins, settings.format, settings.dpi, path);
     const fileName = written.split(/[\\/]/).pop() ?? written;
     toast(`Exported ${fileName}`, { action: { label: `Show in ${fileManagerName}`, run: () => revealPath(written) } });
     return true;
@@ -59,7 +59,7 @@ export function ExportDialog({ look, diagramName, variantId, sheetCount, onClose
   const exportAll = async () => {
     const folder = await open({ directory: true, title: "Choose a folder for the series" });
     if (typeof folder !== "string") return false;
-    const written = await exportSeries(look, settings.format, settings.dpi, folder);
+    const written = await exportSeries(look, pins, settings.format, settings.dpi, folder);
     toast(`Exported ${written.length} diagrams`, {
       action: written[0] ? { label: `Show in ${fileManagerName}`, run: () => revealPath(written[0]) } : undefined,
     });

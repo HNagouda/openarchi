@@ -1,4 +1,5 @@
-// Undo for the look: a stack of whole `Look` snapshots.
+// Undo as a stack of whole snapshots: of one `Look`, or of every sheet and pin
+// of a project together.
 //
 // A slider drag sends many changes with the same merge key; they replace the
 // newest snapshot instead of stacking, so the drag undoes in one step. `seal`
@@ -10,13 +11,13 @@ import type { Look } from "./types";
 // Plenty for a session; old steps fall off the bottom.
 const MAX_STEPS = 200;
 
-type History = { past: Look[]; present: Look; future: Look[] };
+type History<T> = { past: T[]; present: T; future: T[] };
 
-export function useLookHistory(initial: Look) {
-  const [history, setHistory] = useState<History>({ past: [], present: initial, future: [] });
+export function useHistory<T>(initial: T) {
+  const [history, setHistory] = useState<History<T>>({ past: [], present: initial, future: [] });
   const mergeKey = useRef<string | null>(null);
 
-  const change = useCallback((next: Look, key?: string) => {
+  const change = useCallback((next: T, key?: string) => {
     setHistory((current) => {
       if (JSON.stringify(next) === JSON.stringify(current.present)) return current;
       const isMerge = key !== undefined && key === mergeKey.current;
@@ -49,14 +50,14 @@ export function useLookHistory(initial: Look) {
     });
   }, []);
 
-  /** Replaces the look from outside (an assistant's edit) as one undoable step. */
-  const replace = useCallback((next: Look) => {
+  /** Replaces the snapshot from outside (an assistant's edit) as one undoable step. */
+  const replace = useCallback((next: T) => {
     mergeKey.current = null;
     setHistory((current) => ({ past: [...current.past, current.present].slice(-MAX_STEPS), present: next, future: [] }));
   }, []);
 
   return {
-    look: history.present,
+    present: history.present,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
     change,
@@ -65,4 +66,10 @@ export function useLookHistory(initial: Look) {
     redo,
     replace,
   };
+}
+
+/** The history of a single look. */
+export function useLookHistory(initial: Look) {
+  const history = useHistory<Look>(initial);
+  return { ...history, look: history.present };
 }
