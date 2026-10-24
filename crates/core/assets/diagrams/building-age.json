@@ -1,6 +1,7 @@
 {
   "id": "building-age",
   "name": "Building age",
+  "group": "Context and built form",
   "description": "When the buildings were built, in the periods that shaped Dutch cities.",
   "layers": [
     "water",

@@ -6,7 +6,7 @@
 
 use geo::{Coord, Geometry, LineString, Point, Polygon};
 use openarchi_core::area::{Area, LonLat};
-use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
+use openarchi_core::catalog::{builtin_diagrams, builtin_themes, find_plate};
 use openarchi_core::diagram::Diagram;
 use openarchi_core::project::Look;
 use openarchi_core::scene::{Attributes, Credit, Feature, Layer, Scene};
@@ -153,11 +153,9 @@ pub fn scene() -> Scene {
     }
 }
 
+/// A built-in diagram, or one variant of it: "air-quality:pm10".
 pub fn diagram(id: &str) -> Diagram {
-    builtin_diagrams()
-        .into_iter()
-        .find(|diagram| diagram.id == id)
-        .expect("built-in diagram")
+    find_plate(&builtin_diagrams(), id).expect("built-in diagram")
 }
 
 pub fn theme(id: &str) -> Theme {

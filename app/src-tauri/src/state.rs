@@ -2,7 +2,7 @@
 //! project and the catalog.
 //!
 //! The open project's scene sits behind an `Arc`, so the preview and the
-//! filmstrip can render at the same time without copying a large scene.
+//! diagram column can render at the same time without copying a large scene.
 
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU64;

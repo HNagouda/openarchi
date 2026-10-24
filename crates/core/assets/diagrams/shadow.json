@@ -1,6 +1,7 @@
 {
   "id": "shadow",
   "name": "Shadow",
+  "group": "Sun and shade",
   "description": "Which streets and gardens the buildings put in shade, at the chosen date and time.",
   "layers": [
     "green",

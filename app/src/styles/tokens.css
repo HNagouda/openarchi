@@ -77,9 +77,19 @@
 
   --topbar-height: 44px;
   --inspector-width: 296px;
-  --filmstrip-height: 116px;
+  --diagram-column-width: 232px;
+  /* How far the open diagram column pushes the sheet over. */
+  --diagram-column-pushes: var(--diagram-column-width);
 
   color-scheme: light;
+}
+
+/* In a narrow window the diagram column lies over the sheet instead of
+   squeezing it between two columns. */
+@media (max-width: 1000px) {
+  :root {
+    --diagram-column-pushes: 0px;
+  }
 }
 
 :root[data-appearance="dark"] {

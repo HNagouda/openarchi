@@ -1,6 +1,7 @@
 {
   "id": "population",
   "name": "Population",
+  "group": "People",
   "description": "How many people live in each 100 m square, from CBS statistics.",
   "layers": [
     "population",

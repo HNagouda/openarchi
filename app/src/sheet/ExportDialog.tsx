@@ -27,9 +27,11 @@ const FORMATS: { value: ExportFormat; label: string; name: string; note: string 
 type Scope = "one" | "series";
 type Settings = { format: ExportFormat; dpi: number; scope: Scope };
 
-type Props = { look: Look; diagramName: string; diagramCount: number; onClose: () => void };
+// `variantId` is the variant drawn now, so the suggested file name says which.
+// `sheetCount` counts every variant, since the series writes one file for each.
+type Props = { look: Look; diagramName: string; variantId: string | null; sheetCount: number; onClose: () => void };
 
-export function ExportDialog({ look, diagramName, diagramCount, onClose }: Props) {
+export function ExportDialog({ look, diagramName, variantId, sheetCount, onClose }: Props) {
   const [settings, setSettings] = useState<Settings>(() =>
     readPreference<Settings>("export", { format: "pdf", dpi: DEFAULT_DPI, scope: "one" }),
   );
@@ -45,7 +47,7 @@ export function ExportDialog({ look, diagramName, diagramCount, onClose }: Props
   };
 
   const exportOne = async () => {
-    const suggested = await exportFileName(look.diagram_id, settings.format);
+    const suggested = await exportFileName(look.diagram_id, variantId, settings.format);
     const path = await save({ defaultPath: suggested, filters: [{ name: format.name, extensions: [settings.format] }] });
     if (!path) return false;
     const written = await exportSheet(look, settings.format, settings.dpi, path);
@@ -113,14 +115,14 @@ export function ExportDialog({ look, diagramName, diagramCount, onClose }: Props
             value={settings.scope}
             options={[
               { value: "one", label: "This diagram" },
-              { value: "series", label: `The whole series (${diagramCount})` },
+              { value: "series", label: `The whole series (${sheetCount})` },
             ]}
             onChange={(scope) => update({ scope })}
           />
           <span className="field-note">
             {settings.scope === "one"
               ? `${diagramName}, as it looks now.`
-              : "One file per diagram, all in this palette and sheet, into a folder you choose."}
+              : "One file per diagram and per variant, all in this palette and sheet, into a folder you choose."}
           </span>
         </div>
         {error && <p className="export-error">{error}</p>}

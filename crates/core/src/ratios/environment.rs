@@ -11,7 +11,7 @@ use crate::theme::Theme;
 use crate::Result;
 
 /// Diagrams whose classes these groups reuse, so the numbers match their legends.
-const NOISE_DIAGRAM: &str = "traffic-noise";
+const NOISE_DIAGRAM: &str = "noise:road";
 const DWELLINGS_DIAGRAM: &str = "households";
 
 /// Floor area classes: a house, a large house or small block, a block, a

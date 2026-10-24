@@ -80,6 +80,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             &item(app, "zoom-out", "Zoom Out", Some("CmdOrCtrl+-"))?,
             &item(app, "zoom-fit", "Zoom to Fit", Some("CmdOrCtrl+0"))?,
             &separator()?,
+            &item(app, "diagrams", "Toggle Diagrams  (D)", None)?,
             &item(app, "inspector", "Toggle Inspector  (I)", None)?,
             &separator()?,
             &PredefinedMenuItem::fullscreen(app, None)?,

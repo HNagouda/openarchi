@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 
+use crate::catalog;
 use crate::project::{packed_scene, Project, PROJECT_FORMAT_VERSION};
 use crate::scene::Scene;
 use crate::{Error, Result};
@@ -33,8 +34,14 @@ pub fn migrate(mut value: Value) -> Result<Project> {
     }
     debug_assert_eq!(version, u64::from(PROJECT_FORMAT_VERSION));
 
-    serde_json::from_value(value)
-        .map_err(|e| Error::Invalid(format!("not a valid openarchi project: {e}")))
+    let project: Project = serde_json::from_value(value)
+        .map_err(|e| Error::Invalid(format!("not a valid openarchi project: {e}")))?;
+    // Not a format change: built-in diagrams that were folded into another as
+    // variants, in any version, open on the variant they became.
+    Ok(Project {
+        look: catalog::current_look(project.look),
+        ..project
+    })
 }
 
 /// Version 1 stored the scene as plain JSON; version 2 stores it packed.

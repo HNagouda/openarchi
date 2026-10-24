@@ -72,8 +72,8 @@ export function errorText(error: unknown): string {
   return "Something went wrong.";
 }
 
-export const exportFileName = (diagramId: string, format: ExportFormat) =>
-  invoke<string>("export_file_name", { diagramId, format });
+export const exportFileName = (diagramId: string, variant: string | null, format: ExportFormat) =>
+  invoke<string>("export_file_name", { diagramId, variant, format });
 
 export const getRatios = (themeId: string) => invoke<Ratios>("get_ratios", { themeId });
 export const ratiosFileName = () => invoke<string>("ratios_file_name");

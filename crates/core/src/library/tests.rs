@@ -418,3 +418,21 @@ fn a_damaged_packed_scene_is_refused_with_a_reason() {
     let error = library.load(&project.id).unwrap_err().to_string();
     assert!(error.contains("stored scene is damaged"), "{error}");
 }
+
+#[test]
+fn a_project_saved_on_a_folded_diagram_opens_on_its_variant() {
+    let (folder, library) = library();
+    let project = library.create("Westermarkt", westermarkt()).unwrap();
+    let path = folder
+        .path()
+        .join(format!("projects/{}.openarchi", project.id));
+    let mut value: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+    value["look"]["diagram_id"] = Value::from("traffic-noise");
+    value["look"].as_object_mut().unwrap().remove("variant");
+    fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+
+    let loaded = library.load(&project.id).unwrap();
+
+    assert_eq!(loaded.look.diagram_id, "noise");
+    assert_eq!(loaded.look.variant.as_deref(), Some("road"));
+}

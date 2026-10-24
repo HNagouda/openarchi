@@ -2,7 +2,7 @@
 //! noise, air, flood depth, slope, population and BAG dwellings. Checks that
 //! the bands, legends, credits, ratios and summary agree with each other.
 
-use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
+use openarchi_core::catalog::{builtin_diagrams, builtin_themes, find_plate};
 use openarchi_core::environment::summarise;
 use openarchi_core::project::Look;
 use openarchi_core::ratios;
@@ -14,13 +14,13 @@ const FIXTURE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/tests/fixtures/westerkerk-environment.scene.json"
 );
-/// The diagrams that draw the environment layers.
+/// The diagrams, or diagram variants, that draw the environment layers.
 const ENVIRONMENT_DIAGRAMS: [&str; 9] = [
-    "traffic-noise",
-    "noise-all-sources",
-    "air-quality",
-    "air-quality-pm10",
-    "air-quality-pm25",
+    "noise:road",
+    "noise:all",
+    "air-quality:no2",
+    "air-quality:pm10",
+    "air-quality:pm25",
     "flood",
     "slope",
     "population",
@@ -35,11 +35,11 @@ fn westerkerk() -> Scene {
 fn svg_of(scene: &Scene, diagram_id: &str, theme_id: &str) -> String {
     let diagrams = builtin_diagrams();
     let themes = builtin_themes();
-    let diagram = diagrams.iter().find(|d| d.id == diagram_id).unwrap();
+    let diagram = find_plate(&diagrams, diagram_id).unwrap();
     let theme = themes.iter().find(|t| t.id == theme_id).unwrap();
     render_svg(&RenderInput {
         scene,
-        diagram,
+        diagram: &diagram,
         theme,
         look: &Look::default(),
     })
@@ -61,7 +61,7 @@ fn every_environment_diagram_renders_in_every_theme() {
 
 #[test]
 fn the_noise_legend_gives_unit_and_year_and_the_sheet_credits_rivm() {
-    let svg = svg_of(&westerkerk(), "traffic-noise", "paper");
+    let svg = svg_of(&westerkerk(), "noise:road", "paper");
     assert!(svg.contains("RIVM, 2022"));
     assert!(svg.contains("55–60 dB"));
     assert!(svg.contains("RIVM Atlas Leefomgeving"));
@@ -69,6 +69,33 @@ fn the_noise_legend_gives_unit_and_year_and_the_sheet_credits_rivm() {
         !svg.contains("LIWO"),
         "a noise sheet does not credit the flood map"
     );
+}
+
+#[test]
+fn the_look_variant_picks_the_measure_air_quality_colours() {
+    let diagram = builtin_diagrams()
+        .into_iter()
+        .find(|d| d.id == "air-quality")
+        .unwrap();
+    let theme = builtin_themes().into_iter().next().unwrap();
+    let look = Look {
+        diagram_id: "air-quality".to_string(),
+        variant: Some("pm25".to_string()),
+        ..Look::default()
+    };
+
+    let svg = render_svg(&RenderInput {
+        scene: &westerkerk(),
+        diagram: &diagram,
+        theme: &theme,
+        look: &look,
+    })
+    .unwrap();
+
+    // Legend titles may be set in capitals, so compare without case.
+    let text = svg.to_lowercase();
+    assert!(text.contains("fine particulate matter (pm2.5)"));
+    assert!(!text.contains("nitrogen dioxide"));
 }
 
 #[test]
@@ -139,7 +166,12 @@ fn ratios_add_dwellings_bag_floor_area_and_noise_shares() {
 #[test]
 fn every_band_edge_is_a_break_of_its_diagram_so_legend_and_map_agree() {
     let scene = westerkerk();
-    for diagram in builtin_diagrams() {
+    let drawings = builtin_diagrams()
+        .iter()
+        .flat_map(|diagram| diagram.drawings())
+        .map(|(_, drawing)| drawing)
+        .collect::<Vec<_>>();
+    for diagram in drawings {
         let Some(classify) = diagram.classify else {
             continue;
         };

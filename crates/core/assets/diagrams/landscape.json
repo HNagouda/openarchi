@@ -1,6 +1,7 @@
 {
   "id": "landscape",
   "name": "Landscape",
+  "group": "Environment",
   "description": "Green, trees and water, with the built fabric pushed back.",
   "layers": [
     "yard",

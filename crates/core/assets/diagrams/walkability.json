@@ -1,6 +1,7 @@
 {
   "id": "walkability",
   "name": "Walkability",
+  "group": "Movement and places",
   "description": "How far one walks from the site in 5, 10 and 15 minutes, and the facilities within reach.",
   "layers": [
     "water",

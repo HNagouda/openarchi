@@ -137,10 +137,9 @@ pub(super) fn classified(
     Ok(finish(id, &classify.title, Unit::Buildings, rows, None))
 }
 
+/// The classes of a built-in diagram, or of one variant: "noise:road".
 pub(super) fn diagram_classify(id: &str) -> Result<Classify> {
-    catalog::builtin_diagrams()
-        .into_iter()
-        .find(|diagram| diagram.id == id)
+    catalog::find_plate(&catalog::builtin_diagrams(), id)
         .and_then(|diagram| diagram.classify)
         .ok_or_else(|| Error::Invalid(format!("built-in diagram {id:?} has no classes")))
 }

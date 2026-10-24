@@ -17,11 +17,11 @@ export function TourArt({ kind }: { kind: Kind }) {
           </>
         )}
         {kind === "diagram" &&
-          [0, 1, 2].map((column) => (
-            <g key={column} transform={`translate(${12 + column * 58} 22)`}>
-              <rect width="50" height="38" rx="3" className="art-paper" />
-              <circle cx="25" cy="19" r="14" className={column === 1 ? "art-figure" : "art-muted"} />
-              <rect y="46" width="50" height="4" rx="2" className={column === 1 ? "art-accent" : "art-line"} />
+          [0, 1, 2].map((row) => (
+            <g key={row} transform={`translate(40 ${12 + row * 34})`}>
+              <rect width="40" height="28" rx="3" className="art-paper" />
+              <circle cx="20" cy="14" r="10" className={row === 1 ? "art-figure" : "art-muted"} />
+              <rect x="52" y="12" width={row === 1 ? 60 : 46} height="4" rx="2" className={row === 1 ? "art-accent" : "art-line"} />
             </g>
           ))}
         {kind === "theme" &&

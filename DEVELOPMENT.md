@@ -33,6 +33,7 @@ crates/core/            the library: no window, no async
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
   src/export/           SVG -> PDF and PNG, scene -> DXF
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
+  src/catalog/          finding a diagram by id, and the old ids of diagrams folded into variants
   src/project.rs        one site plus the look the user chose
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
@@ -60,7 +61,8 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new data source or country | a module in `crates/core/src/sources/`, called from `site.rs` |
 | A new layer | `Layer` in `scene.rs` (the one list), then a style in every theme |
 | A new raster from a WCS | a `Coverage` in its source module, fetched by `sources/wcs.rs`, turned into bands in `site/environment.rs` with the breaks of the diagram that draws it |
-| A new diagram | a JSON file in `crates/core/assets/diagrams/`, listed in `catalog.rs` |
+| A new diagram | a JSON file in `crates/core/assets/diagrams/` with its `group`, listed in `catalog.rs` next to its group |
+| Another measure for an existing diagram | a variant in that diagram's JSON; a diagram folded into another keeps its old id in `catalog/lookup.rs` |
 | A new theme | a JSON file in `crates/core/assets/themes/`, listed in `catalog.rs` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
 | A new export format | `crates/core/src/export/` |

@@ -13,6 +13,10 @@
 //! 4. for the classified layer: fill comes from the theme's ramp or categories,
 //!    and features with no value get `@unknown`,
 //! 5. the user's layer overrides.
+//!
+//! A diagram can have variants that colour another layer or measure for the
+//! same question. The renderer first turns it into the plain diagram for the
+//! look's variant, with `drawn_as`, so nothing past that point knows about them.
 
 use serde::{Deserialize, Serialize};
 
@@ -23,9 +27,14 @@ pub struct Diagram {
     /// Lowercase, dash-separated, unique: "figure-ground".
     pub id: String,
     pub name: String,
+    /// The heading the picker lists it under: "Environment". Diagrams of one
+    /// group sit next to each other in the catalog.
+    pub group: String,
     /// One sentence on the question it answers, shown in the picker.
     pub description: String,
-    /// Layers drawn, bottom to top.
+    /// Layers drawn, bottom to top. Empty in a diagram with variants, where
+    /// each variant names its own.
+    #[serde(default)]
     pub layers: Vec<Layer>,
     /// The layer the eye should land on.
     pub emphasis: Option<Layer>,
@@ -48,6 +57,67 @@ pub struct Diagram {
     /// with a walk; without one the diagram stays at the site.
     #[serde(default)]
     pub walk_minutes: Option<u32>,
+    /// Ways to draw the same question with another layer or measure, such as
+    /// NO₂, PM10 and PM2.5 for air quality. The first is the default.
+    #[serde(default)]
+    pub variants: Vec<Variant>,
+}
+
+/// One way to draw a diagram. It replaces the diagram's name, description,
+/// layers, emphasis and classification; everything else is shared.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Variant {
+    /// Lowercase, unique within its diagram: "pm10".
+    pub id: String,
+    /// The short label on the switch: "PM10".
+    pub name: String,
+    /// The sheet title when this variant is drawn: "Air quality, PM10".
+    pub title: String,
+    pub description: String,
+    pub layers: Vec<Layer>,
+    pub emphasis: Option<Layer>,
+    pub classify: Option<Classify>,
+}
+
+impl Diagram {
+    /// The variant `id` names, or the first when `id` is `None` or unknown.
+    /// `None` only for a diagram without variants.
+    pub fn variant(&self, id: Option<&str>) -> Option<&Variant> {
+        let named = id.and_then(|id| self.variants.iter().find(|variant| variant.id == id));
+        named.or(self.variants.first())
+    }
+
+    /// The diagram as the renderer draws it for one variant: a plain diagram
+    /// with that variant's fields filled in. A diagram without variants comes
+    /// back unchanged.
+    pub fn drawn_as(&self, variant: Option<&str>) -> Diagram {
+        let Some(chosen) = self.variant(variant) else {
+            return self.clone();
+        };
+
+        Diagram {
+            name: chosen.title.clone(),
+            description: chosen.description.clone(),
+            layers: chosen.layers.clone(),
+            emphasis: chosen.emphasis,
+            classify: chosen.classify.clone(),
+            variants: Vec::new(),
+            ..self.clone()
+        }
+    }
+
+    /// Every sheet this diagram makes, with the variant each one is drawn for:
+    /// one per variant, or the diagram itself.
+    pub fn drawings(&self) -> Vec<(Option<String>, Diagram)> {
+        if self.variants.is_empty() {
+            return vec![(None, self.clone())];
+        }
+
+        self.variants
+            .iter()
+            .map(|variant| (Some(variant.id.clone()), self.drawn_as(Some(&variant.id))))
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -4,8 +4,11 @@
 //! author can copy one as a starting point and the app never depends on files
 //! next to it.
 
+mod lookup;
+
 use std::path::Path;
 
+pub use self::lookup::{current_id, current_look, find_drawing, find_plate, plate_id};
 use crate::diagram::Diagram;
 use crate::render::{is_bundled_font, is_hex, role, ROLES};
 use crate::theme::{LayerStyle, Pattern, Theme, THEME_FORMAT_VERSION};
@@ -15,8 +18,10 @@ const MIN_RAMP_COLOURS: usize = 3;
 const MIN_CATEGORY_COLOURS: usize = 6;
 const THEME_EXTENSION: &str = "json";
 
-/// Built-in diagrams in picker order, in one place.
-const BUILTIN_DIAGRAMS: [(&str, &str); 24] = [
+/// Built-in diagrams in picker order, in one place. The picker shows them under
+/// their `group` headings, so the diagrams of one group stay together here.
+const BUILTIN_DIAGRAMS: [(&str, &str); 21] = [
+    // Context and built form.
     ("context", include_str!("../assets/diagrams/context.json")),
     (
         "figure-ground",
@@ -38,37 +43,29 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 24] = [
         "building-height",
         include_str!("../assets/diagrams/building-height.json"),
     ),
+    ("parcels", include_str!("../assets/diagrams/parcels.json")),
+    // Movement and places.
+    ("movement", include_str!("../assets/diagrams/movement.json")),
+    ("transit", include_str!("../assets/diagrams/transit.json")),
+    (
+        "walkability",
+        include_str!("../assets/diagrams/walkability.json"),
+    ),
+    ("business", include_str!("../assets/diagrams/business.json")),
+    ("facility", include_str!("../assets/diagrams/facility.json")),
+    // Environment.
     (
         "landscape",
         include_str!("../assets/diagrams/landscape.json"),
     ),
-    ("movement", include_str!("../assets/diagrams/movement.json")),
-    ("parcels", include_str!("../assets/diagrams/parcels.json")),
-    ("sun-path", include_str!("../assets/diagrams/sun-path.json")),
-    ("shadow", include_str!("../assets/diagrams/shadow.json")),
-    // Environment and population, from RIVM, LIWO, CBS and BAG units.
-    (
-        "traffic-noise",
-        include_str!("../assets/diagrams/traffic-noise.json"),
-    ),
-    (
-        "noise-all-sources",
-        include_str!("../assets/diagrams/noise-all-sources.json"),
-    ),
+    ("slope", include_str!("../assets/diagrams/slope.json")),
+    ("flood", include_str!("../assets/diagrams/flood.json")),
+    ("noise", include_str!("../assets/diagrams/noise.json")),
     (
         "air-quality",
         include_str!("../assets/diagrams/air-quality.json"),
     ),
-    (
-        "air-quality-pm10",
-        include_str!("../assets/diagrams/air-quality-pm10.json"),
-    ),
-    (
-        "air-quality-pm25",
-        include_str!("../assets/diagrams/air-quality-pm25.json"),
-    ),
-    ("flood", include_str!("../assets/diagrams/flood.json")),
-    ("slope", include_str!("../assets/diagrams/slope.json")),
+    // People.
     (
         "population",
         include_str!("../assets/diagrams/population.json"),
@@ -77,13 +74,9 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 24] = [
         "households",
         include_str!("../assets/diagrams/households.json"),
     ),
-    ("business", include_str!("../assets/diagrams/business.json")),
-    ("facility", include_str!("../assets/diagrams/facility.json")),
-    ("transit", include_str!("../assets/diagrams/transit.json")),
-    (
-        "walkability",
-        include_str!("../assets/diagrams/walkability.json"),
-    ),
+    // Sun and shade.
+    ("sun-path", include_str!("../assets/diagrams/sun-path.json")),
+    ("shadow", include_str!("../assets/diagrams/shadow.json")),
 ];
 
 /// Built-in themes in picker order, in one place. "paper" is the default look.
@@ -343,6 +336,46 @@ mod tests {
         }
         for ((name, _), diagram) in BUILTIN_DIAGRAMS.iter().zip(builtin_diagrams()) {
             assert_eq!(*name, diagram.id);
+        }
+    }
+
+    #[test]
+    fn diagrams_of_one_group_sit_together() {
+        let groups: Vec<String> = builtin_diagrams().into_iter().map(|d| d.group).collect();
+        let mut seen: Vec<&String> = Vec::new();
+        for (index, group) in groups.iter().enumerate() {
+            let is_new = index == 0 || groups[index - 1] != *group;
+            if is_new {
+                assert!(!seen.contains(&group), "group {group:?} is split up");
+                seen.push(group);
+            }
+        }
+    }
+
+    #[test]
+    fn a_diagram_with_variants_takes_its_layers_only_from_them() {
+        for diagram in builtin_diagrams() {
+            if diagram.variants.is_empty() {
+                assert!(!diagram.layers.is_empty(), "{} draws nothing", diagram.id);
+                continue;
+            }
+            assert!(diagram.layers.is_empty(), "{} has layers", diagram.id);
+            assert!(diagram.emphasis.is_none(), "{} has an emphasis", diagram.id);
+            assert!(diagram.classify.is_none(), "{} classifies", diagram.id);
+
+            let mut ids: Vec<&str> = diagram.variants.iter().map(|v| v.id.as_str()).collect();
+            ids.sort_unstable();
+            ids.dedup();
+            assert_eq!(
+                ids.len(),
+                diagram.variants.len(),
+                "{} repeats a variant",
+                diagram.id
+            );
+            for variant in &diagram.variants {
+                assert!(!variant.layers.is_empty(), "{}:{}", diagram.id, variant.id);
+                assert!(!variant.id.contains(':'), "{}:{}", diagram.id, variant.id);
+            }
         }
     }
 }

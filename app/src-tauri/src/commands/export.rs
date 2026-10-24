@@ -30,14 +30,19 @@ pub fn slug(name: &str) -> String {
     }
 }
 
-/// The file name an export of `diagram_id` gets: "westermarkt-figure-ground.pdf".
-fn file_name(project_name: &str, diagram_id: &str, format: ExportFormat) -> String {
-    format!(
-        "{}-{}.{}",
-        slug(project_name),
-        diagram_id,
-        format.extension()
-    )
+/// The file name an export of a diagram, or one of its variants, gets:
+/// "westermarkt-figure-ground.pdf", "westermarkt-air-quality-pm10.pdf".
+fn file_name(
+    project_name: &str,
+    diagram_id: &str,
+    variant: Option<&str>,
+    format: ExportFormat,
+) -> String {
+    let drawing = match variant {
+        Some(variant) => format!("{diagram_id}-{variant}"),
+        None => diagram_id.to_string(),
+    };
+    format!("{}-{drawing}.{}", slug(project_name), format.extension())
 }
 
 /// The suggested name in the save dialog, the same one a series export uses.
@@ -45,13 +50,14 @@ fn file_name(project_name: &str, diagram_id: &str, format: ExportFormat) -> Stri
 pub fn export_file_name(
     state: State<'_, Shared>,
     diagram_id: String,
+    variant: Option<String>,
     format: ExportFormat,
 ) -> String {
     let name = lock(&state.open)
         .as_ref()
         .map(|open| open.project.name.clone())
         .unwrap_or_default();
-    file_name(&name, &diagram_id, format)
+    file_name(&name, &diagram_id, variant.as_deref(), format)
 }
 
 #[tauri::command]
@@ -80,7 +86,10 @@ pub async fn export_sheet(
     .await
 }
 
-/// One file per diagram, in the given look's theme and sheet, named after the project.
+/// One file per diagram, in the given look's theme and sheet, named after the
+/// project. A diagram with variants writes one file per variant: the series is
+/// everything the site shows, and a variant left out would be a sheet missing
+/// without a word.
 #[tauri::command]
 pub async fn export_series(
     state: State<'_, Shared>,
@@ -102,15 +111,19 @@ pub async fn export_series(
 
         let mut written = Vec::new();
         for diagram in &catalog.diagrams {
-            let path: PathBuf = Path::new(&folder).join(file_name(&name, &diagram.id, format));
-            let diagram_look = Look {
-                diagram_id: diagram.id.clone(),
-                ..look.clone()
-            };
-            with_input(&catalog, &scene, &diagram_look, |input| {
-                export(input, format, dpi, &path)
-            })?;
-            written.push(path.display().to_string());
+            for (variant, _) in diagram.drawings() {
+                let file = file_name(&name, &diagram.id, variant.as_deref(), format);
+                let path: PathBuf = Path::new(&folder).join(file);
+                let diagram_look = Look {
+                    diagram_id: diagram.id.clone(),
+                    variant,
+                    ..look.clone()
+                };
+                with_input(&catalog, &scene, &diagram_look, |input| {
+                    export(input, format, dpi, &path)
+                })?;
+                written.push(path.display().to_string());
+            }
         }
         Ok(written)
     })

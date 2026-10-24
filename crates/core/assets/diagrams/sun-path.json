@@ -1,6 +1,7 @@
 {
   "id": "sun-path",
   "name": "Sun path",
+  "group": "Sun and shade",
   "description": "Where the sun stands over the site through the year: the solstice and equinox arcs, hour by hour.",
   "layers": [
     "green",
