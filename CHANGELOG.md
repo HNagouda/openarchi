@@ -145,6 +145,18 @@ Sheets can now show the site in three dimensions and the sun over it.
 
 - `set_look` takes `view` and `sun`, so an assistant can switch views, pick the plates and set the moment for the sun diagrams.
 
+### Your own palettes
+
+- New under the palette menu makes a palette of your own from a few colours. Pick each swatch on a hue wheel with a saturation square inside it, or paste what a palette generator exports: hex codes, a link with the colours in it, or its SVG, JSON or XML file, dropped or chosen. Two to ten swatches; drag one along the row to reorder it, and Delete removes it.
+- openarchi gives every swatch a job by one plain rule: the lightest colour becomes the paper (softened to a pale tint when it is colourful), the darkest the ink, the most colourful the accent, and the colours nearest to blue and green the water and green. Each role says which swatch it took and why, and a click pins it to another swatch instead. Everything else a sheet needs, the ramps, categories and every layer, is mixed from those roles.
+- The editor checks contrast as you go and names the colours that read badly, with their ratio against the WCAG 2.1 thresholds: 4.5:1 for text, 3:1 for buildings and the site outline.
+- The open sheet is drawn live in the palette while you edit it, and ⌘Z inside the editor undoes your last change to the palette.
+- Duplicate starts a palette from the current one. A copy of a built-in palette keeps its hand-made look until you change a colour.
+- Your palettes sit under the built-in eight in the menu and work on every diagram, view and the neighbourhood. Rename one in place, edit it again later with its swatches and pins, or delete it: it moves to Recently Deleted, and Undo in the toast brings it back.
+- Copy a palette's swatches as JSON, CSV or a hex list, to use them elsewhere.
+- Assistants can import a palette with `import_palette` and list yours with `list_user_palettes`.
+- Every ratio group says under its title where its numbers come from, with the edition year where it is known, and the ratios CSV has a source column.
+
 ### Neighbourhood
 
 - Every sheet can show the neighbourhood around the site: buildings, roads, water and green outside the boundary, drawn in the sheet's palette but greyed towards the paper with thinner lines, so the site stays the thing you look at. It fills the drawing area and never reaches the title, legend, scale bar or credits column.
