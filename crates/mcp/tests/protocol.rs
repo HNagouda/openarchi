@@ -8,8 +8,9 @@
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
+use geo::{Geometry, Point};
 use openarchi_core::library::Library;
-use openarchi_core::scene::Scene;
+use openarchi_core::scene::{Attributes, Feature, Layer, Scene, Walk};
 use serde_json::{json, Value};
 use tempfile::TempDir;
 
@@ -23,7 +24,7 @@ const WESTERMARKT_SCENE: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 15] = [
+const TOOLS: [&str; 16] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -35,6 +36,7 @@ const TOOLS: [&str; 15] = [
     "edit_text",
     "render_preview",
     "get_ratios",
+    "get_neighbourhood",
     "export",
     "create_theme",
     "delete_project",
@@ -384,6 +386,46 @@ fn get_ratios_returns_groups_that_add_up_in_the_requested_theme() {
     assert!((shares - 1.0).abs() < 1e-9, "{shares}");
     let message = server.call_err("get_ratios", json!({ "id": id, "theme_id": "nope" }));
     assert!(message.contains("list_themes"), "{message}");
+}
+
+#[test]
+fn get_neighbourhood_counts_places_per_walk_band_and_explains_a_missing_walk() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+    let library = Library::at(server.library.path()).unwrap();
+    let mut project = library.load(&id).unwrap();
+    let mut scene: Scene =
+        serde_json::from_str(&std::fs::read_to_string(WESTERMARKT_SCENE).unwrap()).unwrap();
+    project.scene = Some(scene.clone());
+    library.save(&mut project).unwrap();
+
+    let message = server.call_err("get_neighbourhood", json!({ "id": id }));
+    assert!(message.contains("fetch_site"), "{message}");
+
+    let cafe = Feature {
+        layer: Layer::Business,
+        geometry: Geometry::Point(Point::new(50.0, 0.0)),
+        attributes: Attributes {
+            group: Some("food_drink".to_string()),
+            walk_min: Some(7.5),
+            ..Attributes::default()
+        },
+    };
+    scene.walk = Some(Walk {
+        bands: vec![],
+        paths: vec![],
+        places: vec![cafe],
+    });
+    project.scene = Some(scene);
+    library.save(&mut project).unwrap();
+
+    let neighbourhood = server.call_ok("get_neighbourhood", json!({ "id": id }));
+    let bands = neighbourhood["bands"].as_array().unwrap();
+    let food = |band: usize| bands[band]["businesses"][0]["count"].as_u64().unwrap();
+    assert_eq!(bands.len(), 3);
+    assert_eq!(bands[1]["minutes"], json!(10));
+    assert_eq!(bands[1]["businesses"][0]["group"], json!("food_drink"));
+    assert_eq!((food(0), food(1), food(2)), (0, 1, 1));
 }
 
 #[test]
