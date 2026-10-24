@@ -12,3 +12,14 @@ repository = "https://github.com/HNagouda/openarchi"
 openarchi-core = { path = "crates/core" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# `pnpm tauri dev` runs a debug build, and unoptimised rendering, PNG encoding
+# and zstd are ten times slower than release: an autosave took 3.5 s and every
+# diagram thumbnail up to 3 s. Dependencies are compiled once and rarely
+# change, so they are optimised fully; our own crates get a light pass that
+# keeps rebuilds quick.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
