@@ -14,7 +14,7 @@ use super::svg::layer_attributes;
 use super::text::{self, SheetTexts};
 use super::tools::{write_tools, TOOLS_HEIGHT};
 use super::typeset::{Kind, Typesetter};
-use crate::scene::Scene;
+use crate::scene::{Layer, Scene};
 use crate::sheet::{Sheet, SUBTITLE_ID, TITLE_ID};
 use crate::theme::Palette;
 
@@ -44,6 +44,9 @@ const MARK_RING_RADIUS: f64 = 0.95;
 pub struct Furniture<'a> {
     pub sheet: &'a Sheet,
     pub scene: &'a Scene,
+    /// The layers the diagram draws, so a source only shows up in the credits
+    /// when its data is on the sheet.
+    pub layers: &'a [Layer],
     pub diagram_name: &'a str,
     pub palette: &'a Palette,
     pub mm_per_m: f64,
@@ -314,7 +317,7 @@ fn write_credits_and_mark(
         &furniture.palette.ink,
     );
 
-    let text = credits_text(furniture.scene);
+    let text = credits_text(furniture.scene, furniture.layers);
     if !furniture.sheet.show_credits || text.is_empty() {
         return bottom - typesetter.cap_height(Kind::Mark);
     }
@@ -353,15 +356,18 @@ fn write_mark(out: &mut String, typesetter: &Typesetter, x: f64, baseline: f64, 
 }
 
 /// "Sources: BGT, Kadaster, CC BY 4.0; ... Retrieved 2026-10-24."
-fn credits_text(scene: &Scene) -> String {
-    if scene.credits.is_empty() {
-        return String::new();
-    }
+fn credits_text(scene: &Scene, layers: &[Layer]) -> String {
     let sources: Vec<String> = scene
         .credits
         .iter()
+        .filter(|credit| {
+            credit.layers.is_empty() || credit.layers.iter().any(|layer| layers.contains(layer))
+        })
         .map(|credit| format!("{} ({})", credit.name, credit.license))
         .collect();
+    if sources.is_empty() {
+        return String::new();
+    }
     let date: String = scene.fetched_at.chars().take(10).collect();
     let retrieved = if date.is_empty() {
         String::new()

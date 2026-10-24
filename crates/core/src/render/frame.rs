@@ -123,6 +123,38 @@ impl FrameShape {
         }
     }
 
+    /// A frame `reach_m` around the centre rather than around the site, for a
+    /// plan zoomed out to a walk. The site keeps its outline inside it. An
+    /// area frame becomes a circle, since a walk has no drawn shape to follow.
+    pub fn around(
+        frame: Frame,
+        scene: &Scene,
+        projection: &Projection,
+        reach_m: f64,
+        scope: &str,
+    ) -> FrameShape {
+        let projection = *projection;
+        let centre = projection.ground_centre;
+        let shape = match frame {
+            Frame::Square => Shape::Square {
+                corners: square_corners(centre, reach_m),
+            },
+            Frame::Circle | Frame::Area => Shape::Circle {
+                centre,
+                radius: reach_m,
+            },
+        };
+
+        FrameShape {
+            shape,
+            projection,
+            boundary_path: polygon_path(&scene.boundary, &projection),
+            clip_id: format!("{scope}frame-clip"),
+            is_cropped: false,
+            has_own_edge: true,
+        }
+    }
+
     pub fn clip_id(&self) -> &str {
         &self.clip_id
     }

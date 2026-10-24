@@ -58,6 +58,7 @@ fn fake_pdok(requests: &AtomicUsize, dataset: Dataset, tile: Tile) -> Result<Pay
         }])),
         Dataset::AhnSurface => Ok(Payload::Cells(vec![11.0; CELLS_PER_TILE])),
         Dataset::AhnTerrain => Ok(Payload::Cells(vec![1.0; CELLS_PER_TILE])),
+        Dataset::Osm(_) => Ok(Payload::Osm(br#"{"elements": []}"#.to_vec())),
         _ => Ok(Payload::Records(Vec::new())),
     }
 }

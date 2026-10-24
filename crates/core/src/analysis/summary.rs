@@ -8,6 +8,7 @@ use serde::Serialize;
 
 use crate::ratios::{Group, Ratios};
 use crate::scene::{Layer, Scene};
+use crate::walk::{self, GroupCount};
 
 /// The ratios groups and rows the summary reads. These are the labels
 /// `ratios.rs` gives them; a test fails if they change there.
@@ -60,9 +61,22 @@ pub struct Surroundings {
     pub population: Option<u32>,
     /// Dwellings in the same cells.
     pub dwellings: Option<u32>,
-    /// Facilities (schools, shops, health, culture) within a 15 minute walk (OpenStreetMap).
-    pub facilities_within_15_min: Option<u32>,
+    /// Facilities (schools, health, culture, sport) within a `FACILITY_WALK_MIN` walk (OpenStreetMap).
+    pub facilities_within_walk: Option<usize>,
+    /// Facility groups with nothing within that walk: "Education", "Health".
+    pub facility_groups_missing: Vec<String>,
+    /// Shops, food and drink and other businesses within the same walk.
+    pub businesses_within_walk: Option<usize>,
+    /// Transit stops within a `TRANSIT_WALK_MIN` walk.
+    pub transit_stops_within_walk: Option<usize>,
 }
+
+/// The walk the facility counts are for: the 15 minute city (Moreno et al.,
+/// "Introducing the 15-Minute City", Smart Cities 4, 2021).
+pub const FACILITY_WALK_MIN: u32 = 15;
+/// About 400 m, the walk to a stop that transit planning commonly takes as
+/// close (Walker, "Human Transit", 2011). One of the walk's own bands.
+pub const TRANSIT_WALK_MIN: u32 = 5;
 
 pub fn summarise(scene: &Scene, ratios: &Ratios) -> SiteSummary {
     let heights: Vec<f64> = buildings(scene)
@@ -95,12 +109,37 @@ pub fn land_use(ratios: &Ratios) -> Option<&Group> {
     group(ratios, LAND_USE_GROUP)
 }
 
-// #! TODO[analysis, integration] : Fill these from the environment and walkability layers once they are merged
+// #! TODO[analysis, integration] : Fill noise, NO2, flood, population and dwellings from the environment layers once they are merged
 // The environment branch should give `environment::site_numbers(scene) -> EnvironmentNumbers`
-// with noise_lden_db, no2_ug_m3, flood_depth_m, population and dwellings as Option fields, and
-// the walkability branch `walkability::facilities_within(scene, minutes) -> Option<u32>`.
-fn surroundings(_scene: &Scene) -> Surroundings {
-    Surroundings::default()
+// with noise_lden_db, no2_ug_m3, flood_depth_m, population and dwellings as Option fields.
+fn surroundings(scene: &Scene) -> Surroundings {
+    let Some(neighbourhood) = walk::neighbourhood(scene) else {
+        return Surroundings::default();
+    };
+    let band = |minutes: u32| {
+        neighbourhood
+            .bands
+            .iter()
+            .find(|band| band.minutes == minutes)
+    };
+    let total = |groups: &[GroupCount]| groups.iter().map(|group| group.count).sum::<usize>();
+    let facilities = band(FACILITY_WALK_MIN);
+
+    Surroundings {
+        facilities_within_walk: facilities.map(|band| total(&band.facilities)),
+        facility_groups_missing: facilities
+            .map(|band| {
+                band.facilities
+                    .iter()
+                    .filter(|group| group.count == 0)
+                    .map(|group| group.label.clone())
+                    .collect()
+            })
+            .unwrap_or_default(),
+        businesses_within_walk: facilities.map(|band| total(&band.businesses)),
+        transit_stops_within_walk: band(TRANSIT_WALK_MIN).map(|band| total(&band.transit_stops)),
+        ..Surroundings::default()
+    }
 }
 
 fn buildings(scene: &Scene) -> impl Iterator<Item = &crate::scene::Feature> {

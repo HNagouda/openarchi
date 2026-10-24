@@ -11,7 +11,7 @@ use super::locator::locator;
 use super::notes;
 use super::rain::{Rain, RAIN_DAY_MM};
 use super::roses;
-use super::summary::{land_use, SiteSummary};
+use super::summary::{land_use, SiteSummary, FACILITY_WALK_MIN, TRANSIT_WALK_MIN};
 use super::{Fact, Section, SectionNotes};
 use crate::ratios::{area_text, grouped, Ratios};
 use crate::scene::Credit;
@@ -129,8 +129,17 @@ fn surroundings_facts(summary: &SiteSummary, facts: &mut Vec<Fact>) {
     if let Some(dwellings) = surroundings.dwellings {
         facts.push(fact("Dwellings", grouped(dwellings as f64)));
     }
-    if let Some(facilities) = surroundings.facilities_within_15_min {
-        facts.push(fact("Facilities, 15 min walk", grouped(facilities as f64)));
+    if let Some(facilities) = surroundings.facilities_within_walk {
+        let label = format!("Facilities, {FACILITY_WALK_MIN} min walk");
+        facts.push(fact(&label, grouped(facilities as f64)));
+    }
+    if let Some(businesses) = surroundings.businesses_within_walk {
+        let label = format!("Shops and food, {FACILITY_WALK_MIN} min walk");
+        facts.push(fact(&label, grouped(businesses as f64)));
+    }
+    if let Some(stops) = surroundings.transit_stops_within_walk {
+        let label = format!("Transit stops, {TRANSIT_WALK_MIN} min walk");
+        facts.push(fact(&label, grouped(stops as f64)));
     }
 }
 

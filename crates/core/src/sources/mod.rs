@@ -15,5 +15,6 @@ pub mod grid;
 pub mod heights;
 pub mod http;
 pub mod knmi;
+pub mod osm;
 pub mod pdok;
 pub mod pvgis;

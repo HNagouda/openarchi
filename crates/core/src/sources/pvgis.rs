@@ -33,6 +33,7 @@ pub fn credit() -> Credit {
         name: "PVGIS typical meteorological year, European Commission JRC".to_string(),
         license: "Free reuse with acknowledgement (Commission Decision 2011/833/EU)".to_string(),
         url: "https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis_en".to_string(),
+        layers: Vec::new(),
     }
 }
 

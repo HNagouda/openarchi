@@ -144,9 +144,11 @@ pub fn scene() -> Scene {
             name: "BGT, via PDOK".to_string(),
             license: "CC0 1.0".to_string(),
             url: "https://www.pdok.nl".to_string(),
+            layers: vec![],
         }],
         fetched_at: "2026-10-24T07:15:23Z".to_string(),
         warnings: vec![],
+        walk: None,
     }
 }
 

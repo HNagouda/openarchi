@@ -26,6 +26,7 @@ pub fn credit() -> Credit {
         name: "KNMI daily weather data".to_string(),
         license: "CC BY 4.0".to_string(),
         url: "https://www.knmi.nl/nederland-nu/klimatologie/daggegevens".to_string(),
+        layers: Vec::new(),
     }
 }
 

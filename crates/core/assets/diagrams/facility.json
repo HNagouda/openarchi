@@ -1,0 +1,51 @@
+{
+  "id": "facility",
+  "name": "Facilities",
+  "description": "Schools, culture, civic buildings, health, sport and parking on the site, from OpenStreetMap.",
+  "layers": [
+    "water",
+    "green",
+    "building",
+    "facility"
+  ],
+  "emphasis": "facility",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "facility",
+    "attribute": "group",
+    "title": "Facilities",
+    "scheme": {
+      "kind": "categorical",
+      "categories": [
+        {
+          "value": "education",
+          "label": "Education"
+        },
+        {
+          "value": "culture",
+          "label": "Culture"
+        },
+        {
+          "value": "civic",
+          "label": "Civic and worship"
+        },
+        {
+          "value": "health",
+          "label": "Health"
+        },
+        {
+          "value": "leisure",
+          "label": "Sport and play"
+        },
+        {
+          "value": "parking",
+          "label": "Car parking"
+        }
+      ]
+    }
+  }
+}

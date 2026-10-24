@@ -90,6 +90,44 @@ fn the_summary_agrees_with_the_ratios() {
 }
 
 #[test]
+fn the_summary_counts_the_walk_and_names_what_is_missing() {
+    use crate::scene::{Attributes, Feature, Layer, Walk};
+    let place = |layer: Layer, group: &str, walk_min: f64| Feature {
+        layer,
+        geometry: geo::Geometry::Point(geo::Point::new(0.0, 0.0)),
+        attributes: Attributes {
+            group: Some(group.to_string()),
+            walk_min: Some(walk_min),
+            ..Attributes::default()
+        },
+    };
+    let mut scene = westermarkt();
+    scene.walk = Some(Walk {
+        bands: vec![],
+        paths: vec![],
+        places: vec![
+            place(Layer::Facility, "education", 6.0),
+            place(Layer::Facility, "health", 14.0),
+            place(Layer::Business, "shop", 3.0),
+            place(Layer::TransitStop, "tram", 8.0),
+        ],
+    });
+    let ratios = ratios::compute(&scene, &theme("paper")).unwrap();
+    let summary = summary::summarise(&scene, &ratios);
+    let surroundings = &summary.surroundings;
+
+    assert_eq!(surroundings.facilities_within_walk, Some(2));
+    assert_eq!(surroundings.businesses_within_walk, Some(1));
+    // The tram stop is 8 minutes away, outside the 5 minute walk.
+    assert_eq!(surroundings.transit_stops_within_walk, Some(0));
+    assert!(surroundings
+        .facility_groups_missing
+        .contains(&"Culture".to_string()));
+    let notes = notes::site_notes(&summary);
+    assert!(notes.iter().any(|note| note.starts_with("No transit stop")));
+}
+
+#[test]
 fn the_climate_is_a_mild_dutch_year_with_south_westerly_winter_wind() {
     let (_folder, cache) = recorded_cache();
     let (climate, warnings) = climate(&westermarkt(), &cache).unwrap();

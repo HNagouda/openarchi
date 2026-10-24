@@ -6,7 +6,7 @@
 
 use super::climate::{Climate, COMFORTABLE_BAND, COMFORT_EDGES_C, SEASONS, WINTER_HALF};
 use super::rain::Rain;
-use super::summary::SiteSummary;
+use super::summary::{SiteSummary, FACILITY_WALK_MIN, TRANSIT_WALK_MIN};
 
 /// Closed urban blocks have a ground space index of about 0.4 to 0.6, open
 /// row housing and slabs 0.15 to 0.3 (Berghauser Pont and Haupt, "Spacematrix", 2010).
@@ -105,6 +105,14 @@ pub fn site_notes(summary: &SiteSummary) -> Vec<String> {
 
 fn surroundings_notes(summary: &SiteSummary, notes: &mut Vec<String>) {
     let surroundings = &summary.surroundings;
+    if surroundings.transit_stops_within_walk == Some(0) {
+        notes.push(format!("No transit stop is within a {TRANSIT_WALK_MIN} minute walk. Expect more car and bike trips, and room to park both."));
+    }
+    let missing = &surroundings.facility_groups_missing;
+    if surroundings.facilities_within_walk.is_some() && !missing.is_empty() {
+        let names: Vec<String> = missing.iter().map(|name| name.to_lowercase()).collect();
+        notes.push(format!("Within a {FACILITY_WALK_MIN} minute walk there is no {}. A project with ground floor space could bring it here.", list(&names)));
+    }
     if let Some(noise) = surroundings
         .noise_lden_db
         .filter(|db| *db > WHO_ROAD_NOISE_DB)
@@ -339,6 +347,15 @@ fn month_span(months: &[u32]) -> String {
         [only] => only.to_string(),
         [first, .., last] if is_ordered_run && names.len() > 2 => format!("{first} to {last}"),
         [rest @ .., last] => format!("{} and {last}", rest.join(", ")),
+    }
+}
+
+/// ["a", "b", "c"] -> "a, b or c".
+fn list(items: &[String]) -> String {
+    match items {
+        [] => String::new(),
+        [only] => only.clone(),
+        [rest @ .., last] => format!("{} or {last}", rest.join(", ")),
     }
 }
 

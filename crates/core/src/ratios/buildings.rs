@@ -137,7 +137,7 @@ fn classified(
     Ok(finish(id, &classify.title, Unit::Buildings, rows, None))
 }
 
-fn diagram_classify(id: &str) -> Result<Classify> {
+pub(super) fn diagram_classify(id: &str) -> Result<Classify> {
     catalog::builtin_diagrams()
         .into_iter()
         .find(|diagram| diagram.id == id)

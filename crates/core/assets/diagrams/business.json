@@ -1,0 +1,46 @@
+{
+  "id": "business",
+  "name": "Business",
+  "description": "Shops, food and drink, offices, hotels and services on the site, from OpenStreetMap.",
+  "layers": [
+    "water",
+    "building",
+    "business"
+  ],
+  "emphasis": "business",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "business",
+    "attribute": "group",
+    "title": "Businesses",
+    "scheme": {
+      "kind": "categorical",
+      "categories": [
+        {
+          "value": "food_drink",
+          "label": "Food and drink"
+        },
+        {
+          "value": "shop",
+          "label": "Shops"
+        },
+        {
+          "value": "office",
+          "label": "Offices"
+        },
+        {
+          "value": "hotel",
+          "label": "Hotels"
+        },
+        {
+          "value": "service",
+          "label": "Services and crafts"
+        }
+      ]
+    }
+  }
+}

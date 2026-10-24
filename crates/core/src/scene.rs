@@ -24,6 +24,23 @@ pub struct Scene {
     pub fetched_at: String,
     /// Sources that failed. The scene is still usable without them.
     pub warnings: Vec<String>,
+    /// The walkable neighbourhood, which reaches past the boundary. `None` for
+    /// sites fetched before it existed, or when OpenStreetMap could not be reached.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub walk: Option<Walk>,
+}
+
+/// Everything within a 15 minute walk of the site centre, in the scene's local
+/// frame. Unlike `Scene::features` it is not clipped to the boundary, because
+/// a walk does not stop at the edge of the drawn area.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Walk {
+    /// One area per band (5, 10 and 15 minutes), each holding the ones before it.
+    pub bands: Vec<Feature>,
+    /// The streets and paths the walk was computed on, for context outside the site.
+    pub paths: Vec<Feature>,
+    /// Business, facility and transit points within reach, each with its walk time.
+    pub places: Vec<Feature>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,6 +65,18 @@ pub struct Attributes {
     pub height_m: Option<f64>,
     /// Ground level above NAP.
     pub ground_m: Option<f64>,
+    /// A place's or a stop's own name: "Westermarkt".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The group a point is classified by, such as "food_drink" or "tram".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<String>,
+    /// The transit lines that call at a stop: "13", "17", "N80".
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub lines: Vec<String>,
+    /// Minutes on foot from the site centre; for a walk band, the band's limit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub walk_min: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,6 +84,10 @@ pub struct Credit {
     pub name: String,
     pub license: String,
     pub url: String,
+    /// The layers this source provides. A credit with layers is only printed on
+    /// sheets that draw one of them; an empty list is printed on every sheet.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub layers: Vec<Layer>,
 }
 
 /// Every layer a scene can hold, in one place. Themes and diagrams refer to
@@ -89,11 +122,23 @@ pub enum Layer {
     Parcel,
     /// Terrain contour lines.
     Contour,
+    /// Shops, food and drink, offices, hotels and services, as points.
+    Business,
+    /// Schools, culture, civic, health, leisure and parking, as points.
+    Facility,
+    /// Bus, tram, metro, train and ferry stops, as points.
+    TransitStop,
+    /// Streets and paths of the walk network, which reach past the site.
+    WalkPath,
+    /// Areas within 5, 10 and 15 minutes on foot.
+    WalkBand,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 18] = [
+    pub const ALL: [Layer; 23] = [
+        Layer::WalkBand,
+        Layer::WalkPath,
         Layer::Unpaved,
         Layer::Paved,
         Layer::Yard,
@@ -112,6 +157,9 @@ impl Layer {
         Layer::Parcel,
         Layer::Tree,
         Layer::Building,
+        Layer::Facility,
+        Layer::Business,
+        Layer::TransitStop,
     ];
 
     pub fn label(self) -> &'static str {
@@ -134,6 +182,11 @@ impl Layer {
             Layer::Tree => "Trees",
             Layer::Parcel => "Parcels",
             Layer::Contour => "Contours",
+            Layer::Business => "Businesses",
+            Layer::Facility => "Facilities",
+            Layer::TransitStop => "Transit stops",
+            Layer::WalkPath => "Walking routes",
+            Layer::WalkBand => "Walk times",
         }
     }
 }

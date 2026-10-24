@@ -4,22 +4,27 @@
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
+use geo::CoordsIter;
+
 use super::color;
-use super::drawing::{pattern_id, shadow_colour, write_layer, Canvas};
+use super::drawing::{pattern_id, shadow_colour, write_layer, Canvas, Drawn};
 use super::frame::{ground_outline, FrameShape};
 use super::geometry::{ground_centre, Projection};
 use super::layout::{Layout, Rect};
 use super::legend::{self, Legend, Row, Swatch};
 use super::patterns;
+use super::points::{self, PointLayer};
 use super::shadow;
 use super::solid;
 use super::style::{self, ResolvedLayer, Role};
 use super::sunpath::{self, SunPath};
 use super::svg::layer_attributes;
 use super::typeset::Typesetter;
+use super::walk_bands::{self, Bands};
 use super::RenderInput;
 use crate::diagram::{Diagram, Solar};
 use crate::scene::{Feature, Layer, Scene};
+use crate::sources::osm;
 use crate::sun::{self, SunPosition};
 use crate::theme::Theme;
 use crate::Result;
@@ -37,6 +42,9 @@ const LIGHT_SHEET_LUMINANCE: f64 = 0.5;
 const DARK_MASSING_LUMINANCE: f64 = 0.4;
 /// How far a dark building fill moves towards the paper colour.
 const MASSING_LIGHTEN: f64 = 0.82;
+const MERGED_LABEL: &str = "Larger symbol: several places together";
+/// Room around the furthest walk band, so its edge does not touch the frame.
+const WALK_FRAME_MARGIN: f64 = 1.04;
 /// Scale denominators a fitted axonometric snaps to, so the note reads like a real scale.
 const NICE_SCALES: [u32; 18] = [
     500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10_000, 12_500, 15_000,
@@ -66,6 +74,9 @@ pub struct MapSpec<'a> {
     pub has_volume: bool,
     /// A plate in an explode view: a plain frame edge and no labels.
     pub is_plate: bool,
+    /// A plan zoomed out to a walk: the frame reaches this far from the
+    /// centre, in metres, instead of hugging the site.
+    pub reach_m: Option<f64>,
 }
 
 pub struct Map {
@@ -76,14 +87,25 @@ pub struct Map {
 
 pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Result<SheetDrawing> {
     let sheet = &input.look.sheet;
-    let projection = Projection::new(&input.scene.boundary, sheet.scale, &layout.drawing);
+    let zone = layout.drawing;
+    let mut projection = Projection::new(&input.scene.boundary, sheet.scale, &zone);
+    let mut scale = sheet.scale;
+    let mut reach_m = None;
+    if let Some(walk_reach_m) = walk_reach(input, projection.ground_centre) {
+        // Zoom out until the walk fits, and never in past the sheet's own scale.
+        let fitting_mm_per_m = zone.width.min(zone.height) / (2.0 * walk_reach_m);
+        scale = fitted_scale(sheet.scale, fitting_mm_per_m);
+        projection = projection.scaled_to(1000.0 / scale as f64);
+        reach_m = Some(walk_reach_m.max(site_reach(input.scene, projection.ground_centre)));
+    }
     let spec = MapSpec {
         diagram: input.diagram,
         projection,
-        crop_zone: Some(layout.drawing),
+        crop_zone: Some(zone),
         scope: String::new(),
         has_volume: false,
         is_plate: false,
+        reach_m,
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -92,7 +114,7 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
         body: map.body,
         legend: sheet.show_legend.then_some(map.legend),
         mm_per_m: projection.mm_per_m,
-        scale: sheet.scale,
+        scale,
         north_deg: 0.0,
         has_scale_bar: true,
         title_name: input.diagram.name.clone(),
@@ -138,6 +160,7 @@ pub fn axonometric(
         scope: String::new(),
         has_volume: true,
         is_plate: false,
+        reach_m: None,
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -165,6 +188,57 @@ fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
         .copied()
         .find(|&scale| scale as f64 >= needed)
         .unwrap_or_else(|| (needed / 1000.0).ceil() as u32 * 1000)
+}
+
+/// A row after the classes saying what a larger symbol means.
+fn add_merged_row(legend: &mut Legend, ink: &str) {
+    let after_classes = legend
+        .rows
+        .iter()
+        .rposition(|row| matches!(row.swatch, Swatch::Symbol { .. }))
+        .map_or(0, |index| index + 1);
+    legend.rows.insert(
+        after_classes,
+        Row {
+            label: MERGED_LABEL.to_string(),
+            swatch: Swatch::Dot {
+                fill: None,
+                stroke: Some(ink.to_string()),
+                opacity: 1.0,
+            },
+        },
+    );
+}
+
+/// For a walk diagram, how far its furthest drawn band reaches from `centre`,
+/// with a little room. `None` for other diagrams and scenes without a walk.
+fn walk_reach(input: &RenderInput, centre: (f64, f64)) -> Option<f64> {
+    let minutes = f64::from(input.diagram.walk_minutes?);
+    let walk = input.scene.walk.as_ref()?;
+    let furthest = walk
+        .bands
+        .iter()
+        .filter(|band| {
+            band.attributes
+                .walk_min
+                .is_some_and(|band_min| band_min <= minutes)
+        })
+        .flat_map(|band| band.geometry.coords_iter())
+        .map(|coord| ((coord.x - centre.0).powi(2) + (coord.y - centre.1).powi(2)).sqrt())
+        .fold(0.0, f64::max);
+
+    (furthest > 0.0).then_some(furthest * WALK_FRAME_MARGIN)
+}
+
+/// The furthest the site boundary reaches from `centre`, so a zoomed-out frame never cuts the site.
+fn site_reach(scene: &Scene, centre: (f64, f64)) -> f64 {
+    scene
+        .boundary
+        .exterior()
+        .0
+        .iter()
+        .map(|coord| ((coord.x - centre.0).powi(2) + (coord.y - centre.1).powi(2)).sqrt())
+        .fold(0.0, f64::max)
 }
 
 fn tallest_building(scene: &Scene) -> f64 {
@@ -223,13 +297,16 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     let palette = &theme.palette;
     let scope = spec.scope.as_str();
     let projection = spec.projection;
-    let frame = FrameShape::new(
-        look.sheet.frame,
-        scene,
-        &projection,
-        spec.crop_zone.as_ref(),
-        scope,
-    );
+    let frame = match spec.reach_m {
+        Some(reach_m) => FrameShape::around(look.sheet.frame, scene, &projection, reach_m, scope),
+        None => FrameShape::new(
+            look.sheet.frame,
+            scene,
+            &projection,
+            spec.crop_zone.as_ref(),
+            scope,
+        ),
+    };
     let mut layers = style::resolve_layers(diagram, theme, look)?;
     if !projection.is_plan() {
         // A drop shadow is a flat trick; tilted views cast real ones or none.
@@ -240,7 +317,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     if spec.has_volume {
         lighten_massing(&mut layers, look, theme);
     }
-    let features = features_by_layer(scene);
+    let features = features_by_layer(scene, diagram);
     let canvas = Canvas {
         projection,
         clip_id: frame.clip_id(),
@@ -267,6 +344,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     let casters = shadow_casters(&layers, &features);
     let mut drawn = Vec::with_capacity(layers.len());
     let mut has_shadows = false;
+    let mut band_rows = Vec::new();
+    let mut transit_lines = Vec::new();
+    let mut has_merged_points = false;
     for resolved in &layers {
         let layer_features = layer_features(&features, resolved.layer);
         let is_caster = matches!(resolved.layer, Layer::Building | Layer::Tree);
@@ -283,6 +363,40 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         }
         if spec.has_volume && is_caster {
             drawn.push(solid::drawn(resolved, layer_features, diagram));
+            continue;
+        }
+        if resolved.layer == Layer::WalkBand {
+            let bands = Bands {
+                resolved,
+                features: layer_features,
+                canvas: &canvas,
+                paper: &palette.paper,
+                typesetter,
+                has_labels: !spec.is_plate,
+            };
+            band_rows = walk_bands::write(&mut body, &bands);
+            // The bands bring their own legend rows, one per band.
+            drawn.push(Drawn {
+                has_features: false,
+                classes_present: Vec::new(),
+                has_unknown: false,
+            });
+            continue;
+        }
+        if legend::is_point_layer(resolved.layer) {
+            let point_layer = PointLayer {
+                resolved,
+                features: layer_features,
+                diagram,
+                canvas: &canvas,
+                paper: &palette.paper,
+                typesetter,
+                has_labels: !spec.is_plate,
+            };
+            let drawn_points = points::write(&mut body, &point_layer);
+            transit_lines.extend(drawn_points.lines);
+            has_merged_points |= drawn_points.has_merged;
+            drawn.push(drawn_points.drawn);
             continue;
         }
         drawn.push(write_layer(
@@ -323,6 +437,14 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     }
 
     let mut legend = legend::build(&layers, &drawn, diagram, &palette.accent);
+    add_lines_to_mode_rows(&mut legend, &transit_lines);
+    if has_merged_points {
+        add_merged_row(&mut legend, &palette.ink);
+    }
+    let site_row = legend.rows.len() - 1;
+    for (offset, row) in band_rows.into_iter().enumerate() {
+        legend.rows.insert(site_row + offset, row);
+    }
     if is_shadow_diagram {
         legend.rows.push(shadow_row(&sun, look, theme));
     }
@@ -457,13 +579,68 @@ fn layer_features<'a, 'b>(
     features.get(&layer).map(Vec::as_slice).unwrap_or(&[])
 }
 
-fn features_by_layer(scene: &Scene) -> BTreeMap<Layer, Vec<&Feature>> {
+/// The scene's features by layer. A walk diagram takes its places, paths
+/// and bands from the walk instead, which reaches past the site, keeping
+/// only what lies within its minutes.
+fn features_by_layer<'a>(scene: &'a Scene, diagram: &Diagram) -> BTreeMap<Layer, Vec<&'a Feature>> {
     let mut grouped: BTreeMap<Layer, Vec<&Feature>> = BTreeMap::new();
+    let walk = diagram.walk_minutes.zip(scene.walk.as_ref());
     for feature in &scene.features {
+        if walk.is_some() && legend::is_point_layer(feature.layer) {
+            continue;
+        }
         grouped.entry(feature.layer).or_default().push(feature);
+    }
+    if let Some((minutes, walk)) = walk {
+        let is_within = |feature: &&Feature| {
+            feature
+                .attributes
+                .walk_min
+                .is_some_and(|walk_min| walk_min <= f64::from(minutes))
+        };
+        let within = walk.places.iter().chain(&walk.bands).filter(is_within);
+        for feature in within.chain(&walk.paths) {
+            grouped.entry(feature.layer).or_default().push(feature);
+        }
     }
 
     grouped
+}
+
+/// "Tram" -> "Tram 2 · 13 · 17": each transit mode lists the lines that call
+/// at a drawn stop. A mode whose lines only call at stops of a busier mode,
+/// such as buses at a tram stop, gets a row of its own without a symbol.
+fn add_lines_to_mode_rows(legend: &mut Legend, lines: &[String]) {
+    let mut after_symbols = legend
+        .rows
+        .iter()
+        .rposition(|row| matches!(row.swatch, Swatch::Symbol { .. }))
+        .map_or(0, |index| index + 1);
+    for (_, mode) in osm::TRANSIT_GROUPS {
+        let prefix = format!("{mode} ");
+        let mut of_mode: Vec<String> = lines
+            .iter()
+            .filter(|line| line.starts_with(&prefix))
+            .cloned()
+            .collect();
+        if of_mode.is_empty() {
+            continue;
+        }
+        of_mode.sort_by_key(|line| osm::line_order(&line[prefix.len()..]));
+        let label = format!("{mode} {}", points::line_numbers(&of_mode));
+        match legend.rows.iter_mut().find(|row| row.label == mode) {
+            Some(row) => row.label = label,
+            None => {
+                let swatch = Swatch::Dot {
+                    fill: None,
+                    stroke: None,
+                    opacity: 0.0,
+                };
+                legend.rows.insert(after_symbols, Row { label, swatch });
+                after_symbols += 1;
+            }
+        }
+    }
 }
 
 #[cfg(test)]

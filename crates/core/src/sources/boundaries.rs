@@ -36,6 +36,7 @@ pub fn credit() -> Credit {
         name: "Bestuurlijke gebieden, Kadaster, via PDOK".to_string(),
         license: "CC BY 4.0".to_string(),
         url: "https://www.pdok.nl/introductie/-/article/bestuurlijke-gebieden".to_string(),
+        layers: Vec::new(),
     }
 }
 
@@ -45,6 +46,7 @@ pub fn country_credit() -> Credit {
         name: "CBS gebiedsindelingen, via PDOK".to_string(),
         license: "CC BY 4.0".to_string(),
         url: "https://www.pdok.nl/introductie/-/article/cbs-gebiedsindelingen".to_string(),
+        layers: Vec::new(),
     }
 }
 

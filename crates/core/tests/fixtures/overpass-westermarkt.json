@@ -1,0 +1,20 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API, trimmed by hand for openarchi tests",
+  "osm3s": {"timestamp_osm_base": "2026-10-24T08:00:00Z", "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."},
+  "elements": [
+    {"type": "node", "id": 34044750, "lat": 52.3738812, "lon": 4.8839268, "tags": {"brand": "Albert Heijn", "name": "Albert Heijn", "shop": "supermarket"}},
+    {"type": "node", "id": 101, "lat": 52.3746, "lon": 4.8846, "tags": {"amenity": "restaurant", "name": "Moeders"}},
+    {"type": "node", "id": 102, "lat": 52.3747, "lon": 4.8848, "tags": {"amenity": "bench"}},
+    {"type": "way", "id": 201, "center": {"lat": 52.3752, "lon": 4.8840}, "tags": {"tourism": "museum", "name": "Anne Frank Huis"}},
+    {"type": "node", "id": 301, "lat": 52.37437, "lon": 4.88330, "tags": {"public_transport": "platform", "railway": "tram_stop", "name": "Westermarkt"}},
+    {"type": "node", "id": 302, "lat": 52.37450, "lon": 4.88330, "tags": {"public_transport": "platform", "railway": "tram_stop", "name": "Westermarkt"}},
+    {"type": "node", "id": 303, "lat": 52.37443, "lon": 4.88320, "tags": {"public_transport": "stop_position", "tram": "yes", "name": "Westermarkt"}},
+    {"type": "relation", "id": 401, "members": [{"type": "node", "ref": 303, "role": "stop"}, {"type": "node", "ref": 301, "role": "platform"}, {"type": "way", "ref": 999, "role": ""}], "tags": {"type": "route", "route": "tram", "ref": "13", "name": "Tram 13: Geuzenveld => Centraal"}},
+    {"type": "relation", "id": 402, "members": [{"type": "node", "ref": 302, "role": "platform"}], "tags": {"type": "route", "route": "tram", "ref": "17", "name": "Tram 17: Centraal => Osdorp"}},
+    {"type": "way", "id": 501, "bounds": {}, "nodes": [1, 2], "geometry": [{"lat": 52.3745, "lon": 4.8830}, {"lat": 52.3745, "lon": 4.8850}], "tags": {"highway": "residential", "name": "Westermarkt"}},
+    {"type": "way", "id": 502, "bounds": {}, "nodes": [2, 3], "geometry": [{"lat": 52.3745, "lon": 4.8850}, {"lat": 52.3760, "lon": 4.8850}], "tags": {"highway": "footway", "footway": "sidewalk"}},
+    {"type": "way", "id": 503, "bounds": {}, "nodes": [4, 5], "geometry": [{"lat": 52.3700, "lon": 4.8800}, {"lat": 52.3700, "lon": 4.8900}], "tags": {"highway": "motorway"}},
+    {"type": "way", "id": 504, "bounds": {}, "nodes": [6, 7, 8], "geometry": [{"lat": 52.3730, "lon": 4.8800}, null, {"lat": 52.3730, "lon": 4.8900}], "tags": {"highway": "residential"}}
+  ]
+}
