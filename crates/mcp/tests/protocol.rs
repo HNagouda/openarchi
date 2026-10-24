@@ -23,7 +23,7 @@ const WESTERMARKT_SCENE: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 14] = [
+const TOOLS: [&str; 15] = [
     "search_places",
     "list_projects",
     "create_project",

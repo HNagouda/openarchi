@@ -19,8 +19,8 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::inputs::{
-    CreateProject, CreateTheme, EditText, Export, GetRatios, ListThemes, ProjectId,
-    RenderPreview, SearchPlaces, SetLook,
+    CreateProject, CreateTheme, EditText, Export, GetRatios, ListThemes, ProjectId, RenderPreview,
+    SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
 use crate::resolve::{find_diagram, find_theme, with_render_input};
