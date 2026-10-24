@@ -10,7 +10,7 @@ import { usePlainKeys } from "../lib/keys";
 import { shortcutLabel } from "../lib/platform";
 import { readPreference, writePreference } from "../lib/storage";
 import { chosenVariant, drawnName } from "../lib/diagrams";
-import type { Catalog, Palette, ProjectView } from "../lib/types";
+import type { Catalog, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { CanvasMessage } from "./CanvasMessage";
@@ -24,7 +24,11 @@ import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
 import { TextOverlay } from "./text/TextOverlay";
 import { useTextTool } from "./text/useTextTool";
-import { PaletteSwatches, type Swatch } from "../ui/ColorPicker";
+import { PlateDropLine } from "./plates/PlateDropLine";
+import { usePlateDrag } from "./plates/usePlateDrag";
+import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
+import { PaletteSwatches } from "../ui/ColorPicker";
+import { paletteSwatches } from "./paletteSwatches";
 import { PinOverlay } from "./pins/PinOverlay";
 import { usePinTool } from "./pins/usePinTool";
 import { SelectionDialog } from "./selection/SelectionDialog";
@@ -72,6 +76,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const swatches = theme ? paletteSwatches(theme.palette) : [];
   const isEditable = !isExportOpen && !isAreaOpen && isReady;
   const textTool = useTextTool(look, { change: history.changeLook, seal: history.seal }, canvas, preview.svg, isEditable);
+  const plateDrag = usePlateDrag(look, { change: history.changeLook }, preview.svg);
   const pinTool = usePinTool({
     pins: book.pins,
     onPins: history.changePins,
@@ -278,6 +283,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             onSelect={selectDiagram}
             onVariant={selectVariant}
           />
+          <ColumnResizer column={DIAGRAM_COLUMN} />
         </div>
         <div className="sheet-main">
           <div className="canvas-wrap">
@@ -286,42 +292,44 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               controls={canvas}
               onZoom={setZoom}
               onPaperPointerDown={(event, view) => {
+                // Pins sit on top of the drawing, so they take the press first.
                 if (pinTool.onPaperPointerDown(event, view)) {
                   textTool.setSelectedId(null);
                   return true;
                 }
-                return textTool.onPaperPointerDown(event, view);
+                return textTool.onPaperPointerDown(event, view) || plateDrag.onPaperPointerDown(event, view);
               }}
               onPaperDoubleClick={(event, view) => pinTool.onPaperDoubleClick(event, view) || textTool.onPaperDoubleClick(event, view)}
               overlay={(view) =>
                 preview.svg && (
                   <>
-                  <PinOverlay
-                    view={view}
-                    svg={preview.svg}
-                    pins={book.pins}
-                    selectedId={pinTool.selectedId}
-                    editingId={pinTool.editingId}
-                    drag={pinTool.drag}
-                    onPins={history.changePins}
-                    onSeal={history.seal}
-                    onEdit={() => pinTool.setEditingId(pinTool.selectedId)}
-                    onEditEnd={() => pinTool.setEditingId(null)}
-                    onDeleted={() => pinTool.setSelectedId(null)}
-                  />
-                  <TextOverlay
-                    view={view}
-                    svg={preview.svg}
-                    look={look}
-                    selectedId={textTool.selectedId}
-                    editingId={textTool.editingId}
-                    drag={textTool.drag}
-                    diagramName={diagramName}
-                    onLook={history.changeLook}
-                    onSeal={history.seal}
-                    onEditEnd={() => textTool.setEditingId(null)}
-                    onDeleted={() => textTool.setSelectedId(null)}
-                  />
+                    <PlateDropLine view={view} drag={plateDrag.drag} />
+                    <PinOverlay
+                      view={view}
+                      svg={preview.svg}
+                      pins={book.pins}
+                      selectedId={pinTool.selectedId}
+                      editingId={pinTool.editingId}
+                      drag={pinTool.drag}
+                      onPins={history.changePins}
+                      onSeal={history.seal}
+                      onEdit={() => pinTool.setEditingId(pinTool.selectedId)}
+                      onEditEnd={() => pinTool.setEditingId(null)}
+                      onDeleted={() => pinTool.setSelectedId(null)}
+                    />
+                    <TextOverlay
+                      view={view}
+                      svg={preview.svg}
+                      look={look}
+                      selectedId={textTool.selectedId}
+                      editingId={textTool.editingId}
+                      drag={textTool.drag}
+                      diagramName={diagramName}
+                      onLook={history.changeLook}
+                      onSeal={history.seal}
+                      onEditEnd={() => textTool.setEditingId(null)}
+                      onDeleted={() => textTool.setSelectedId(null)}
+                    />
                   </>
                 )
               }
@@ -359,6 +367,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           />
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
+          <ColumnResizer column={INSPECTOR_COLUMN} />
           {catalog && <Inspector catalog={catalog} project={project} look={look} onLook={history.changeLook} onSeal={history.seal} />}
         </div>
       </div>
@@ -387,12 +396,4 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       )}
     </div>
   );
-}
-
-// The palette roles a colour picker offers on this sheet, in one place.
-const SWATCH_ROLES: (keyof Palette)[] = ["ink", "paper", "figure", "accent", "water", "green", "muted", "ground"];
-
-/** The theme's palette as picker swatches. Picking one for text keeps the role, so it follows theme changes. */
-function paletteSwatches(palette: Palette): Swatch[] {
-  return SWATCH_ROLES.map((role) => ({ value: `@${role}`, colour: palette[role], label: role[0].toUpperCase() + role.slice(1) }));
 }

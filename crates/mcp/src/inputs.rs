@@ -156,6 +156,9 @@ pub struct SheetInput {
     pub show_scale_bar: Option<bool>,
     /// Data sources and licenses in small print. Some sources require it, so leave it on for anything published.
     pub show_credits: Option<bool>,
+    /// The neighbourhood around the site: buildings, roads, water and green
+    /// outside the boundary, drawn muted in the palette. Not in the legend.
+    pub show_context: Option<bool>,
 }
 
 /// "square" is 300 × 300 mm, for social posts and portfolios.

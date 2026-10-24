@@ -100,6 +100,42 @@ fn explode_draws_one_labelled_plate_per_chosen_diagram() {
 }
 
 #[test]
+fn explode_names_each_plate_and_its_place_for_the_app() {
+    let mut look = look_in(ViewMode::Explode);
+    look.view.plates = vec!["building-use".to_string(), "context".to_string()];
+
+    let svg = svg_for("context", "paper", &look);
+
+    assert!(svg.contains(r#"data-plate="building-use" data-index="0" data-centre-y=""#));
+    assert!(svg.contains(r#"data-plate="context" data-index="1" data-centre-y=""#));
+}
+
+#[test]
+fn explode_draws_a_scale_bar_that_holds_left_to_right() {
+    let mut look = look_in(ViewMode::Explode);
+    look.view.plates = vec!["building-use".to_string(), "context".to_string()];
+
+    let svg = svg_for("context", "paper", &look);
+
+    assert!(svg.contains(r#"id="scale-bar""#));
+    assert!(svg.contains(" left to right, on A3</text>"));
+}
+
+#[test]
+fn axonometric_says_its_scale_holds_left_to_right() {
+    let svg = svg_for("context", "paper", &look_in(ViewMode::Axonometric));
+
+    assert!(svg.contains(r#"id="scale-bar""#));
+    assert!(svg.contains(" left to right, on A3</text>"));
+}
+
+#[test]
+fn a_plan_scale_note_has_no_direction() {
+    let svg = svg_for("context", "paper", &look());
+    assert!(!svg.contains("left to right"));
+}
+
+#[test]
 fn explode_refuses_a_plate_that_is_not_a_diagram() {
     let mut look = look_in(ViewMode::Explode);
     look.view.plates = vec!["no-such-diagram".to_string()];

@@ -1,11 +1,11 @@
 import type { Diagram, Look, ViewMode } from "../../lib/types";
-import { Button } from "../../ui/Button";
 import { NumberField } from "../../ui/NumberField";
 import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
 import { Toggle } from "../../ui/Toggle";
-import { plateName, plateOptions } from "../../lib/diagrams";
-import { withPlateMoved, withSun, withView } from "./lookEdits";
+import { plateOptions } from "../../lib/diagrams";
+import { withSun, withView } from "./lookEdits";
+import { PlateList } from "./PlateList";
 
 const MODES: { value: ViewMode; label: string; tip: string }[] = [
   { value: "plan", label: "Plan", tip: "Straight down" },
@@ -59,24 +59,7 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
         {view.mode === "explode" && (
           <div className="field-stack">
             <span className="field-label">Plates, top first</span>
-            {view.plates.map((id, index) => (
-              <div key={id} className="layer-row">
-                <span className="layer-main">{plateName(diagrams, id)}</span>
-                <Button icon="chevronUp" tip="Move up" disabled={index === 0} onClick={() => onLook(withPlateMoved(look, index, -1))} />
-                <Button
-                  icon="chevronDown"
-                  tip="Move down"
-                  disabled={index === view.plates.length - 1}
-                  onClick={() => onLook(withPlateMoved(look, index, 1))}
-                />
-                <Button
-                  icon="close"
-                  tip="Remove plate"
-                  disabled={view.plates.length === 1}
-                  onClick={() => onLook(withView(look, { plates: view.plates.filter((plate) => plate !== id) }))}
-                />
-              </div>
-            ))}
+            <PlateList diagrams={diagrams} look={look} onLook={onLook} />
             {unused.length > 0 && (
               <select
                 className="text-input"

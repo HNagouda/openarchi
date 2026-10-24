@@ -8,6 +8,7 @@
 //! a warning; the scene is only an error when nothing arrived.
 
 mod boundary;
+mod context;
 mod download;
 mod editions;
 mod environment;
@@ -89,6 +90,8 @@ fn build_scene_with(
     // behind several hundred tiles it would start last and finish last.
     let mut jobs = vec![download::osm_job(origin, &boundary)];
     jobs.extend(download::tiles_for(&boundary, bbox, editions));
+    let context_extent = context::extent(&boundary, origin);
+    jobs.extend(context::jobs(&boundary, context_extent));
     // Every tile, then heights and contours, then walk times, then clipping.
     let total = jobs.len() + 3;
     let report = |step: &str, done: usize| {
@@ -109,6 +112,7 @@ fn build_scene_with(
         mut warnings,
         mut measured,
         has_base,
+        context,
     } = join(downloads, bbox, &boundary, editions);
     if !has_base {
         return Err(Error::Network {
@@ -141,6 +145,8 @@ fn build_scene_with(
 
     let (features, unclippable) = clip_and_localise(features, &boundary, origin);
     let features = bands::without_hidden_bands(features);
+    let (context, broken_context) = context::cut(context, &boundary, context_extent, origin);
+    let unclippable = unclippable + broken_context;
     if unclippable > 0 {
         warnings.push(format!(
             "{unclippable} features had broken shapes and were left out."
@@ -169,6 +175,7 @@ fn build_scene_with(
         measured,
         walk,
         editions: editions.years(),
+        context,
     })
 }
 
@@ -206,6 +213,8 @@ struct Joined {
     measured: Measured,
     /// At least one of `BASE_SOURCES` arrived.
     has_base: bool,
+    /// The neighbourhood around the site, in RD New and not cut yet.
+    context: Vec<Feature>,
 }
 
 /// Joins the tiles of each source. A source missing even one tile is left out
@@ -243,6 +252,14 @@ fn join(
     }
 
     let mut joined = Joined::default();
+    // Before the site takes its records: the neighbourhood reads the site's
+    // tiles too. Without all of them it would have a hole that looks real.
+    let has_context = [Source::Context, Source::Bgt, Source::Bag]
+        .iter()
+        .all(|source| !failed.contains_key(source));
+    if has_context {
+        joined.context = context::features(&records, &mut rasters);
+    }
     let mut take = |dataset| unique(records.remove(&dataset).unwrap_or_default());
     // Units first, so the buildings can count them.
     let units = (!failed.contains_key(&Source::BagUnits))
@@ -293,7 +310,7 @@ fn join(
                 let years = cbs::years(editions.population).map(|year| take(Dataset::Cbs(year)));
                 joined.features.extend(cbs::to_features(years.into()));
             }
-            Source::BagUnits => {}
+            Source::BagUnits | Source::Context => {}
             Source::Osm => match osm::parse(&osm_body.take().unwrap_or_default()) {
                 Ok(parsed) => joined.osm = Some(parsed),
                 Err(error) => {

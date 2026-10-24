@@ -44,12 +44,13 @@ pub fn export(input: &RenderInput, format: ExportFormat, dpi: u32, path: &Path) 
     std::fs::write(path, bytes).map_err(|source| Error::io(path, source))
 }
 
-/// The DXF of what the sheet shows: its sub-selection, and its pins unless it hides them.
+/// The DXF of what the sheet shows: its sub-selection, its pins unless it
+/// hides them, and the neighbourhood when the sheet shows it.
 fn sheet_dxf(input: &RenderInput) -> Result<String> {
     let look = input.look;
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
     let pins = if look.hide_pins { &[] } else { input.pins };
-    Ok(dxf::write(&scene, pins))
+    Ok(dxf::write(&scene, pins, look.sheet.show_context))
 }
 
 /// The sheet as PNG bytes, `width_px` wide. Used for thumbnails and the MCP preview.

@@ -27,6 +27,7 @@ const SHEET: Sheet = {
   show_north_arrow: true,
   show_scale_bar: true,
   show_credits: true,
+  show_context: true,
   title_style: {},
   subtitle_style: {},
   title_position: null,
@@ -134,7 +135,9 @@ async function answer(command: string, args: Args) {
   if (command === "fitting_scale") return (args.look as Look).selection ? MOCK_SELECTION_SCALE : MOCK_SCALE;
   if (command === "render_preview") {
     const shown = args.look as Look;
-    const svg = await fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
+    // The explode fixture has the default plates in their default order, whatever the look asks for.
+    const name = shown.view.mode === "explode" ? `explode--${shown.theme_id}` : fixtureName(shown);
+    const svg = await fetch(`${FIXTURES}/previews/${name}.svg`).then((response) => response.text());
     return shown.hide_pins ? svg : withMockPins(svg, (args.pins as Pin[] | undefined) ?? []);
   }
   if (command === "render_thumbnail") return picture(args.look as Look);
@@ -144,6 +147,7 @@ async function answer(command: string, args: Args) {
   if (command === "measure_area") return { m2: circleArea(args.area as Area), max_m2: MAX_AREA_M2, in_netherlands: true };
   if (command === "create_project") return view({ id: "new", name: String(args.name), modified: new Date().toISOString(), has_scene: false, look: null });
   if (command === "export_file_name") return "westermarkt.svg";
+  if (command === "get_ratios") return fetch(`${FIXTURES}/ratios/${args.themeId}.json`).then((response) => response.json());
   if (command === "get_analysis") {
     // Climate and rain wait on PVGIS and KNMI in the app, so the mock waits too.
     const isSlow = args.part === "climate" || args.part === "rain";

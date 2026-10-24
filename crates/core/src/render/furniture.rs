@@ -50,6 +50,8 @@ pub struct Furniture<'a> {
     pub diagram_name: &'a str,
     pub palette: &'a Palette,
     pub mm_per_m: f64,
+    /// Only lengths left to right are at scale, as in a tilted view.
+    pub is_foreshortened: bool,
     /// Which way north points on the paper, in degrees clockwise from straight up.
     pub north_deg: f64,
     pub legend: Option<Legend>,

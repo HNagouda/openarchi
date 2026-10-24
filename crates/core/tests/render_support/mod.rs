@@ -151,6 +151,31 @@ pub fn scene() -> Scene {
         measured: Default::default(),
         walk: None,
         editions: Default::default(),
+        context: vec![],
+    }
+}
+
+/// The test site with a few buildings, a road and some green around it.
+pub fn scene_with_neighbourhood() -> Scene {
+    let road = feature(
+        Layer::Road,
+        square(-450.0, 320.0, 900.0).into(),
+        Attributes::default(),
+    );
+    let green = feature(
+        Layer::Green,
+        square(320.0, -100.0, 80.0).into(),
+        Attributes::default(),
+    );
+    Scene {
+        context: vec![
+            road,
+            green,
+            building(320.0, 0.0, None, None, Some(12.0)),
+            building(-360.0, 0.0, None, None, Some(30.0)),
+            building(0.0, -340.0, None, None, None),
+        ],
+        ..scene()
     }
 }
 

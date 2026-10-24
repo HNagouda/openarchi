@@ -55,6 +55,8 @@ export type Sheet = {
   show_north_arrow: boolean;
   show_scale_bar: boolean;
   show_credits: boolean;
+  /** The neighbourhood around the site, drawn muted outside the boundary. */
+  show_context: boolean;
   title_style: TextStyle;
   subtitle_style: TextStyle;
   title_position: Position | null;
