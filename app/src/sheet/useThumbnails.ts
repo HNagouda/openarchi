@@ -37,7 +37,8 @@ export function useThumbnails(look: Look, diagrams: Diagram[], revision: number,
   // Everything but the diagram, its variant, the sheet's text and the view mode: the pictures only change when this changes.
   const { diagram_id: _diagram, variant: _variant, ...rest } = look;
   const shared = { ...rest, sheet: withoutText(look.sheet), view: { ...look.view, mode: "plan" as const } };
-  const key = JSON.stringify(shared);
+  // A plan ignores the rest of the view: turning or tilting the sheet leaves the pictures alone.
+  const key = JSON.stringify({ ...shared, view: null });
 
   useEffect(() => {
     if (!isEnabled || diagrams.length === 0) return;
