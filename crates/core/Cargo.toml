@@ -18,6 +18,9 @@ thiserror = "2"
 usvg = { version = "0.45", default-features = false, features = ["text"] }
 resvg = { version = "0.45", default-features = false, features = ["text"] }
 svg2pdf = { version = "0.13", default-features = false, features = ["text"] }
+# Puts several svg2pdf pages into one PDF. Must be the version svg2pdf 0.13
+# itself builds on, so its chunks fit; it adds no new crate to the build.
+pdf-writer = "0.12"
 # Glyph advances from the bundled fonts, so the renderer can wrap titles and
 # keep furniture from colliding. Same version usvg already pulls in.
 ttf-parser = "0.25"

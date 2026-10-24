@@ -9,7 +9,8 @@ use tempfile::TempDir;
 
 use super::*;
 use crate::catalog::builtin_themes;
-use crate::export::svg_to_png;
+use crate::export::{svg_pages_to_pdf, svg_to_png};
+use comfort::{yearly_hours, Exposure};
 
 const SCENE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -168,16 +169,15 @@ fn the_climate_is_a_mild_dutch_year_with_south_westerly_winter_wind() {
 
     let annual = climate.months.iter().map(|month| month.mean_c).sum::<f64>() / 12.0;
     assert!((9.0..13.0).contains(&annual), "{annual}");
-    // Every hour from 8:00 to 22:00 of a 365 day year lands in one comfort band.
-    let daytime: u32 = climate
-        .months
-        .iter()
-        .flat_map(|month| &month.comfort_hours)
-        .sum();
-    assert_eq!(
-        daytime,
-        365 * (climate::DAY_END_HOUR - climate::DAY_START_HOUR)
-    );
+    // Every hour from 8:00 to 22:00 of a 365 day year lands in one comfort
+    // category, once in the sun and once in the shade.
+    for exposure in [Exposure::Sun, Exposure::Shade] {
+        let daytime: u32 = yearly_hours(&climate, exposure).iter().sum();
+        assert_eq!(
+            daytime,
+            365 * (climate::DAY_END_HOUR - climate::DAY_START_HOUR)
+        );
+    }
 
     let winter = &climate.wind[0];
     let prevailing = winter
@@ -206,6 +206,37 @@ fn the_climate_is_a_mild_dutch_year_with_south_westerly_winter_wind() {
 }
 
 #[test]
+fn outdoor_comfort_in_amsterdam_is_mild_summers_and_cold_windy_winters() {
+    let (_folder, cache) = recorded_cache();
+    let (climate, _) = climate(&westermarkt(), &cache).unwrap();
+    let share = |months: &[u32], exposure: Exposure, categories: std::ops::Range<usize>| {
+        let mut total = 0;
+        let mut inside = 0;
+        for month in climate
+            .months
+            .iter()
+            .filter(|month| months.contains(&month.month))
+        {
+            let hours = exposure.hours(month);
+            total += hours.iter().sum::<u32>();
+            inside += hours[categories.clone()].iter().sum::<u32>();
+        }
+        inside as f64 / total as f64
+    };
+
+    // Summer days are mostly free of thermal stress, sun or shade; winter
+    // days in the shade are mostly moderate or strong cold stress, wind included.
+    let summer = [6, 7, 8];
+    let winter = [12, 1, 2];
+    let no_stress = utci::NO_STRESS..utci::NO_STRESS + 1;
+    let moderate_or_strong_cold = utci::NO_STRESS - 3..utci::NO_STRESS - 1;
+    assert!(share(&summer, Exposure::Sun, no_stress.clone()) > 0.6);
+    assert!(share(&summer, Exposure::Shade, no_stress) > 0.6);
+    assert!(share(&winter, Exposure::Shade, moderate_or_strong_cold) > 0.5);
+    assert_eq!(climate.comfort_outside_range_hours, 0);
+}
+
+#[test]
 fn rain_comes_from_schiphol_over_thirty_full_years() {
     let (_folder, cache) = recorded_cache();
     let (rain, _) = rain(&westermarkt(), &cache, RECORDED_LAST_YEAR).unwrap();
@@ -217,6 +248,46 @@ fn rain_comes_from_schiphol_over_thirty_full_years() {
         "{}",
         rain.annual_mm
     );
+}
+
+#[test]
+fn the_whole_analysis_lays_out_on_numbered_a4_pages_with_credits_last() {
+    let (_folder, cache) = recorded_cache();
+    let scene = westermarkt();
+    let theme = theme("paper");
+    let mut sections = Vec::new();
+    for part in [Part::Location, Part::Site, Part::Climate] {
+        sections.extend(super::part(part, &scene, &theme, &cache).unwrap());
+    }
+    let failures = vec![("Rain".to_string(), "offline".to_string())];
+
+    let pages = report_pages(&sections, &failures, &theme, "Westermarkt").unwrap();
+    assert!(pages.len() >= 3, "{}", pages.len());
+    let count = pages.len();
+    for (index, page) in pages.iter().enumerate() {
+        assert!(page.contains(r#"width="210mm" height="297mm""#));
+        assert!(page.contains(&format!(">{} / {count}<", index + 1)));
+        // Every page after the first names the project and the site in its header.
+        if index > 0 {
+            assert!(page.contains("Westermarkt 68, Amsterdam"));
+        }
+    }
+    let last = pages.last().unwrap();
+    assert!(last.contains("Data credits") && last.contains("PVGIS"));
+    assert!(pages
+        .iter()
+        .any(|page| page.contains("Rain could not be fetched: offline")));
+    // A section is never cut across two pages.
+    for section in &sections {
+        let layer = format!(r#"id="{}""#, section.id);
+        let holding = pages.iter().filter(|page| page.contains(&layer)).count();
+        assert_eq!(holding, 1, "{}", section.id);
+    }
+
+    let pdf = svg_pages_to_pdf(&pages, "Westermarkt").unwrap();
+    let text = String::from_utf8_lossy(&pdf);
+    assert!(text.starts_with("%PDF"));
+    assert!(text.contains(&format!("/Count {count}")));
 }
 
 #[test]

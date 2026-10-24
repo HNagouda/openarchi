@@ -2,9 +2,9 @@
 //! in the theme, notes, and the credits for what the section shows.
 
 use super::charts;
-use super::climate::{
-    sector_name, Climate, COMFORTABLE_BAND, COMFORT_EDGES_C, DAY_END_HOUR, DAY_START_HOUR,
-};
+use super::climate::{sector_name, Climate, DAY_END_HOUR, DAY_START_HOUR};
+use super::comfort::{yearly_hours, Exposure, METHOD as COMFORT_METHOD};
+use super::comfort_chart;
 use super::figure::{percent, Paint};
 use super::location::{self, Location};
 use super::locator::locator;
@@ -12,6 +12,7 @@ use super::notes;
 use super::rain::{Rain, RAIN_DAY_MM};
 use super::roses;
 use super::summary::{land_use, SiteSummary, FACILITY_WALK_MIN, TRANSIT_WALK_MIN};
+use super::utci::NO_STRESS;
 use super::{Fact, Section, SectionNotes};
 use crate::ratios::{area_text, grouped, Ratios};
 use crate::scene::Credit;
@@ -177,13 +178,18 @@ pub fn climate(climate: &Climate, warnings: Vec<String>, theme: &Theme) -> Resul
 
     let mut sections = vec![
         section("temperature", "Temperature", temperature_facts(climate), vec![charts::temperature(climate, &paint)], "Bars run from the mean daily low to the mean daily high, with the monthly mean across them and the mean high above.".to_string(), notes::temperature_notes(climate)),
-        section("comfort", "Outdoor comfort", comfort_facts(climate), vec![charts::comfort(climate, &paint)], format!("Hours from {DAY_START_HOUR}:00 to {DAY_END_HOUR}:00 by air temperature, in the stress bands of the UTCI (Bröde et al. 2012). Air temperature alone is a simplification: sun, wind and humidity change how warm it feels by several degrees."), notes::comfort_notes(climate)),
+        section("comfort", "Outdoor comfort", comfort_facts(climate), vec![comfort_chart::comfort(climate, Exposure::Sun, &paint), comfort_chart::comfort(climate, Exposure::Shade, &paint)], format!("Daytime hours, {DAY_START_HOUR}:00 to {DAY_END_HOUR}:00, in the ten UTCI stress categories, for a person in the sun and in the shade. {COMFORT_METHOD}. Shade blocks the direct sun only."), notes::comfort_notes(climate)),
         section("wind", "Wind", wind_facts(climate), vec![roses::wind(climate, &paint)], "Where the wind comes from, by season, as a share of all hours, at 10 m above open ground. Street-level wind is weaker but gustier around tall buildings.".to_string(), notes::wind_notes(climate)),
         section("sun", "Sun", sun_facts(climate), vec![charts::radiation(climate, &paint), roses::sun(climate, &paint)], "Monthly sun on a flat surface (global) and on a surface facing the sun (direct), then the direct sun by the compass direction it comes from. Terrain is taken into account, neighbouring buildings are not.".to_string(), notes::sun_notes(climate)),
         section("humidity", "Humidity", humidity_facts(climate), vec![charts::humidity(climate, &paint)], "Mean relative humidity of the air per month.".to_string(), notes::humidity_notes(climate)),
     ];
     if let Some(first) = sections.first_mut() {
         first.warnings = warnings;
+    }
+    if climate.comfort_outside_range_hours > 0 {
+        if let Some(comfort) = sections.iter_mut().find(|section| section.id == "comfort") {
+            comfort.warnings.push(format!("{} daytime hours lie outside the temperatures the UTCI polynomial was fitted for (air −50 to 50 °C, radiant temperature 30 K below to 70 K above the air) and are less certain.", climate.comfort_outside_range_hours));
+        }
     }
 
     Ok(sections)
@@ -255,31 +261,31 @@ fn temperature_facts(climate: &Climate) -> Vec<Fact> {
 }
 
 fn comfort_facts(climate: &Climate) -> Vec<Fact> {
-    let mut bands = [0u32; 5];
-    for month in &climate.months {
-        for (band, hours) in month.comfort_hours.iter().enumerate() {
-            bands[band] += hours;
-        }
-    }
-    let total = bands.iter().sum::<u32>().max(1) as f64;
-    let colder: u32 = bands[..COMFORTABLE_BAND].iter().sum();
-    let warmer: u32 = bands[COMFORTABLE_BAND + 1..].iter().sum();
+    let sun = yearly_hours(climate, Exposure::Sun);
+    let shade = yearly_hours(climate, Exposure::Shade);
+    let total = sun.iter().sum::<u32>().max(1) as f64;
+    let cold_in_shade: u32 = shade[..NO_STRESS].iter().sum();
+    let heat_in_sun: u32 = sun[NO_STRESS + 1..].iter().sum();
     vec![
         fact(
-            "Comfortable",
+            "No thermal stress, sun",
             format!(
                 "{} of daytime hours",
-                percent(bands[COMFORTABLE_BAND] as f64 / total)
+                percent(sun[NO_STRESS] as f64 / total)
             ),
         ),
         fact(
-            &format!("Below {:.0} °C", COMFORT_EDGES_C[1]),
-            percent(colder as f64 / total),
+            "No thermal stress, shade",
+            format!(
+                "{} of daytime hours",
+                percent(shade[NO_STRESS] as f64 / total)
+            ),
         ),
         fact(
-            &format!("Above {:.0} °C", COMFORT_EDGES_C[2]),
-            format!("{warmer} hours"),
+            "Cold stress, shade",
+            format!("{} of daytime hours", percent(cold_in_shade as f64 / total)),
         ),
+        fact("Heat stress, sun", format!("{heat_in_sun} hours a year")),
     ]
 }
 

@@ -3004,6 +3004,7 @@ dependencies = [
  "geo",
  "geojson",
  "humantime",
+ "pdf-writer",
  "resvg",
  "serde",
  "serde_json",

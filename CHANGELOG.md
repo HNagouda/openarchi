@@ -44,10 +44,19 @@ What changed in each version of openarchi, newest first.
 - Climate comes from a PVGIS typical year for the site: monthly temperature with the mean daily low and high, outdoor comfort as hours per month from cold to hot, wind roses for each season, monthly sun on a flat roof and towards the sun, where the direct sun comes from in winter and summer, and humidity.
 - Rain is thirty years of monthly totals and rain days from the nearest of thirty KNMI stations, named on the chart with its distance.
 - Each section ends with a few design notes written from fixed rules, such as which side the winter wind comes from and what that means for entrances, when outdoor space is comfortable, and how long a 10 m building's shadow is at midwinter noon.
-- The comfort chart uses the UTCI stress bands on air temperature alone, and says so: sun, wind and humidity change how warm it feels.
 - Charts are drawn in the sheet's palette and change with it. Export one section or the whole analysis as an SVG or PDF page.
 - Climate and rain are fetched once per site and kept with the other downloaded data. Location and site appear at once; climate and rain show their own loading and error state, and the rest of the analysis works without them.
 - Assistants can read the numbers and the notes with the new `get_analysis` tool.
+
+### Outdoor comfort and the A4 report
+
+- Outdoor comfort is now the real UTCI (Universal Thermal Climate Index), the felt temperature that counts sun, wind and humidity as well as the air. It uses the operational polynomial of Bröde et al. (2012), the one the official UTCI software, Ladybug Tools and pythermalcomfort use, and is checked against pythermalcomfort's published validation table.
+- The sun's share comes from the SolarCal model of ASHRAE Standard 55, Appendix C: a standing person on open ground, sun over the shoulder, with the long-wave radiation of the sky from the PVGIS year making clear nights and winter days feel colder.
+- The comfort section shows two charts, in the sun and in the shade, with daytime hours in the ten UTCI stress categories from extreme cold to extreme heat. The caption names the method and every assumption.
+- For the Westermarkt, summer days are mostly free of thermal stress in sun or shade, and nine in ten winter daytime hours in the shade bring moderate or strong cold stress.
+- The comfort notes read from the new numbers: the months that are comfortable in the sun, how many hours a year sunshine takes out of cold stress, how cold winter stays even in the sun, and how many hours bring heat stress in the sun against the shade.
+- The whole analysis exports as a PDF of A4 pages: a title on the first page, a running header with the project and the address, page numbers, sections kept whole on one page, figures beside their notes, and the data credits with licences and links on the last page. One section, or the whole analysis as SVG, still exports as one page.
+- `get_analysis` gives the comfort hours in the sun and in the shade per month, the names of the ten categories, and the method in one sentence.
 
 ### Noise, air, flood and people
 

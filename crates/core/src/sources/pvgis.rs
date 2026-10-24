@@ -51,6 +51,10 @@ pub struct Hour {
     pub global_w_m2: f64,
     /// Direct irradiance on a plane facing the sun (DNI), W/m².
     pub direct_normal_w_m2: f64,
+    /// Diffuse irradiance on a horizontal plane (DHI), W/m².
+    pub diffuse_w_m2: f64,
+    /// Long-wave (infrared) radiation from the sky onto a horizontal plane, W/m².
+    pub infrared_w_m2: f64,
     /// Wind speed 10 m above ground, m/s.
     pub wind_m_s: f64,
     /// Where the wind comes from, degrees clockwise from north.
@@ -177,6 +181,10 @@ struct Row {
     global: f64,
     #[serde(rename = "Gb(n)")]
     direct_normal: f64,
+    #[serde(rename = "Gd(h)")]
+    diffuse: f64,
+    #[serde(rename = "IR(h)")]
+    infrared: f64,
     #[serde(rename = "WS10m")]
     wind_speed: f64,
     #[serde(rename = "WD10m")]
@@ -204,6 +212,8 @@ fn to_hour(row: &Row) -> Result<Hour> {
         humidity_pct: row.humidity,
         global_w_m2: row.global,
         direct_normal_w_m2: row.direct_normal,
+        diffuse_w_m2: row.diffuse,
+        infrared_w_m2: row.infrared,
         wind_m_s: row.wind_speed,
         wind_from_deg: row.wind_direction,
     })
@@ -235,6 +245,8 @@ mod tests {
         let hour = tmy.hours[0];
         assert_eq!((hour.month, hour.day, hour.hour), (1, 1, 12));
         assert_eq!(hour.direct_normal_w_m2, 402.73);
+        assert_eq!(hour.diffuse_w_m2, 102.0);
+        assert_eq!(hour.infrared_w_m2, 257.6);
         assert_eq!(hour.wind_from_deg, 239.0);
     }
 

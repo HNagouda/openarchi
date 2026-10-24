@@ -87,7 +87,7 @@ To work on looks without the app, fetch a site once and render every diagram in 
 ```sh
 cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300 .scratch/site.json
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
-cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, target/analysis-samples/
+cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, and the A4 PDF, target/analysis-samples/
 ```
 
 To work on the front end in a plain browser, render the fixtures once and start Vite on its own. Outside Tauri, `app/src/dev/mockIpc.ts` answers every command from those fixtures, so the gallery, the sheet and the site step all work without the Rust side. This is how the screenshots in `docs/screenshots/` are taken. The mock is loaded only in dev, so it never reaches a release build.
