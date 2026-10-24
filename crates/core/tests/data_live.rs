@@ -70,3 +70,33 @@ fn westermarkt_20_is_found_at_its_address() {
     assert!((first.location.lon - 4.8843).abs() < 0.001);
     assert!((first.location.lat - 52.3749).abs() < 0.001);
 }
+
+#[test]
+#[ignore = "needs the network"]
+fn the_westermarkt_lies_in_amsterdam_next_to_a_westermarkt_address() {
+    let rd = openarchi_core::crs::wgs84_to_rd(WESTERMARKT);
+    let municipality = openarchi_core::sources::boundaries::fetch_municipality(rd)
+        .unwrap()
+        .unwrap();
+    assert_eq!(municipality.code, "GM0363");
+    let address = geocode::nearest_address(WESTERMARKT).unwrap().unwrap();
+    assert!(address.starts_with("Westermarkt"), "{address}");
+}
+
+#[test]
+#[ignore = "needs the network"]
+fn pvgis_answers_a_full_typical_year() {
+    use openarchi_core::sources::pvgis;
+    let cell = pvgis::cell_of_location(WESTERMARKT);
+    let tmy = pvgis::parse(&pvgis::fetch(cell).unwrap()).unwrap();
+    assert_eq!(tmy.hours.len(), 8760);
+}
+
+#[test]
+#[ignore = "needs the network"]
+fn knmi_answers_a_year_of_rain_at_schiphol() {
+    use openarchi_core::sources::knmi;
+    let days = knmi::parse(&knmi::fetch(240, 2024, 2024).unwrap()).unwrap();
+    assert_eq!(days.len(), 366);
+    assert!(days.iter().all(|day| day.millimetres.is_some()));
+}

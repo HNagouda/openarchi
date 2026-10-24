@@ -310,7 +310,7 @@ fn value_text(value: f64, unit: Unit) -> String {
 }
 
 /// 2430 -> "2,430 m²", 52 000 -> "5.2 ha", the way the app writes areas.
-fn area_text(m2: f64) -> String {
+pub(crate) fn area_text(m2: f64) -> String {
     if m2 < HECTARE_M2 {
         format!("{} m²", grouped(m2))
     } else {
@@ -319,7 +319,7 @@ fn area_text(m2: f64) -> String {
 }
 
 /// 12345.6 -> "12,346".
-fn grouped(value: f64) -> String {
+pub(crate) fn grouped(value: f64) -> String {
     let digits = format!("{:.0}", value.round());
     let mut out = String::new();
     for (index, digit) in digits.chars().enumerate() {

@@ -30,6 +30,8 @@ use crate::theme::Theme;
 use crate::Result;
 
 pub use chart::{chart_svg, ChartStyle};
+// Shared with the analysis, so both write areas and counts the same way.
+pub(crate) use chart::{area_text, grouped};
 pub use csv::to_csv;
 
 /// What the ground is used for, and the layers each class sums, in one place.

@@ -47,3 +47,13 @@ pub fn export(input: &RenderInput, format: ExportFormat, dpi: u32, path: &Path) 
 pub fn render_png(input: &RenderInput, width_px: u32) -> Result<Vec<u8>> {
     convert::png_at_width(&render_svg(input)?, width_px)
 }
+
+/// Any page the core drew, such as an analysis page, as PDF bytes.
+pub fn svg_to_pdf(svg: &str) -> Result<Vec<u8>> {
+    convert::pdf(svg)
+}
+
+/// Any page the core drew as PNG bytes, `width_px` wide.
+pub fn svg_to_png(svg: &str, width_px: u32) -> Result<Vec<u8>> {
+    convert::png_at_width(svg, width_px)
+}

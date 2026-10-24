@@ -6,6 +6,7 @@
 pub mod ahn;
 pub mod bag;
 pub mod bgt;
+pub mod boundaries;
 pub mod brk;
 pub mod cache;
 pub mod clip;
@@ -13,4 +14,6 @@ pub mod contours;
 pub mod grid;
 pub mod heights;
 pub mod http;
+pub mod knmi;
 pub mod pdok;
+pub mod pvgis;
