@@ -117,7 +117,6 @@ fn push_prism_shadow(
     }
 }
 
-/// An ellipse under the crown, stretched away from the sun.
 fn push_tree_shadow(
     data: &mut String,
     base: (f64, f64),
@@ -125,6 +124,16 @@ fn push_tree_shadow(
     sun: &SunPosition,
     projection: &Projection,
 ) {
+    let points = tree_shadow_ring(base, per_metre, sun);
+    push_ground_ring(data, &points, false, projection);
+}
+
+/// An ellipse under the crown, stretched away from the sun, as ground points.
+pub fn tree_shadow_ring(
+    base: (f64, f64),
+    per_metre: (f64, f64),
+    sun: &SunPosition,
+) -> Vec<(f64, f64)> {
     let (height, crown_radius) = tree_size();
     let crown_middle = height - crown_radius;
     let centre = (
@@ -139,7 +148,7 @@ fn push_tree_shadow(
     };
     let across = (-along.1, along.0);
     let stretch = 1.0 / sun.altitude_deg.to_radians().sin();
-    let points: Vec<(f64, f64)> = (0..TREE_SHADOW_POINTS)
+    (0..TREE_SHADOW_POINTS)
         .map(|index| {
             let angle = index as f64 / TREE_SHADOW_POINTS as f64 * TAU;
             let (a, b) = (
@@ -151,8 +160,7 @@ fn push_tree_shadow(
                 centre.1 + along.1 * a + across.1 * b,
             )
         })
-        .collect();
-    push_ground_ring(data, &points, false, projection);
+        .collect()
 }
 
 /// Projects a ground ring and writes it counterclockwise on the ground, or clockwise when `is_hole`.

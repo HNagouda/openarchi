@@ -11,6 +11,10 @@ serde.workspace = true
 serde_json.workspace = true
 # Geometry types serialise straight into project files.
 geo = { version = "0.29", features = ["use-serde"] }
+# City blocks cut every street surface from the site in one nonzero overlay,
+# which geo's even-odd BooleanOps cannot do with overlapping surfaces. The
+# version geo 0.29 already builds on, so it adds no new crate.
+i_overlay = "1.9"
 thiserror = "2"
 # SVG to PNG and PDF. No system fonts: only the fonts bundled in assets/fonts,
 # so output looks the same on every machine. Versions move together; svg2pdf

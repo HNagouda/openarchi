@@ -30,6 +30,11 @@ pub fn to_csv(ratios: &Ratios) -> String {
     );
     let _ = writeln!(
         out,
+        "{SITE_GROUP},Gross floor area,{:.0},m2,,",
+        ratios.gross_floor_area_m2
+    );
+    let _ = writeln!(
+        out,
         "{SITE_GROUP},Floor area ratio,{:.2},ratio,,",
         ratios.floor_area_ratio
     );

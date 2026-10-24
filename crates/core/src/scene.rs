@@ -120,6 +120,12 @@ pub struct Attributes {
     /// How many bikes or cars a parking place holds, where it is mapped.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub capacity: Option<u32>,
+    /// Building footprint over block area, 0 to 1. Only on computed city blocks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coverage: Option<f64>,
+    /// Gross floor area over block area. Only on computed city blocks.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub floor_space_index: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -190,12 +196,19 @@ pub enum Layer {
     WalkPath,
     /// Areas within 5, 10 and 15 minutes on foot.
     WalkBand,
+    /// City blocks: the land between streets, paths, rail and water. Computed
+    /// from the scene when drawn, never stored.
+    Block,
+    /// Hours of direct sun on the ground on one day, in bands. Computed from
+    /// building and tree heights when drawn, never stored.
+    SunHours,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 31] = [
+    pub const ALL: [Layer; 33] = [
         // Measured surfaces lie under the map, as the ground they describe.
+        Layer::SunHours,
         Layer::Population,
         Layer::Slope,
         Layer::Flood,
@@ -221,6 +234,7 @@ impl Layer {
         Layer::Bridge,
         Layer::RailTrack,
         Layer::Contour,
+        Layer::Block,
         Layer::Parcel,
         Layer::Tree,
         Layer::Building,
@@ -262,6 +276,8 @@ impl Layer {
             Layer::TransitStop => "Transit stops",
             Layer::WalkPath => "Walking routes",
             Layer::WalkBand => "Walk times",
+            Layer::Block => "City blocks",
+            Layer::SunHours => "Hours of sun",
         }
     }
 }

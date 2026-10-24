@@ -101,6 +101,8 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::Population => 200,
         Layer::Business | Layer::Facility | Layer::TransitStop => 1,
         Layer::WalkPath | Layer::WalkBand => 40,
+        Layer::Block => 6,
+        Layer::SunHours => 50,
     }
 }
 
