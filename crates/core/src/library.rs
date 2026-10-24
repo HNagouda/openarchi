@@ -219,7 +219,7 @@ impl Library {
     /// Recently Deleted, most recently deleted first.
     pub fn trash(&self) -> Result<Vec<ProjectSummary>> {
         let mut deleted = read_summaries(&self.root.join(TRASH_FOLDER))?;
-        deleted.sort_by(|a, b| b.1.cmp(&a.1));
+        deleted.sort_by_key(|(_, deleted_at)| std::cmp::Reverse(*deleted_at));
         Ok(deleted.into_iter().map(|(summary, _)| summary).collect())
     }
 

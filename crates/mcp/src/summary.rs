@@ -124,7 +124,7 @@ fn top_uses<'a>(use_classes: impl Iterator<Item = &'a str>) -> Vec<UseCount> {
         })
         .collect();
     // Stable sort, so ties stay in alphabetical order.
-    ranked.sort_by(|a, b| b.count.cmp(&a.count));
+    ranked.sort_by_key(|entry| std::cmp::Reverse(entry.count));
     ranked.truncate(TOP_USES);
     ranked
 }
