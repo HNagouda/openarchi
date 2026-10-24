@@ -1,9 +1,12 @@
 //! The scene as a DXF drawing: one CAD layer per scene layer, in real RD New metres.
+//! The neighbourhood around the site goes on layers of its own, "OA-CONTEXT-BUILDING"
+//! and so on, in one grey, so it can be switched off or locked as a whole.
 //!
 //! Written as DXF R12 (AC1009), the oldest flavour every CAD and GIS program
 //! still opens, and the only one that needs no object handles. No styling
 //! beyond a layer colour: CAD users bring their own.
 
+use std::collections::BTreeSet;
 use std::fmt::Write;
 
 use geo::{Geometry, LineString, Polygon};
@@ -17,12 +20,21 @@ const TREE_RADIUS_M: f64 = 1.0;
 const SITE_LAYER: &str = "OA-SITE";
 /// AutoCAD colour index for the site outline: red.
 const SITE_COLOUR: u8 = 1;
+/// AutoCAD colour index for every neighbourhood layer: grey, the usual colour of context.
+const CONTEXT_COLOUR: u8 = 8;
 
-pub fn write(scene: &Scene) -> String {
-    let mut out = String::with_capacity(4096 + scene.features.len() * 400);
+/// The scene, with its neighbourhood when `has_context`.
+pub fn write(scene: &Scene, has_context: bool) -> String {
+    let context = if has_context {
+        scene.context.as_slice()
+    } else {
+        &[]
+    };
+    let mut out = String::with_capacity(4096 + (scene.features.len() + context.len()) * 400);
     let shift = scene.origin;
+    let context_layers: BTreeSet<Layer> = context.iter().map(|feature| feature.layer).collect();
     write_header(&mut out, scene);
-    write_layer_table(&mut out);
+    write_layer_table(&mut out, &context_layers);
 
     section(&mut out, "ENTITIES");
     for feature in &scene.features {
@@ -38,6 +50,10 @@ pub fn write(scene: &Scene) -> String {
         };
         write_geometry(&mut out, &feature.geometry, &layer, elevation, shift);
     }
+    for feature in context {
+        let layer = context_cad_layer(feature.layer);
+        write_geometry(&mut out, &feature.geometry, &layer, 0.0, shift);
+    }
     write_polygon(&mut out, &scene.boundary, SITE_LAYER, 0.0, shift);
     group(&mut out, 0, "ENDSEC");
     group(&mut out, 0, "EOF");
@@ -48,6 +64,11 @@ pub fn write(scene: &Scene) -> String {
 /// Layer::RailArea -> "OA-RAIL-AREA".
 fn cad_layer(layer: Layer) -> String {
     format!("OA-{}", layer_slug(layer).to_uppercase())
+}
+
+/// Layer::Building -> "OA-CONTEXT-BUILDING".
+fn context_cad_layer(layer: Layer) -> String {
+    format!("OA-CONTEXT-{}", layer_slug(layer).to_uppercase())
 }
 
 /// AutoCAD colour index per layer, so the drawing reads before anyone restyles it.
@@ -84,7 +105,7 @@ fn write_header(out: &mut String, scene: &Scene) {
     group(out, 0, "ENDSEC");
 }
 
-fn write_layer_table(out: &mut String) {
+fn write_layer_table(out: &mut String, context_layers: &BTreeSet<Layer>) {
     section(out, "TABLES");
     group(out, 0, "TABLE");
     group(out, 2, "LTYPE");
@@ -100,11 +121,19 @@ fn write_layer_table(out: &mut String) {
 
     group(out, 0, "TABLE");
     group(out, 2, "LAYER");
-    group(out, 70, &(Layer::ALL.len() + 1).to_string());
+    group(
+        out,
+        70,
+        &(Layer::ALL.len() + context_layers.len() + 1).to_string(),
+    );
     let layers = Layer::ALL
         .iter()
         .map(|&layer| (cad_layer(layer), colour_index(layer)));
-    for (name, colour) in layers.chain([(SITE_LAYER.to_string(), SITE_COLOUR)]) {
+    let context = context_layers
+        .iter()
+        .map(|&layer| (context_cad_layer(layer), CONTEXT_COLOUR));
+    let site = [(SITE_LAYER.to_string(), SITE_COLOUR)];
+    for (name, colour) in layers.chain(context).chain(site) {
         group(out, 0, "LAYER");
         group(out, 2, &name);
         group(out, 70, "0");

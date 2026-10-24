@@ -3,8 +3,9 @@
 //! Each building is its footprint extruded to its height: the walls that face
 //! the viewer, then a flat roof. Roofs keep the diagram's fill, so a building
 //! age or use diagram reads on the roofs. Walls are lit by the sun of the
-//! look's date and time: a wall facing the sun turns lighter than its roof, a
-//! wall turned away darker. Trees are a trunk and a round crown.
+//! look's date and time, see `lighting.rs`. Trees are a trunk and a round
+//! crown. The neighbours around the site stand among them in one muted roof
+//! colour, sorted with them, so a neighbour in front hides what is behind it.
 
 use std::fmt::Write;
 
@@ -14,6 +15,7 @@ use super::classify;
 use super::color;
 use super::drawing::{Canvas, Drawn};
 use super::geometry::{decimal, mm, push_paper_points, Projection};
+use super::lighting::{light, wall_fill, Light};
 use super::order::{back_to_front, Footprint};
 use super::shadow::{polygons, signed_area};
 use super::style::ResolvedLayer;
@@ -31,20 +33,13 @@ const TREE_HEIGHT_M: f64 = 10.0;
 const TREE_CROWN_RADIUS_M: f64 = 3.0;
 /// How far a building of unknown height moves towards the unknown colour.
 const ESTIMATED_GREY: f64 = 0.65;
-/// The most a wall moves towards white in full sun, or towards shade facing away.
-const SUNLIT_GAIN: f64 = 0.45;
-const SHADE_GAIN: f64 = 0.4;
-/// Shade every wall gets anyway, so walls never vanish into their roof.
-const AMBIENT_SHADE: f64 = 0.08;
-/// Roofs count as this much brighter than the sun alone makes them, so most
-/// walls read darker than their roof, the way a massing model is read.
-const ROOF_BIAS: f64 = 0.3;
 /// Edges between faces: a light hairline in the paper colour.
 const EDGE_MM: f64 = 0.06;
 const EDGE_OPACITY: f64 = 0.7;
 const TRUNK_MM: f64 = 0.14;
-/// Below this the sun counts as down and every wall is in shade.
-const SUN_UP_DEG: f64 = 0.5;
+/// Neighbours' walls stay this close to their roof, so the site's own
+/// massing is the one that models in the light.
+const NEIGHBOUR_LIGHT: f64 = 0.35;
 
 /// Height in metres, and whether it is the default guess.
 pub fn building_height(feature: &Feature) -> (f64, bool) {
@@ -83,10 +78,19 @@ pub fn drawn(resolved: &ResolvedLayer, features: &[&Feature], diagram: &Diagram)
     drawn
 }
 
+/// The buildings around the site, in one roof colour, each clipped to the drawing zone.
+pub struct Neighbours<'a> {
+    pub features: Vec<&'a Feature>,
+    pub roof: String,
+    pub clip_id: &'a str,
+}
+
 enum Kind<'a> {
     Building {
         polygon: &'a Polygon<f64>,
         roof: String,
+        /// A neighbour is clipped to the drawing zone; the site's own buildings stand free.
+        clip_id: Option<&'a str>,
     },
     Tree {
         at: (f64, f64),
@@ -98,18 +102,13 @@ struct Solid<'a> {
     height: f64,
 }
 
-/// The paints a building is drawn with, resolved once per sheet.
-struct Light {
-    /// (east, north, up) unit vector towards the sun, or `None` at night.
-    sun: Option<(f64, f64, f64)>,
-    shade: String,
-}
-
-/// Every building and tree, back to front, as one group.
+/// Every building and tree, and every neighbour, back to front, as one group.
+#[allow(clippy::too_many_arguments)]
 pub fn write(
     out: &mut String,
     buildings: Option<(&ResolvedLayer, &[&Feature])>,
     trees: Option<(&ResolvedLayer, &[&Feature])>,
+    neighbours: Option<&Neighbours>,
     diagram: &Diagram,
     theme: &Theme,
     canvas: &Canvas,
@@ -130,8 +129,23 @@ pub fn write(
                     kind: Kind::Building {
                         polygon,
                         roof: roof.clone(),
+                        clip_id: None,
                     },
                     height,
+                });
+            }
+        }
+    }
+    if let Some(neighbours) = neighbours {
+        for feature in &neighbours.features {
+            for polygon in polygons(&feature.geometry) {
+                solids.push(Solid {
+                    kind: Kind::Building {
+                        polygon,
+                        roof: neighbours.roof.clone(),
+                        clip_id: Some(neighbours.clip_id),
+                    },
+                    height: building_height(feature).0,
                 });
             }
         }
@@ -158,6 +172,7 @@ pub fn write(
         .collect();
     let order = back_to_front(&footprints, projection.squash, projection.rise);
     let light = light(sun, theme);
+    let neighbour_light = light.softened(NEIGHBOUR_LIGHT);
     let tree_style = trees.map(|(resolved, _)| &resolved.style);
 
     let _ = write!(
@@ -171,9 +186,25 @@ pub fn write(
     for index in order {
         let solid = &solids[index];
         match &solid.kind {
-            Kind::Building { polygon, roof } => {
-                write_building(out, polygon, solid.height, roof, &light, projection);
-            }
+            Kind::Building {
+                polygon,
+                roof,
+                clip_id,
+            } => match clip_id {
+                Some(clip_id) => {
+                    let _ = write!(out, r#"<g clip-path="url(#{clip_id})">"#);
+                    write_building(
+                        out,
+                        polygon,
+                        solid.height,
+                        roof,
+                        &neighbour_light,
+                        projection,
+                    );
+                    out.push_str("</g>");
+                }
+                None => write_building(out, polygon, solid.height, roof, &light, projection),
+            },
             Kind::Tree { at } => {
                 let fill = tree_style
                     .and_then(|style| style.fill.clone())
@@ -209,26 +240,6 @@ fn roof_fill(
         .fill
         .clone()
         .unwrap_or_else(|| theme.palette.figure.clone())
-}
-
-fn light(sun: &SunPosition, theme: &Theme) -> Light {
-    let is_dark_sheet = color::luminance(&theme.palette.paper) < 0.5;
-    // On a dark sheet, shade sinks into the paper colour rather than to black.
-    let shade = if is_dark_sheet {
-        theme.palette.paper.clone()
-    } else {
-        "#000000".to_string()
-    };
-    let sun = (sun.altitude_deg > SUN_UP_DEG).then(|| {
-        let (azimuth, altitude) = (sun.azimuth_deg.to_radians(), sun.altitude_deg.to_radians());
-        (
-            azimuth.sin() * altitude.cos(),
-            azimuth.cos() * altitude.cos(),
-            altitude.sin(),
-        )
-    });
-
-    Light { sun, shade }
 }
 
 fn footprint(solid: &Solid, projection: &Projection) -> Footprint {
@@ -356,20 +367,6 @@ fn collect_walls(
     }
 }
 
-/// Lighter than the roof where the wall catches more sun than the roof does, darker where less.
-fn wall_fill(base: &str, normal: (f64, f64), light: &Light) -> String {
-    let Some((east, north, up)) = light.sun else {
-        return color::mix(base, &light.shade, AMBIENT_SHADE + SHADE_GAIN);
-    };
-    let wall_light = (normal.0 * east + normal.1 * north).max(0.0);
-    let difference = wall_light - up - ROOF_BIAS;
-    if difference > 0.0 {
-        color::mix(base, "#FFFFFF", difference * SUNLIT_GAIN)
-    } else {
-        color::mix(base, &light.shade, AMBIENT_SHADE - difference * SHADE_GAIN)
-    }
-}
-
 fn write_tree(
     out: &mut String,
     at: (f64, f64),
@@ -400,21 +397,6 @@ fn write_tree(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn noon_light() -> Light {
-        Light {
-            sun: Some((0.0, -0.7, 0.7)),
-            shade: "#000000".to_string(),
-        }
-    }
-
-    #[test]
-    fn a_wall_facing_the_sun_is_lighter_than_one_facing_away() {
-        let light = noon_light();
-        let south = wall_fill("#808080", (0.0, -1.0), &light);
-        let north = wall_fill("#808080", (0.0, 1.0), &light);
-        assert!(color::luminance(&south) > color::luminance(&north));
-    }
 
     #[test]
     fn missing_height_falls_back_to_the_default_and_says_so() {

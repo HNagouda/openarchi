@@ -92,6 +92,7 @@ fn updated_sheet(sheet: &Sheet, changes: SheetInput) -> Result<Sheet, String> {
         show_north_arrow: changes.show_north_arrow.unwrap_or(sheet.show_north_arrow),
         show_scale_bar: changes.show_scale_bar.unwrap_or(sheet.show_scale_bar),
         show_credits: changes.show_credits.unwrap_or(sheet.show_credits),
+        show_context: changes.show_context.unwrap_or(sheet.show_context),
         // Text style, position and text boxes change through edit_text.
         title_style: sheet.title_style.clone(),
         subtitle_style: sheet.subtitle_style.clone(),
