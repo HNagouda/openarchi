@@ -15,7 +15,7 @@ use crate::sources::cache::MAX_AGE;
 use crate::sources::edition::Edition;
 use crate::sources::grid::{Tile, TILE_M};
 use crate::sources::pdok::Record;
-use crate::sources::raster::Grid;
+use crate::sources::raster::{self, Grid};
 
 const WESTERMARKT: LonLat = LonLat {
     lon: 4.8840,
@@ -158,6 +158,28 @@ fn fetching_the_same_site_again_makes_no_requests() {
         .count();
     assert_eq!(scene.credits.len(), credited);
     assert_eq!(scene.measured.no2_ug_m3.map(|stats| stats.mean), Some(50.0));
+}
+
+#[test]
+fn a_fetched_site_keeps_its_rasters_cut_to_its_box_in_its_own_frame() {
+    let folder = TempDir::new().unwrap();
+    let (scene, _) = fetch_counting(&site(WESTERMARKT), &TileCache::at(folder.path()));
+
+    let no2 = &scene.measured.grids[&Layer::No2];
+    // The 400 m site in 25 m cells, plus at most one cell on each side.
+    assert!(no2.width <= 18 && no2.height <= 18, "{no2:?}");
+    assert!(
+        no2.west < -RADIUS_M && no2.west > -RADIUS_M - 25.0,
+        "{}",
+        no2.west
+    );
+    let again = raster::stats_within(no2, &scene.boundary).unwrap();
+    assert_eq!((again.mean, again.coverage), (50.0, 1.0));
+    assert!(!scene.measured.grids.contains_key(&Layer::Slope));
+
+    let json = serde_json::to_string(&scene).unwrap();
+    let back: Scene = serde_json::from_str(&json).unwrap();
+    assert_eq!(back.measured, scene.measured);
 }
 
 #[test]

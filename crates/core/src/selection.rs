@@ -3,10 +3,11 @@
 //!
 //! The scene is cut to the smaller area and then drawn, measured and exported
 //! exactly like a whole site, so there is no second renderer to drift, the
-//! drawing zooms to the area, and the ratios describe it. The walk is kept
-//! whole, because it starts at the site centre and never stopped at the site
-//! edge either. The rest of the site joins the neighbourhood, so a zoomed-in
-//! sheet shows it muted around the area rather than a blank gap before the ring.
+//! drawing zooms to the area, and the ratios and the measured noise, air and
+//! flood figures describe it. The walk is kept whole, because it starts at the
+//! site centre and never stopped at the site edge either. The rest of the site
+//! joins the neighbourhood, so a zoomed-in sheet shows it muted around the area
+//! rather than a blank gap before the ring.
 
 use std::borrow::Cow;
 use std::collections::BTreeSet;
@@ -14,6 +15,7 @@ use std::collections::BTreeSet;
 use geo::{Area as _, BooleanOps, Contains, Coord, MapCoords, Polygon};
 
 use crate::area::Area;
+use crate::environment;
 use crate::scene::{Feature, Layer, Scene};
 use crate::site::boundary_in_rd;
 use crate::sources::clip::{self, Clipped};
@@ -31,7 +33,6 @@ pub fn framed_or_whole<'a>(scene: &'a Scene, selection: Option<&Area>) -> Result
     }
 }
 
-// #! NOTE[selection, environment] : Measured noise, air and flood figures in `scene.measured` still describe the whole site
 /// `scene` cut to `selection`. The part of the selection outside the site is
 /// dropped, since there is no data there to draw.
 pub fn framed(scene: &Scene, selection: &Area) -> Result<Scene> {
@@ -50,6 +51,7 @@ pub fn framed(scene: &Scene, selection: &Area) -> Result<Scene> {
     framed.area = selection.clone();
     framed.features = clipped(&scene.features, &boundary);
     framed.context = surroundings(scene, &boundary);
+    framed.measured = environment::measured_within(&scene.measured, &boundary);
     framed.boundary = boundary;
     Ok(framed)
 }
@@ -98,9 +100,45 @@ mod tests {
     use super::*;
     use crate::crs::rd_to_wgs84;
     use crate::scene::{Attributes, Layer};
+    use crate::sources::raster::{stats_within, Grid, Stats};
     use geo::{Geometry, Point};
 
     const ORIGIN: (f64, f64) = (120_900.0, 487_400.0);
+    /// 10 m cells over the whole 200 m site.
+    const CELLS: usize = 20;
+    const CELL_M: f64 = 10.0;
+    const SLOPE: Stats = Stats {
+        min: 0.0,
+        mean: 1.0,
+        max: 4.0,
+        coverage: 1.0,
+    };
+
+    /// A raster over the site whose cells each hold their own number, so every area has its own mean.
+    fn gradient() -> Grid {
+        Grid {
+            west: -100.0,
+            north: 100.0,
+            cell_m: CELL_M,
+            width: CELLS,
+            height: CELLS,
+            values: (0..CELLS * CELLS).map(|index| index as f32).collect(),
+        }
+    }
+
+    /// A flood raster where only the north-east quarter of the site floods.
+    fn north_east_flood() -> Grid {
+        let mut flood = gradient();
+        for row in 0..CELLS {
+            for column in 0..CELLS {
+                if row >= CELLS / 2 || column < CELLS / 2 {
+                    flood.values[row * CELLS + column] = f32::NAN;
+                }
+            }
+        }
+
+        flood
+    }
 
     /// A 200 m square site around the origin, with one tree inside and one near its corner.
     fn site() -> Scene {
@@ -175,6 +213,42 @@ mod tests {
         let framed = framed(&site(), &circle_at(0.0, 0.0, 30.0)).unwrap();
         // The ring's own tree, and the site's tree in the corner, outside the selection.
         assert_eq!(framed.context.len(), 2);
+    }
+
+    #[test]
+    fn a_sheet_area_measures_its_figures_again_from_the_kept_rasters() {
+        let mut scene = site();
+        let (noise, flood) = (gradient(), north_east_flood());
+        scene.measured.road_noise_db = stats_within(&noise, &scene.boundary);
+        scene.measured.flood_depth_m = stats_within(&flood, &scene.boundary);
+        scene.measured.slope_percent = Some(SLOPE);
+        scene.measured.grids.insert(Layer::RoadNoise, noise.clone());
+        scene.measured.grids.insert(Layer::Flood, flood);
+
+        let framed = framed(&scene, &circle_at(-50.0, -50.0, 30.0)).unwrap();
+        let measured = &framed.measured;
+        assert_eq!(
+            measured.road_noise_db,
+            stats_within(&noise, &framed.boundary)
+        );
+        assert_ne!(measured.road_noise_db, scene.measured.road_noise_db);
+        // The south-west corner stays dry.
+        assert_eq!(measured.flood_depth_m, None);
+        // The slope raster is never kept.
+        assert_eq!(measured.slope_percent, Some(SLOPE));
+        assert_eq!(measured.whole_site, vec![Layer::Slope]);
+    }
+
+    #[test]
+    fn an_old_scene_keeps_its_whole_site_figures_and_says_so() {
+        let mut scene = site();
+        scene.measured.no2_ug_m3 = stats_within(&gradient(), &scene.boundary);
+        scene.measured.slope_percent = Some(SLOPE);
+
+        let framed = framed(&scene, &circle_at(-50.0, -50.0, 30.0)).unwrap();
+        assert_eq!(framed.measured.no2_ug_m3, scene.measured.no2_ug_m3);
+        assert_eq!(framed.measured.whole_site, vec![Layer::No2, Layer::Slope]);
+        assert!(scene.measured.whole_site.is_empty());
     }
 
     #[test]

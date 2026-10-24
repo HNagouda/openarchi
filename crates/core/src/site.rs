@@ -172,7 +172,7 @@ fn build_scene_with(
         credits,
         fetched_at: humantime::format_rfc3339_seconds(SystemTime::now()).to_string(),
         warnings,
-        measured,
+        measured: environment::localised(measured, origin),
         walk,
         editions: editions.years(),
         context,
@@ -267,9 +267,8 @@ fn join(
     let mut bands_of = |raster: Raster, joined: &mut Joined| {
         let dataset = Dataset::Raster(raster, editions.raster(raster).clone());
         let tiles = rasters.remove(&dataset).unwrap_or_default();
-        let (features, stats) = environment::raster_bands(raster, &tiles, boundary);
+        let features = environment::raster_bands(raster, &tiles, boundary, &mut joined.measured);
         joined.features.extend(features);
-        environment::record(&mut joined.measured, raster, stats);
     };
     for source in SOURCES {
         if let Some(error) = failed.remove(&source) {

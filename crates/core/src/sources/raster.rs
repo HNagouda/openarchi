@@ -1,5 +1,6 @@
 //! A raster in RD New, and the few things done with one before it is drawn:
-//! joining tiles, keeping a tile in the cache, and reading values inside the site.
+//! joining tiles, keeping a tile in the cache, keeping one in a scene, and
+//! reading values inside the site.
 
 use std::ops::Range;
 
@@ -13,7 +14,8 @@ const HEADER_BYTES: usize = 3 * 8 + 2 * 4;
 const CELL_BYTES: usize = std::mem::size_of::<f32>();
 
 /// A raster in RD New. Row 0 is the northern edge; NaN means no data.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(into = "StoredGrid", try_from = "StoredGrid")]
 pub struct Grid {
     pub west: f64,
     pub north: f64,
@@ -53,6 +55,84 @@ impl Grid {
         let rows = to_index(self.north - rect.max().y, self.height)
             ..to_index(self.north - rect.min().y + self.cell_m, self.height);
         (columns, rows)
+    }
+
+    /// The cells overlapping `rect`, as a grid of their own on the same lattice.
+    pub fn cropped(&self, rect: Rect<f64>) -> Grid {
+        let (columns, rows) = self.cells_within(rect);
+        let mut values = Vec::with_capacity(columns.len() * rows.len());
+        for row in rows.clone() {
+            for column in columns.clone() {
+                values.push(self.value(column, row));
+            }
+        }
+
+        Grid {
+            west: self.west + columns.start as f64 * self.cell_m,
+            north: self.north - rows.start as f64 * self.cell_m,
+            cell_m: self.cell_m,
+            width: columns.len(),
+            height: rows.len(),
+            values,
+        }
+    }
+}
+
+/// A grid as JSON. JSON has no NaN, and serde_json writes one as `null` but
+/// refuses to read it back, so a cell without data is stored as `null` here.
+#[derive(Serialize, Deserialize)]
+struct StoredGrid {
+    west: f64,
+    north: f64,
+    cell_m: f64,
+    width: usize,
+    height: usize,
+    values: Vec<Option<f32>>,
+}
+
+impl From<Grid> for StoredGrid {
+    fn from(grid: Grid) -> Self {
+        StoredGrid {
+            west: grid.west,
+            north: grid.north,
+            cell_m: grid.cell_m,
+            width: grid.width,
+            height: grid.height,
+            values: grid
+                .values
+                .into_iter()
+                .map(|value| value.is_finite().then_some(value))
+                .collect(),
+        }
+    }
+}
+
+impl TryFrom<StoredGrid> for Grid {
+    type Error = String;
+
+    // A damaged file fails here rather than reading past the end of the cells later.
+    fn try_from(stored: StoredGrid) -> std::result::Result<Self, Self::Error> {
+        if stored.values.len() != stored.width * stored.height {
+            return Err(format!(
+                "a stored raster of {} by {} cells has {} values",
+                stored.width,
+                stored.height,
+                stored.values.len()
+            ));
+        }
+
+        Ok(Grid {
+            west: stored.west,
+            north: stored.north,
+            cell_m: stored.cell_m,
+            width: stored.width,
+            height: stored.height,
+            values: stored
+                .values
+                .into_iter()
+                .map(|value| value.unwrap_or(f32::NAN))
+                .collect(),
+        })
     }
 }
 
@@ -230,6 +310,38 @@ mod tests {
         assert_eq!(back.values[0], 19.5);
         assert!(back.values[4].is_nan());
         assert!(from_bytes(&to_bytes(&original)[..30]).is_err());
+    }
+
+    #[test]
+    fn a_grid_survives_json_with_its_empty_cells() {
+        let mut original = grid(120_511.6, 487_747.1, 3, 2, 19.5);
+        original.values[4] = f32::NAN;
+        let json = serde_json::to_string(&original).unwrap();
+        assert!(json.contains("null"), "{json}");
+        let back: Grid = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.values[0], 19.5);
+        assert!(back.values[4].is_nan());
+        let short = json.replace("19.5,null", "null");
+        assert!(serde_json::from_str::<Grid>(&short).is_err());
+    }
+
+    #[test]
+    fn a_cropped_grid_measures_an_area_inside_it_the_same() {
+        let mut original = grid(0.0, 100.0, 10, 10, 50.0);
+        for (index, value) in original.values.iter_mut().enumerate() {
+            *value = index as f32;
+        }
+        let area = Polygon::new(
+            LineString::from(vec![(22.0, 31.0), (58.0, 35.0), (40.0, 72.0), (22.0, 31.0)]),
+            vec![],
+        );
+        let rect = geo::BoundingRect::bounding_rect(&area).unwrap();
+        let cropped = original.cropped(rect);
+        assert!(cropped.width < original.width && cropped.height < original.height);
+        assert_eq!(
+            stats_within(&cropped, &area),
+            stats_within(&original, &area)
+        );
     }
 
     #[test]
