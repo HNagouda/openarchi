@@ -53,6 +53,12 @@ pub fn svg_to_pdf(svg: &str) -> Result<Vec<u8>> {
     convert::pdf(svg)
 }
 
+/// Pages the core drew, such as the A4 analysis pages, as one PDF of that many
+/// pages, titled `title` in the document's properties.
+pub fn svg_pages_to_pdf(pages: &[String], title: &str) -> Result<Vec<u8>> {
+    convert::pdf_pages(pages, title)
+}
+
 /// Any page the core drew as PNG bytes, `width_px` wide.
 pub fn svg_to_png(svg: &str, width_px: u32) -> Result<Vec<u8>> {
     convert::png_at_width(svg, width_px)
