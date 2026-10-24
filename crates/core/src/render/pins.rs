@@ -251,14 +251,14 @@ fn write_disc(
 /// The label in ink on a paper halo, so it reads over any fill.
 fn write_label(out: &mut String, layer: &PinLayer, label: &str, x: f64, middle: f64) {
     let typesetter = layer.typesetter;
-    let baseline = middle + typesetter.cap_height(Kind::Label) / 2.0;
+    let baseline = middle + typesetter.cap_height(Kind::PinLabel) / 2.0;
     let _ = write!(
         out,
         r#"<g stroke="{}" stroke-width="{}" stroke-linejoin="round" paint-order="stroke">"#,
         layer.palette.paper,
         mm(LABEL_HALO_MM * typesetter.unit)
     );
-    typesetter.write(out, x, baseline, label, Kind::Label, None);
+    typesetter.write(out, x, baseline, label, Kind::PinLabel, None);
     out.push_str("</g>");
 }
 

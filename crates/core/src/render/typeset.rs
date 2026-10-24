@@ -25,6 +25,9 @@ pub enum Kind {
     Heading,
     /// Legend rows.
     Label,
+    /// A pin's name beside its marker: a landmark the reader looks for, so
+    /// larger than the map's own labels.
+    PinLabel,
     /// Scale bar numbers and the scale note.
     Small,
     /// Data credits, the smallest print on the sheet.
@@ -122,6 +125,11 @@ impl Typesetter {
                 ..base
             },
             Kind::Label => Spec { size: 2.7, ..base },
+            Kind::PinLabel => Spec {
+                size: 3.8,
+                weight: 500,
+                ..base
+            },
             Kind::Small => Spec {
                 size: 2.0,
                 tracking_em: 0.02,
