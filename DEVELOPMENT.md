@@ -25,7 +25,8 @@ crates/core/            the library: no window, no async
   src/diagram.rs        what a sheet shows
   src/theme.rs          how a sheet looks
   src/sheet.rs          paper, scale, frame and furniture
-  src/view.rs           plan, axonometric or explode, and the moment the sun is drawn for
+  src/view.rs           plan, axonometric, explode or section, and the moment the sun is drawn for
+  src/section.rs        a sheet's section line, and section/: the ground profile and what the cut meets
   src/sun.rs            where the sun stands, from the site's position and a Dutch clock time
   src/walk.rs           walk bands from the site centre and the 15 minute neighbourhood
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
@@ -72,6 +73,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | How a palette of swatches becomes a theme (import formats, the role rule, contrast checks, mixed colours) | `crates/core/src/palette/`; the editor is `app/src/sheet/palette/` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
 | Something drawn on top of every view, like pins | a module in `crates/core/src/render/`, placed with `SheetDrawing::ground` |
+| A new view mode | a `ViewMode` in `view.rs`, drawn by a module in `crates/core/src/render/` that returns a `SheetDrawing`, like `render/section.rs` |
 | A new export format | `crates/core/src/export/` |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs`, the rule in `notes.rs` |
 | A new kind of report block | a `Content` variant in `crates/core/src/report.rs`, drawn in `report/draw.rs`, offered in `app/src/report/library.ts` |
@@ -99,6 +101,7 @@ cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
 cargo run --release -p openarchi-core --example palette_samples  # every diagram in a palette made from swatches, target/render-samples/palette/
 cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, and the A4 PDF, target/analysis-samples/
+cargo run --release -p openarchi-core --example section_samples -- .scratch/site.json westermarkt  # a section in every theme, target/render-samples/sections/
 ```
 
 When the app feels slow, time it before changing anything. `render_timing` loads a saved project and prints, per diagram, how long the preview takes to draw, how large its SVG is and how long its thumbnail takes. The SVG size matters as much as the time: the app parses and paints every byte on every change.

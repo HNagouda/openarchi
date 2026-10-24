@@ -224,6 +224,17 @@ Sheets can now show the site in three dimensions and the sun over it.
 - A palette whose text misses its WCAG ratio on the paper can no longer be saved: Save stays grey and says to fix the text contrast. Faint buildings or a faint accent only warn, since a pale figure can be a deliberate look.
 - The Ratios view now shows the source line under every group's title, and the Analysis tab moved its source line up under each section title to match.
 
+### Sections
+
+- Cut a section through the site. The section tool in the tab bar, or S, draws a line on the sheet with a drag or two clicks. It shows on the plan, the axonometric and the explode view as a cut marker in the palette's accent: a long-dash line, a heavy tick and an arrow at each end, and the labels A and A'. Drag either end to move it, click it and press Delete to remove it; every change undoes like any other edit.
+- The fourth view, Section, draws the elevation along the line, seen from A towards A' and looking to the left of the line. The ground is the measured profile, hatched below; buildings the line passes through are cut in solid poché in the palette's ink, with their measured height over the roof; buildings and trees beyond the line stand in elevation, fading with distance up to a depth you set (60 m to start). A ruler beside it marks the height in metres above NAP and a dashed line marks NAP itself. Lengths and heights share one scale, and the section picks the largest round scale that fits the sheet, from 1:100 up.
+- A diagram that colours buildings colours them in the section too, with its legend, so a building age section shows the ages of the street wall behind the cut.
+- Flip in the inspector turns the section round, and Remove takes the line away. The Section view is greyed out until a sheet has a line.
+- A section works on a sheet that shows part of the site: what lies outside the area is drawn as neighbourhood.
+- A fetch now keeps the bare ground of AHN over the site and its neighbourhood in 4 m cells, to the decimetre, for the profile. That makes a project file about 3 % bigger, some 40 kB for a 200 m site. Sites fetched before this draw a flat ground and say so in the legend until they are fetched again.
+- SVG, PDF and PNG export a section like any sheet. DXF still writes the plan, without the section.
+- Assistants draw, change, flip and clear a sheet's line with `set_section`, and `set_look` shows the section view once a line is there.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

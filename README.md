@@ -31,6 +31,7 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 - **The neighbourhood on foot.** Walk times of 5, 10 and 15 minutes from the site over the real footpath network, with the schools, shops, health care and transit stops within reach.
 - **A site analysis with design notes.** Where the site is, what is on it, and its climate: temperature, outdoor comfort, wind roses by season, sun and humidity from a typical year, and thirty years of rain from the nearest weather station. Under each chart a few plain sentences say what it means for a design, Outdoor comfort is the UTCI felt temperature in the sun and in the shade. Every chart exports as SVG or PDF in the sheet's palette, and the whole analysis as a PDF of numbered A4 pages.
 - **The site in three dimensions.** An axonometric view stands every building up at its measured height, lit by the sun at the date and time you choose, and an explode view stacks several diagrams as plates so you can read them against each other.
+- **Sections through the site.** Draw a line on the plan and get a section sheet: the measured ground, the buildings the line cuts in solid poché, and the street behind them in elevation, with heights above NAP.
 - **The site in its surroundings.** Every view can show the neighbourhood around the site, greyed in the sheet's palette, so the site reads in its street and block while staying the thing you look at.
 - **Palettes that keep a series together.** Eight built-in palettes (Paper, Ink, Mono, Polder, Blueprint, Terracotta, Midnight, Pastel) restyle every diagram at once, so a set of sheets reads as one family. Make your own from a few colours picked by hand or pasted from a palette generator's export; openarchi gives each colour its job and checks the contrast. Tweak any layer's fill, line or opacity on top.
 - **Real data, cleanly drawn.** Buildings with year built, use and height, road surfaces at their true width, water, green, trees, parcels and terrain contours, from the Dutch government's open registers.
@@ -94,6 +95,7 @@ On Windows, Ctrl takes the place of ⌘.
 - **T** adds a text box. With a text selected, **Return** edits it, the arrow keys nudge it (with **⇧** by 10 mm) and **Delete** removes a text box.
 - In a report, the arrow keys nudge the selected block (with **⇧** by 10 mm), **⌘D** duplicates it, **⌘]** and **⌘[** bring it forward or send it back, and **Delete** removes it. **T** adds a text box to the current page, and **Esc** lets go of the selected block.
 - **Ctrl+Tab** and **Ctrl+⇧+Tab** step through the sheet tabs, as do **⌘⌥→** and **⌘⌥←** on a Mac. With a pin selected, **Return** edits its label, the arrow keys nudge it and **Delete** removes it.
+- **S** draws a section line on the sheet, with a drag or two clicks. Drag either end to move it; with the line selected, **Delete** removes it.
 - **⌘Z** undoes the last change to the site or the sheet and **⇧⌘Z** redoes it (**Ctrl+Y** also redoes on Windows).
 - **⌘=** and **⌘−** zoom the map or the sheet, and **⌘0** fits the site or the sheet back in the window.
 - **⌘E** exports, **D** hides or shows the diagram column and **I** the inspector.
