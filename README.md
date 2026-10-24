@@ -8,6 +8,11 @@
 
 Draw a site, and get a whole series of clean, styled diagrams ready for a board or a portfolio.
 
+[![Download](https://img.shields.io/github/v/release/HNagouda/openarchi?label=download&color=2ea44f)](https://github.com/HNagouda/openarchi/releases/latest)
+[![CI](https://github.com/HNagouda/openarchi/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/HNagouda/openarchi/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/github/license/HNagouda/openarchi?color=blue)](LICENSE)
+![macOS and Windows](https://img.shields.io/badge/macOS%20%7C%20Windows-lightgrey)
+
 <img src="docs/screenshots/workspace-light.png" alt="The openarchi workspace showing a building age diagram of Domplein, Utrecht, with the diagram picker, theme cards and a filmstrip of every diagram" width="900">
 
 </div>
@@ -40,6 +45,20 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
     <td align="center">Building age, in Midnight</td>
   </tr>
 </table>
+
+## Downloading it
+
+Download the installer for your computer from the [latest release](https://github.com/HNagouda/openarchi/releases/latest). It's under "Assets" at the bottom of that page.
+
+- **Mac:** `openarchi_<version>_universal.dmg` runs on both Apple Silicon and Intel Macs, on macOS 11 or newer. Open it and drag openarchi into Applications.
+- **Windows:** `openarchi_<version>_x64-setup.exe` is the usual installer. The `.msi` installs the same app, for computers that only accept MSI packages.
+
+The installers aren't signed yet, which costs a yearly fee from Apple and a certificate for Windows. So the first time you open openarchi, your computer warns you about it:
+
+- **On a Mac**, right-click openarchi in Applications and choose Open, then Open again. On macOS 15 and newer that button is gone: click Done, open **System Settings > Privacy & Security**, scroll down and click **Open Anyway** next to the message about openarchi. If macOS says the app is damaged, run `xattr -dr com.apple.quarantine /Applications/openarchi.app` in Terminal and open it again.
+- **On Windows**, SmartScreen says "Windows protected your PC". Click **More info**, then **Run anyway**.
+
+You only need to do this once. Each release also lists `SHA256SUMS.txt`, to check a download is the file that was published. If you want to try the newest work before it's released, the [dev build](https://github.com/HNagouda/openarchi/releases/tag/dev-build) is rebuilt from the `dev` branch after every change.
 
 ## Using it
 
