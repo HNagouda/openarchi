@@ -9,7 +9,11 @@
 
 /* * ==== live preview ==== */
 
+/* The controls are taller than the sheet, so the sheet stays in view while they scroll. */
 .palette-preview {
+  position: sticky;
+  top: 0;
+  align-self: start;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -330,6 +334,7 @@
   }
 
   .palette-preview {
+    position: static;
     min-height: 240px;
   }
 }
