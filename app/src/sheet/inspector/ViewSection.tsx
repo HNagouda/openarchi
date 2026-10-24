@@ -6,12 +6,15 @@ import { Toggle } from "../../ui/Toggle";
 import { plateOptions } from "../../lib/diagrams";
 import { withSheet, withSun, withView } from "./lookEdits";
 import { PlateList } from "./PlateList";
+import { SectionFields } from "../section/SectionFields";
 
 const MODES: { value: ViewMode; label: string; tip: string }[] = [
   { value: "plan", label: "Plan", tip: "Straight down" },
   { value: "axonometric", label: "Axo", tip: "Tilted, with buildings at their height" },
   { value: "explode", label: "Explode", tip: "Several diagrams stacked as plates" },
+  { value: "section", label: "Section", tip: "An elevation along the sheet's section line" },
 ];
+const NO_LINE_TIP = "Draw a section line on the sheet first";
 
 const MAX_ROTATION = 355;
 const ROTATION_STEP = 5;
@@ -27,18 +30,20 @@ type Props = {
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
-/** Plan, axonometric or explode, whether the neighbourhood shows, and the sun's date and time where it shows. */
+/** Plan, axonometric, explode or section, whether the neighbourhood shows, the sun's date and time where it shows, and the section line. */
 export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const view = look.view;
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
-  const isTilted = view.mode !== "plan";
+  const isTilted = view.mode === "axonometric" || view.mode === "explode";
+  // The section view needs a line to cut along; until one is drawn it is greyed out.
+  const modes = MODES.map((mode) => (mode.value === "section" && !look.section ? { ...mode, isDisabled: true, tip: NO_LINE_TIP } : mode));
   const hasSun = view.mode === "axonometric" || Boolean(diagram?.solar);
   const unused = plateOptions(diagrams).filter((entry) => !view.plates.includes(entry.id));
 
   return (
     <Section id="view" title="View">
       <div className="sheet-fields">
-        <Segmented label="View" value={view.mode} options={MODES} onChange={(mode) => onLook(withView(look, { mode }))} />
+        <Segmented label="View" value={view.mode} options={modes} onChange={(mode) => onLook(withView(look, { mode }))} />
         {/* The neighbourhood around the site, and around a sheet's smaller area the rest of the site too. */}
         <Toggle label="Neighbourhood" isOn={look.sheet.show_context} onChange={(show_context) => onLook(withSheet(look, { show_context }))} />
 
@@ -113,6 +118,8 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
             </div>
           </div>
         )}
+
+        <SectionFields look={look} onLook={onLook} onSeal={onSeal} />
       </div>
     </Section>
   );

@@ -34,9 +34,9 @@ function withoutText(sheet: Sheet): Sheet {
 export function useThumbnails(look: Look, diagrams: Diagram[], revision: number, isEnabled: boolean) {
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
 
-  // Everything but the diagram, its variant, the sheet's text and the view mode: the pictures only change when this changes.
+  // Everything but the diagram, its variant, the sheet's text, the view mode and the section line: the pictures only change when this changes.
   const { diagram_id: _diagram, variant: _variant, ...rest } = look;
-  const shared = { ...rest, sheet: withoutText(look.sheet), view: { ...look.view, mode: "plan" as const } };
+  const shared = { ...rest, section: null, sheet: withoutText(look.sheet), view: { ...look.view, mode: "plan" as const } };
   // A plan ignores the rest of the view: turning or tilting the sheet leaves the pictures alone.
   const key = JSON.stringify({ ...shared, view: null });
 

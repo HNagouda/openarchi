@@ -21,6 +21,7 @@ use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::report::{block_svg, Block, Content, RatiosStyle, ReportData};
 use openarchi_core::scene::{Layer, Scene};
+use openarchi_core::section::{SectionLine, DEFAULT_DEPTH_M};
 use openarchi_core::sheet::Sheet;
 use openarchi_core::sources::cache::TileCache;
 use openarchi_core::sources::grid::Tile;
@@ -54,6 +55,8 @@ const THUMBNAIL_WIDTH_PX: u32 = 560;
 const SAMPLE_PALETTE: &str = "f79f79, f7d08a, e3f09b, 87b6a7, 5b5941";
 const SAMPLE_PALETTE_ID: &str = "westermarkt-sample";
 const SAMPLE_PALETTE_NAME: &str = "Westermarkt sample";
+/// Half the section line the mock's section preview is cut along.
+const SECTION_HALF_LENGTH_M: f64 = 100.0;
 
 fn main() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -120,6 +123,7 @@ fn main() {
     }
 
     write_explode_previews(&scene, &sheet, &out_dir);
+    write_section_previews(&scene, &sheet, &out_dir);
     write_ratios(&scene, &out_dir);
 
     println!("fixtures in {}", out_dir.display());
@@ -223,6 +227,49 @@ fn write_explode_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
             svg,
         )
         .expect("write the explode preview");
+    }
+}
+
+/// The section view in every theme, "section--paper", along one line west to
+/// east through the site centre, which the mock shows whatever line is drawn.
+/// The fixture predates kept terrain, so its ground is flat.
+fn write_section_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
+    let diagrams = builtin_diagrams();
+    let diagram = diagrams
+        .iter()
+        .find(|diagram| diagram.id == "context")
+        .expect("the context diagram");
+    let (x, y) = scene.origin;
+    let line = SectionLine {
+        start: (x - SECTION_HALF_LENGTH_M, y),
+        end: (x + SECTION_HALF_LENGTH_M, y),
+        depth_m: DEFAULT_DEPTH_M,
+    };
+    for theme in fixture_themes() {
+        let look = Look {
+            diagram_id: diagram.id.clone(),
+            theme_id: theme.id.clone(),
+            sheet: sheet.clone(),
+            view: View {
+                mode: ViewMode::Section,
+                ..View::default()
+            },
+            section: Some(line.clone()),
+            ..Look::default()
+        };
+        let input = RenderInput {
+            scene,
+            diagram,
+            theme: &theme,
+            look: &look,
+            pins: &[],
+        };
+        let svg = render_svg(&input).expect("render the section preview");
+        fs::write(
+            out_dir.join(format!("previews/section--{}.svg", theme.id)),
+            svg,
+        )
+        .expect("write the section preview");
     }
 }
 

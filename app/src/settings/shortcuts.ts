@@ -55,6 +55,8 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
       { label: "Edit the selected pin's label", keys: ["enter"] },
       { label: "Nudge the selected pin, by 10 mm with Shift", keys: ["←", "→"] },
       { label: "Delete the selected pin", keys: ["delete"] },
+      { label: "Draw a section line", keys: ["s"] },
+      { label: "Delete the selected section line", keys: ["delete"] },
       { label: "Undo", keys: ["mod+z"] },
       { label: "Redo", keys: ["mod+shift+z"] },
       { label: "Export", keys: ["mod+e"] },
