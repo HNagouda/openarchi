@@ -27,7 +27,12 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
       { label: "Polygon", keys: ["p"] },
       { label: "Finish the polygon", keys: ["enter"] },
       { label: "Remove the last corner", keys: ["delete"] },
-      { label: "Stop drawing", keys: ["escape"] },
+      { label: "Delete the selected shape", keys: ["delete"] },
+      { label: "Stop drawing or deselect", keys: ["escape"] },
+      { label: "Undo", keys: ["mod+z"] },
+      { label: "Redo", keys: ["mod+shift+z"] },
+      { label: "Zoom in or out", keys: ["mod+=", "mod+-"] },
+      { label: "Fit the site", keys: ["mod+0"] },
     ],
   },
   {

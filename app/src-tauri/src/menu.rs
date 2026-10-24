@@ -53,7 +53,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         ],
     )?;
     // Undo and redo are ours, not the predefined ones, because they undo
-    // changes to the look. In a text field the window passes them on.
+    // changes to the site and the look. In a text field the window passes them on.
     let edit_menu = Submenu::with_items(
         app,
         "Edit",
@@ -75,7 +75,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         &[
             &item(app, "zoom-in", "Zoom In", Some("CmdOrCtrl+="))?,
             &item(app, "zoom-out", "Zoom Out", Some("CmdOrCtrl+-"))?,
-            &item(app, "zoom-fit", "Fit Sheet", Some("CmdOrCtrl+0"))?,
+            &item(app, "zoom-fit", "Zoom to Fit", Some("CmdOrCtrl+0"))?,
             &separator()?,
             &item(app, "inspector", "Toggle Inspector  (I)", None)?,
             &separator()?,
