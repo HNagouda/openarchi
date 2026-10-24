@@ -71,6 +71,7 @@ pub fn coverage(id: &str) -> Coverage<'_> {
         url: WCS_URL,
         id,
         axes: AXES,
+        scale_factor: None,
     }
 }
 

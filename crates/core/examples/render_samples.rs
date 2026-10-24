@@ -17,6 +17,12 @@
 //! The third form renders the OpenStreetMap diagrams in every theme from a
 //! scene fetched with `fetch_site`, into target/render-samples/osm/. The
 //! checked-in fixture predates OpenStreetMap, so these need a live fetch.
+//!
+//! cargo run --release -p openarchi-core --example render_samples context <scene.json> [diagram]
+//!
+//! The last form draws a fetched scene with its neighbourhood in every theme,
+//! as plan, axonometric and explode, into target/render-samples/context/. The
+//! fixture has no neighbourhood either.
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -38,11 +44,18 @@ const BIG_SITE_SPACING_M: f64 = 600.0;
 const VIEWS_ARGUMENT: &str = "views";
 const SCENE_ARGUMENT: &str = "scene";
 const OSM_ARGUMENT: &str = "osm";
+const CONTEXT_ARGUMENT: &str = "context";
+/// The views the neighbourhood samples are drawn in, with a name for each.
+const CONTEXT_VIEWS: [(&str, ViewMode); 3] = [
+    ("plan", ViewMode::Plan),
+    ("axo", ViewMode::Axonometric),
+    ("explode", ViewMode::Explode),
+];
 /// The diagrams drawn from OpenStreetMap data.
 const OSM_DIAGRAMS: [&str; 4] = ["business", "facility", "transit", "walkability"];
 
 /// The view samples: file name, diagram, theme and view mode.
-const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 9] = [
+const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 11] = [
     (
         "axo--building-height--paper",
         "building-height",
@@ -75,6 +88,13 @@ const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 9] = [
         "midnight",
         ViewMode::Explode,
     ),
+    (
+        "explode--blueprint",
+        "context",
+        "blueprint",
+        ViewMode::Explode,
+    ),
+    ("explode--pastel", "context", "pastel", ViewMode::Explode),
     ("sun-path--paper", "sun-path", "paper", ViewMode::Plan),
     ("shadow--paper", "shadow", "paper", ViewMode::Plan),
 ];
@@ -165,6 +185,17 @@ fn main() {
         let text = std::fs::read_to_string(scene_path).expect("read the scene");
         let osm_scene: Scene = serde_json::from_str(&text).expect("parse the scene");
         write_osm(&osm_scene, name, &out_dir.join(OSM_ARGUMENT));
+        return;
+    }
+    if only_diagram.as_deref() == Some(CONTEXT_ARGUMENT) {
+        let args: Vec<String> = std::env::args().skip(2).collect();
+        let [scene_path, rest @ ..] = args.as_slice() else {
+            panic!("usage: render_samples context <scene.json> [diagram]");
+        };
+        let text = std::fs::read_to_string(scene_path).expect("read the scene");
+        let context_scene: Scene = serde_json::from_str(&text).expect("parse the scene");
+        let diagram_id = rest.first().map_or("context", String::as_str);
+        write_context(&context_scene, diagram_id, &out_dir.join(CONTEXT_ARGUMENT));
         return;
     }
     if only_diagram.as_deref() == Some(VIEWS_ARGUMENT) {
@@ -290,6 +321,44 @@ fn write_osm(scene: &Scene, name: &str, out_dir: &Path) {
         }
     }
     println!("OpenStreetMap samples in {}", out_dir.display());
+}
+
+/// One diagram with its neighbourhood in every theme and view.
+fn write_context(scene: &Scene, diagram_id: &str, out_dir: &Path) {
+    std::fs::create_dir_all(out_dir).expect("create the context folder");
+    let diagrams = builtin_diagrams();
+    let diagram = diagrams
+        .iter()
+        .find(|d| d.id == diagram_id)
+        .expect("diagram exists");
+    for theme in builtin_themes() {
+        for (view_name, mode) in CONTEXT_VIEWS {
+            let look = Look {
+                diagram_id: diagram.id.clone(),
+                theme_id: theme.id.clone(),
+                sheet: Sheet {
+                    title: diagram.name.clone(),
+                    subtitle: "With its neighbourhood".to_string(),
+                    ..Sheet::default()
+                },
+                view: View {
+                    mode,
+                    ..View::default()
+                },
+                ..Look::default()
+            };
+            let input = RenderInput {
+                scene,
+                diagram,
+                theme: &theme,
+                look: &look,
+            };
+            let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
+            let file = format!("{}--{view_name}--{}.png", diagram.id, theme.id);
+            std::fs::write(out_dir.join(file), png).expect("write the sample");
+        }
+    }
+    println!("neighbourhood samples in {}", out_dir.display());
 }
 
 /// The same diagram on portrait, square and A4 sheets, and in each frame shape.

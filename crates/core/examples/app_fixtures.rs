@@ -21,6 +21,7 @@ use openarchi_core::scene::{Layer, Scene};
 use openarchi_core::sheet::Sheet;
 use openarchi_core::sources::cache::TileCache;
 use openarchi_core::sources::grid::Tile;
+use openarchi_core::view::{View, ViewMode};
 use serde_json::json;
 
 const FIXTURE: &str = "tests/fixtures/westermarkt.scene.json";
@@ -59,7 +60,6 @@ fn main() {
     write_catalog(&scene, &out_dir);
     let (_cache_dir, cache) = recorded_cache();
     write_analysis(&scene, &cache, &out_dir);
-    write_ratios(&scene, &out_dir);
     write_report_blocks(&scene, &cache, &out_dir);
 
     let sheet = Sheet {
@@ -107,7 +107,58 @@ fn main() {
         }
     }
 
+    write_explode_previews(&scene, &sheet, &out_dir);
+    write_ratios(&scene, &out_dir);
+
     println!("fixtures in {}", out_dir.display());
+}
+
+/// The ratios in every theme, as `get_ratios` returns them, "ratios/paper.json".
+fn write_ratios(scene: &Scene, out_dir: &Path) {
+    let folder = out_dir.join("ratios");
+    fs::create_dir_all(&folder).expect("create the ratios folder");
+    for theme in builtin_themes() {
+        let ratios = ratios::compute(scene, &theme).expect("work out the ratios");
+        fs::write(
+            folder.join(format!("{}.json", theme.id)),
+            serde_json::to_string(&ratios).expect("serialise the ratios"),
+        )
+        .expect("write the ratios");
+    }
+}
+
+/// The explode view with its default plates in every theme, "explode--paper",
+/// so the mock can show plates to drag. It cannot reorder them; the app can.
+fn write_explode_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
+    let diagrams = builtin_diagrams();
+    let diagram = diagrams
+        .iter()
+        .find(|diagram| diagram.id == "context")
+        .expect("the context diagram");
+    for theme in builtin_themes() {
+        let look = Look {
+            diagram_id: diagram.id.clone(),
+            theme_id: theme.id.clone(),
+            sheet: sheet.clone(),
+            view: View {
+                mode: ViewMode::Explode,
+                ..View::default()
+            },
+            ..Look::default()
+        };
+        let input = RenderInput {
+            scene,
+            diagram,
+            theme: &theme,
+            look: &look,
+        };
+        let svg = render_svg(&input).expect("render the explode preview");
+        fs::write(
+            out_dir.join(format!("previews/explode--{}.svg", theme.id)),
+            svg,
+        )
+        .expect("write the explode preview");
+    }
 }
 
 /// A cache holding the answers recorded in tests/fixtures/analysis-cache, so
@@ -220,18 +271,6 @@ fn write_catalog(scene: &Scene, out_dir: &Path) {
         serde_json::to_string(&fixture).expect("serialise the fixture"),
     )
     .expect("write the fixture");
-}
-
-/// The ratios in every theme, as `get_ratios` returns them.
-fn write_ratios(scene: &Scene, out_dir: &Path) {
-    let folder = out_dir.join("ratios");
-    fs::create_dir_all(&folder).expect("create the ratios folder");
-    for theme in builtin_themes() {
-        let computed = ratios::compute(scene, &theme).expect("compute the ratios");
-        let file = folder.join(format!("{}.json", theme.id));
-        fs::write(file, serde_json::to_string(&computed).expect("serialise"))
-            .expect("write the ratios");
-    }
 }
 
 /// Every ratios group in every chart style, and the facts and notes of every

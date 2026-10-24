@@ -37,7 +37,7 @@ pub fn export(input: &RenderInput, format: ExportFormat, dpi: u32, path: &Path) 
         ExportFormat::Svg => render_svg(input)?.into_bytes(),
         ExportFormat::Pdf => convert::pdf(&render_svg(input)?)?,
         ExportFormat::Png => convert::png_at_dpi(&render_svg(input)?, dpi)?,
-        ExportFormat::Dxf => dxf::write(input.scene).into_bytes(),
+        ExportFormat::Dxf => dxf::write(input.scene, input.look.sheet.show_context).into_bytes(),
     };
 
     std::fs::write(path, bytes).map_err(|source| Error::io(path, source))

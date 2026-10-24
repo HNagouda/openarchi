@@ -276,6 +276,25 @@ fn set_look_changes_only_the_passed_sheet_fields() {
 }
 
 #[test]
+fn set_look_turns_the_neighbourhood_off_and_on() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let off = server.call_ok(
+        "set_look",
+        json!({ "id": id, "sheet": { "show_context": false } }),
+    );
+    let on = server.call_ok(
+        "set_look",
+        json!({ "id": id, "sheet": { "show_context": true } }),
+    );
+
+    assert_eq!(off["sheet"]["show_context"], json!(false));
+    assert_eq!(on["sheet"]["show_context"], json!(true));
+    assert_eq!(on["sheet"]["show_legend"], json!(true));
+}
+
+#[test]
 fn edit_text_adds_a_box_and_moves_the_title_and_both_are_saved() {
     let mut server = Server::start();
     let id = server.create_westermarkt();

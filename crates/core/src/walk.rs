@@ -282,6 +282,7 @@ mod tests {
                 places: walk.places,
             }),
             editions: Default::default(),
+            context: vec![],
         };
 
         let neighbourhood = neighbourhood(&scene).unwrap();

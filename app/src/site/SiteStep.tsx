@@ -2,7 +2,7 @@
 // that turns the drawing into a scene.
 
 import { useEffect, useRef, useState } from "react";
-import { AttributionControl, Map as MapLibreMap } from "maplibre-gl";
+import { AttributionControl, Map as MapLibreMap, ScaleControl } from "maplibre-gl";
 import type { Navigate } from "../App";
 import { useIsDark } from "../lib/appearance";
 import { useCommandHandler } from "../lib/commands";
@@ -37,6 +37,8 @@ import { useEditing } from "./useEditing";
 const ADDRESS_KINDS = ["adres", "address", "postcode"];
 const FIT_PADDING_PX = 80;
 const RESET_VIEW_MS = 600;
+// The scale bar picks a round length that fits in this many pixels.
+const SCALE_BAR_MAX_PX = 120;
 // Each drag or slider sends many changes under one of these keys; the history
 // folds them into one undo step until the gesture is sealed.
 const DRAW_MERGE_KEY = "draw";
@@ -99,6 +101,8 @@ export function SiteStep({ project, navigate }: Props) {
       dragRotate: false,
     });
     created.addControl(new AttributionControl({ compact: true }), "bottom-left");
+    // Added after the credits, so MapLibre stacks it above them in the same corner.
+    created.addControl(new ScaleControl({ unit: "metric", maxWidth: SCALE_BAR_MAX_PX }), "bottom-left");
     created.on("style.load", () => addSiteLayers(created, brandColour()));
     if (project) created.fitBounds(bounds(project.area), { padding: FIT_PADDING_PX, duration: 0 });
     setMap(created);

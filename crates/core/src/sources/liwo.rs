@@ -21,6 +21,7 @@ pub const FLOOD_DEPTH: Coverage<'static> = Coverage {
     url: "https://basisinformatie-overstromingen.nl/geoserver/LIWO_Basis/ows",
     id: "LIWO_Basis__MaximaleWaterdiepteNederland_Kaart5",
     axes: ("X", "Y"),
+    scale_factor: None,
 };
 
 /// LIWO release 2025.1.2 is the one the method report describes.

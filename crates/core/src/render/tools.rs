@@ -121,7 +121,7 @@ fn write_scale_bar(
         out,
         x,
         note_baseline,
-        &scale_note(furniture.sheet),
+        &scale_note(furniture.sheet, furniture.is_foreshortened),
         Kind::Small,
         None,
     );
@@ -189,8 +189,9 @@ fn metres(value: f64) -> String {
     decimal(value)
 }
 
-/// "Scale 1:2500 on A3".
-fn scale_note(sheet: &Sheet) -> String {
+/// "Scale 1:2500 on A3", or "Scale 1:2000 left to right, on A3" in a tilted
+/// view, where the bar only holds for lengths running across the paper.
+fn scale_note(sheet: &Sheet, is_foreshortened: bool) -> String {
     let paper = match sheet.paper {
         Paper::A4 => "A4",
         Paper::A3 => "A3",
@@ -199,6 +200,10 @@ fn scale_note(sheet: &Sheet) -> String {
         Paper::A0 => "A0",
         Paper::Square => "300 × 300 mm",
     };
+
+    if is_foreshortened {
+        return format!("Scale 1:{} left to right, on {paper}", sheet.scale);
+    }
 
     format!("Scale 1:{} on {paper}", sheet.scale)
 }
@@ -212,5 +217,19 @@ mod tests {
         assert_eq!(nice_length(180.0), 100.0);
         assert_eq!(nice_length(260.0), 250.0);
         assert_eq!(nice_length(2.0), 5.0);
+    }
+
+    #[test]
+    fn a_tilted_view_says_its_scale_holds_left_to_right() {
+        let sheet = Sheet {
+            scale: 2000,
+            paper: Paper::A3,
+            ..Sheet::default()
+        };
+        assert_eq!(scale_note(&sheet, false), "Scale 1:2000 on A3");
+        assert_eq!(
+            scale_note(&sheet, true),
+            "Scale 1:2000 left to right, on A3"
+        );
     }
 }

@@ -23,6 +23,10 @@ const AXES: (&str, &str) = ("x", "y");
 /// Fetch a little beyond the site, so buildings on the edge still have ground
 /// around them and contour lines do not stop at the boundary.
 const MARGIN_M: f64 = 20.0;
+/// The neighbourhood around a site needs only a height per building, so its
+/// elevation comes in 2 m cells: a sixteenth of the cells, and still several
+/// on the roof of a terraced house.
+const COARSE_SCALE_FACTOR: &str = "0.25";
 
 /// Surface and terrain for the same cells.
 #[derive(Debug, Clone)]
@@ -128,6 +132,7 @@ pub fn fetch_tile(coverage: &'static str, rect: Rect<f64>) -> Result<Vec<f32>> {
         url: WCS_URL,
         id: coverage,
         axes: AXES,
+        scale_factor: None,
     };
     let grid = wcs::fetch(&coverage, rect)?;
     let expected = (cells_across(rect.width()), cells_across(rect.height()));
@@ -151,6 +156,19 @@ pub fn fetch_tile(coverage: &'static str, rect: Rect<f64>) -> Result<Vec<f32>> {
     }
 
     Ok(grid.values)
+}
+
+/// `coverage` inside `rect` (RD New) in 2 m cells, placed where the GeoTIFF
+/// says. For building heights around the site, where 0.5 m would be wasted.
+pub fn fetch_coarse_tile(coverage: &'static str, rect: Rect<f64>) -> Result<Grid> {
+    let coverage = Coverage {
+        service: SERVICE,
+        url: WCS_URL,
+        id: coverage,
+        axes: AXES,
+        scale_factor: Some(COARSE_SCALE_FACTOR),
+    };
+    wcs::fetch(&coverage, rect)
 }
 
 #[cfg(test)]
