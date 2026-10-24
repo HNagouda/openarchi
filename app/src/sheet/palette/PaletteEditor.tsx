@@ -69,7 +69,7 @@ export function PaletteEditor({ title, initial, editingId, look, onClose, onSave
       <Button icon="undo" tip="Undo" shortcut="mod+z" disabled={!history.canUndo} onClick={history.undo} />
       <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
       <span className="palette-footer-gap" />
-      {preview.check && !isReadable && <span className="palette-save-blocked">Fix the contrast to save</span>}
+      {preview.check && !isReadable && <span className="palette-save-blocked">Fix the text contrast to save</span>}
       <Button variant="secondary" onClick={onClose}>
         Cancel
       </Button>

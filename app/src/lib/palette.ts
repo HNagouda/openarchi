@@ -25,7 +25,7 @@ export type PaletteDraft = {
 
 export type RoleColour = { role: Role; hex: string; swatch: number | null; is_pinned: boolean; reason: string };
 
-/** `is_readable` is false while text or buildings miss their WCAG ratio; such a palette cannot be saved. */
+/** `is_readable` is false while text misses its WCAG ratio on the paper; such a palette cannot be saved. */
 export type PaletteCheck = { theme: Theme & { palette: Palette }; roles: RoleColour[]; warnings: string[]; is_readable: boolean };
 
 export const importPalette = (text: string) => invoke<PaletteSwatch[]>("import_palette", { text });

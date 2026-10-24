@@ -54,8 +54,9 @@ pub struct PinId {
     pub pin_id: String,
 }
 
-/// "pin" is a map pin, "star", "flag" and "dot" are what they say, and
-/// "number" is a disc numbered by its place among the numbered pins.
+/// "pin" is a map pin; "star", "flag" and "dot" are what they say. The app's
+/// numbered disc is left out, because the app no longer offers it either and
+/// an assistant does only what the user can do.
 #[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum PinIconInput {
@@ -63,7 +64,6 @@ pub enum PinIconInput {
     Star,
     Flag,
     Dot,
-    Number,
 }
 
 impl From<PinIconInput> for PinIcon {
@@ -73,7 +73,6 @@ impl From<PinIconInput> for PinIcon {
             PinIconInput::Star => PinIcon::Star,
             PinIconInput::Flag => PinIcon::Flag,
             PinIconInput::Dot => PinIcon::Dot,
-            PinIconInput::Number => PinIcon::Number,
         }
     }
 }

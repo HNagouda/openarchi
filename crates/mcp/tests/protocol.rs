@@ -1017,8 +1017,14 @@ fn pins_are_added_moved_relabelled_and_removed() {
     assert_eq!(added["pins"][0]["icon"], json!("star"));
     server.call_ok(
         "add_pin",
+        json!({ "id": id, "location": { "lon": 4.8830, "lat": 52.3750 }, "icon": "dot" }),
+    );
+    // The app no longer offers a numbered disc, so neither does the assistant.
+    let refused = server.call_err(
+        "add_pin",
         json!({ "id": id, "location": { "lon": 4.8830, "lat": 52.3750 }, "icon": "number" }),
     );
+    assert!(refused.contains("number"), "{refused}");
 
     let moved = server.call_ok(
         "move_pin",
@@ -1032,7 +1038,7 @@ fn pins_are_added_moved_relabelled_and_removed() {
     let first = &moved["pins"][0];
     assert_eq!(first["label"], json!("Tower"));
     assert!((first["location"]["lon"].as_f64().unwrap() - 4.8845).abs() < 1e-6);
-    assert_eq!(moved["pins"][1]["number"], json!(1));
+    assert_eq!(moved["pins"][1]["icon"], json!("dot"));
 
     let left = server.call_ok("remove_pin", json!({ "id": id, "pin_id": "pin-1" }));
     assert_eq!(left["pins"].as_array().unwrap().len(), 1);
@@ -1093,6 +1099,15 @@ fn import_palette_without_saving_only_checks_and_junk_names_the_problem() {
     );
     assert_eq!(checked["id"], json!(null));
     assert!(checked["warnings"][0].as_str().unwrap().contains("4.5:1"));
+    assert!(!server
+        .library
+        .path()
+        .join("themes/imported-palette.json")
+        .exists());
+
+    // Saving the same unreadable colours is refused, as the app's editor refuses it.
+    let refused = server.call_err("import_palette", json!({ "text": "f7d08a, f79f79" }));
+    assert!(refused.contains("hard to read"), "{refused}");
     assert!(!server
         .library
         .path()

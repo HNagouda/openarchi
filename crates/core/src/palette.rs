@@ -83,8 +83,9 @@ pub struct PaletteCheck {
     pub roles: Vec<RoleColour>,
     /// Plain sentences, each naming the colours and the WCAG ratio they miss.
     pub warnings: Vec<String>,
-    /// Text and buildings both meet their WCAG ratio on the paper. The editor
-    /// refuses to save a palette that does not; a faint accent only warns.
+    /// Text in ink meets its WCAG ratio on the paper. The editor refuses to
+    /// save a palette whose text cannot be read; faint buildings or a faint
+    /// accent only warn, since a pale figure can be a deliberate look.
     pub is_readable: bool,
 }
 
@@ -182,11 +183,10 @@ fn swatch_index(swatches: &mut Vec<Swatch>, hex: &str) -> usize {
     swatches.len() - 1
 }
 
-/// Text in ink on paper and the buildings against paper, the two a sheet cannot do without.
+/// Text in ink on paper, which a sheet cannot do without.
 fn is_readable(theme: &Theme) -> bool {
     let palette = &theme.palette;
     contrast_ratio(&palette.ink, &palette.paper) >= TEXT_CONTRAST
-        && contrast_ratio(&palette.figure, &palette.paper) >= GRAPHIC_CONTRAST
 }
 
 /// Text in ink on paper, the buildings and the accent line against paper.

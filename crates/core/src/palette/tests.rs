@@ -122,6 +122,18 @@ fn a_faint_accent_warns_but_still_reads() {
 }
 
 #[test]
+fn faint_buildings_warn_but_still_read() {
+    // Black ink on white, with the buildings pinned to a pale grey.
+    let mut pale_buildings = draft("000000, ffffff, eeeeee");
+    pale_buildings.roles.ink = Some(0);
+    pale_buildings.roles.paper = Some(1);
+    pale_buildings.roles.figure = Some(2);
+    let check = check(&pale_buildings, "pale-buildings").unwrap();
+    assert!(!check.warnings.is_empty());
+    assert!(check.is_readable);
+}
+
+#[test]
 fn every_builtin_palette_duplicates_as_readable() {
     for theme in builtin_themes() {
         let copy = draft_from(&theme, "Copy");

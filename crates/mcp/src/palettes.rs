@@ -42,6 +42,13 @@ pub fn import(library: &Library, input: ImportPalette) -> Result<Value, String> 
     let checked = palette::check(&draft, &id).map_err(|e| e.to_string())?;
 
     let is_saved = input.save.unwrap_or(true);
+    // The app's editor will not save a palette whose text cannot be read, so neither does the assistant.
+    if is_saved && !checked.is_readable {
+        return Err(format!(
+            "\"{name}\" was not saved, because its text would be hard to read: {} Pick other colours, or call with save false to only check them.",
+            checked.warnings.join(" ")
+        ));
+    }
     if is_saved {
         library
             .save_theme(&checked.theme)

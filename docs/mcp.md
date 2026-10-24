@@ -73,7 +73,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `list_diagrams`, `list_themes` | Shows the diagrams, with their group and variants, and the themes to choose from |
 | `set_look` | Changes the diagram and its variant, theme, sheet, single layers, the view and the sun's date and time, on the first sheet tab or the one `tab` names |
 | `list_sheets`, `add_sheet` | Lists a project's sheet tabs, and adds one copied from another, optionally framing a smaller area inside the site that it zooms to |
-| `list_pins`, `add_pin`, `move_pin`, `remove_pin` | Marks landmarks with a pin, star, flag, dot or numbered disc and a label, shown on every sheet that does not hide pins |
+| `list_pins`, `add_pin`, `move_pin`, `remove_pin` | Marks landmarks with a pin, star, flag or dot and a label, shown on every sheet that does not hide pins |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
@@ -84,7 +84,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `list_reports` | Lists the reports laid out in the app, with each page's paper and the blocks placed on it |
 | `export_report` | Writes one report as a PDF with a page per report page, or as an SVG or PNG per page, drawn from the project's current data |
 | `create_theme` | Saves a new theme, which the app picks up too |
-| `import_palette` | Turns a palette generator's export (hex codes, JSON, SVG swatches, XML or a link) into a theme, with the roles it chose and any contrast warnings |
+| `import_palette` | Turns a palette generator's export (hex codes, JSON, SVG swatches, XML or a link) into a theme, with the roles it chose and any contrast warnings; a palette whose text cannot be read is not saved, as in the app |
 | `list_user_palettes` | Lists the palettes the user made or imported, with their swatches |
 | `delete_project`, `restore_project` | Moves a project to Recently Deleted and back |
 

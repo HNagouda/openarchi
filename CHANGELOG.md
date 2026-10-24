@@ -211,13 +211,16 @@ Sheets can now show the site in three dimensions and the sun over it.
 ### Fixes
 
 - A polygon drawn clockwise showed the area of the rest of the earth (510 million km²); it now shows its own.
+- A walk diagram (walkability, transit, facilities) on a site larger than its walk drew its frame past the drawing zone and over the legend; the frame now stops at the zone and cuts the site off there.
+- Pin labels are set larger than the map's own labels, so a landmark's name reads at a glance.
+- Assistants follow the app's rules: they can no longer add the numbered pin the app dropped, and `import_palette` no longer saves a palette whose text cannot be read.
 
 ### A calmer palette editor
 
 - The palette editor fills the window instead of a fixed 1180 px box, so the live sheet is as large as the screen allows, at 1280 px and at 2560 px alike.
 - The right side follows the short path most palettes take: paste hex codes or drop a file, look at the swatches, name the palette, save. Swatches are larger, and a click on one opens its colour picker; another click closes it.
 - Which swatch paints which role, and copying the palette as JSON, CSV or a hex list, now wait behind one "Fine-tune which colour paints what" disclosure. The hue wheel is gone; the picker's saturation square and hue slider do the same job.
-- A palette whose text or buildings miss their WCAG ratio on the paper can no longer be saved: Save stays grey and says to fix the contrast. A faint accent still only warns.
+- A palette whose text misses its WCAG ratio on the paper can no longer be saved: Save stays grey and says to fix the text contrast. Faint buildings or a faint accent only warn, since a pale figure can be a deliberate look.
 - The Ratios view now shows the source line under every group's title, and the Analysis tab moved its source line up under each section title to match.
 
 ## 0.1.0 (unreleased)

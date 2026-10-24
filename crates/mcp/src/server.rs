@@ -430,7 +430,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Import a palette from what a palette generator exports or copies (hex codes, JSON, an SVG of swatches, an XML palette, or a link ending in dash-joined codes) and save it as a theme. The colours fill the roles by a fixed rule: the lightest quiet swatch is the paper (a colourful one is softened to a pale tint), the darkest is the ink, the darkest that stands out from the paper is the buildings, the most colourful is the accent, and the swatches nearest blue and green are water and green. Returns the id, each role with the swatch it came from and why, and warnings where text or buildings fall below the WCAG contrast ratios. save=false only checks."
+        description = "Import a palette from what a palette generator exports or copies (hex codes, JSON, an SVG of swatches, an XML palette, or a link ending in dash-joined codes) and save it as a theme. The colours fill the roles by a fixed rule: the lightest quiet swatch is the paper (a colourful one is softened to a pale tint), the darkest is the ink, the darkest that stands out from the paper is the buildings, the most colourful is the accent, and the swatches nearest blue and green are water and green. Returns the id, each role with the swatch it came from and why, and warnings where text or buildings fall below the WCAG contrast ratios. A palette whose text misses its ratio is not saved, as in the app. save=false only checks."
     )]
     async fn import_palette(&self, Parameters(input): Parameters<ImportPalette>) -> CallToolResult {
         reply(
