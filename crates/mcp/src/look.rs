@@ -1,7 +1,7 @@
 //! Partial updates to a project's look, as set_look applies them.
 //!
-//! Diagram and theme ids are checked against the catalog by the caller; this
-//! module only merges what was passed into what was there.
+//! Diagram, variant and theme ids are checked against the catalog by the
+//! caller; this module only merges what was passed into what was there.
 
 use std::collections::BTreeMap;
 
@@ -14,17 +14,22 @@ use openarchi_core::view::{SunMoment, View, MAX_TILT_DEG, MIN_TILT_DEG};
 use crate::inputs::{OverrideInput, SheetInput, SunInput, ViewInput};
 
 /// The look with every passed field replaced and the rest kept.
+/// `diagram` is the diagram id and variant, already checked.
 pub fn updated_look(
     look: &Look,
-    diagram_id: Option<String>,
+    diagram: Option<(String, Option<String>)>,
     theme_id: Option<String>,
     sheet: Option<SheetInput>,
     overrides: Option<BTreeMap<String, Option<OverrideInput>>>,
     view: Option<ViewInput>,
     sun: Option<SunInput>,
 ) -> Result<Look, String> {
+    let (diagram_id, variant) =
+        diagram.unwrap_or_else(|| (look.diagram_id.clone(), look.variant.clone()));
+
     Ok(Look {
-        diagram_id: diagram_id.unwrap_or_else(|| look.diagram_id.clone()),
+        diagram_id,
+        variant,
         theme_id: theme_id.unwrap_or_else(|| look.theme_id.clone()),
         sheet: updated_sheet(&look.sheet, sheet.unwrap_or_default())?,
         overrides: updated_overrides(&look.overrides, overrides.unwrap_or_default())?,
@@ -197,7 +202,7 @@ mod tests {
         let look = Look::default();
         let updated = updated_look(
             &look,
-            Some("figure-ground".into()),
+            Some(("figure-ground".into(), None)),
             None,
             None,
             None,

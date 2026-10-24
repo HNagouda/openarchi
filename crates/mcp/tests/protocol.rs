@@ -314,6 +314,74 @@ fn edit_text_with_an_unknown_font_names_the_bundled_ones() {
 }
 
 #[test]
+fn set_look_picks_a_variant_and_keeps_it_while_the_diagram_stays() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let chosen = server.call_ok(
+        "set_look",
+        json!({ "id": id, "diagram_id": "air-quality", "variant": "pm25" }),
+    );
+    let themed = server.call_ok("set_look", json!({ "id": id, "theme_id": "ink" }));
+    let moved_on = server.call_ok("set_look", json!({ "id": id, "diagram_id": "noise" }));
+
+    assert_eq!(chosen["variant"], json!("pm25"));
+    assert_eq!(themed["variant"], json!("pm25"));
+    assert_eq!(moved_on["diagram_id"], json!("noise"));
+    assert_eq!(moved_on["variant"], Value::Null);
+}
+
+#[test]
+fn set_look_with_an_old_diagram_id_lands_on_its_variant() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let look = server.call_ok(
+        "set_look",
+        json!({ "id": id, "diagram_id": "noise-all-sources" }),
+    );
+
+    assert_eq!(look["diagram_id"], json!("noise"));
+    assert_eq!(look["variant"], json!("all"));
+}
+
+#[test]
+fn set_look_with_an_unknown_variant_names_the_ones_there_are() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let message = server.call_err(
+        "set_look",
+        json!({ "id": id, "diagram_id": "air-quality", "variant": "ozone" }),
+    );
+    let plain = server.call_err(
+        "set_look",
+        json!({ "id": id, "diagram_id": "context", "variant": "pm25" }),
+    );
+
+    assert!(message.contains("no2, pm10, pm25"), "{message}");
+    assert!(plain.contains("no variants"), "{plain}");
+}
+
+#[test]
+fn set_look_takes_a_plate_for_one_variant() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let look = server.call_ok(
+        "set_look",
+        json!({ "id": id, "view": { "mode": "explode", "plates": ["air-quality:pm10", "context"] } }),
+    );
+    let message = server.call_err(
+        "set_look",
+        json!({ "id": id, "view": { "plates": ["air-quality:ozone"] } }),
+    );
+
+    assert_eq!(look["view"]["plates"][0], json!("air-quality:pm10"));
+    assert!(message.contains("id:variant"), "{message}");
+}
+
+#[test]
 fn set_look_with_an_unknown_layer_is_a_readable_error() {
     let mut server = Server::start();
     let id = server.create_westermarkt();
@@ -557,7 +625,6 @@ fn fetch_site_saves_a_scene_and_get_project_summarizes_it() {
 }
 
 #[test]
-#[ignore = "needs catalog::builtin_diagrams from the render layer"]
 fn list_diagrams_includes_the_default_diagram() {
     let mut server = Server::start();
     let diagrams = server.call_ok("list_diagrams", json!({}));
@@ -566,6 +633,29 @@ fn list_diagrams_includes_the_default_diagram() {
         .unwrap()
         .iter()
         .any(|d| d["id"] == json!("context")));
+}
+
+#[test]
+fn list_diagrams_shows_groups_and_the_variants_of_air_quality() {
+    let mut server = Server::start();
+    let diagrams = server.call_ok("list_diagrams", json!({}));
+    let air = diagrams
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|d| d["id"] == json!("air-quality"))
+        .unwrap()
+        .clone();
+
+    let variants: Vec<&str> = air["variants"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|v| v["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(variants, ["no2", "pm10", "pm25"]);
+    assert_eq!(air["group"], json!("Environment"));
+    assert_eq!(air["variants"][2]["classify"]["layer"], json!("pm25"));
 }
 
 #[test]
