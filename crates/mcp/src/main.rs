@@ -7,6 +7,8 @@ mod inputs;
 mod look;
 mod resolve;
 mod server;
+mod sheet_inputs;
+mod sheets;
 mod summary;
 mod text;
 mod user_themes;

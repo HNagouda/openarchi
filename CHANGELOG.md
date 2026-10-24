@@ -25,6 +25,15 @@ What changed in each version of openarchi, newest first.
 - Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
 - Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
 
+### Sheet tabs and pins
+
+- A project holds several sheets, each a tab along the bottom of the workspace with its own diagram, palette, view and text. The + adds one, a double-click renames it, dragging reorders it, and the menu on the open tab duplicates or deletes it. Deleting says so with an Undo, and every tab change undoes like any other edit.
+- Ctrl+Tab and Ctrl+Shift+Tab, or Ctrl+PageDown and Ctrl+PageUp, step through the tabs, and on a Mac ⌘⌥→ and ⌘⌥← do too.
+- A sheet can show part of the site. The Whole site button in the tab bar opens a map with the same circle, rectangle and polygon tools as the site itself; the sheet then clips to that area at the largest round scale it fits, and its ratios describe only that area. With the neighbourhood on, the rest of the site is drawn muted around it.
+- Landmarks can be pinned. Drag a pin, star, flag, dot or numbered marker from the tab bar onto the sheet, type its label, and it shows on every sheet, in plan, axonometric and explode views, in the palette's accent colour. Click a pin to change its marker or delete it, drag it to move it, and the eye in the tab bar hides the pins on one sheet. Pins export to DXF on their own OA-PINS layer.
+- Assistants can list and add sheets and list, add, move and remove pins, and work on any tab.
+- Projects made before tabs open as one sheet, unchanged.
+
 ### Diagram column
 
 - The diagrams moved from the filmstrip along the bottom to a column on the left of the sheet, grouped under Context and built form, Movement and places, Environment, People, and Sun and shade. Each one shows a small picture in the current palette and its name, and the one on the sheet is marked.

@@ -5,6 +5,10 @@ export const isMac = navigator.userAgent.includes("Mac");
 export const fileManagerName = isMac ? "Finder" : "Explorer";
 
 const MAC_SYMBOLS: Record<string, string> = {
+  ctrl: "⌃",
+  tab: "⇥",
+  pageup: "PgUp",
+  pagedown: "PgDn",
   mod: "⌘",
   shift: "⇧",
   alt: "⌥",
@@ -14,6 +18,10 @@ const MAC_SYMBOLS: Record<string, string> = {
 };
 
 const OTHER_NAMES: Record<string, string> = {
+  ctrl: "Ctrl",
+  tab: "Tab",
+  pageup: "PgUp",
+  pagedown: "PgDn",
   mod: "Ctrl",
   shift: "Shift",
   alt: "Alt",
@@ -27,7 +35,7 @@ export function shortcutLabel(shortcut: string): string {
   const parts = shortcut.split("+").map((part) => part.toLowerCase());
   if (isMac) {
     // macOS lists modifiers in a fixed order: ⌃⌥⇧⌘.
-    const order = ["alt", "shift", "mod"];
+    const order = ["ctrl", "alt", "shift", "mod"];
     const modifiers = order.filter((name) => parts.includes(name)).map((name) => MAC_SYMBOLS[name]);
     const keys = parts.filter((part) => !order.includes(part)).map((key) => MAC_SYMBOLS[key] ?? key.toUpperCase());
     return modifiers.join("") + keys.join("");

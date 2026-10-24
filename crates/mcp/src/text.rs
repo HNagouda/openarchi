@@ -171,6 +171,7 @@ mod tests {
             position: None,
             auto_position: None,
             remove: None,
+            tab: None,
         }
     }
 

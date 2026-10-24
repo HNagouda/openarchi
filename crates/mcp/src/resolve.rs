@@ -69,10 +69,11 @@ pub fn find_theme(themes_dir: &Path, id: &str) -> Result<Theme, String> {
         .ok_or_else(|| format!("no theme with id '{id}'; list_themes shows the ids"))
 }
 
-/// Loads the project, resolves its look and hands the renderer input to `work`.
+/// Loads the project, resolves the look of sheet `tab` and hands the renderer input to `work`.
 pub fn with_render_input<T>(
     library: &Library,
     id: &str,
+    tab: usize,
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
     let project = library.load(id).map_err(|e| e.to_string())?;
@@ -81,14 +82,16 @@ pub fn with_render_input<T>(
             "project '{id}' has no site data yet; call fetch_site first"
         ));
     };
-    let diagram = find_diagram(&project.look.diagram_id)?;
-    let theme = find_theme(&library.themes_dir(), &project.look.theme_id)?;
+    let look = project.sheet(tab).map_err(|e| e.to_string())?;
+    let diagram = find_diagram(&look.diagram_id)?;
+    let theme = find_theme(&library.themes_dir(), &look.theme_id)?;
 
     let input = RenderInput {
         scene,
         diagram: &diagram,
         theme: &theme,
-        look: &project.look,
+        look,
+        pins: &project.pins,
     };
     work(&input).map_err(|e| e.to_string())
 }

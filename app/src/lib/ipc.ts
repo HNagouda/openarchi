@@ -12,6 +12,7 @@ import type {
   ChartStyle,
   ExportFormat,
   Look,
+  Pin,
   Place,
   Progress,
   ProjectSummary,
@@ -28,13 +29,17 @@ export const openProject = (id: string) => invoke<ProjectView>("open_project", {
 export const reloadProject = () => invoke<ProjectView>("reload_project");
 export const closeProject = () => invoke<void>("close_project");
 export const saveLook = (look: Look) => invoke<string>("save_look", { look });
+/** Every sheet in tab order, and the project's pins. Returns the new modified time. */
+export const saveSheets = (sheets: Look[], pins: Pin[]) => invoke<string>("save_sheets", { sheets, pins });
+/** The largest round scale at which the look's area, or its sub-selection, fills the sheet. */
+export const fittingScale = (look: Look) => invoke<number>("fitting_scale", { look });
 export const renameProject = (id: string, name: string) =>
   invoke<void>("rename_project", { id, name });
 export const deleteProject = (id: string) => invoke<void>("delete_project", { id });
 export const restoreProject = (id: string) => invoke<void>("restore_project", { id });
 
 export const getCatalog = () => invoke<Catalog>("get_catalog");
-export const renderPreview = (look: Look) => invoke<string>("render_preview", { look });
+export const renderPreview = (look: Look, pins: Pin[]) => invoke<string>("render_preview", { look, pins });
 export const renderThumbnail = (look: Look, width: number) =>
   invoke<string>("render_thumbnail", { look, width });
 export const projectThumbnail = (id: string, modified: string, width: number) =>
@@ -46,10 +51,10 @@ export const fetchSite = (area: Area) => invoke<number>("fetch_site", { area });
 export const cancelFetch = () => invoke<void>("cancel_fetch");
 export const currentProject = () => invoke<ProjectView>("current_project");
 
-export const exportSheet = (look: Look, format: ExportFormat, dpi: number, path: string) =>
-  invoke<string>("export_sheet", { look, format, dpi, path });
-export const exportSeries = (look: Look, format: ExportFormat, dpi: number, folder: string) =>
-  invoke<string[]>("export_series", { look, format, dpi, folder });
+export const exportSheet = (look: Look, pins: Pin[], format: ExportFormat, dpi: number, path: string) =>
+  invoke<string>("export_sheet", { look, pins, format, dpi, path });
+export const exportSeries = (look: Look, pins: Pin[], format: ExportFormat, dpi: number, folder: string) =>
+  invoke<string[]>("export_series", { look, pins, format, dpi, folder });
 export const revealPath = (path: string) => invoke<void>("reveal_path", { path });
 export const openLink = (url: string) => invoke<void>("open_link", { url });
 
@@ -75,11 +80,12 @@ export function errorText(error: unknown): string {
 export const exportFileName = (diagramId: string, variant: string | null, format: ExportFormat) =>
   invoke<string>("export_file_name", { diagramId, variant, format });
 
-export const getRatios = (themeId: string) => invoke<Ratios>("get_ratios", { themeId });
+/** With a sub-selection, the ratios of that smaller area. */
+export const getRatios = (themeId: string, selection: Area | null) => invoke<Ratios>("get_ratios", { themeId, selection });
 export const ratiosFileName = () => invoke<string>("ratios_file_name");
 /** CSV or SVG, by the extension of `path`. */
-export const exportRatios = (themeId: string, style: ChartStyle, path: string) =>
-  invoke<string>("export_ratios", { themeId, style, path });
+export const exportRatios = (themeId: string, selection: Area | null, style: ChartStyle, path: string) =>
+  invoke<string>("export_ratios", { themeId, selection, style, path });
 
 export const getAnalysis = (part: AnalysisPart, themeId: string) =>
   invoke<AnalysisSection[]>("get_analysis", { part, themeId });

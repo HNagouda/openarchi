@@ -75,6 +75,7 @@ fn main() {
                 diagram: &diagram,
                 theme: &theme,
                 look: &look,
+                pins: &[],
             };
             let stem = match &variant {
                 Some(variant) => format!("{}-{variant}", diagram.id),
@@ -134,6 +135,7 @@ fn write_explode_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
             diagram,
             theme: &theme,
             look: &look,
+            pins: &[],
         };
         let svg = render_svg(&input).expect("render the explode preview");
         fs::write(

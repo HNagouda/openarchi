@@ -40,6 +40,11 @@ pub fn migrate(mut value: Value) -> Result<Project> {
     // variants, in any version, open on the variant they became.
     Ok(Project {
         look: catalog::current_look(project.look),
+        more_sheets: project
+            .more_sheets
+            .into_iter()
+            .map(catalog::current_look)
+            .collect(),
         ..project
     })
 }

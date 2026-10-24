@@ -1,4 +1,4 @@
-// The live preview: the core's SVG for the current look.
+// The live preview: the core's SVG for the current look and the project's pins.
 //
 // Only one render runs at a time. Changes that arrive meanwhile collapse
 // into one follow-up render of the newest look, and the old picture stays
@@ -6,19 +6,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { errorText, renderPreview } from "../lib/ipc";
-import type { Look } from "../lib/types";
+import type { Look, Pin } from "../lib/types";
 
 // Short enough to feel live, long enough to skip the middle of a fast drag.
 const PREVIEW_DELAY_MS = 40;
 // Only show the rendering hint when a render is noticeably slow.
 const SLOW_RENDER_MS = 350;
 
-export function usePreview(look: Look, revision: number, isEnabled: boolean) {
+type Wanted = { look: Look; pins: Pin[] };
+
+export function usePreview(look: Look, pins: Pin[], revision: number, isEnabled: boolean) {
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSlow, setSlow] = useState(false);
   const isRunning = useRef(false);
-  const wanted = useRef<Look | null>(null);
+  const wanted = useRef<Wanted | null>(null);
 
   const runNext = async () => {
     if (isRunning.current || !wanted.current) return;
@@ -27,7 +29,7 @@ export function usePreview(look: Look, revision: number, isEnabled: boolean) {
     isRunning.current = true;
     const slowTimer = window.setTimeout(() => setSlow(true), SLOW_RENDER_MS);
     try {
-      setSvg(await renderPreview(target));
+      setSvg(await renderPreview(target.look, target.pins));
       setError(null);
     } catch (reason) {
       setError(errorText(reason));
@@ -39,15 +41,16 @@ export function usePreview(look: Look, revision: number, isEnabled: boolean) {
     }
   };
 
-  const key = JSON.stringify(look);
+  // A sheet that hides pins does not redraw when they change.
+  const key = JSON.stringify(look.hide_pins ? [look] : [look, pins]);
   useEffect(() => {
     if (!isEnabled) return;
     const timer = window.setTimeout(() => {
-      wanted.current = look;
+      wanted.current = { look, pins };
       runNext();
     }, PREVIEW_DELAY_MS);
     return () => window.clearTimeout(timer);
-    // `key` stands for `look`; runNext only reads refs.
+    // `key` stands for `look` and `pins`; runNext only reads refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, revision, isEnabled]);
 
