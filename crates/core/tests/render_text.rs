@@ -15,6 +15,7 @@ fn render(look: &Look) -> openarchi_core::Result<String> {
         diagram: &diagram("building-use"),
         theme: &theme("paper"),
         look,
+        pins: &[],
     })
 }
 
@@ -261,6 +262,7 @@ fn italic_and_bold_text_embeds_its_own_faces_in_the_pdf() {
         diagram: &diagram("context"),
         theme: &theme("paper"),
         look: &look,
+        pins: &[],
     };
     let folder = tempfile::tempdir().expect("temp folder");
     let path = folder.path().join("sheet.pdf");

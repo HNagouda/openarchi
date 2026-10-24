@@ -46,7 +46,7 @@ const MERGED_LABEL: &str = "Larger symbol: several places, or a big bicycle park
 /// Room around the furthest walk band, so its edge does not touch the frame.
 const WALK_FRAME_MARGIN: f64 = 1.04;
 /// Scale denominators a fitted axonometric snaps to, so the note reads like a real scale.
-const NICE_SCALES: [u32; 18] = [
+pub(super) const NICE_SCALES: [u32; 18] = [
     500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10_000, 12_500, 15_000,
     20_000, 25_000, 50_000,
 ];
@@ -62,6 +62,9 @@ pub struct SheetDrawing {
     pub north_deg: f64,
     pub has_scale_bar: bool,
     pub title_name: String,
+    /// The ground plane on paper, where pins stand: the plan, the tilted
+    /// view at ground height, or the top plate of an explode view.
+    pub ground: Projection,
 }
 
 pub struct MapSpec<'a> {
@@ -118,6 +121,7 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
         north_deg: 0.0,
         has_scale_bar: true,
         title_name: input.diagram.name.clone(),
+        ground: projection,
     })
 }
 
@@ -173,6 +177,7 @@ pub fn axonometric(
         north_deg: projection.north_angle_deg(),
         has_scale_bar: true,
         title_name: input.diagram.name.clone(),
+        ground: projection,
     })
 }
 

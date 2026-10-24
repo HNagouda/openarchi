@@ -9,6 +9,7 @@ mod classify;
 mod color;
 mod drawing;
 mod explode;
+mod fit;
 mod fonts;
 mod frame;
 mod furniture;
@@ -18,6 +19,7 @@ mod legend;
 mod map;
 mod order;
 mod patterns;
+mod pins;
 mod points;
 mod shadow;
 mod solid;
@@ -33,8 +35,10 @@ mod walk_bands;
 use std::fmt::Write;
 
 use crate::diagram::Diagram;
+use crate::pin::Pin;
 use crate::project::Look;
 use crate::scene::Scene;
+use crate::selection;
 use crate::sheet::Sheet;
 use crate::theme::Theme;
 use crate::view::ViewMode;
@@ -43,6 +47,7 @@ use crate::Result;
 // Shared with the catalog (validating themes) and export (fonts, CAD layer names).
 pub(crate) use color::{is_hex, role, ROLES};
 pub(crate) use drawing::layer_slug;
+pub use fit::fitting_scale;
 pub use fonts::FAMILIES as FONT_FAMILIES;
 pub(crate) use fonts::{is_bundled as is_bundled_font, BUNDLED as BUNDLED_FONTS};
 // Shared with ratios, so its rows take the same classes and colours as the diagrams.
@@ -58,6 +63,7 @@ pub(crate) use fonts::{text_width, wrap as wrap_text};
 use furniture::Furniture;
 use geometry::mm;
 use layout::Layout;
+use pins::PinLayer;
 use text::SheetTexts;
 use typeset::Typesetter;
 
@@ -67,15 +73,20 @@ pub struct RenderInput<'a> {
     pub diagram: &'a Diagram,
     pub theme: &'a Theme,
     pub look: &'a Look,
+    /// The project's pins, in RD New metres. Drawn unless the look hides them.
+    pub pins: &'a [Pin],
 }
 
 /// The full sheet as an SVG document, sized in millimetres. A diagram with
-/// variants is drawn as the look's variant.
+/// variants is drawn as the look's variant, and a look with a sub-selection
+/// draws the scene cut to it.
 pub fn render_svg(input: &RenderInput) -> Result<String> {
     let look = input.look;
     let drawn = input.diagram.drawn_as(look.variant.as_deref());
+    let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
     let input = &RenderInput {
         diagram: &drawn,
+        scene: &scene,
         ..*input
     };
     if look.sheet.scale == 0 {
@@ -103,14 +114,26 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
     let mut out = String::with_capacity(estimated_size(drawing.body.len()));
     write_header(&mut out, &layout);
     let _ = writeln!(out, "<defs>{}</defs>", drawing.defs);
+    // The ground's place on the paper, so the app can turn a drop into a pin.
     let _ = writeln!(
         out,
-        r#"<rect id="paper" width="{}" height="{}" fill="{}"/>"#,
+        r#"<rect id="paper" width="{}" height="{}" fill="{}" data-ground-points="{}"/>"#,
         mm(layout.width),
         mm(layout.height),
-        palette.paper
+        palette.paper,
+        pins::ground_points(&drawing.ground, input.scene.origin)
     );
     out.push_str(&drawing.body);
+    if !look.hide_pins {
+        let pin_layer = PinLayer {
+            pins: input.pins,
+            scene: input.scene,
+            ground: drawing.ground,
+            palette,
+            typesetter: &typesetter,
+        };
+        pins::write(&mut out, &pin_layer);
+    }
 
     // The furniture describes the drawing as drawn: a fitted scale, a turned north.
     let sheet = Sheet {

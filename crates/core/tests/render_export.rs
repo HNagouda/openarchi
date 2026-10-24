@@ -16,6 +16,7 @@ fn export_to_bytes(format: ExportFormat, dpi: u32) -> Vec<u8> {
         diagram: &diagram,
         theme: &theme,
         look: &look,
+        pins: &[],
     };
     let folder = tempfile::tempdir().expect("temp folder");
     let path = folder.path().join(format!("sheet.{}", format.extension()));
@@ -55,6 +56,7 @@ fn png_thumbnail_has_the_requested_width_and_sheet_proportions() {
         diagram: &diagram,
         theme: &theme,
         look: &look,
+        pins: &[],
     };
 
     let png = render_png(&input, 840).expect("png");

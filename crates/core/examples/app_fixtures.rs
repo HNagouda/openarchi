@@ -73,6 +73,7 @@ fn main() {
                 diagram: &diagram,
                 theme: &theme,
                 look: &look,
+                pins: &[],
             };
             let stem = match &variant {
                 Some(variant) => format!("{}-{variant}", diagram.id),

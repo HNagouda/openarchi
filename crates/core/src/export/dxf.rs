@@ -8,6 +8,7 @@ use std::fmt::Write;
 
 use geo::{Geometry, LineString, Polygon};
 
+use crate::pin::{is_on_site, number_of, Pin, PinIcon};
 use crate::render::layer_slug;
 use crate::scene::{Layer, Scene};
 use crate::sources::bands::BANDED;
@@ -17,8 +18,17 @@ const TREE_RADIUS_M: f64 = 1.0;
 const SITE_LAYER: &str = "OA-SITE";
 /// AutoCAD colour index for the site outline: red.
 const SITE_COLOUR: u8 = 1;
+/// Pins get their own layer, so a CAD user can switch the landmarks off in one go.
+const PINS_LAYER: &str = "OA-PINS";
+/// AutoCAD colour index for pins: magenta, apart from every data layer.
+const PINS_COLOUR: u8 = 6;
+/// Pin labels stand this tall on the ground, readable at 1:500 to 1:2500.
+const PIN_TEXT_HEIGHT_M: f64 = 2.0;
+/// The label starts this far east of its pin.
+const PIN_TEXT_OFFSET_M: f64 = 2.5;
 
-pub fn write(scene: &Scene) -> String {
+/// `pins` are in RD New metres; those outside the boundary are left out, as on the sheet.
+pub fn write(scene: &Scene, pins: &[Pin]) -> String {
     let mut out = String::with_capacity(4096 + scene.features.len() * 400);
     let shift = scene.origin;
     write_header(&mut out, scene);
@@ -39,6 +49,7 @@ pub fn write(scene: &Scene) -> String {
         write_geometry(&mut out, &feature.geometry, &layer, elevation, shift);
     }
     write_polygon(&mut out, &scene.boundary, SITE_LAYER, 0.0, shift);
+    write_pins(&mut out, scene, pins);
     group(&mut out, 0, "ENDSEC");
     group(&mut out, 0, "EOF");
 
@@ -100,11 +111,15 @@ fn write_layer_table(out: &mut String) {
 
     group(out, 0, "TABLE");
     group(out, 2, "LAYER");
-    group(out, 70, &(Layer::ALL.len() + 1).to_string());
+    group(out, 70, &(Layer::ALL.len() + 2).to_string());
     let layers = Layer::ALL
         .iter()
         .map(|&layer| (cad_layer(layer), colour_index(layer)));
-    for (name, colour) in layers.chain([(SITE_LAYER.to_string(), SITE_COLOUR)]) {
+    let own_layers = [
+        (SITE_LAYER.to_string(), SITE_COLOUR),
+        (PINS_LAYER.to_string(), PINS_COLOUR),
+    ];
+    for (name, colour) in layers.chain(own_layers) {
         group(out, 0, "LAYER");
         group(out, 2, &name);
         group(out, 70, "0");
@@ -211,6 +226,32 @@ fn write_circle(out: &mut String, x: f64, y: f64, layer: &str, shift: (f64, f64)
     group(out, 8, layer);
     coordinate(out, x + shift.0, y + shift.1, 0.0);
     group(out, 40, &format!("{TREE_RADIUS_M:.3}"));
+}
+
+/// Each pin as a point with its label beside it; a numbered pin's label starts with its number.
+fn write_pins(out: &mut String, scene: &Scene, pins: &[Pin]) {
+    for pin in pins {
+        if !is_on_site(scene, pin.x, pin.y) {
+            continue;
+        }
+        group(out, 0, "POINT");
+        group(out, 8, PINS_LAYER);
+        coordinate(out, pin.x, pin.y, 0.0);
+
+        let label = match (pin.icon, number_of(pins, &pin.id)) {
+            (PinIcon::Number, Some(number)) if pin.label.is_empty() => number.to_string(),
+            (PinIcon::Number, Some(number)) => format!("{number} {}", pin.label),
+            _ => pin.label.clone(),
+        };
+        if label.is_empty() {
+            continue;
+        }
+        group(out, 0, "TEXT");
+        group(out, 8, PINS_LAYER);
+        coordinate(out, pin.x + PIN_TEXT_OFFSET_M, pin.y, 0.0);
+        group(out, 40, &format!("{PIN_TEXT_HEIGHT_M:.3}"));
+        group(out, 1, &label);
+    }
 }
 
 /// Real-world extent of the boundary, for the header.

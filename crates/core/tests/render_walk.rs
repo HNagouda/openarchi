@@ -75,6 +75,7 @@ fn svg_for(scene: &Scene, diagram_id: &str) -> String {
         diagram: &diagram,
         theme: &theme,
         look: &look(),
+        pins: &[],
     })
     .expect("render")
 }

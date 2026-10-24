@@ -9,6 +9,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::render::{render_svg, RenderInput};
+use crate::selection;
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,10 +38,18 @@ pub fn export(input: &RenderInput, format: ExportFormat, dpi: u32, path: &Path) 
         ExportFormat::Svg => render_svg(input)?.into_bytes(),
         ExportFormat::Pdf => convert::pdf(&render_svg(input)?)?,
         ExportFormat::Png => convert::png_at_dpi(&render_svg(input)?, dpi)?,
-        ExportFormat::Dxf => dxf::write(input.scene).into_bytes(),
+        ExportFormat::Dxf => sheet_dxf(input)?.into_bytes(),
     };
 
     std::fs::write(path, bytes).map_err(|source| Error::io(path, source))
+}
+
+/// The DXF of what the sheet shows: its sub-selection, and its pins unless it hides them.
+fn sheet_dxf(input: &RenderInput) -> Result<String> {
+    let look = input.look;
+    let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
+    let pins = if look.hide_pins { &[] } else { input.pins };
+    Ok(dxf::write(&scene, pins))
 }
 
 /// The sheet as PNG bytes, `width_px` wide. Used for thumbnails and the MCP preview.

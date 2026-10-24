@@ -20,7 +20,9 @@ use std::time::SystemTime;
 
 use geo::{BoundingRect, Coord, Geometry, MapCoords, Polygon, Rect};
 
-use self::boundary::{boundary_in_rd, site_centre};
+// Shared with sheet sub-selections, which are drawn and checked like a site.
+pub(crate) use self::boundary::boundary_in_rd;
+use self::boundary::site_centre;
 use self::download::{Dataset, Download, Fetcher, Payload};
 pub(crate) use self::editions::years_before_editions_were_kept;
 use self::editions::Editions;
