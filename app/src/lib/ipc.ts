@@ -90,13 +90,14 @@ export const ratiosFileName = () => invoke<string>("ratios_file_name");
 export const exportRatios = (themeId: string, selection: Area | null, style: ChartStyle, path: string) =>
   invoke<string>("export_ratios", { themeId, selection, style, path });
 
-export const getAnalysis = (part: AnalysisPart, themeId: string) =>
-  invoke<AnalysisSection[]>("get_analysis", { part, themeId });
+/** With a sub-selection, the site part sums up that smaller area; the other parts stay on the whole site. */
+export const getAnalysis = (part: AnalysisPart, themeId: string, selection: Area | null) =>
+  invoke<AnalysisSection[]>("get_analysis", { part, themeId, selection });
 /** With a section id, that section's name; without, the whole analysis's. */
 export const analysisFileName = (sectionId: string | null) => invoke<string>("analysis_file_name", { sectionId });
 /** SVG or PDF, by the extension of `path`. Without a section id, the whole analysis. */
-export const exportAnalysis = (themeId: string, sectionId: string | null, path: string) =>
-  invoke<string>("export_analysis", { themeId, sectionId, path });
+export const exportAnalysis = (themeId: string, selection: Area | null, sectionId: string | null, path: string) =>
+  invoke<string>("export_analysis", { themeId, selection, sectionId, path });
 
 export const saveReports = (reports: Report[]) => invoke<string>("save_reports", { reports });
 /** One block on its own, `width_mm` by `height_mm`, for the report editor to place. */

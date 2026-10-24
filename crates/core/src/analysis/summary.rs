@@ -22,6 +22,9 @@ const UNKNOWN_ROW: &str = "Unknown";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SiteSummary {
+    /// True when the summary describes a sheet's sub-selection rather than the
+    /// whole site. The walk counts still start at the site centre.
+    pub is_sheet_area: bool,
     pub site_area_m2: f64,
     pub building_count: usize,
     /// Building footprint over site area, 0 to 1.
@@ -71,7 +74,7 @@ pub const FACILITY_WALK_MIN: u32 = 15;
 /// close (Walker, "Human Transit", 2011). One of the walk's own bands.
 pub const TRANSIT_WALK_MIN: u32 = 5;
 
-pub fn summarise(scene: &Scene, ratios: &Ratios) -> SiteSummary {
+pub fn summarise(scene: &Scene, ratios: &Ratios, is_sheet_area: bool) -> SiteSummary {
     let heights: Vec<f64> = buildings(scene)
         .filter_map(|building| building.attributes.height_m)
         .collect();
@@ -81,6 +84,7 @@ pub fn summarise(scene: &Scene, ratios: &Ratios) -> SiteSummary {
     years.sort_unstable();
 
     SiteSummary {
+        is_sheet_area,
         site_area_m2: ratios.site_area_m2,
         building_count: ratios.building_count,
         coverage: ratios.coverage,

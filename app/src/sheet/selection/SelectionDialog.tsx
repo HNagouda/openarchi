@@ -138,7 +138,7 @@ export function SelectionDialog({ site, selection, onApply, onClose }: Props) {
 
   return (
     <Dialog title="Sheet area" onClose={onClose} footer={footer} width={DIALOG_WIDTH_PX}>
-      <p className="selection-intro">Draw a smaller area inside the site. This sheet zooms to it, and its ratios describe only that area.</p>
+      <p className="selection-intro">Draw a smaller area inside the site. This sheet zooms to it, and its ratios and site summary describe only that area.</p>
       <div className="selection-map-wrap">
         <div ref={container} className="selection-map" />
         <div className="selection-tools" role="toolbar" aria-label="Drawing tools">

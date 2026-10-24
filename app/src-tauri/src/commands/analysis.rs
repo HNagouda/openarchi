@@ -1,8 +1,10 @@
 //! The site analysis of the open project, for the inspector's Analysis tab and its export.
 
 use std::path::Path;
+use std::sync::Arc;
 
 use openarchi_core::analysis::{self, report_pages, report_svg, section_svg, Part, Section, PARTS};
+use openarchi_core::area::Area;
 use openarchi_core::export::{svg_pages_to_pdf, svg_to_pdf};
 use openarchi_core::scene::Scene;
 use openarchi_core::theme::Theme;
@@ -10,26 +12,41 @@ use tauri::State;
 
 use crate::commands::export::slug;
 use crate::commands::ratios::find_theme;
-use crate::commands::render::open_scene;
+use crate::commands::render::{open_scene, shown_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
 /// One part of the analysis, drawn in `theme_id`. Climate and rain may wait
 /// on PVGIS and KNMI the first time; afterwards they come from the cache.
+/// With the sheet's sub-selection, the site part sums up that smaller area.
 #[tauri::command]
 pub async fn get_analysis(
     state: State<'_, Shared>,
     part: Part,
     theme_id: String,
+    selection: Option<Area>,
 ) -> Result<Vec<Section>, String> {
     let state = state.inner().clone();
     blocking(move || {
         let scene = open_scene(&state)?;
         let theme = find_theme(&state, &theme_id)?;
         let cache = state.library()?.tile_cache();
-        analysis::part(part, &scene, &theme, &cache).map_err(text)
+        // Only the site part reads the area, so the others never wait on a cut.
+        let area = match part {
+            Part::Site => sheet_area(&state, selection.as_ref())?,
+            _ => None,
+        };
+        analysis::part(part, &scene, area.as_deref(), &theme, &cache).map_err(text)
     })
     .await
+}
+
+/// The open scene cut to `selection`, from the cut scenes the sheet keeps.
+fn sheet_area(state: &AppState, selection: Option<&Area>) -> Result<Option<Arc<Scene>>, String> {
+    match selection {
+        Some(selection) => Ok(Some(shown_scene(state, Some(selection))?)),
+        None => Ok(None),
+    }
 }
 
 /// The suggested name in the save dialog: "westermarkt-analysis.pdf" or "westermarkt-wind.svg".
@@ -49,15 +66,17 @@ pub fn analysis_file_name(state: State<'_, Shared>, section_id: Option<String>) 
 pub async fn export_analysis(
     state: State<'_, Shared>,
     theme_id: String,
+    selection: Option<Area>,
     section_id: Option<String>,
     path: String,
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
         let scene = open_scene(&state)?;
+        let area = sheet_area(&state, selection.as_ref())?;
         let theme = find_theme(&state, &theme_id)?;
         let title = project_name(&state);
-        let (sections, failures) = every_section(&state, &scene, &theme)?;
+        let (sections, failures) = every_section(&state, &scene, area.as_deref(), &theme)?;
         let section = match &section_id {
             Some(id) => Some(
                 sections
@@ -106,13 +125,14 @@ type Failure = (String, String);
 fn every_section(
     state: &AppState,
     scene: &Scene,
+    sheet_area: Option<&Scene>,
     theme: &Theme,
 ) -> Result<(Vec<Section>, Vec<Failure>), String> {
     let cache = state.library()?.tile_cache();
     let mut sections = Vec::new();
     let mut failures = Vec::new();
     for part in PARTS {
-        match analysis::part(part, scene, theme, &cache) {
+        match analysis::part(part, scene, sheet_area, theme, &cache) {
             Ok(found) => sections.extend(found),
             Err(error) => failures.push((part.title().to_string(), error.to_string())),
         }

@@ -158,7 +158,9 @@ async function answer(command: string, args: Args) {
     // Climate and rain wait on PVGIS and KNMI in the app, so the mock waits too.
     const isSlow = args.part === "climate" || args.part === "rain";
     if (isSlow) await new Promise((resolve) => setTimeout(resolve, SLOW_PART_MS));
-    return fetch(`${FIXTURES}/analysis/${args.part}--${args.themeId}.json`).then((response) => response.json());
+    // One sheet area stands in for every sub-selection, as with the zoomed-in scale.
+    const name = args.part === "site" && args.selection ? "site-area" : args.part;
+    return fetch(`${FIXTURES}/analysis/${name}--${args.themeId}.json`).then((response) => response.json());
   }
   if (command === "save_reports") {
     openReports = args.reports as Report[];

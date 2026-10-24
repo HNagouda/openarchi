@@ -68,8 +68,9 @@ pub fn site(
     theme: &Theme,
 ) -> Result<Section> {
     let paint = Paint::new(theme)?;
+    let area_label = source_lines::area_label(summary);
     let mut facts = vec![
-        fact("Site area", area_text(summary.site_area_m2)),
+        fact(area_label, area_text(summary.site_area_m2)),
         fact("Buildings", grouped(summary.building_count as f64)),
         fact("Coverage", percent(summary.coverage)),
         fact(
@@ -106,7 +107,7 @@ pub fn site(
         title: "Site".to_string(),
         facts,
         figures,
-        caption: Some("Ground cover inside the site, as in the Ratios tab. Paved is streets, paths and paved squares.".to_string()),
+        caption: Some(source_lines::site_caption(summary)),
         notes: notes::site_notes(summary),
         source: source_lines::site(summary),
         credits,

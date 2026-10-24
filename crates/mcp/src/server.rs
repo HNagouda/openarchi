@@ -19,8 +19,8 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::inputs::{
-    CreateProject, CreateTheme, EditText, Export, GetEnvironment, GetRatios, ListThemes, ProjectId,
-    RenderPreview, SearchPlaces, SetLook,
+    CreateProject, CreateTheme, EditText, Export, GetAnalysis, GetEnvironment, GetRatios,
+    ListThemes, ProjectId, RenderPreview, SearchPlaces, SetLook,
 };
 use crate::look::updated_look;
 use crate::palettes::{self, ImportPalette};
@@ -317,9 +317,9 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Get the site analysis: location (address, municipality, province, coordinates), a site summary (area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use, shares of green, water and paved ground, and facilities, shops and transit stops within a walk when the walk was fetched), the climate from a PVGIS typical year (monthly temperature, humidity, global and direct sun, outdoor comfort as the UTCI (Universal Thermal Climate Index) with daytime hours per stress category for a person in the sun and in the shade, named in `comfort_categories` and explained in `comfort_method`, wind roses by season, direct sun by direction), and 30 years of monthly rain from the nearest KNMI station. Each section comes with design notes: short rule-based advice for the architect. Climate and rain need the network the first time; if one cannot be fetched it is left out and named in `warnings`. The site must have been fetched first."
+        description = "Get the site analysis: location (address, municipality, province, coordinates), a site summary (area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use, shares of green, water and paved ground, and facilities, shops and transit stops within a walk when the walk was fetched), the climate from a PVGIS typical year (monthly temperature, humidity, global and direct sun, outdoor comfort as the UTCI (Universal Thermal Climate Index) with daytime hours per stress category for a person in the sun and in the shade, named in `comfort_categories` and explained in `comfort_method`, wind roses by season, direct sun by direction), and 30 years of monthly rain from the nearest KNMI station. Each section comes with design notes: short rule-based advice for the architect. Climate and rain need the network the first time; if one cannot be fetched it is left out and named in `warnings`. With `tab`, a sheet with a sub-selection gives the site summary of that smaller area, with `summary.is_sheet_area` true; location, climate and rain stay on the whole site. The site must have been fetched first."
     )]
-    async fn get_analysis(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
+    async fn get_analysis(&self, Parameters(input): Parameters<GetAnalysis>) -> CallToolResult {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
@@ -329,8 +329,14 @@ impl OpenArchi {
                         input.id
                     ));
                 };
-                let theme = find_theme(&library.themes_dir(), &project.look.theme_id)?;
-                analysis::report(scene, &theme, &library.tile_cache()).map_err(text)
+                let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
+                let theme = find_theme(&library.themes_dir(), &look.theme_id)?;
+                let sheet_area = match &look.selection {
+                    Some(selection) => Some(selection::framed(scene, selection).map_err(text)?),
+                    None => None,
+                };
+                analysis::report(scene, sheet_area.as_ref(), &theme, &library.tile_cache())
+                    .map_err(text)
             })
             .await;
         reply(result)

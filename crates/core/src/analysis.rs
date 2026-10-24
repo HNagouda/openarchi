@@ -124,20 +124,30 @@ pub struct SectionNotes {
     pub notes: Vec<String>,
 }
 
-/// The sections of one part, drawn in `theme`.
-pub fn part(part: Part, scene: &Scene, theme: &Theme, cache: &TileCache) -> Result<Vec<Section>> {
+/// The sections of one part, drawn in `theme`. `sheet_area` is the scene cut
+/// to a sheet's sub-selection, when the sheet has one, and only the site part
+/// follows it. Location, climate and rain stay on the whole site, so their
+/// lookups and caches do not change with every area drawn.
+pub fn part(
+    part: Part,
+    scene: &Scene,
+    sheet_area: Option<&Scene>,
+    theme: &Theme,
+    cache: &TileCache,
+) -> Result<Vec<Section>> {
     match part {
         Part::Location => {
             let location = location::locate(scene, cache);
             Ok(vec![sections::location(&location, theme)?])
         }
         Part::Site => {
-            let ratios = ratios::compute(scene, theme)?;
-            let summary = summary::summarise(scene, &ratios);
+            let site = sheet_area.unwrap_or(scene);
+            let ratios = ratios::compute(site, theme)?;
+            let summary = summary::summarise(site, &ratios, sheet_area.is_some());
             Ok(vec![sections::site(
                 &summary,
                 &ratios,
-                scene.credits.clone(),
+                site.credits.clone(),
                 theme,
             )?])
         }
@@ -153,11 +163,18 @@ pub fn part(part: Part, scene: &Scene, theme: &Theme, cache: &TileCache) -> Resu
 }
 
 /// The numbers and notes of every part. A part whose service fails is left
-/// out with a warning; location and site always arrive.
-pub fn report(scene: &Scene, theme: &Theme, cache: &TileCache) -> Result<Report> {
+/// out with a warning; location and site always arrive. The site summary
+/// follows `sheet_area` when there is one, as in `part`.
+pub fn report(
+    scene: &Scene,
+    sheet_area: Option<&Scene>,
+    theme: &Theme,
+    cache: &TileCache,
+) -> Result<Report> {
     let location = location::locate(scene, cache);
-    let ratios = ratios::compute(scene, theme)?;
-    let summary = summary::summarise(scene, &ratios);
+    let site = sheet_area.unwrap_or(scene);
+    let ratios = ratios::compute(site, theme)?;
+    let summary = summary::summarise(site, &ratios, sheet_area.is_some());
     let mut warnings = location.warnings.clone();
     let mut credits = location::credits();
     let mut notes = vec![

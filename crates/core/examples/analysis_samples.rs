@@ -43,7 +43,7 @@ fn main() {
         let mut sections = Vec::new();
         let mut failures = Vec::new();
         for part in PARTS {
-            match analysis::part(part, &scene, &theme, &cache) {
+            match analysis::part(part, &scene, None, &theme, &cache) {
                 Ok(found) => sections.extend(found),
                 Err(error) => failures.push((part.title().to_string(), error.to_string())),
             }

@@ -75,7 +75,7 @@ export function createLibraryPreviews(): LibraryPreviews {
       .then((found) => settle((library) => ({ ...library, ratios: found })))
       .catch((reason) => complain("Ratios", reason));
     const parts = PARTS.map((part) =>
-      getAnalysis(part, themeId)
+      getAnalysis(part, themeId, null)
         .then((found) =>
           settle((library) => {
             const next = { ...library.parts, [part]: found };

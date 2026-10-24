@@ -47,7 +47,7 @@ export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogCha
         />
       </div>
       {tab === "ratios" && <RatiosPanel project={project} themeId={look.theme_id} selection={look.selection} />}
-      {tab === "analysis" && <AnalysisPanel project={project} themeId={look.theme_id} />}
+      {tab === "analysis" && <AnalysisPanel project={project} themeId={look.theme_id} selection={look.selection} />}
       {tab === "style" && (
         <>
           <ThemeSection

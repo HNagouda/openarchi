@@ -58,7 +58,7 @@ impl<'a> ReportData<'a> {
         let mut sections = Vec::new();
         let mut failures = Vec::new();
         for part in parts_needed(contents) {
-            match analysis::part(part, scene, theme, cache) {
+            match analysis::part(part, scene, None, theme, cache) {
                 Ok(found) => sections.extend(found),
                 Err(error) => failures.push((part, error.to_string())),
             }
