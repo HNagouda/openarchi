@@ -1,10 +1,6 @@
 //! Drives the real `openarchi-mcp` binary over stdio, the way Claude does,
 //! against a throwaway library. Shared by every protocol test file; each one
 //! covers a tool area.
-//!
-//! Tests marked `#[ignore]` need the data or render layer, which are still
-//! `todo!()`. Run them with `cargo test -p openarchi-mcp -- --ignored` once
-//! those land, then drop the `#[ignore]`.
 
 // Each test file is its own crate and uses only some of these helpers.
 #![allow(dead_code)]

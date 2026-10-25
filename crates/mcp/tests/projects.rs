@@ -166,7 +166,7 @@ fn unknown_project_is_a_readable_error_and_the_server_keeps_going() {
 }
 
 #[test]
-#[ignore = "needs geocode::search from the data layer"]
+#[ignore = "needs the network (PDOK)"]
 fn search_places_finds_westermarkt() {
     let mut server = Server::start();
     let places = server.call_ok(
@@ -180,7 +180,7 @@ fn search_places_finds_westermarkt() {
 }
 
 #[test]
-#[ignore = "needs site::build_scene from the data layer, and the network"]
+#[ignore = "needs the network (PDOK)"]
 fn fetch_site_saves_a_scene_and_get_project_summarizes_it() {
     let mut server = Server::start();
     let id = server.create_westermarkt();

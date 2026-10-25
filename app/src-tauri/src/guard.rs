@@ -1,6 +1,5 @@
-//! Every command runs core code through `calm`, so an error, or a part of the
-//! core that is not built yet (`todo!()`), reaches the window as one short
-//! sentence instead of a crashed command.
+//! Every command runs core code through `calm`, so an error, or a panic in the
+//! core, reaches the window as one short sentence instead of a crashed command.
 
 use std::any::Any;
 use std::panic::{catch_unwind, AssertUnwindSafe};
@@ -39,12 +38,5 @@ fn panic_message(payload: &(dyn Any + Send)) -> String {
         .or_else(|| payload.downcast_ref::<&str>().map(|text| text.to_string()))
         .unwrap_or_default();
 
-    // `todo!("render layer")` panics with "not yet implemented: render layer".
-    if let Some(part) = message.strip_prefix("not yet implemented: ") {
-        return format!("The {part} isn't built yet in this version of openarchi.");
-    }
-    if message == "not yet implemented" {
-        return "This part of openarchi isn't built yet.".to_string();
-    }
     format!("Something went wrong inside openarchi: {message}")
 }

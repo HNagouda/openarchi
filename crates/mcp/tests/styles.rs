@@ -221,7 +221,6 @@ fn list_diagrams_shows_groups_and_the_variants_of_air_quality() {
 }
 
 #[test]
-#[ignore = "needs catalog::all_themes from the render layer"]
 fn list_themes_includes_the_default_theme_with_its_palette() {
     let mut server = Server::start();
     let listed = server.call_ok("list_themes", json!({}));
@@ -239,7 +238,6 @@ fn list_themes_includes_the_default_theme_with_its_palette() {
 }
 
 #[test]
-#[ignore = "needs catalog from the render layer"]
 fn set_look_refuses_an_unknown_theme() {
     let mut server = Server::start();
     let id = server.create_westermarkt();
@@ -248,7 +246,6 @@ fn set_look_refuses_an_unknown_theme() {
 }
 
 #[test]
-#[ignore = "needs catalog::read_theme from the render layer"]
 fn created_theme_is_saved_and_listed() {
     let mut server = Server::start();
     let listed = server.call_ok("list_themes", json!({ "full": true }));

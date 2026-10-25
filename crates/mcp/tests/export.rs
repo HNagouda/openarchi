@@ -248,11 +248,9 @@ fn export_refuses_a_relative_path() {
 }
 
 #[test]
-#[ignore = "needs the data and render layers, and the network"]
 fn render_preview_returns_a_png_image() {
     let mut server = Server::start();
-    let id = server.create_westermarkt();
-    server.call_ok("fetch_site", json!({ "id": id }));
+    let id = fetched_westermarkt(&mut server);
 
     let result = server.call("render_preview", json!({ "id": id, "width_px": 400 }));
 
@@ -292,11 +290,9 @@ fn sky_view_draws_on_an_old_site_and_solar_radiation_asks_for_a_fresh_fetch() {
 }
 
 #[test]
-#[ignore = "needs the data and render layers, and the network"]
 fn export_writes_every_format() {
     let mut server = Server::start();
-    let id = server.create_westermarkt();
-    server.call_ok("fetch_site", json!({ "id": id }));
+    let id = fetched_westermarkt(&mut server);
     let out = TempDir::new().unwrap();
 
     for format in ["svg", "pdf", "png", "dxf"] {

@@ -23,9 +23,6 @@ use crate::summary::summarize;
 const DEFAULT_PLACES: u32 = 5;
 const MAX_PLACES: u32 = 20;
 
-/// The message a `todo!()` panics with, which marks a part still being built.
-const NOT_BUILT_PANIC: &str = "not yet implemented";
-
 /// What MCP clients show as the server's name.
 const SERVER_NAME: &str = "openarchi";
 
@@ -189,8 +186,7 @@ impl ServerHandler for OpenArchi {
 }
 
 /// Core calls block on files and the network, so they run on tokio's blocking
-/// pool. A panic there, such as a `todo!()` in a part still being built, comes
-/// back as an error instead of taking the server down.
+/// pool. A panic there comes back as an error instead of taking the server down.
 pub(crate) async fn blocking<T: Send + 'static>(
     work: impl FnOnce() -> Result<T, String> + Send + 'static,
 ) -> Result<T, String> {
@@ -210,11 +206,7 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
             .unwrap_or_default(),
     };
 
-    if detail.starts_with(NOT_BUILT_PANIC) {
-        format!("this part of openarchi is not built yet ({detail})")
-    } else {
-        format!("openarchi hit an internal error: {detail}")
-    }
+    format!("openarchi hit an internal error: {detail}")
 }
 
 fn overview(project: &Project) -> Value {
