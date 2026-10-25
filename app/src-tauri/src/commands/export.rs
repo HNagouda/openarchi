@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use openarchi_core::export::{export, ExportFormat};
+use openarchi_core::export::{export_with_dxf_layers, DxfLayers, ExportFormat};
 use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
@@ -62,7 +62,9 @@ pub fn export_file_name(
     file_name(&name, &diagram_id, variant.as_deref(), format)
 }
 
+// The front end names each argument of the call, so they stay apart.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn export_sheet(
     state: State<'_, Shared>,
     look: Look,
@@ -70,6 +72,7 @@ pub async fn export_sheet(
     highlights: Vec<Highlight>,
     format: ExportFormat,
     dpi: u32,
+    dxf_layers: DxfLayers,
     path: String,
 ) -> Result<String, String> {
     let state = state.inner().clone();
@@ -83,7 +86,7 @@ pub async fn export_sheet(
         };
         let catalog = current_catalog(&state);
         with_input(&catalog, &scene, &look, &pins, &highlights, |input| {
-            export(input, format, dpi, Path::new(&path))
+            export_with_dxf_layers(input, format, dpi, dxf_layers, Path::new(&path))
         })?;
         Ok(path)
     })
@@ -94,7 +97,9 @@ pub async fn export_sheet(
 /// project. A diagram with variants writes one file per variant: the series is
 /// everything the site shows, and a variant left out would be a sheet missing
 /// without a word.
+// The front end names each argument of the call, so they stay apart.
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn export_series(
     state: State<'_, Shared>,
     look: Look,
@@ -102,6 +107,7 @@ pub async fn export_series(
     highlights: Vec<Highlight>,
     format: ExportFormat,
     dpi: u32,
+    dxf_layers: DxfLayers,
     folder: String,
 ) -> Result<Vec<String>, String> {
     let state = state.inner().clone();
@@ -131,7 +137,7 @@ pub async fn export_series(
                     &diagram_look,
                     &pins,
                     &highlights,
-                    |input| export(input, format, dpi, &path),
+                    |input| export_with_dxf_layers(input, format, dpi, dxf_layers, &path),
                 )?;
                 written.push(path.display().to_string());
             }

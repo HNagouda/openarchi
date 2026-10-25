@@ -10,6 +10,7 @@ import type {
   AreaSize,
   Catalog,
   ChartStyle,
+  DxfLayers,
   ExportFormat,
   LaserExport,
   LaserSettings,
@@ -62,10 +63,10 @@ export const fetchSite = (area: Area) => invoke<number>("fetch_site", { area });
 export const cancelFetch = () => invoke<void>("cancel_fetch");
 export const currentProject = () => invoke<ProjectView>("current_project");
 
-export const exportSheet = (look: Look, pins: Pin[], highlights: Highlight[], format: ExportFormat, dpi: number, path: string) =>
-  invoke<string>("export_sheet", { look, pins, highlights, format, dpi, path });
-export const exportSeries = (look: Look, pins: Pin[], highlights: Highlight[], format: ExportFormat, dpi: number, folder: string) =>
-  invoke<string[]>("export_series", { look, pins, highlights, format, dpi, folder });
+export const exportSheet = (look: Look, pins: Pin[], highlights: Highlight[], format: ExportFormat, dpi: number, dxfLayers: DxfLayers, path: string) =>
+  invoke<string>("export_sheet", { look, pins, highlights, format, dpi, dxfLayers, path });
+export const exportSeries = (look: Look, pins: Pin[], highlights: Highlight[], format: ExportFormat, dpi: number, dxfLayers: DxfLayers, folder: string) =>
+  invoke<string[]>("export_series", { look, pins, highlights, format, dpi, dxfLayers, folder });
 export const laserSummary = (look: Look, settings: LaserSettings) => invoke<LaserSummary>("laser_summary", { look, settings });
 export const exportLaser = (look: Look, settings: LaserSettings, folder: string) =>
   invoke<LaserExport>("export_laser", { look, settings, folder });
