@@ -4,6 +4,7 @@
 
 use openarchi_core::export::{export_with_dxf_layers, DxfLayers, ExportFormat};
 use openarchi_core::highlight::Highlight;
+use openarchi_core::model::Model;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use openarchi_core::render::RenderInput;
@@ -130,6 +131,21 @@ pub struct Sheet<'a> {
 
 /// The DXF export of `sheet` over `scene`, read back.
 pub fn dxf_with(scene: &Scene, sheet: &Sheet, pins: &[Pin], highlights: &[Highlight]) -> Dxf {
+    exported(scene, sheet, pins, highlights, None)
+}
+
+/// The DXF export of `sheet` over `scene` with `model` on the site, read back.
+pub fn dxf_with_model(scene: &Scene, sheet: &Sheet, model: &Model) -> Dxf {
+    exported(scene, sheet, &[], &[], Some(model))
+}
+
+fn exported(
+    scene: &Scene,
+    sheet: &Sheet,
+    pins: &[Pin],
+    highlights: &[Highlight],
+    model: Option<&Model>,
+) -> Dxf {
     let look = sheet.look;
     let diagram = diagram(sheet.diagram_id);
     let theme = theme(sheet.theme_id);
@@ -140,7 +156,7 @@ pub fn dxf_with(scene: &Scene, sheet: &Sheet, pins: &[Pin], highlights: &[Highli
         look,
         pins,
         highlights,
-        model: None,
+        model,
     };
     let folder = tempfile::tempdir().expect("temp folder");
     let path = folder.path().join("sheet.dxf");

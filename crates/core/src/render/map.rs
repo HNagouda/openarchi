@@ -115,7 +115,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     let location = sun::site_location(&scene.area);
     let sun = sun::position_at(location, &look.sun);
     let seen = viewpoint::compute(scene, diagram, look, input.pins, frame.ground_bounds());
-    let mut computed = derived::features(scene, diagram, look);
+    let mut computed = derived::features(scene, diagram, look, input.model);
     computed.extend(seen.iter().map(|seen| seen.area.clone()));
     let features = cull::within_frame(
         features_by_layer(scene, &computed, diagram, input.model),

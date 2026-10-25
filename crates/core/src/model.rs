@@ -9,6 +9,7 @@
 // #! NOTE[3d, owner] : One model per project; would variants of a proposal side by side be worth several?
 // #! NOTE[3d, ifc] : IFC is not read yet. It is the one format that can place itself; see the spike note in the 3D plan
 
+mod analysed;
 mod faces;
 mod gltf;
 pub mod mesh;
@@ -24,6 +25,7 @@ use std::sync::{Arc, OnceLock};
 
 use serde::{Deserialize, Serialize};
 
+pub use analysed::scene_with_model;
 pub use faces::{Face, Shape};
 pub use mesh::{Mesh, Unit, UpAxis};
 pub use place::{

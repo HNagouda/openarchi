@@ -245,3 +245,44 @@ fn a_place_that_is_not_a_number_is_refused() {
 
     assert!(placement.check().is_err());
 }
+
+#[test]
+fn the_analysed_scene_has_the_model_in_place_of_what_it_replaces() {
+    let scene = site(vec![
+        building("under", (-3.0, -4.0), (3.0, 4.0)),
+        building("away", (40.0, 40.0), (50.0, 50.0)),
+    ]);
+    let model = import(&fixture("gable-house-mm.obj"), None, None, &scene, None).unwrap();
+
+    let analysed = scene_with_model(&scene, &model);
+
+    let heights: Vec<Option<f64>> = analysed
+        .features
+        .iter()
+        .map(|feature| feature.attributes.height_m)
+        .collect();
+    assert_eq!(analysed.features.len(), 2);
+    assert_eq!(
+        analysed.features[0].attributes.source_id.as_deref(),
+        Some("away")
+    );
+    assert!((heights[1].unwrap() - 9.0).abs() < 1e-6);
+}
+
+#[test]
+fn the_model_takes_hours_of_sun_from_the_ground_behind_it() {
+    let scene = site(Vec::new());
+    let model = import(&fixture("gable-house-mm.obj"), None, None, &scene, None).unwrap();
+    // On the shortest day an open site has close to eight hours everywhere.
+    let shaded_area = |scene: &Scene| -> f64 {
+        let grid = crate::sunlight::sun_hours(scene, 12, 21);
+        crate::sunlight::bands(&grid, &[4.0])
+            .iter()
+            .filter(|band| band.attributes.value.is_some_and(|hours| hours < 4.0))
+            .map(|band| band.geometry.unsigned_area())
+            .sum()
+    };
+
+    assert_eq!(shaded_area(&scene), 0.0);
+    assert!(shaded_area(&scene_with_model(&scene, &model)) > 50.0);
+}

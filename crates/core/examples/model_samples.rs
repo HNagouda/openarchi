@@ -23,8 +23,15 @@ const PLOT: (f64, f64) = (12.0, 62.0);
 const TURN_DEG: f64 = 20.0;
 
 /// File name, diagram, theme and view mode.
-const SAMPLES: [(&str, &str, &str, ViewMode); 8] = [
+const SAMPLES: [(&str, &str, &str, ViewMode); 10] = [
     ("plan--context--paper", "context", "paper", ViewMode::Plan),
+    (
+        "plan--sun-hours--paper",
+        "sun-hours",
+        "paper",
+        ViewMode::Plan,
+    ),
+    ("plan--sky-view--paper", "sky-view", "paper", ViewMode::Plan),
     (
         "plan--building-height--midnight",
         "building-height",

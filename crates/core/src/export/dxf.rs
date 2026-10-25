@@ -13,17 +13,20 @@
 //! and so on. Highlights, the section line and pins each get layers of their
 //! own (`dxf_marks.rs`). Each layer takes its colour on the sheet
 //! (`dxf_colours.rs`); no styling beyond that and a line type, since CAD users
-//! bring their own.
+//! bring their own. An imported model goes on "OA-PROPOSAL" as its footprint,
+//! in the accent, and the buildings it replaces are left out.
 
 use std::collections::BTreeMap;
 
 use crate::diagram::Classify;
+use crate::model::{footprint_on_site, Model};
 use crate::render::{
     class_of, computed_features, layer_slug, resolve_layers, shown_highlights, Classes,
     RenderInput, ResolvedLayer,
 };
 use crate::scene::{Feature, Layer, Scene};
 use crate::sources::bands::BANDED;
+use crate::theme::Palette;
 use crate::view::ViewMode;
 use crate::Result;
 
@@ -34,6 +37,7 @@ use super::dxf_write::{cad_name, write_geometry, write_polygon, Drawing};
 use super::DxfLayers;
 
 const SITE_LAYER: &str = "OA-SITE";
+const MODEL_LAYER: &str = "OA-PROPOSAL";
 /// A scene layer's CAD layer is its name after this: "OA-RAIL-AREA".
 const PLAN_PREFIX: &str = "OA-";
 const CONTEXT_PREFIX: &str = "OA-CONTEXT-";
@@ -78,9 +82,12 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
             names: class_names(classes, &names[&classify.layer]),
         })
     });
-    let computed = computed_features(scene, input.diagram, look);
+    let computed = computed_features(scene, input.diagram, look, input.model);
     for feature in scene.features.iter().chain(&computed) {
         if !written.contains(&feature.layer) {
+            continue;
+        }
+        if input.model.is_some_and(|model| model.replaces(feature)) {
             continue;
         }
         let layer = match &classified {
@@ -96,6 +103,10 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
             elevation(feature),
             scene.origin,
         );
+    }
+    // Like the sheet, the model stands only among buildings.
+    if let Some(model) = input.model.filter(|_| written.contains(&Layer::Building)) {
+        write_model(&mut drawing, model, scene, palette);
     }
     if dxf_layers == DxfLayers::All || look.sheet.shows_context() {
         write_context(&mut drawing, scene);
@@ -217,6 +228,20 @@ fn elevation(feature: &Feature) -> f64 {
         feature.attributes.value.unwrap_or(0.0)
     } else {
         0.0
+    }
+}
+
+/// The model's footprint on the site, on a layer of its own in the accent.
+fn write_model(drawing: &mut Drawing, model: &Model, scene: &Scene, palette: &Palette) {
+    drawing.layer(MODEL_LAYER, aci::nearest(&palette.accent));
+    for polygon in footprint_on_site(model, scene) {
+        write_polygon(
+            &mut drawing.entities,
+            &polygon,
+            MODEL_LAYER,
+            0.0,
+            scene.origin,
+        );
     }
 }
 

@@ -13,6 +13,7 @@ What changed in each version of openarchi, newest first.
 - The model draws on the sheets in the palette's accent: its footprint in plan, standing up and lit by the sun among the buildings in the axonometric, and casting its shadow with the buildings in the shadow diagram, with a Proposal row in the legend. It draws its merged faces rather than every triangle, so a model adds little to the sheet's size.
 - The 3D button opens a live view of the site: the ground in the palette's colours, every building at its height, the trees, the neighbourhood and the model. Drag to look round, scroll to come closer, or press Orbit to turn round the site. The sun stands where the shadow diagram puts it, with real shadows; drag the time of day, pick another date, or press play to move the sun from sunrise to sunset.
 - Save picture writes what the 3D view shows as a PNG. Save day writes a picture every quarter hour from sunrise to sunset and Save orbit 72 pictures turning once round the site, numbered so any video tool turns them into a film.
+- Hours of sun, sky view, solar radiation and the wind count the model in place of the buildings it replaces, as one block at its highest point, and the DXF puts its footprint on a layer "OA-PROPOSAL" of its own.
 - The 3D view loads only when it opens and draws only when something changes, so an open view that you are not touching costs nothing.
 - Assistants can import, place, turn, re-read and remove the model and choose the buildings it replaces, with the same rules as the app, and `get_project` describes it.
 

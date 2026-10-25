@@ -1,7 +1,10 @@
+mod dxf_support;
 mod render_support;
 
 use std::path::Path;
 
+use dxf_support::{dxf_with_model, Sheet};
+use openarchi_core::export::DxfLayers;
 use openarchi_core::model::{self, Model, Placement};
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
@@ -146,4 +149,29 @@ fn the_model_casts_a_shadow_in_the_shadow_diagram() {
     let without = svg(&scene, "shadow", &look, None);
 
     assert!(group_path(&with, "shadows").len() > group_path(&without, "shadows").len());
+}
+
+#[test]
+fn the_dxf_puts_the_model_on_its_own_layer_in_place_of_what_it_replaces() {
+    let scene = site();
+    let mut model = house(&scene);
+    let look = look_in(ViewMode::Plan, 13);
+    let sheet = Sheet {
+        diagram_id: "context",
+        theme_id: "paper",
+        look: &look,
+        dxf_layers: DxfLayers::Shown,
+    };
+    let buildings = |dxf: &dxf_support::Dxf| {
+        let is_building = |entity: &&dxf_support::Entity| entity.layer.starts_with("OA-BUILDING");
+        dxf.entities.iter().filter(is_building).count()
+    };
+    let kept = dxf_with_model(&scene, &sheet, &model);
+
+    model.replaced = vec![OFFICE_ID.to_string()];
+    let replaced = dxf_with_model(&scene, &sheet, &model);
+
+    assert!(replaced.layer("OA-PROPOSAL").is_some());
+    assert_eq!(replaced.on("OA-PROPOSAL").len(), 1);
+    assert_eq!(buildings(&replaced), buildings(&kept) - 1);
 }
