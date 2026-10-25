@@ -10,7 +10,7 @@ import { arrowStep, usePlainKeys } from "../../lib/keys";
 import type { Look } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
-import { followPointer } from "../pointerDrag";
+import { followPointer } from "../../lib/pointerDrag";
 import { boxAt } from "../paper";
 import { groupFor, readTexts } from "./sheetTexts";
 import { isTextBox, withNewBox, withoutBox, withPosition } from "./textEdits";

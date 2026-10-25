@@ -5,6 +5,7 @@
 
 import { useState, type PointerEvent as ReactPointerEvent } from "react";
 import { clamp } from "../lib/format";
+import { DRAG_THRESHOLD_PX } from "../lib/pointerDrag";
 import type { Report, ReportBlock } from "../lib/types";
 import { pageSize, tidy, updateBlock } from "./edits";
 import { resize, snapMove, type Handle, type Rect } from "./geometry";
@@ -12,8 +13,6 @@ import type { Live } from "./PageView";
 
 // Snapping reaches this far on screen, whatever the zoom.
 const SNAP_PX = 6;
-// A press that moves less than this is a click that selects, not a drag.
-const DRAG_START_PX = 3;
 
 const rectOf = (block: ReportBlock): Rect => ({ x: block.x_mm, y: block.y_mm, width: block.width_mm, height: block.height_mm });
 
@@ -32,7 +31,7 @@ export function useBlockDrag(report: Report, pxPerMm: number, onChange: (report:
     let latest: Live | null = null;
 
     const follow = (move: PointerEvent) => {
-      const isPastStart = Math.hypot(move.clientX - startX, move.clientY - startY) >= DRAG_START_PX;
+      const isPastStart = Math.hypot(move.clientX - startX, move.clientY - startY) >= DRAG_THRESHOLD_PX;
       if (latest === null && !isPastStart) return;
       const dx = (move.clientX - startX) / pxPerMm;
       const dy = (move.clientY - startY) / pxPerMm;

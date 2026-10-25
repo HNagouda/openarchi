@@ -63,6 +63,42 @@
   box-shadow: inset 0 0 0 1px var(--line-strong);
 }
 
+/* * ==== zoom: the pill in the corner of the sheet, the report pages and the map ==== */
+
+.zoom-control {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--float-shadow);
+}
+
+.zoom-control .button-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.zoom-value {
+  min-width: 46px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.zoom-value:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
 /* * ==== tooltips: a short delay, a small dark label, the shortcut beside it ==== */
 
 [data-tip] {

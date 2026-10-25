@@ -23,11 +23,9 @@
   font-size: 13px;
 }
 
+/* The report menu in the top bar: shorter than an inspector field, to sit with the top bar's buttons. */
 .report-switch {
   width: 180px;
-}
-
-.report-select {
   height: 26px;
   min-width: 0;
   padding: 0 6px;

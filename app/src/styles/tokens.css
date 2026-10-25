@@ -76,6 +76,8 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   --topbar-height: 44px;
+  /* Between the controls of a bar: the top bar, the sheet tabs, the inspector toolbars. */
+  --toolbar-gap: 8px;
   --inspector-width: 296px;
   --diagram-column-width: 232px;
   /* How far the open diagram column pushes the sheet over. */

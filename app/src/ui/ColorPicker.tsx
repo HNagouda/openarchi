@@ -4,6 +4,7 @@
 // the arrow keys, the sliders as native range inputs.
 
 import { createContext, useEffect, useRef, useState } from "react";
+import { PERCENT } from "../lib/units";
 import { hexToRgb, hsvToRgb, parseHex, readRecentColours, rgbToHex, rgbToHsv, type Hsv, type Rgb } from "./colour";
 
 /** A colour the picker offers as one click: a theme role like "@accent", or a hex. */
@@ -13,7 +14,6 @@ export type Swatch = { value: string; colour: string; label: string };
 export const PaletteSwatches = createContext<Swatch[]>([]);
 
 const HUE_MAX = 360;
-const PERCENT = 100;
 const CHANNEL_MAX = 255;
 // Arrow keys move the square by 1 %, with Shift by 10 %.
 const KEY_STEP = 0.01;

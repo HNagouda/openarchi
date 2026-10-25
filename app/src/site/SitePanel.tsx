@@ -4,6 +4,7 @@
 import type { ReactNode } from "react";
 import { formatArea } from "../lib/format";
 import type { Area, AreaSize, Place, Progress } from "../lib/types";
+import { PERCENT } from "../lib/units";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { Icon } from "../ui/Icon";
@@ -143,7 +144,7 @@ export function SitePanel({
               </span>
             </div>
             <div className="area-meter" aria-hidden="true">
-              <div className={isTooLarge ? "area-meter-fill is-over" : "area-meter-fill"} style={{ width: `${share * 100}%` }} />
+              <div className={isTooLarge ? "area-meter-fill is-over" : "area-meter-fill"} style={{ width: `${share * PERCENT}%` }} />
             </div>
             <span className="area-caption">
               {isTooLarge ? "Larger than the 4 km² openarchi can fetch at once. Draw a smaller site." : "Up to 4 km² per site"}
@@ -169,7 +170,7 @@ export function SitePanel({
             <div className="progress-track">
               <div
                 className={fetch.progress ? "progress-fill" : "progress-fill is-waiting"}
-                style={{ width: fetch.progress ? `${(fetch.progress.done / Math.max(1, fetch.progress.total)) * 100}%` : "30%" }}
+                style={{ width: fetch.progress ? `${(fetch.progress.done / Math.max(1, fetch.progress.total)) * PERCENT}%` : "30%" }}
               />
             </div>
           </div>

@@ -4,16 +4,16 @@
 
 import { useEffect, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
-import { errorText, exportRatios, getRatios, ratiosFileName, revealPath } from "../../lib/ipc";
-import { formatArea } from "../../lib/format";
-import { fileManagerName } from "../../lib/platform";
+import { errorText, exportRatios, getRatios, ratiosFileName } from "../../lib/ipc";
+import { fileNameOf, formatArea } from "../../lib/format";
 import { readPreference, writePreference } from "../../lib/storage";
 import type { Area, ChartStyle, ProjectView, RatioGroup, RatioRow, RatioUnit, Ratios } from "../../lib/types";
+import { PERCENT } from "../../lib/units";
 import { Button } from "../../ui/Button";
 import { Problem } from "../../ui/Problem";
 import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
-import { useToast } from "../../ui/Toasts";
+import { useExportedToast, useToast } from "../../ui/Toasts";
 import "./ratios.css";
 
 const PIE_RADIUS = 44;
@@ -30,6 +30,7 @@ export function RatiosPanel({ project, themeId, selection = null }: Props) {
   const [style, setStyle] = useState<ChartStyle>(() => readPreference<ChartStyle>("ratios.style", "bar"));
   const { ratios, error } = useRatios(themeId, selection, project.has_scene, project.fetched_at);
   const toast = useToast();
+  const exported = useExportedToast();
 
   const changeStyle = (next: ChartStyle) => {
     setStyle(next);
@@ -47,8 +48,7 @@ export function RatiosPanel({ project, themeId, selection = null }: Props) {
       });
       if (!path) return;
       const written = await exportRatios(themeId, selection, style, path);
-      const fileName = written.split(/[\\/]/).pop() ?? written;
-      toast(`Exported ${fileName}`, { action: { label: `Show in ${fileManagerName}`, run: () => revealPath(written) } });
+      exported(`Exported ${fileNameOf(written)}`, written);
     } catch (reason) {
       toast(`Couldn't export the ratios. ${errorText(reason)}`, { isError: true });
     }
@@ -169,7 +169,7 @@ function Bars({ group }: { group: RatioGroup }) {
         <li key={row.label} className="ratio-bar-row">
           <RowText row={row} unit={group.unit} />
           <span className="ratio-track">
-            <span className="ratio-bar" style={{ width: `${row.share * 100}%`, background: row.fill }} />
+            <span className="ratio-bar" style={{ width: `${row.share * PERCENT}%`, background: row.fill }} />
           </span>
         </li>
       ))}
