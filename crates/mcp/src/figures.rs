@@ -10,7 +10,7 @@ use rmcp::{tool, tool_router};
 use crate::figure_inputs::{GetAnalysis, GetEnvironment, GetRatios};
 use crate::inputs::ProjectId;
 use crate::resolve::find_theme;
-use crate::server::{reply, text, OpenArchi};
+use crate::server::{fetched_scene, reply, text, OpenArchi};
 
 #[tool_router(router = figure_tools, vis = "pub(crate)")]
 impl OpenArchi {
@@ -21,12 +21,7 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
-                let Some(scene) = &project.scene else {
-                    return Err(format!(
-                        "project '{}' has no site data yet; call fetch_site first",
-                        input.id
-                    ));
-                };
+                let scene = fetched_scene(&project)?;
                 let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
                 let theme_id = input.theme_id.unwrap_or(look.theme_id.clone());
                 let theme = find_theme(&library.themes_dir(), &theme_id)?;
@@ -45,12 +40,7 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
-                let Some(scene) = &project.scene else {
-                    return Err(format!(
-                        "project '{}' has no site data yet; call fetch_site first",
-                        input.id
-                    ));
-                };
+                let scene = fetched_scene(&project)?;
                 walk::neighbourhood(scene).ok_or_else(|| {
                     format!(
                         "project '{}' has no walk data: OpenStreetMap was not reached when the site was fetched; call fetch_site again",
@@ -69,12 +59,7 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
-                let Some(scene) = &project.scene else {
-                    return Err(format!(
-                        "project '{}' has no site data yet; call fetch_site first",
-                        input.id
-                    ));
-                };
+                let scene = fetched_scene(&project)?;
                 let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
                 let theme = find_theme(&library.themes_dir(), &look.theme_id)?;
                 let sheet_area = match &look.selection {
@@ -98,12 +83,7 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
-                let Some(scene) = &project.scene else {
-                    return Err(format!(
-                        "project '{}' has no site data yet; call fetch_site first",
-                        input.id
-                    ));
-                };
+                let scene = fetched_scene(&project)?;
                 let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
                 let scene =
                     selection::framed_or_whole(scene, look.selection.as_ref()).map_err(text)?;

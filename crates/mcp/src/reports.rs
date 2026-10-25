@@ -12,6 +12,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::resolve::find_theme;
+use crate::server::fetched_scene;
 
 /// PNG resolution when none is asked for, the same as the sheet's export.
 /// PDF and SVG pages are vector and ignore it.
@@ -78,12 +79,7 @@ pub fn export(library: &Library, input: ExportReport) -> Result<Value, String> {
     let format = ReportFormat::from(input.format.unwrap_or(ReportFormatInput::Pdf));
     let path = checked_path(&input.path, format)?;
     let project = library.load(&input.id).map_err(|error| error.to_string())?;
-    let Some(scene) = &project.scene else {
-        return Err(format!(
-            "project '{}' has no site data yet; call fetch_site first",
-            input.id
-        ));
-    };
+    let scene = fetched_scene(&project)?;
     let Some(report) = project
         .reports
         .iter()

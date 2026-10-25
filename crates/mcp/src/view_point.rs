@@ -14,7 +14,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::inputs::LonLatInput;
-use crate::server::{reply, text, OpenArchi};
+use crate::server::{fetched_scene, reply, text, OpenArchi};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SetViewPoint {
@@ -41,12 +41,8 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let mut project = library.load(&input.id).map_err(text)?;
-                let Some(scene) = project.scene.clone() else {
-                    return Err(format!(
-                        "project '{}' has no site data yet; call fetch_site before setting a viewpoint",
-                        input.id
-                    ));
-                };
+                let tab = input.tab.unwrap_or(1);
+                let scene = fetched_scene(&project)?;
                 // As in the app: a placed point, or a pin the eye then follows, or neither.
                 let (point, pin_id) = match (input.at, input.pin, input.centre) {
                     (Some(at), None, None) => (Some(wgs84_to_rd(at.into())), None),
@@ -62,16 +58,16 @@ impl OpenArchi {
                         .iter()
                         .find(|pin| pin.id == *pin_id)
                         .ok_or_else(|| format!("project '{}' has no pin '{pin_id}'", input.id))?;
-                    check_view_point(&scene, (pin.x, pin.y)).map_err(text)?;
+                    check_view_point(scene, (pin.x, pin.y)).map_err(text)?;
                 }
                 if let Some(point) = point {
-                    check_view_point(&scene, point).map_err(text)?;
+                    check_view_point(scene, point).map_err(text)?;
                 }
-                let pins = project.pins.clone();
-                let look = project.sheet_mut(input.tab.unwrap_or(1)).map_err(text)?;
+
+                let look = project.sheet_mut(tab).map_err(text)?;
                 look.view_point = point;
                 look.view_pin = pin_id;
-                let shown = view_point_of(look, &pins);
+                let shown = view_point_of(project.sheet(tab).map_err(text)?, &project.pins);
                 library.save(&mut project).map_err(text)?;
                 Ok(shown)
             })

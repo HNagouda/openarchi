@@ -11,7 +11,7 @@ use openarchi_core::render::RenderInput;
 use serde_json::{json, Value};
 
 use crate::resolve::find_theme;
-use crate::server::text;
+use crate::server::{fetched_scene, text};
 
 /// Writes every drawing of every diagram for sheet `tab` into `folder`, and
 /// returns the paths. Checks every file name first, so nothing is written
@@ -28,11 +28,7 @@ pub fn export_series(
     overwrite: bool,
 ) -> Result<Value, String> {
     let project = library.load(id).map_err(text)?;
-    let Some(scene) = &project.scene else {
-        return Err(format!(
-            "project '{id}' has no site data yet; call fetch_site first"
-        ));
-    };
+    let scene = fetched_scene(&project)?;
     let look = project.sheet(tab).map_err(text)?;
     let theme = find_theme(&library.themes_dir(), &look.theme_id)?;
     let diagrams = catalog::builtin_diagrams();

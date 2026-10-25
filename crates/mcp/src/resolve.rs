@@ -10,6 +10,8 @@ use openarchi_core::render::RenderInput;
 use openarchi_core::theme::Theme;
 use openarchi_core::view::ViewMode;
 
+use crate::server::fetched_scene;
+
 /// A built-in diagram, following the ids of diagrams folded into another.
 pub fn find_diagram(id: &str) -> Result<Diagram, String> {
     let (id, _) = catalog::current_id(id, None);
@@ -102,11 +104,7 @@ pub fn with_render_input<T>(
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
     let project = library.load(id).map_err(|e| e.to_string())?;
-    let Some(scene) = &project.scene else {
-        return Err(format!(
-            "project '{id}' has no site data yet; call fetch_site first"
-        ));
-    };
+    let scene = fetched_scene(&project)?;
     let look = project.sheet(tab).map_err(|e| e.to_string())?;
     let diagram = find_diagram(&look.diagram_id)?;
     let theme = find_theme(&library.themes_dir(), &look.theme_id)?;

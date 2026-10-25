@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use openarchi_core::area::Area;
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
+use openarchi_core::scene::Scene;
 use openarchi_core::{geocode, site};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -207,6 +208,16 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
     };
 
     format!("openarchi hit an internal error: {detail}")
+}
+
+/// The project's fetched site, or the error every tool that needs one gives.
+pub(crate) fn fetched_scene(project: &Project) -> Result<&Scene, String> {
+    project.scene.as_ref().ok_or_else(|| {
+        format!(
+            "project '{}' has no site data yet; call fetch_site first",
+            project.id
+        )
+    })
 }
 
 fn overview(project: &Project) -> Value {

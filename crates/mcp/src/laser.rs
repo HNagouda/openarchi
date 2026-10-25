@@ -14,7 +14,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::server::{reply, text, OpenArchi};
+use crate::server::{fetched_scene, reply, text, OpenArchi};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExportLaser {
@@ -62,12 +62,7 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
-                let Some(scene) = &project.scene else {
-                    return Err(format!(
-                        "project '{}' has no site data yet; call fetch_site first",
-                        input.id
-                    ));
-                };
+                let scene = fetched_scene(&project)?;
                 let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
                 let settings = settings(&input, look.sheet.scale);
 

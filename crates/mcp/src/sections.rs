@@ -13,7 +13,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::inputs::LonLatInput;
-use crate::server::{reply, text, OpenArchi};
+use crate::server::{fetched_scene, reply, text, OpenArchi};
 
 /// The `scale` an assistant passes to go back to the scale that fits the sheet.
 const FITTED_SCALE: u32 = 0;
@@ -54,25 +54,27 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let mut project = library.load(&input.id).map_err(text)?;
-                let Some(scene) = project.scene.clone() else {
-                    return Err(format!(
-                        "project '{}' has no site data yet; call fetch_site before drawing a section",
-                        input.id
-                    ));
-                };
-                let look = project.sheet_mut(input.tab.unwrap_or(1)).map_err(text)?;
-                if input.clear == Some(true) {
-                    clear(look);
+                let tab = input.tab.unwrap_or(1);
+                let scene = fetched_scene(&project)?;
+                let current = project.sheet(tab).map_err(text)?.section.as_ref();
+                let line = if input.clear == Some(true) {
+                    None
                 } else {
-                    let line = updated_line(look.section.as_ref(), &input)?;
+                    let line = updated_line(current, &input)?;
                     line.check().map_err(text)?;
-                    if !section::lies_within(&scene, &line) {
+                    if !section::lies_within(scene, &line) {
                         return Err(
                             "both ends must lie inside the area the sheet draws: the fetched site and its neighbourhood"
                                 .to_string(),
                         );
                     }
-                    look.section = Some(line);
+                    Some(line)
+                };
+
+                let look = project.sheet_mut(tab).map_err(text)?;
+                match line {
+                    Some(line) => look.section = Some(line),
+                    None => clear(look),
                 }
                 let shown = section_of(look);
                 library.save(&mut project).map_err(text)?;

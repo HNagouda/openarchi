@@ -11,7 +11,7 @@ use rmcp::{tool, tool_router};
 use serde_json::{json, Value};
 
 use crate::inputs::ProjectId;
-use crate::server::{reply, text, OpenArchi};
+use crate::server::{fetched_scene, reply, text, OpenArchi};
 use crate::sheet_inputs::{AddPin, AddSheet, EditPin, PinId};
 
 #[tool_router(router = sheet_tools, vis = "pub(crate)")]
@@ -196,12 +196,7 @@ fn pins_of(project: &Project) -> Value {
 
 /// The location in RD New metres, if it lies inside the fetched site.
 fn place_on_site(project: &Project, location: LonLat) -> Result<(f64, f64), String> {
-    let Some(scene) = &project.scene else {
-        return Err(format!(
-            "project '{}' has no site data yet; call fetch_site before pinning landmarks",
-            project.id
-        ));
-    };
+    let scene = fetched_scene(project)?;
     let (x, y) = wgs84_to_rd(location);
     if !pin::is_on_site(scene, x, y) {
         return Err(format!(

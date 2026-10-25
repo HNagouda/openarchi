@@ -15,7 +15,7 @@ use rmcp::{tool, tool_router};
 use serde_json::{json, Value};
 
 use crate::highlight_inputs::{AddHighlight, EditHighlight, HighlightId, OpenHighlight, ShowMarks};
-use crate::server::{reply, text, OpenArchi};
+use crate::server::{fetched_scene, reply, text, OpenArchi};
 
 #[tool_router(router = highlight_tools, vis = "pub(crate)")]
 impl OpenArchi {
@@ -130,9 +130,7 @@ impl OpenArchi {
             .with_library(move |library| {
                 let mut project = library.load(&input.id).map_err(text)?;
                 let highlight = find_highlight(&project, &input.highlight_id)?;
-                let Some(scene) = &project.scene else {
-                    return Err(no_site(&project));
-                };
+                let scene = fetched_scene(&project)?;
                 let source = project.sheet(input.copy_of.unwrap_or(1)).map_err(text)?;
                 let mut look = Look {
                     name: highlight.legend_label().to_string(),
@@ -207,9 +205,7 @@ fn shape_in_degrees(shape: &HighlightShape) -> Value {
 
 /// The app's rule: a highlight the sheet can draw, whose middle lies inside the fetched site.
 fn check_on_site(project: &Project, highlight: &Highlight) -> Result<(), String> {
-    let Some(scene) = &project.scene else {
-        return Err(no_site(project));
-    };
+    let scene = fetched_scene(project)?;
     highlight.check().map_err(text)?;
     if !highlight::is_on_site(scene, highlight) {
         return Err(format!(
@@ -219,13 +215,6 @@ fn check_on_site(project: &Project, highlight: &Highlight) -> Result<(), String>
     }
 
     Ok(())
-}
-
-fn no_site(project: &Project) -> String {
-    format!(
-        "project '{}' has no site data yet; call fetch_site before highlighting areas",
-        project.id
-    )
 }
 
 fn find_highlight<'a>(project: &'a Project, highlight_id: &str) -> Result<&'a Highlight, String> {
