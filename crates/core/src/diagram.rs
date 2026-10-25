@@ -69,8 +69,10 @@ pub struct Diagram {
     #[serde(default)]
     pub outline: Vec<Layer>,
     pub classify: Option<Classify>,
-    /// A computed sun drawing on top of the layers. Needs no data beyond
-    /// building heights and the site's position.
+    /// A computed sun drawing on top of the layers, which needs no data beyond
+    /// building heights and the site's position. `SunHours` draws nothing
+    /// here: its bands come from the sun hours layer, and the app reads it
+    /// to show the date without the time.
     #[serde(default)]
     pub solar: Option<Solar>,
     /// Zooms a plan out to the walk band of this many minutes, draws the walk

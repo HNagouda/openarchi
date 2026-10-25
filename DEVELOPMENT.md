@@ -26,12 +26,13 @@ crates/core/            the library: no window, no async
   src/theme.rs          how a sheet looks
   src/sheet.rs          paper, scale, frame and furniture
   src/view.rs           plan, axonometric, explode or section, and the moment the sun is drawn for
-  src/section.rs        a sheet's section line, and section/: the ground profile and what the cut meets
+  src/section.rs        a sheet's section line, and section/: the ground profile, what the cut meets and the water it crosses
   src/sun.rs            where the sun stands, from the site's position and a Dutch clock time
   src/walk.rs           walk bands from the site centre and the 15 minute neighbourhood
   src/floors.rs         floors and gross floor area, estimated from roof height
   src/blocks.rs         city blocks cut from the street surfaces, with their coverage and floor space
-  src/memo.rs           the last few computed grids, kept so a redraw of the same scene does not work them out again
+  src/memo.rs           the last few computed grids and analysis parts, kept so a redraw of the same scene does not work them out again
+  src/meteo.rs          compass sectors, the calm limit and the seasons, shared by the climate analysis and the wind
   src/grid.rs           the square grid every computed layer below lays over the site: ground and roof cells, filling shapes, values back into bands
   src/sunlight.rs       hours of direct sun on a grid over the site
   src/skyview.rs        the share of the sky each ground cell sees, from the horizon in 32 directions
@@ -53,7 +54,7 @@ crates/core/            the library: no window, no async
   src/selection.rs      a sheet's area, opened from a highlight: the scene cut to it
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
-  examples/             fetch_site, render_samples, render_timing and compute_timing, for working on data, looks and speed
+  examples/             fetch_site and the *_samples, *_timing and app_fixtures tools, for working on data, looks and speed (see Running it)
 crates/mcp/             openarchi-mcp, a stdio MCP server over the core
 app/                    the desktop app
   src-tauri/            Tauri commands, each a thin call into the core
@@ -117,6 +118,10 @@ cargo run --release -p openarchi-core --example laser_samples    # laser files a
 cargo run --release -p openarchi-core --example dxf_samples -- <library folder> <project id>  # a DXF per diagram, a section and a highlight's sheet, target/dxf-samples/
 cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, and the A4 PDF, target/analysis-samples/
 cargo run --release -p openarchi-core --example section_samples -- .scratch/site.json westermarkt  # a section in every theme, target/render-samples/sections/
+cargo run --release -p openarchi-core --example report_samples   # a sample report in a few palettes, as PDF and PNGs, target/report-samples/
+cargo run --release -p openarchi-core --example highlight_samples # highlights in every theme and view, target/render-samples/highlights/
+cargo run --release -p openarchi-core --example pin_samples       # every kind of pin in every theme and view, target/render-samples/pins/
+cargo run --release -p openarchi-core --example netherlands_outline  # rebuilds the outline of the country on the locator map, assets/places/
 ```
 
 When the app feels slow, time it before changing anything. `render_timing` loads a saved project and prints, per diagram, how long the preview takes to draw, how large its SVG is and how long its thumbnail takes. The SVG size matters as much as the time: the app parses and paints every byte on every change.
@@ -126,7 +131,7 @@ cargo run --release -p openarchi-core --example render_timing -- <library folder
 VIEW=axonometric SELECT_RADIUS=150 DUMP_DIR=.scratch/svgs cargo run --release -p openarchi-core --example render_timing -- <library folder> <project id>
 ```
 
-`compute_timing` times only the layers worked out when drawn (the woods that block, the sky view, the solar radiation and the view from the site centre) on scenes written by `fetch_site`, so a slow one shows up before it reaches the app.
+`compute_timing` times the layers worked out when drawn (the woods that block, the hours of sun, the sky view, the solar radiation, the city blocks, the wind solve and the view from the site centre) on scenes written by `fetch_site`, so a slow one shows up before it reaches the app. It times the work itself; the app keeps each result between redraws (`memo.rs`).
 
 ```sh
 cargo run --release -p openarchi-core --example compute_timing -- .scratch/site.json

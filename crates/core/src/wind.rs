@@ -148,6 +148,13 @@ pub fn flow(scene: &Scene, from_deg: f64) -> Arc<WindFlow> {
     })
 }
 
+/// The flow for wind from `from_deg`, solved afresh, for timing the solver.
+/// Drawing goes through `flow`, which keeps it.
+pub fn solved(scene: &Scene, from_deg: f64) -> WindFlow {
+    let (raster, downwind, obstacles) = Field::grid(scene, from_deg);
+    over_site(scene, &Field::solve(raster, downwind, obstacles))
+}
+
 /// The wind speed ratio in bands of `breaks`, on the wind layer, and the
 /// flow lines with their arrowheads, on the wind line layer.
 pub fn features(flow: &WindFlow, breaks: &[f64]) -> Vec<Feature> {
