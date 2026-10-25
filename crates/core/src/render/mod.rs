@@ -121,9 +121,6 @@ pub struct RenderInput<'a> {
     pub highlights: &'a [Highlight],
 }
 
-/// The full sheet as an SVG document, sized in millimetres. A diagram with
-/// variants is drawn as the look's variant, and a look with a sub-selection
-/// draws the scene cut to it.
 /// What the sheet asks for that its scene lacks, as the sentences the app
 /// shows over the sheet: an old fetch without a diagram's source, or without
 /// the neighbourhood. Empty when the sheet has all it needs.
@@ -147,6 +144,9 @@ fn planned(diagram: &Diagram, look: &Look) -> Look {
     planned
 }
 
+/// The full sheet as an SVG document, sized in millimetres. A diagram with
+/// variants is drawn as the look's variant, and a look with a sub-selection
+/// draws the scene cut to it.
 pub fn render_svg(input: &RenderInput) -> Result<String> {
     let drawn = input.diagram.drawn_as(input.look.variant.as_deref());
     let look = &planned(&drawn, input.look);
