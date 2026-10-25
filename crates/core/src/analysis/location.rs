@@ -124,13 +124,16 @@ fn municipality(
     spot: Tile,
     rd: (f64, f64),
 ) -> Result<(Option<Municipality>, Option<String>)> {
-    let (bytes, warning) = cached(cache, MUNICIPALITY_DATASET, spot, || {
-        let found = boundaries::fetch_municipality(rd)?;
-        serde_json::to_vec(&found).map_err(|error| Error::Invalid(error.to_string()))
-    })?;
-    let found =
-        serde_json::from_slice(&bytes).map_err(|error| Error::Invalid(error.to_string()))?;
-    Ok((found, warning))
+    cached(
+        cache,
+        MUNICIPALITY_DATASET,
+        spot,
+        || {
+            let found = boundaries::fetch_municipality(rd)?;
+            serde_json::to_vec(&found).map_err(|error| Error::Invalid(error.to_string()))
+        },
+        from_json,
+    )
 }
 
 fn address(
@@ -138,13 +141,20 @@ fn address(
     spot: Tile,
     centre: LonLat,
 ) -> Result<(Option<String>, Option<String>)> {
-    let (bytes, warning) = cached(cache, ADDRESS_DATASET, spot, || {
-        let found = geocode::nearest_address(centre)?;
-        serde_json::to_vec(&found).map_err(|error| Error::Invalid(error.to_string()))
-    })?;
-    let found =
-        serde_json::from_slice(&bytes).map_err(|error| Error::Invalid(error.to_string()))?;
-    Ok((found, warning))
+    cached(
+        cache,
+        ADDRESS_DATASET,
+        spot,
+        || {
+            let found = geocode::nearest_address(centre)?;
+            serde_json::to_vec(&found).map_err(|error| Error::Invalid(error.to_string()))
+        },
+        from_json,
+    )
+}
+
+fn from_json<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T> {
+    serde_json::from_slice(bytes).map_err(|error| Error::Invalid(error.to_string()))
 }
 
 #[cfg(test)]

@@ -58,14 +58,13 @@ fn typical_year(
     fetch: &dyn Fn(Tile) -> Result<Vec<u8>>,
 ) -> Result<(Tmy, Option<String>)> {
     let cell = pvgis::cell_of(scene.origin);
-    let (bytes, warning) = cached(cache, pvgis::CACHE_DATASET, cell, || {
-        let bytes = fetch(cell)?;
-        // Only an answer that parses is worth keeping for a month.
-        pvgis::parse(&bytes)?;
-        Ok(bytes)
-    })?;
-
-    Ok((pvgis::parse(&bytes)?, warning))
+    cached(
+        cache,
+        pvgis::CACHE_DATASET,
+        cell,
+        || fetch(cell),
+        pvgis::parse,
+    )
 }
 
 #[cfg(test)]

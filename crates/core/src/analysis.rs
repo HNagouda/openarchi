@@ -35,7 +35,7 @@ use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
 
 use crate::crs::rd_to_wgs84;
-use crate::ratios;
+use crate::ratios::{self, Ratios};
 use crate::scene::{Credit, Scene};
 use crate::sources::cache::TileCache;
 use crate::sources::grid::Tile;
@@ -141,15 +141,9 @@ pub fn part(
             Ok(vec![sections::location(&location, theme)?])
         }
         Part::Site => {
-            let site = sheet_area.unwrap_or(scene);
-            let ratios = ratios::compute(site, theme)?;
-            let summary = summary::summarise(site, &ratios, sheet_area.is_some());
-            Ok(vec![sections::site(
-                &summary,
-                &ratios,
-                site.credits.clone(),
-                theme,
-            )?])
+            let (ratios, summary) = site_numbers(scene, sheet_area, theme)?;
+            let credits = sheet_area.unwrap_or(scene).credits.clone();
+            Ok(vec![sections::site(&summary, &ratios, credits, theme)?])
         }
         Part::Climate => {
             let (climate, warnings) = climate(scene, cache)?;
@@ -172,9 +166,7 @@ pub fn report(
     cache: &TileCache,
 ) -> Result<Report> {
     let location = location::locate(scene, cache);
-    let site = sheet_area.unwrap_or(scene);
-    let ratios = ratios::compute(site, theme)?;
-    let summary = summary::summarise(site, &ratios, sheet_area.is_some());
+    let (_, summary) = site_numbers(scene, sheet_area, theme)?;
     let mut warnings = location.warnings.clone();
     let mut credits = location::credits();
     let mut notes = vec![
@@ -230,6 +222,18 @@ pub fn report(
     })
 }
 
+/// The ratios and the summary of the site, or of `sheet_area` when a sheet has one.
+fn site_numbers(
+    scene: &Scene,
+    sheet_area: Option<&Scene>,
+    theme: &Theme,
+) -> Result<(Ratios, SiteSummary)> {
+    let site = sheet_area.unwrap_or(scene);
+    let ratios = ratios::compute(site, theme)?;
+    let summary = summary::summarise(site, &ratios, sheet_area.is_some());
+    Ok((ratios, summary))
+}
+
 /// The last year that has ended, from the clock: 2025 during 2026.
 pub fn last_full_year() -> i32 {
     let now = humantime::format_rfc3339_seconds(SystemTime::now()).to_string();
@@ -242,13 +246,13 @@ pub fn last_full_year() -> i32 {
 
 fn climate(scene: &Scene, cache: &TileCache) -> Result<(Climate, Vec<String>)> {
     let cell = pvgis::cell_of(scene.origin);
-    let (bytes, warning) = cached(cache, pvgis::CACHE_DATASET, cell, || {
-        let bytes = pvgis::fetch(cell)?;
-        // Only an answer that parses is worth keeping for a month.
-        pvgis::parse(&bytes)?;
-        Ok(bytes)
-    })?;
-    let tmy = pvgis::parse(&bytes)?;
+    let (tmy, warning) = cached(
+        cache,
+        pvgis::CACHE_DATASET,
+        cell,
+        || pvgis::fetch(cell),
+        pvgis::parse,
+    )?;
 
     Ok((climate::from_tmy(&tmy), warning.into_iter().collect()))
 }
@@ -261,39 +265,43 @@ fn rain(scene: &Scene, cache: &TileCache, last_year: i32) -> Result<(Rain, Vec<S
         column: station.id as i64,
         row: last_year as i64,
     };
-    let (bytes, warning) = cached(cache, knmi::CACHE_DATASET, key, || {
-        let bytes = knmi::fetch(station.id, first_year, last_year)?;
-        // KNMI answers a bad query with an HTML page and status 200; never keep that.
-        knmi::parse(&bytes)?;
-        Ok(bytes)
-    })?;
-    let days = knmi::parse(&bytes)?;
+    // KNMI answers a bad query with an HTML page and status 200, which does not parse and so is never kept.
+    let (days, warning) = cached(
+        cache,
+        knmi::CACHE_DATASET,
+        key,
+        || knmi::fetch(station.id, first_year, last_year),
+        knmi::parse,
+    )?;
 
     let rain = rain::from_days(station, distance_km, first_year, last_year, &days);
     Ok((rain, warning.into_iter().collect()))
 }
 
-/// The bytes under `key` in the tile cache, or from `fetch`, which are then
-/// kept. A failure to keep them costs the next call some time, not this one
-/// its data, so it comes back as a warning. Shared with the site fetch, which
+/// What `parse` reads from the bytes under `key` in the tile cache, or from
+/// `fetch`. Fetched bytes are kept only when they parse, and parsed once. A
+/// failure to keep them costs the next call some time, not this one its
+/// data, so it comes back as a warning. Shared with the site fetch, which
 /// keeps the same typical year for the solar radiation diagram.
-pub(crate) fn cached(
+pub(crate) fn cached<T>(
     cache: &TileCache,
     dataset: &str,
     key: Tile,
     fetch: impl FnOnce() -> Result<Vec<u8>>,
-) -> Result<(Vec<u8>, Option<String>)> {
+    parse: impl Fn(&[u8]) -> Result<T>,
+) -> Result<(T, Option<String>)> {
     // A cache that cannot be read is fetched around, which also repairs it on write.
     if let Ok(Some(bytes)) = cache.read(dataset, key) {
-        return Ok((bytes, None));
+        return Ok((parse(&bytes)?, None));
     }
 
     let bytes = fetch()?;
+    let value = parse(&bytes)?;
     let warning = cache
         .write(dataset, key, &bytes)
         .err()
         .map(|error: Error| format!("Downloaded data could not be kept for next time: {error}"));
-    Ok((bytes, warning))
+    Ok((value, warning))
 }
 
 #[cfg(test)]
