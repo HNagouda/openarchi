@@ -8,7 +8,7 @@ use std::fmt::Write;
 
 use serde::Deserialize;
 
-use super::{Group, Ratios, Row, Unit};
+use super::{group_chart, Group, Ratios, Unit};
 use crate::analysis::{text, Paint};
 use crate::render::layer_attributes;
 use crate::theme::Theme;
@@ -20,28 +20,8 @@ const CONTENT_WIDTH_MM: f64 = PAGE_WIDTH_MM - 2.0 * MARGIN_MM;
 
 const TITLE_SIZE_MM: f64 = 6.0;
 const SUBTITLE_SIZE_MM: f64 = 2.8;
-const GROUP_TITLE_SIZE_MM: f64 = 3.4;
-const TEXT_SIZE_MM: f64 = 2.8;
-/// The source line under a group title, smaller than the rows.
-const SOURCE_SIZE_MM: f64 = 2.4;
-const SOURCE_GAP_MM: f64 = 3.6;
-
-const SWATCH_MM: f64 = 2.6;
-/// From the swatch's left edge to the label.
-const LABEL_INDENT_MM: f64 = 4.4;
-/// The share column ends this far left of the value column.
-const SHARE_COLUMN_MM: f64 = 26.0;
-const BAR_ROW_PITCH_MM: f64 = 7.6;
-const BAR_HEIGHT_MM: f64 = 1.2;
-const PIE_RADIUS_MM: f64 = 15.0;
-const PIE_ROW_PITCH_MM: f64 = 5.0;
-/// Paper-coloured gap between pie slices.
-const SLICE_GAP_MM: f64 = 0.35;
 const GROUP_GAP_MM: f64 = 9.0;
 const HEADER_GAP_MM: f64 = 6.0;
-
-/// The bar track, this share of the way from paper to ink.
-const TRACK_SHARE: f64 = 0.12;
 
 const HECTARE_M2: f64 = 10_000.0;
 
@@ -52,8 +32,8 @@ pub enum ChartStyle {
     Pie,
 }
 
-/// A page with every group as bars or pies, headed by `title`.
-// #! TODO[ratios, report] : Draw this page from report/ratio_blocks.rs, which repeats it with another track colour and share column
+/// A page with every group as bars or pies, headed by `title`. The groups
+/// are drawn as the report's ratios blocks draw them.
 pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str) -> Result<String> {
     let paint = Paint::new(theme)?;
 
@@ -84,11 +64,15 @@ pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str)
 
     for group in &ratios.groups {
         y += GROUP_GAP_MM;
-        let _ = writeln!(body, "<g {}>", layer_attributes(&group.id, &group.title));
-        y = write_group_header(&mut body, group, y, &paint);
-        y = match style {
-            ChartStyle::Bar => write_bars(&mut body, group, y, &paint),
-            ChartStyle::Pie => write_pie(&mut body, group, y, &paint),
+        let _ = writeln!(
+            body,
+            r#"<g {} transform="translate({MARGIN_MM} {y:.2})">"#,
+            layer_attributes(&group.id, &group.title)
+        );
+        let top = group_chart::header(&mut body, group, CONTENT_WIDTH_MM, &paint);
+        y += match style {
+            ChartStyle::Bar => group_chart::bars(&mut body, group, top, CONTENT_WIDTH_MM, &paint),
+            ChartStyle::Pie => group_chart::pie(&mut body, group, top, CONTENT_WIDTH_MM, &paint),
         };
         body.push_str("</g>\n");
     }
@@ -110,142 +94,6 @@ pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str)
     out.push_str("</svg>\n");
 
     Ok(out)
-}
-
-fn write_group_header(out: &mut String, group: &Group, y: f64, paint: &Paint) -> f64 {
-    let title = if paint.is_uppercase {
-        group.title.to_uppercase()
-    } else {
-        group.title.clone()
-    };
-    let right = MARGIN_MM + CONTENT_WIDTH_MM;
-    text(
-        out,
-        MARGIN_MM,
-        y,
-        GROUP_TITLE_SIZE_MM,
-        600,
-        &paint.ink,
-        "start",
-        &title,
-    );
-    text(
-        out,
-        right,
-        y,
-        TEXT_SIZE_MM,
-        400,
-        &paint.secondary,
-        "end",
-        &total_text(group),
-    );
-    if group.source.is_empty() {
-        return y + 3.0;
-    }
-
-    let source_y = y + SOURCE_GAP_MM;
-    text(
-        out,
-        MARGIN_MM,
-        source_y,
-        SOURCE_SIZE_MM,
-        400,
-        &paint.secondary,
-        "start",
-        &group.source,
-    );
-    source_y + 3.0
-}
-
-fn write_bars(out: &mut String, group: &Group, mut y: f64, paint: &Paint) -> f64 {
-    for row in &group.rows {
-        y += BAR_ROW_PITCH_MM - BAR_HEIGHT_MM - 1.6;
-        write_row_text(out, row, group.unit, MARGIN_MM, y, paint);
-        let bar_y = y + 1.6;
-        let _ = writeln!(
-            out,
-            r#"<rect x="{MARGIN_MM}" y="{bar_y:.2}" width="{CONTENT_WIDTH_MM}" height="{BAR_HEIGHT_MM}" fill="{}"/>"#,
-            paint.ink_at(TRACK_SHARE)
-        );
-        let _ = writeln!(
-            out,
-            r#"<rect x="{MARGIN_MM}" y="{bar_y:.2}" width="{:.2}" height="{BAR_HEIGHT_MM}" fill="{}"/>"#,
-            row.share * CONTENT_WIDTH_MM,
-            row.fill
-        );
-        y = bar_y + BAR_HEIGHT_MM + 1.6;
-    }
-
-    y
-}
-
-fn write_pie(out: &mut String, group: &Group, y: f64, paint: &Paint) -> f64 {
-    let top = y + 2.0;
-    let centre = (MARGIN_MM + PIE_RADIUS_MM, top + PIE_RADIUS_MM);
-    let mut start = 0.0;
-    for row in &group.rows {
-        let end = start + row.share * TAU;
-        let _ = writeln!(
-            out,
-            r#"<path d="{}" fill="{}" stroke="{}" stroke-width="{SLICE_GAP_MM}"/>"#,
-            slice_path(centre, PIE_RADIUS_MM, start, end),
-            row.fill,
-            paint.paper
-        );
-        start = end;
-    }
-
-    let legend_x = MARGIN_MM + 2.0 * PIE_RADIUS_MM + 6.0;
-    let mut row_y = top + TEXT_SIZE_MM;
-    for row in &group.rows {
-        write_row_text(out, row, group.unit, legend_x, row_y, paint);
-        row_y += PIE_ROW_PITCH_MM;
-    }
-
-    (top + 2.0 * PIE_RADIUS_MM).max(row_y - PIE_ROW_PITCH_MM + 1.0)
-}
-
-/// Swatch and label at `x`, share and value right-aligned at the page's right edge.
-fn write_row_text(out: &mut String, row: &Row, unit: Unit, x: f64, y: f64, paint: &Paint) {
-    let right = MARGIN_MM + CONTENT_WIDTH_MM;
-    let _ = writeln!(
-        out,
-        r#"<rect x="{x:.2}" y="{:.2}" width="{SWATCH_MM}" height="{SWATCH_MM}" fill="{}" stroke="{}" stroke-width="0.1"/>"#,
-        y - SWATCH_MM + 0.1,
-        row.fill,
-        paint.ink_at(TRACK_SHARE)
-    );
-    text(
-        out,
-        x + LABEL_INDENT_MM,
-        y,
-        TEXT_SIZE_MM,
-        400,
-        &paint.ink,
-        "start",
-        &row.label,
-    );
-    let share = format!("{:.1} %", row.share * 100.0);
-    text(
-        out,
-        right - SHARE_COLUMN_MM,
-        y,
-        TEXT_SIZE_MM,
-        600,
-        &paint.ink,
-        "end",
-        &share,
-    );
-    text(
-        out,
-        right,
-        y,
-        TEXT_SIZE_MM,
-        400,
-        &paint.secondary,
-        "end",
-        &value_text(row.value, unit),
-    );
 }
 
 /// A wedge from `start` to `end` radians, clockwise from twelve o'clock.
