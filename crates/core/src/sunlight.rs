@@ -14,7 +14,8 @@
 //! every shadow. A sun lower than the shadow diagram draws counts as no sun, as
 //! it would only graze the ground.
 
-mod raster;
+// Shared with the viewshed, which fills the same kind of grid.
+pub(crate) mod raster;
 
 use geo::{BooleanOps, Geometry, LineString, MultiPolygon, Polygon};
 

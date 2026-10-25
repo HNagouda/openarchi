@@ -60,6 +60,13 @@
       "stroke_mm": 0.0,
       "pattern": null
     },
+    "viewshed": {
+      "fill": "@ink",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "opacity": 0.3,
+      "pattern": null
+    },
     "block": {
       "fill": "@figure",
       "stroke": "@paper",

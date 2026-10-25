@@ -149,6 +149,10 @@ pub struct Look {
     /// plan as a cut marker. `None` until the user draws one; older projects have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub section: Option<SectionLine>,
+    /// Where the view diagram's eye stands, in RD New metres. `None` stands
+    /// it at the site centre; older projects have none. See `viewshed`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view_point: Option<(f64, f64)>,
 }
 
 impl Default for Look {
@@ -166,6 +170,7 @@ impl Default for Look {
             hide_pins: false,
             hide_highlights: false,
             section: None,
+            view_point: None,
         }
     }
 }

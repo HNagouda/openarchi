@@ -228,12 +228,16 @@ pub enum Layer {
     /// Hours of direct sun on the ground on one day, in bands. Computed from
     /// building and tree heights when drawn, never stored.
     SunHours,
+    /// The ground a person standing at the sheet's viewpoint can see.
+    /// Computed from building heights and the terrain when drawn, never stored.
+    Viewshed,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 33] = [
+    pub const ALL: [Layer; 34] = [
         // Measured surfaces lie under the map, as the ground they describe.
+        Layer::Viewshed,
         Layer::SunHours,
         Layer::Population,
         Layer::Slope,
@@ -304,6 +308,7 @@ impl Layer {
             Layer::WalkBand => "Walk times",
             Layer::Block => "City blocks",
             Layer::SunHours => "Hours of sun",
+            Layer::Viewshed => "Ground in view",
         }
     }
 }

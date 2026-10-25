@@ -33,6 +33,7 @@ pub mod sun;
 pub mod sunlight;
 pub mod theme;
 pub mod view;
+pub mod viewshed;
 pub mod walk;
 
 pub use error::{Error, Result};

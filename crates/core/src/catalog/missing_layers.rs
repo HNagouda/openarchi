@@ -38,7 +38,7 @@ mod tests {
     use crate::palette::PaletteSource;
     use crate::scene::Layer;
 
-    /// The Ink theme saved before the block and sun-hours layers existed.
+    /// The Ink theme saved before the block, sun-hours and viewshed layers existed.
     fn old_ink() -> Theme {
         let mut theme = builtin_themes()
             .into_iter()
@@ -47,6 +47,7 @@ mod tests {
         theme.id = "my-ink".to_string();
         theme.layers.remove(&Layer::Block);
         theme.layers.remove(&Layer::SunHours);
+        theme.layers.remove(&Layer::Viewshed);
         theme
     }
 
@@ -59,6 +60,10 @@ mod tests {
         assert_eq!(
             filled.layers[&Layer::SunHours].fill.as_deref(),
             Some("@muted")
+        );
+        assert_eq!(
+            filled.layers[&Layer::Viewshed].fill.as_deref(),
+            Some("@accent")
         );
     }
 

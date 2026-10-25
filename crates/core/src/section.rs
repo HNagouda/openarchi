@@ -132,11 +132,23 @@ impl SectionLine {
     }
 }
 
-/// True when both ends of `line` lie where the scene has data to draw: inside
-/// the kept terrain, which covers the neighbourhood, or for a scene without
-/// it inside the box around the site and its neighbourhood.
+/// True when both ends of `line` lie where the scene has data to draw, see `reach`.
 pub fn lies_within(scene: &Scene, line: &SectionLine) -> bool {
-    let reach = match &scene.terrain {
+    let Some(reach) = reach(scene) else {
+        return false;
+    };
+    let (origin_x, origin_y) = scene.origin;
+    [line.start, line.end].iter().all(|&(x, y)| {
+        let (x, y) = (x - origin_x, y - origin_y);
+        x >= reach.min().x && x <= reach.max().x && y >= reach.min().y && y <= reach.max().y
+    })
+}
+
+/// Where the scene has data to draw, in its own frame: the kept terrain,
+/// which covers the neighbourhood, or for a scene without it the box around
+/// the site and its neighbourhood. Shared with the viewshed's viewpoint.
+pub fn reach(scene: &Scene) -> Option<Rect<f64>> {
+    match &scene.terrain {
         Some(grid) => Some(Rect::new(
             (grid.west, grid.south()),
             (grid.east(), grid.north),
@@ -152,15 +164,7 @@ pub fn lies_within(scene: &Scene, line: &SectionLine) -> bool {
                     (a.max().x.max(b.max().x), a.max().y.max(b.max().y)),
                 )
             }),
-    };
-    let Some(reach) = reach else {
-        return false;
-    };
-    let (origin_x, origin_y) = scene.origin;
-    [line.start, line.end].iter().all(|&(x, y)| {
-        let (x, y) = (x - origin_x, y - origin_y);
-        x >= reach.min().x && x <= reach.max().x && y >= reach.min().y && y <= reach.max().y
-    })
+    }
 }
 
 /// A section line in the scene's frame, with the two directions a section needs.
