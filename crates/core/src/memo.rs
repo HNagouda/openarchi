@@ -33,13 +33,18 @@ const GRIDS_KEPT: usize = 6;
 /// Three parts in a couple of palettes, for a couple of sites.
 const PARTS_KEPT: usize = 12;
 
-pub static SUN_HOURS: Memo<(SceneKey, u32, u32), SunGrid> = Memo::new(GRIDS_KEPT);
-pub static SKY_VIEWS: Memo<SceneKey, SkyGrid> = Memo::new(GRIDS_KEPT);
-pub static RADIATION: Memo<SceneKey, RadiationGrid> = Memo::new(GRIDS_KEPT);
-pub static BLOCKS: Memo<SceneKey, Vec<Feature>> = Memo::new(GRIDS_KEPT);
+pub static SUN_HOURS: Memo<(Arc<SceneKey>, u32, u32), SunGrid> = Memo::new(GRIDS_KEPT);
+pub static SKY_VIEWS: Memo<Arc<SceneKey>, SkyGrid> = Memo::new(GRIDS_KEPT);
+pub static RADIATION: Memo<Arc<SceneKey>, RadiationGrid> = Memo::new(GRIDS_KEPT);
+pub static BLOCKS: Memo<Arc<SceneKey>, Vec<Feature>> = Memo::new(GRIDS_KEPT);
 pub static WIND_FLOWS: Memo<FlowKey, WindFlow> = Memo::new(GRIDS_KEPT);
 /// Location, climate and rain of a few sites, each in a few palettes.
 pub static ANALYSIS_PARTS: Memo<PartKey, Vec<Section>> = Memo::new(PARTS_KEPT);
+
+/// The scenes the grids above were worked out from. A key holds a few
+/// megabytes of buildings on a large site, so the grids of one scene share
+/// one copy of it instead of holding one each.
+static SCENES: Mutex<Vec<Arc<SceneKey>>> = Mutex::new(Vec::new());
 
 /// A few values, each kept with the key it was worked out from, oldest first.
 pub struct Memo<K, V> {
@@ -109,12 +114,13 @@ pub struct SceneKey {
 }
 
 impl SceneKey {
-    pub fn of(scene: &Scene) -> SceneKey {
+    /// The key of `scene`, the kept copy when an equal one is kept.
+    pub fn of(scene: &Scene) -> Arc<SceneKey> {
         let is_read = |feature: &&Feature| {
             matches!(feature.layer, Layer::Building | Layer::Tree)
                 || blocks::STREET_LAYERS.contains(&feature.layer)
         };
-        SceneKey {
+        let key = SceneKey {
             area: scene.area.clone(),
             boundary: scene.boundary.clone(),
             features: scene.features.iter().filter(is_read).cloned().collect(),
@@ -122,7 +128,21 @@ impl SceneKey {
             terrain: scene.terrain.clone(),
             canopy: scene.measured.grids.get(&Layer::TreeCanopy).cloned(),
             solar: scene.solar.clone(),
+        };
+
+        // A poisoned lock only means an earlier drawing panicked; the kept scenes are still whole.
+        let mut kept = SCENES
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(found) = kept.iter().find(|kept| ***kept == key) {
+            return found.clone();
         }
+        let key = Arc::new(key);
+        kept.push(key.clone());
+        if kept.len() > GRIDS_KEPT {
+            kept.remove(0);
+        }
+        key
     }
 }
 
