@@ -19,6 +19,7 @@ pub mod geocode;
 pub(crate) mod grid;
 pub mod highlight;
 pub mod library;
+pub(crate) mod memo;
 pub mod palette;
 pub mod pin;
 pub mod project;

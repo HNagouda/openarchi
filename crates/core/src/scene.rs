@@ -105,7 +105,7 @@ pub struct Walk {
     pub places: Vec<Feature>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Feature {
     pub layer: Layer,
     pub geometry: Geometry<f64>,
@@ -124,7 +124,7 @@ pub fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
 
 /// What we know about a feature beyond its shape. Unknown stays `None`, so a
 /// diagram can show it as "unknown" instead of guessing.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct Attributes {
     /// Identifier in the source, for example a BAG pand id.
     pub source_id: Option<String>,

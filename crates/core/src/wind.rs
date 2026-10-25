@@ -16,7 +16,6 @@
 mod field;
 mod lattice;
 mod lines;
-mod memo;
 mod year;
 
 use std::sync::Arc;
@@ -26,6 +25,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::analysis::climate::SEASONS;
 use crate::grid::{banded, cells, Cell, Raster, FINEST_CELL_M};
+use crate::memo;
 use crate::scene::{Attributes, Credit, Feature, Layer, Scene};
 use crate::sources::pvgis;
 use field::Field;
@@ -83,6 +83,16 @@ impl WindSeason {
     }
 }
 
+/// What a flow is solved from: the wind direction, the site boundary, and
+/// the grid with the buildings on it.
+#[derive(PartialEq)]
+pub struct FlowKey {
+    from_deg: f64,
+    boundary: Polygon<f64>,
+    raster: Raster,
+    solid: Vec<bool>,
+}
+
 /// The flow over the site, ready to draw.
 pub struct WindFlow {
     /// A grid over the site, in the scene's frame.
@@ -122,16 +132,17 @@ pub fn described(scene: &Scene, season: WindSeason) -> String {
     }
 }
 
-/// The flow for wind from `from_deg`, solved once and kept for the next drawing.
+/// The flow for wind from `from_deg`, solved once and kept for the next
+/// drawing: solving takes about half a second.
 pub fn flow(scene: &Scene, from_deg: f64) -> Arc<WindFlow> {
     let (raster, downwind, obstacles) = Field::grid(scene, from_deg);
-    let key = memo::Key {
+    let key = FlowKey {
         from_deg,
         boundary: scene.boundary.clone(),
         raster,
         solid: obstacles.solid.clone(),
     };
-    memo::kept_or(key, || {
+    memo::WIND_FLOWS.kept_or(key, || {
         let field = Field::solve(raster, downwind, obstacles);
         over_site(scene, &field)
     })

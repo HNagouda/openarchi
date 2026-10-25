@@ -24,7 +24,7 @@ use crate::scene::{polygons, Attributes, Feature, Layer, Scene};
 /// The surfaces that separate blocks, in one place. Verges and banks belong to
 /// the street or the canal they line. Paving and yards stay in the block,
 /// because most of them are courtyards and front gardens.
-const STREET_LAYERS: [Layer; 9] = [
+pub(crate) const STREET_LAYERS: [Layer; 9] = [
     Layer::Road,
     Layer::Footpath,
     Layer::Cycleway,

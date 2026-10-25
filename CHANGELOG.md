@@ -325,6 +325,10 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The view draws in plan, axonometric and on an explode plate. It takes a few milliseconds, so it redraws with every change.
 - Assistants set the viewpoint with `set_view_point`, tied to a pin the same way, and `list_sheets` shows it with the pin it stands on.
 
+### Computed layers, tidied
+
+- Sunlight hours, sky view, solar radiation and city blocks are worked out once per site and kept, as the wind already was, so typing a title or changing the palette on such a sheet no longer works them out again. Redrawing the sunlight hours of the Westermarkt went from about 130 ms to 17 ms, the solar radiation from 48 ms to 19 ms and the city blocks from 28 ms to 8 ms.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.
