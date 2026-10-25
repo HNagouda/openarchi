@@ -250,20 +250,6 @@ pub async fn close_project(state: State<'_, Shared>) -> Result<(), String> {
     Ok(())
 }
 
-/// Saves the look of the open project and returns the new modified time.
-#[tauri::command]
-pub async fn save_look(state: State<'_, Shared>, look: Look) -> Result<String, String> {
-    let state = state.inner().clone();
-    blocking(move || {
-        match lock(&state.open).as_mut() {
-            Some(open) => open.project.look = look,
-            None => return Err("No project is open.".to_string()),
-        }
-        save_open_project(&state)
-    })
-    .await
-}
-
 #[tauri::command]
 pub async fn rename_project(
     state: State<'_, Shared>,

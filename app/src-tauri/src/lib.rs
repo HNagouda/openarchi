@@ -50,7 +50,6 @@ pub fn run() {
             library::open_project,
             library::reload_project,
             library::close_project,
-            library::save_look,
             library::rename_project,
             library::delete_project,
             library::restore_project,
