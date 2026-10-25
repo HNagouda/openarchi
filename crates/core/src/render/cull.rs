@@ -72,6 +72,12 @@ pub fn caster_margin(
     tallest_m * (shadow_per_metre + rise_per_metre)
 }
 
+/// Whether `feature` may show inside `bounds` on the ground, counting its
+/// strokes and `margin_m` more, such as a standing building's walls.
+pub fn reaches(feature: &Feature, bounds: Rect<f64>, margin_m: f64) -> bool {
+    overlaps(feature, &grown(bounds, SLACK_M + margin_m))
+}
+
 fn grown(bounds: Rect<f64>, margin: f64) -> Rect<f64> {
     let (min, max) = (bounds.min(), bounds.max());
     Rect::new(

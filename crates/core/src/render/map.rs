@@ -184,7 +184,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
                 .map(|resolved| (resolved, layer_features(&features, layer)))
         };
         let neighbours = neighbourhood.as_ref().map(|neighbourhood| Neighbours {
-            features: neighbourhood.buildings(),
+            features: neighbourhood.buildings(&projection),
             roof: context::roof(&massing::theme_fill(theme), theme),
             clip_id: &neighbourhood.clip_id,
             opacity: neighbourhood.opacity,
