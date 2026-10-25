@@ -27,6 +27,7 @@ mod text;
 mod text_inputs;
 mod user_themes;
 mod view_point;
+mod wind;
 
 use std::process::ExitCode;
 
