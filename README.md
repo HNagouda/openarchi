@@ -97,6 +97,7 @@ On Windows, Ctrl takes the place of ⌘.
 - In a report, the arrow keys nudge the selected block (with **⇧** by 10 mm), **⌘D** duplicates it, **⌘]** and **⌘[** bring it forward or send it back, and **Delete** removes it. **T** adds a text box to the current page, and **Esc** lets go of the selected block.
 - **Ctrl+Tab** and **Ctrl+⇧+Tab** step through the sheet tabs, as do **⌘⌥→** and **⌘⌥←** on a Mac. With a pin selected, **Return** edits its label, the arrow keys nudge it, **−** and **+** change its size and **Delete** removes it. **H** draws a highlight; a selected highlight takes the same keys, with **−** and **+** shrinking and growing it.
 - **S** draws a section line on the sheet, with a drag or two clicks. Drag either end to move it; with the line selected, **Delete** removes it.
+- On the View diagram, **V** places the viewpoint with one click; drag the eye to move it.
 - **⌘Z** undoes the last change to the site or the sheet and **⇧⌘Z** redoes it (**Ctrl+Y** also redoes on Windows).
 - **⌘=** and **⌘−** zoom the map or the sheet, and **⌘0** fits the site or the sheet back in the window.
 - **⌘E** exports, **D** hides or shows the diagram column and **I** the inspector.

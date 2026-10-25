@@ -15,6 +15,8 @@ const MAC_SYMBOLS: Record<string, string> = {
   enter: "↩",
   delete: "⌫",
   escape: "esc",
+  // "+" itself separates the parts of a shortcut, so the key is written "plus".
+  plus: "+",
 };
 
 const OTHER_NAMES: Record<string, string> = {
@@ -28,6 +30,7 @@ const OTHER_NAMES: Record<string, string> = {
   enter: "Enter",
   delete: "Delete",
   escape: "Esc",
+  plus: "+",
 };
 
 /** "mod+shift+z" -> "⇧⌘Z" on macOS, "Ctrl+Shift+Z" on Windows. */
