@@ -13,7 +13,7 @@
       "id": "canopy",
       "name": "Trees",
       "title": "Tree canopy",
-      "description": "Every tree of 2.5 m and taller, by its height above the ground, from the RIVM tree map.",
+      "description": "Every tree of 2.5 m and taller, by its height above the ground, from the RIVM tree map. Cells under a building are left out.",
       "layers": [
         "tree_canopy",
         "water",
@@ -24,7 +24,7 @@
         "layer": "tree_canopy",
         "attribute": "value",
         "title": "Tree height",
-        "note": "Trees of 2.5 m and taller, height above the ground, from AHN and the infrared aerial photo. RIVM, {year}.",
+        "note": "Trees of 2.5 m and taller, height above the ground, from AHN and the infrared aerial photo, left out under buildings. RIVM, {year}.",
         "scheme": {
           "kind": "sequential",
           "breaks": [
@@ -47,7 +47,7 @@
       "id": "cover",
       "name": "Green",
       "title": "Green cover",
-      "description": "Grass, shrubs and trees, by whether the land is farmland, protected nature or neither, from the RIVM green map.",
+      "description": "Grass, shrubs and trees, by how the land is protected: farmland, Natura 2000, the Nature Network or none. The classes do not say what kind of green it is. From the RIVM green map.",
       "layers": [
         "green_cover",
         "water",
@@ -57,8 +57,8 @@
       "classify": {
         "layer": "green_cover",
         "attribute": "group",
-        "title": "Green land",
-        "note": "Grass, shrubs and trees in 5 m cells. RIVM green map, {year}.",
+        "title": "Green land, by protection",
+        "note": "Grass, shrubs and trees in 5 m cells. The classes say how the land is protected (farmland, Natura 2000, Nature Network or none), not what kind of green it is. RIVM green map, {year}.",
         "scheme": {
           "kind": "categorical",
           "categories": [
