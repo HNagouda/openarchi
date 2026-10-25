@@ -3,7 +3,7 @@
 // look, so each one goes straight onto the undo stack.
 
 import type { Diagram, Look, Pin } from "../../lib/types";
-import type { Point } from "../pins/sheetPins";
+import type { Point } from "../paper";
 
 // The core writes the eye it lets the app drag as one group with its paper position in data attributes.
 const EYE_SELECTOR = "#view-point";

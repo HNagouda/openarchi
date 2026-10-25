@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 type Props = {
   title: string;
@@ -11,7 +12,10 @@ type Props = {
   placement?: "sheet" | "center";
 };
 
-/** A modal over a soft scrim. Escape and a click on the scrim close it. */
+/** A modal over a soft scrim. Escape and a click on the scrim close it.
+ * Drawn into the body, because a dialog opened from inside a container (the
+ * inspector is one, for its container queries) would otherwise be laid out
+ * and clipped inside it. */
 export function Dialog({ title, onClose, children, footer, width = 400, placement = "center" }: Props) {
   const panel = useRef<HTMLDivElement>(null);
 
@@ -27,7 +31,7 @@ export function Dialog({ title, onClose, children, footer, width = 400, placemen
     return () => window.removeEventListener("keydown", listener, true);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <div className={`scrim scrim-${placement}`} data-modal-open onMouseDown={onClose}>
       <div
         ref={panel}
@@ -44,6 +48,7 @@ export function Dialog({ title, onClose, children, footer, width = 400, placemen
         <div className="dialog-body">{children}</div>
         {footer && <footer className="dialog-footer">{footer}</footer>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

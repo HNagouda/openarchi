@@ -10,11 +10,11 @@ import { useEffect, useRef, useState } from "react";
 import { usePlainKeys } from "../../lib/keys";
 import type { Look } from "../../lib/types";
 import type { PaperView } from "../Canvas";
-import { paperToRd, type Point } from "../pins/sheetPins";
+import { useLiveValue } from "../liveValue";
+import { followPointer } from "../pointerDrag";
+import { paperToRd, type Point } from "../paper";
 import { readEye, withViewPoint } from "./viewPointEdits";
 
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 4;
 // How close to the eye, in paper millimetres, a press still picks it up.
 const EYE_HIT_MM = 3;
 export const VIEW_POINT_KEY = "v";
@@ -32,11 +32,11 @@ type Options = {
 export function useViewPointTool({ look, onLook, svg, isEnabled, onRefused }: Options) {
   const [isPlacing, setPlacing] = useState(false);
   // The eye on paper while it is dragged, until the core's new SVG has it.
-  const [draft, setDraft] = useState<Point | null>(null);
+  const draft = useLiveValue<Point | null>(null);
   const latestLook = useRef(look);
   latestLook.current = look;
 
-  useEffect(() => setDraft(null), [svg]);
+  useEffect(() => draft.set(null), [draft, svg]);
   useEffect(() => {
     if (!isEnabled) setPlacing(false);
   }, [isEnabled]);
@@ -54,22 +54,14 @@ export function useViewPointTool({ look, onLook, svg, isEnabled, onRefused }: Op
 
   const drag = (event: React.PointerEvent, view: PaperView) => {
     const paper = view.getPaper();
-    const pressedAt = { x: event.clientX, y: event.clientY };
-    let isDragging = false;
-    const onMove = (move: PointerEvent) => {
-      if (!isDragging && Math.hypot(move.clientX - pressedAt.x, move.clientY - pressedAt.y) < DRAG_THRESHOLD_PX) return;
-      isDragging = true;
-      setDraft(view.toMm(move.clientX, move.clientY));
-    };
-    const onUp = (up: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      if (!isDragging) return;
-      const isSaved = standAt(paper, view.toMm(up.clientX, up.clientY));
-      if (!isSaved) setDraft(null);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    followPointer(event, {
+      onDrag: (move) => draft.set(view.toMm(move.clientX, move.clientY)),
+      onDrop: (up, isDragged) => {
+        if (!isDragged) return;
+        const isSaved = standAt(paper, view.toMm(up.clientX, up.clientY));
+        if (!isSaved) draft.set(null);
+      },
+    });
   };
 
   const onPaperPointerDown = (event: React.PointerEvent, view: PaperView): boolean => {

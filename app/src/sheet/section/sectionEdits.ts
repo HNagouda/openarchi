@@ -3,10 +3,10 @@
 // one goes straight onto the undo stack.
 
 import type { Look, SectionLine } from "../../lib/types";
-import type { Point } from "../pins/sheetPins";
+import type { Point } from "../paper";
 
 // The core's defaults and limits, from crates/core/src/section.rs.
-export const DEFAULT_DEPTH_M = 60;
+const DEFAULT_DEPTH_M = 60;
 export const MAX_DEPTH_M = 500;
 export const MIN_LENGTH_M = 5;
 // Every scale and exaggeration the core accepts, the same lists as SCALES and EXAGGERATIONS there.

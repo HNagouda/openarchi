@@ -7,7 +7,7 @@ import type { Diagram, Variant } from "./types";
 /** Splits a plate id that names one variant, as the core does: "air-quality:pm10". */
 const VARIANT_SEPARATOR = ":";
 
-export type DiagramGroup = { name: string; diagrams: Diagram[] };
+type DiagramGroup = { name: string; diagrams: Diagram[] };
 
 /** The variant a look draws: the one it names, or the diagram's first. Null without variants. */
 export function chosenVariant(diagram: Diagram, variantId: string | null | undefined): Variant | null {
@@ -39,7 +39,7 @@ export function groupDiagrams(diagrams: Diagram[]): DiagramGroup[] {
 }
 
 /** "air-quality" and "pm10" -> "air-quality:pm10"; no variant -> the diagram id. */
-export function plateId(diagramId: string, variantId?: string | null): string {
+function plateId(diagramId: string, variantId?: string | null): string {
   return variantId ? `${diagramId}${VARIANT_SEPARATOR}${variantId}` : diagramId;
 }
 

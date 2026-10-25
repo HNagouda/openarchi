@@ -6,6 +6,7 @@
 
 import { useContext, useEffect, useState } from "react";
 import { CommandContext, type CommandHandler } from "../../lib/commands";
+import { useHistory } from "../../lib/history";
 import { errorText } from "../../lib/ipc";
 import { savePalette, type PaletteDraft, type Role } from "../../lib/palette";
 import type { Look, Theme } from "../../lib/types";
@@ -19,7 +20,6 @@ import { ImportBox } from "./ImportBox";
 import { Readability } from "./Readability";
 import { RoleList } from "./RoleList";
 import { SwatchStrip } from "./SwatchStrip";
-import { useDraftHistory } from "./useDraftHistory";
 import { usePalettePreview } from "./usePalettePreview";
 import "./palette.css";
 
@@ -39,8 +39,8 @@ type Props = {
 };
 
 export function PaletteEditor({ title, initial, editingId, look, onClose, onSaved }: Props) {
-  const history = useDraftHistory(initial);
-  const { draft } = history;
+  const history = useHistory<PaletteDraft>(initial);
+  const draft = history.present;
   // The swatch whose colour picker is open; none at first, so the editor opens calm.
   const [selected, setSelected] = useState<number | null>(null);
   const [isSaving, setSaving] = useState(false);

@@ -8,8 +8,8 @@
 
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import { clamp } from "../lib/format";
+import { MM_TO_PX } from "../lib/units";
 
-const MM_TO_PX = 96 / 25.4;
 const MIN_ZOOM = 0.1;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 1.25;

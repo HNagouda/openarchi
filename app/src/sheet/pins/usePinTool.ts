@@ -6,21 +6,17 @@
 // lands on the same spot of the ground in every other view.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { usePlainKeys } from "../../lib/keys";
+import { arrowStep, usePlainKeys } from "../../lib/keys";
 import type { Pin, PinIcon } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
+import { useLiveValue } from "../liveValue";
+import { followPointer } from "../pointerDrag";
 import { nextPinId, steppedSize, withChangedPin, withoutPin, withPin } from "./pinEdits";
-import { paperPointAt, paperToRd, pinAt, pinGroup, readPins, type Point } from "./sheetPins";
+import { boxAt, isOutsideSite, paperPointAt, paperToRd, type Point } from "../paper";
+import { pinGroup, readPins } from "./sheetPins";
 
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 3;
-// Arrow keys nudge by a millimetre of paper, or a centimetre with Shift.
-const NUDGE_MM = 1;
-const NUDGE_LARGE_MM = 10;
 // A selected pin grows with + or =, which share a key, and shrinks with -.
 const SIZE_KEYS: Record<string, 1 | -1> = { "+": 1, "=": 1, "-": -1 };
-// The outline of the area the sheet draws, which the core writes in plan and axonometric views.
-const BOUNDARY_SELECTOR = "#site-boundary";
 
 export type PinDrag = { id: string; dx: number; dy: number };
 
@@ -37,12 +33,12 @@ type Options = {
 export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: Options) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [drag, setDrag] = useState<PinDrag | null>(null);
+  const drag = useLiveValue<PinDrag | null>(null);
   const latestPins = useRef(pins);
   latestPins.current = pins;
 
   // The core's new SVG has the pin where the drop put it.
-  useEffect(() => setDrag(null), [svg]);
+  useEffect(() => drag.set(null), [drag, svg]);
 
   // A pin that undo took away is no longer selected.
   const isPresent = selectedId === null || pins.some((pin) => pin.id === selectedId);
@@ -60,8 +56,7 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
       onRefused("This sheet can't take pins until it has been drawn.");
       return null;
     }
-    const boundary = paper?.querySelector<SVGPathElement>(BOUNDARY_SELECTOR);
-    if (boundary && !boundary.isPointInFill(new DOMPoint(point.x, point.y))) {
+    if (isOutsideSite(paper, point)) {
       onRefused("Pins go inside the outline of the sheet's area.");
       return null;
     }
@@ -98,10 +93,10 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
   };
 
   const onPaperPointerDown = (event: React.PointerEvent, view: PaperView): boolean => {
-    setDrag(null);
+    drag.set(null);
     const paper = view.getPaper();
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = pinAt(readPins(paper), point.x, point.y);
+    const hit = boxAt(readPins(paper), point.x, point.y);
     if (!hit) {
       setSelectedId(null);
       setEditingId(null);
@@ -113,31 +108,24 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
     setEditingId(null);
     const group = pinGroup(paper, hit.id);
     const start = { x: event.clientX, y: event.clientY };
-    let isDragging = false;
     let offset = { dx: 0, dy: 0 };
-    const onMove = (move: PointerEvent) => {
-      const distance = Math.hypot(move.clientX - start.x, move.clientY - start.y);
-      if (!isDragging && distance < DRAG_THRESHOLD_PX) return;
-      isDragging = true;
-      offset = { dx: (move.clientX - start.x) / view.pxPerMm, dy: (move.clientY - start.y) / view.pxPerMm };
-      group?.setAttribute("transform", `translate(${offset.dx} ${offset.dy})`);
-      setDrag({ id: hit.id, ...offset });
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      if (!isDragging) return;
-      // The moved group keeps its offset until the core's new SVG replaces it.
-      moveTo(hit.id, paper, { x: hit.x + offset.dx, y: hit.y + offset.dy });
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    followPointer(event, {
+      onDrag: (move) => {
+        offset = { dx: (move.clientX - start.x) / view.pxPerMm, dy: (move.clientY - start.y) / view.pxPerMm };
+        group?.setAttribute("transform", `translate(${offset.dx} ${offset.dy})`);
+        drag.set({ id: hit.id, ...offset });
+      },
+      onDrop: (_up, isDragged) => {
+        // The moved group keeps its offset until the core's new SVG replaces it.
+        if (isDragged) moveTo(hit.id, paper, { x: hit.x + offset.dx, y: hit.y + offset.dy });
+      },
+    });
     return true;
   };
 
   const onPaperDoubleClick = (event: React.MouseEvent, view: PaperView): boolean => {
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = pinAt(readPins(view.getPaper()), point.x, point.y);
+    const hit = boxAt(readPins(view.getPaper()), point.x, point.y);
     if (!hit) return false;
     setSelectedId(hit.id);
     setEditingId(hit.id);
@@ -171,14 +159,7 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
       event.preventDefault();
       onPins(withChangedPin(latestPins.current, selectedId, { size: steppedSize(pin.size, sizeStep) }));
     }
-    const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
-    const moves: Record<string, [number, number]> = {
-      ArrowLeft: [-step, 0],
-      ArrowRight: [step, 0],
-      ArrowUp: [0, -step],
-      ArrowDown: [0, step],
-    };
-    const move = moves[key];
+    const move = arrowStep(event);
     if (move) {
       event.preventDefault();
       nudge(selectedId, move[0], move[1]);

@@ -6,17 +6,15 @@
 // new SVG replaces it, so the text never jumps back in between.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { usePlainKeys } from "../../lib/keys";
+import { arrowStep, usePlainKeys } from "../../lib/keys";
 import type { Look } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
-import { groupFor, readTexts, textAt } from "./sheetTexts";
+import { useLiveValue } from "../liveValue";
+import { followPointer } from "../pointerDrag";
+import { boxAt } from "../paper";
+import { groupFor, readTexts } from "./sheetTexts";
 import { isTextBox, withNewBox, withoutBox, withPosition } from "./textEdits";
 
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 3;
-// Arrow keys nudge by a millimetre, or a centimetre with Shift.
-const NUDGE_MM = 1;
-const NUDGE_LARGE_MM = 10;
 // Positions are saved in tenths of a millimetre; finer means nothing on paper.
 const TENTHS_PER_MM = 10;
 
@@ -29,12 +27,12 @@ const rounded = (value: number) => Math.round(value * TENTHS_PER_MM) / TENTHS_PE
 export function useTextTool(look: Look, history: History, canvas: RefObject<CanvasControls | null>, svg: string | null, isEnabled: boolean) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [drag, setDrag] = useState<TextDrag | null>(null);
+  const drag = useLiveValue<TextDrag | null>(null);
   const latestLook = useRef(look);
   latestLook.current = look;
 
   // The core's new SVG has the text where the drop put it.
-  useEffect(() => setDrag(null), [svg]);
+  useEffect(() => drag.set(null), [drag, svg]);
 
   // A text box that undo took away is no longer selected.
   const isPresent = selectedId === null || !isTextBox(selectedId) || look.sheet.texts.some((text) => text.id === selectedId);
@@ -47,10 +45,10 @@ export function useTextTool(look: Look, history: History, canvas: RefObject<Canv
 
   const onPaperPointerDown = (event: React.PointerEvent, view: PaperView): boolean => {
     // A drop whose render never came (the same picture, or a failed render) must not keep the toolbar hidden.
-    setDrag(null);
+    drag.set(null);
     const paper = view.getPaper();
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = textAt(readTexts(paper), point.x, point.y);
+    const hit = boxAt(readTexts(paper), point.x, point.y);
     if (!hit) {
       setSelectedId(null);
       setEditingId(null);
@@ -63,32 +61,25 @@ export function useTextTool(look: Look, history: History, canvas: RefObject<Canv
     setEditingId(null);
     const group = groupFor(paper, hit.id);
     const start = { x: event.clientX, y: event.clientY };
-    let isDragging = false;
     let offset = { dx: 0, dy: 0 };
-
-    const onMove = (move: PointerEvent) => {
-      const distance = Math.hypot(move.clientX - start.x, move.clientY - start.y);
-      if (!isDragging && distance < DRAG_THRESHOLD_PX) return;
-      isDragging = true;
-      offset = { dx: (move.clientX - start.x) / view.pxPerMm, dy: (move.clientY - start.y) / view.pxPerMm };
-      group?.setAttribute("transform", `translate(${offset.dx} ${offset.dy})`);
-      setDrag({ id: hit.id, ...offset });
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      if (!isDragging) return;
-      const position = { x_mm: rounded(hit.x + offset.dx), y_mm: rounded(hit.y + offset.dy) };
-      history.change(withPosition(latestLook.current, hit.id, position));
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    followPointer(event, {
+      onDrag: (move) => {
+        offset = { dx: (move.clientX - start.x) / view.pxPerMm, dy: (move.clientY - start.y) / view.pxPerMm };
+        group?.setAttribute("transform", `translate(${offset.dx} ${offset.dy})`);
+        drag.set({ id: hit.id, ...offset });
+      },
+      onDrop: (_up, isDragged) => {
+        if (!isDragged) return;
+        const position = { x_mm: rounded(hit.x + offset.dx), y_mm: rounded(hit.y + offset.dy) };
+        history.change(withPosition(latestLook.current, hit.id, position));
+      },
+    });
     return true;
   };
 
   const onPaperDoubleClick = (event: React.MouseEvent, view: PaperView): boolean => {
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = textAt(readTexts(view.getPaper()), point.x, point.y);
+    const hit = boxAt(readTexts(view.getPaper()), point.x, point.y);
     if (!hit) return false;
     setSelectedId(hit.id);
     setEditingId(hit.id);
@@ -129,14 +120,7 @@ export function useTextTool(look: Look, history: History, canvas: RefObject<Canv
       history.change(withoutBox(latestLook.current, selectedId));
       setSelectedId(null);
     }
-    const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
-    const moves: Record<string, [number, number]> = {
-      ArrowLeft: [-step, 0],
-      ArrowRight: [step, 0],
-      ArrowUp: [0, -step],
-      ArrowDown: [0, step],
-    };
-    const move = moves[key];
+    const move = arrowStep(event);
     if (move) {
       event.preventDefault();
       nudge(selectedId, move[0], move[1]);

@@ -36,13 +36,12 @@ export const createProject = (name: string, area: Area) =>
 export const openProject = (id: string) => invoke<ProjectView>("open_project", { id });
 export const reloadProject = () => invoke<ProjectView>("reload_project");
 export const closeProject = () => invoke<void>("close_project");
-export const saveLook = (look: Look) => invoke<string>("save_look", { look });
 /** Every sheet in tab order, and the project's pins and highlights. Returns the new modified time. */
 export const saveSheets = (sheets: Look[], pins: Pin[], highlights: Highlight[]) =>
   invoke<string>("save_sheets", { sheets, pins, highlights });
 /** The sheet area a highlight becomes when it opens as a sheet, in longitude and latitude. */
 export const highlightArea = (highlight: Highlight) => invoke<Area>("highlight_area", { highlight });
-/** The largest round scale at which the look's area, or its sub-selection, fills the sheet. */
+/** The largest round scale at which the look's area, or the sheet's area when it has one, fills the sheet. */
 export const fittingScale = (look: Look) => invoke<number>("fitting_scale", { look });
 export const renameProject = (id: string, name: string) =>
   invoke<void>("rename_project", { id, name });
@@ -95,14 +94,14 @@ export function errorText(error: unknown): string {
 export const exportFileName = (diagramId: string, variant: string | null, format: ExportFormat) =>
   invoke<string>("export_file_name", { diagramId, variant, format });
 
-/** With a sub-selection, the ratios of that smaller area. */
+/** With a sheet area (a highlight opened as a sheet), the ratios of that smaller area. */
 export const getRatios = (themeId: string, selection: Area | null) => invoke<Ratios>("get_ratios", { themeId, selection });
 export const ratiosFileName = () => invoke<string>("ratios_file_name");
 /** CSV or SVG, by the extension of `path`. */
 export const exportRatios = (themeId: string, selection: Area | null, style: ChartStyle, path: string) =>
   invoke<string>("export_ratios", { themeId, selection, style, path });
 
-/** With a sub-selection, the site part sums up that smaller area; the other parts stay on the whole site. */
+/** With a sheet area, the site part sums up that smaller area; the other parts stay on the whole site. */
 export const getAnalysis = (part: AnalysisPart, themeId: string, selection: Area | null) =>
   invoke<AnalysisSection[]>("get_analysis", { part, themeId, selection });
 /** With a section id, that section's name; without, the whole analysis's. */

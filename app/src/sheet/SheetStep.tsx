@@ -6,10 +6,9 @@ import type { Navigate } from "../App";
 import { useCommandHandler } from "../lib/commands";
 import { closeProject, errorText, renameProject } from "../lib/ipc";
 import { usePlainKeys } from "../lib/keys";
-import { shortcutLabel } from "../lib/platform";
 import { readPreference, writePreference } from "../lib/storage";
 import { chosenVariant, drawnDiagram, drawnName } from "../lib/diagrams";
-import type { Catalog, ProjectView } from "../lib/types";
+import type { Catalog, Diagram, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { CanvasMessage } from "./CanvasMessage";
@@ -22,6 +21,9 @@ import { Inspector } from "./inspector/Inspector";
 import { useAutosave } from "./useAutosave";
 import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
+import { useDiagramStepping } from "./useDiagramStepping";
+import { useLiveValue } from "./liveValue";
+import { ZoomControl } from "./ZoomControl";
 import { TextOverlay } from "./text/TextOverlay";
 import { useTextTool } from "./text/useTextTool";
 import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
@@ -43,6 +45,9 @@ import { useProjectSync } from "./useProjectSync";
 import { ReportsWorkspace } from "../report/ReportsWorkspace";
 import { useLibraryPreviews } from "../report/previews/useLibraryPreviews";
 
+// One empty list while the catalog loads, so the memoized diagram column and the thumbnails do not see a new one every render.
+const NO_DIAGRAMS: Diagram[] = [];
+
 type Props = {
   project: ProjectView;
   catalog: Catalog | null;
@@ -62,19 +67,19 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const [isExportOpen, setExportOpen] = useState(false);
   // The report editor opens over the sheet; the tabs below hold sheets only.
   const [isReportsOpen, setReportsOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  const zoom = useLiveValue(1);
   const canvas = useRef<CanvasControls>(null);
   const toast = useToast();
 
   const isReady = catalog !== null && project.has_scene;
   const preview = usePreview(look, book.pins, book.highlights, revision, isReady);
-  const thumbnails = useThumbnails(look, catalog?.diagrams ?? [], revision, isReady);
+  const thumbnails = useThumbnails(look, catalog?.diagrams ?? NO_DIAGRAMS, revision, isReady);
   // The report library, gathered in the background so it is ready when Reports opens.
   const libraryPreviews = useLibraryPreviews(project, book.sheets[0].theme_id, isReady);
   const reportSaveError = useCallback((message: string) => toast(`Couldn't save. ${message}`, { isError: true }), [toast]);
   const autosave = useAutosave(book, saveWorkbook, reportSaveError);
 
-  const diagrams = catalog?.diagrams ?? [];
+  const diagrams = catalog?.diagrams ?? NO_DIAGRAMS;
   const themes = catalog?.themes ?? [];
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
   const variant = diagram ? chosenVariant(diagram, look.variant) : null;
@@ -111,36 +116,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const viewPointTool = useViewPointTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: hasEye, onRefused: (message) => toast(message) });
   const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool, viewPoint: viewPointTool };
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
-
-  // A new diagram starts on its first variant, and a plan-only one turns a tilted sheet to its plan in the same step.
-  const selectDiagram = (diagram_id: string) => {
-    if (diagram_id === look.diagram_id) return;
-    const isPlanOnly = diagrams.find((entry) => entry.id === diagram_id)?.plan_only === true;
-    const isTilted = look.view.mode === "axonometric" || look.view.mode === "explode";
-    const view = isPlanOnly && isTilted ? { ...look.view, mode: "plan" as const } : look.view;
-    history.changeLook({ ...look, diagram_id, variant: null, view });
-  };
-  const selectVariant = (variantId: string) => history.changeLook({ ...look, variant: variantId });
-
-  const stepDiagram = (direction: 1 | -1) => {
-    const index = diagrams.findIndex((entry) => entry.id === look.diagram_id);
-    const next = diagrams[index + direction];
-    if (next) selectDiagram(next.id);
-  };
-
-  const stepVariant = (direction: 1 | -1) => {
-    if (!diagram || !variant) return;
-    const index = diagram.variants.indexOf(variant);
-    const next = diagram.variants[index + direction];
-    if (next) selectVariant(next.id);
-  };
-
-  const stepTheme = (direction: 1 | -1) => {
-    if (themes.length === 0) return;
-    const index = themes.findIndex((theme) => theme.id === look.theme_id);
-    const next = themes[(index + direction + themes.length) % themes.length];
-    history.changeLook({ ...look, theme_id: next.id });
-  };
+  const { selectDiagram, selectVariant, stepDiagram, stepVariant, stepTheme } = useDiagramStepping(look, diagrams, themes, history.changeLook);
 
   const toggleInspector = () => {
     setInspectorOpen(!isInspectorOpen);
@@ -279,7 +255,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             <Canvas
               svg={preview.svg}
               controls={canvas}
-              onZoom={setZoom}
+              onZoom={zoom.set}
               onPaperPointerDown={(event, view) => pressPaper(event, view, paperTools)}
               onPaperDoubleClick={(event, view) => doubleClickPaper(event, view, paperTools)}
               overlay={(view) =>
@@ -326,13 +302,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               </div>
             )}
             {preview.isSlow && <div className="render-hint" aria-label="Rendering" />}
-            <div className="zoom-control">
-              <Button icon="zoomOut" tip="Zoom out" shortcut="mod+-" tipSide="above" onClick={() => canvas.current?.zoomOut()} />
-              <button type="button" className="zoom-value tabular" data-tip="Fit sheet" data-tip-key={shortcutLabel("mod+0")} data-tip-side="above" onClick={() => canvas.current?.fit()}>
-                {Math.round(zoom * 100)}%
-              </button>
-              <Button icon="zoomIn" tip="Zoom in" shortcut="mod+=" tipSide="above" onClick={() => canvas.current?.zoomIn()} />
-            </div>
+            <ZoomControl zoom={zoom} canvas={canvas} />
           </div>
           <SheetTabs
             book={book}
@@ -372,8 +342,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
 
       {isReportsOpen && catalog && (
         <ReportsWorkspace
+          project={project}
           // Sheet blocks follow the first sheet, as the core draws them.
-          project={{ ...project, look: book.sheets[0] }}
+          sheetLook={book.sheets[0]}
           catalog={catalog}
           previews={libraryPreviews}
           sheetThumbnails={look === book.sheets[0] ? thumbnails : undefined}

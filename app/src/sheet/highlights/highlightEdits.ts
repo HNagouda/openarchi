@@ -3,7 +3,7 @@
 // so each result can go straight onto the undo stack.
 
 import type { Highlight, HighlightKind, HighlightShape } from "../../lib/types";
-import type { Point } from "../pins/sheetPins";
+import type { Point } from "../paper";
 
 // The shapes in the order the bar offers them, in one place; crates/core/src/highlight.rs has the same list.
 export const HIGHLIGHT_KINDS: { kind: HighlightKind; label: string; drawTip: string }[] = [
@@ -17,7 +17,7 @@ export const UNLABELLED = "Highlighted area";
 // The same limit as the core's MIN_AREA_M2: less is a slip of the mouse.
 export const MIN_AREA_M2 = 4;
 // What a highlight is drawn in until the user picks a colour, as in crates/core/src/highlight.rs.
-export const DEFAULT_COLOUR = "@accent";
+const DEFAULT_COLOUR = "@accent";
 // A shape placed from the keyboard, before it is reshaped: about a house on its plot.
 const PLACED_HALF_M = 10;
 // Enough segments that a drafted circle looks round.

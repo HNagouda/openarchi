@@ -9,11 +9,11 @@ import { ColorPicker, PaletteSwatches } from "../../ui/ColorPicker";
 import { ColorPopover } from "../../ui/ColorPopover";
 import { rememberColour } from "../../ui/colour";
 import type { PaperView } from "../Canvas";
-import { LabelField } from "../pins/PinOverlay";
-import type { Point } from "../pins/sheetPins";
+import { useLive, type LiveValue } from "../liveValue";
+import { LabelField } from "../overlayBar";
+import { rdToPaper, type Point } from "../paper";
 import { handlesOf, ringOf, withChangedHighlight, withoutHighlight } from "./highlightEdits";
-import { rdToPaper } from "./sheetHighlights";
-import type { HighlightDraft } from "./useHighlightTool";
+import type { HighlightDraft, HighlightPreview } from "./useHighlightTool";
 import "./highlights.css";
 
 const HANDLE_RADIUS_PX = 5;
@@ -28,8 +28,8 @@ type Props = {
   highlights: Highlight[];
   selectedId: string | null;
   editingId: string | null;
-  draft: HighlightDraft | null;
-  preview: { id: string; shape: Highlight["shape"] } | null;
+  draft: LiveValue<HighlightDraft | null>;
+  preview: LiveValue<HighlightPreview | null>;
   onHighlights: (next: Highlight[], mergeKey?: string) => void;
   onSeal: () => void;
   onEdit: () => void;
@@ -39,8 +39,10 @@ type Props = {
 };
 
 export function HighlightOverlay(props: Props) {
-  const { view, svg, highlights, selectedId, editingId, draft, preview, onHighlights } = props;
+  const { view, svg, highlights, selectedId, editingId, onHighlights } = props;
   const [toPaper, setToPaper] = useState<((point: Point) => Point) | null>(null);
+  const draft = useLive(props.draft);
+  const preview = useLive(props.preview);
 
   // Read the ground once the SVG is in the page, again whenever the canvas moves or zooms.
   useLayoutEffect(() => {
@@ -92,7 +94,7 @@ export function HighlightOverlay(props: Props) {
         />
       )}
       {selected && box && editingId !== selected.id && !preview && !draft && (
-        <div className="pin-toolbar-slot" style={{ left: box.left, top: Math.max(0, box.top - TOOLBAR_GAP_PX - TOOLBAR_HEIGHT_PX) }}>
+        <div className="paper-toolbar-slot" style={{ left: box.left, top: Math.max(0, box.top - TOOLBAR_GAP_PX - TOOLBAR_HEIGHT_PX) }}>
           <HighlightBar highlight={selected} {...props} />
         </div>
       )}
@@ -116,7 +118,7 @@ function HighlightBar({ highlight, highlights, onHighlights, onSeal, onEdit, onD
   };
 
   return (
-    <div className="pin-toolbar" role="toolbar" aria-label="Highlight" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
+    <div className="paper-toolbar" role="toolbar" aria-label="Highlight" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
       <Button icon="lineSolid" tip="Solid outline, for what is there" isActive={highlight.outline === "solid"} onClick={() => change({ outline: "solid" })} />
       <Button icon="lineDashed" tip="Dashed outline, for what is proposed" isActive={highlight.outline === "dashed"} onClick={() => change({ outline: "dashed" })} />
       <Button icon="lineDotted" tip="Dotted outline, for what is studied" isActive={highlight.outline === "dotted"} onClick={() => change({ outline: "dotted" })} />

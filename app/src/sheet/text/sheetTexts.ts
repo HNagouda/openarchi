@@ -6,8 +6,7 @@
 // bounding boxes come back in paper millimetres.
 
 import type { Align } from "../../lib/types";
-
-export type Box = { x: number; y: number; width: number; height: number };
+import type { Box } from "../paper";
 
 export type SheetText = {
   id: string;
@@ -25,22 +24,9 @@ export type SheetText = {
   opacity: number;
 };
 
-// Small texts are hard to hit exactly; this much paper around each one counts too.
-const HIT_SLOP_MM = 1.5;
-
 export function readTexts(paper: Element | null): SheetText[] {
   const groups = paper ? [...paper.querySelectorAll<SVGGElement>("g[data-text]")] : [];
   return groups.map(readText);
-}
-
-/** The text under a point on the paper, the one drawn last when several overlap. */
-export function textAt(texts: SheetText[], x: number, y: number): SheetText | null {
-  const hits = texts.filter(({ box }) => {
-    const isInsideX = x >= box.x - HIT_SLOP_MM && x <= box.x + box.width + HIT_SLOP_MM;
-    const isInsideY = y >= box.y - HIT_SLOP_MM && y <= box.y + box.height + HIT_SLOP_MM;
-    return isInsideX && isInsideY;
-  });
-  return hits[hits.length - 1] ?? null;
 }
 
 export function groupFor(paper: Element | null, id: string): SVGGElement | null {

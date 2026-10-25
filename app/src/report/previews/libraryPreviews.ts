@@ -5,15 +5,18 @@
 // It lives outside React state on purpose: a picture arriving must not
 // re-render the sheet. Only the report editor subscribes to it.
 
+import { ANALYSIS_PARTS } from "../../lib/analysisParts";
 import { errorText, getAnalysis, getRatios, renderReportBlock } from "../../lib/ipc";
 import type { AnalysisPart, AnalysisSection, Ratios, ReportBlock } from "../../lib/types";
 import { analysisItems, ratiosItems, type LibraryItem } from "../library";
 
-// Every analysis part, in report order, in one place.
-const PARTS: AnalysisPart[] = ["location", "site", "climate", "rain"];
 // A pause before each picture, so this work never crowds out the sheet
 // preview or a block the user is placing.
 const PICTURE_GAP_MS = 120;
+// Libraries kept at once: the report palettes, the sheet's and one the editor
+// shows. Each holds an SVG per item, so older ones are dropped, and filled
+// again if they are asked for.
+const KEPT_PALETTES = 4;
 
 export type PaletteLibrary = {
   ratios: Ratios | null;
@@ -51,9 +54,26 @@ export function createLibraryPreviews(): LibraryPreviews {
   let isRunning = false;
   const listeners = new Set<() => void>();
 
+  // The newest change goes to the end, so the map runs from the least recently used palette.
   const update = (themeId: string, change: (library: PaletteLibrary) => PaletteLibrary) => {
     const next = new Map(libraries);
+    next.delete(themeId);
     next.set(themeId, change(libraries.get(themeId) ?? EMPTY));
+    libraries = next;
+    listeners.forEach((listener) => listener());
+  };
+
+  /** Drops the least recently used libraries past the limit, never one that is wanted or warming. */
+  const forgetOld = () => {
+    const excess = libraries.size - KEPT_PALETTES;
+    if (excess <= 0) return;
+    const inUse = new Set([wanted, ...warmList]);
+    const spare = [...libraries.keys()].filter((themeId) => !inUse.has(themeId)).slice(0, excess);
+    const next = new Map(libraries);
+    for (const themeId of spare) {
+      next.delete(themeId);
+      complete.delete(themeId);
+    }
     libraries = next;
     listeners.forEach((listener) => listener());
   };
@@ -74,15 +94,15 @@ export function createLibraryPreviews(): LibraryPreviews {
     const ratios = getRatios(themeId, null)
       .then((found) => settle((library) => ({ ...library, ratios: found })))
       .catch((reason) => complain("Ratios", reason));
-    const parts = PARTS.map((part) =>
+    const parts = ANALYSIS_PARTS.map(({ part, title }) =>
       getAnalysis(part, themeId, null)
         .then((found) =>
           settle((library) => {
             const next = { ...library.parts, [part]: found };
-            return { ...library, parts: next, sections: PARTS.flatMap((entry) => next[entry] ?? []) };
+            return { ...library, parts: next, sections: ANALYSIS_PARTS.flatMap((entry) => next[entry.part] ?? []) };
           }),
         )
-        .catch((reason) => complain(part[0].toUpperCase() + part.slice(1), reason)),
+        .catch((reason) => complain(title, reason)),
     );
     await Promise.all([ratios, ...parts]);
     settle((library) => ({ ...library, isLoading: false }));
@@ -105,7 +125,9 @@ export function createLibraryPreviews(): LibraryPreviews {
         console.warn(`No library picture for ${item.key}. ${errorText(reason)}`);
       }
     }
-    if (started === generation) complete.add(themeId);
+    if (started !== generation) return;
+    complete.add(themeId);
+    forgetOld();
   };
 
   const run = async () => {

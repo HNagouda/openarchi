@@ -20,6 +20,7 @@ import {
   onFetchProgress,
   renameProject,
 } from "../lib/ipc";
+import { useHistory } from "../lib/history";
 import { isTyping, usePlainKeys } from "../lib/keys";
 import type { Area, AreaSize, Place, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
@@ -28,7 +29,6 @@ import { bounds } from "./geometry";
 import { ADDRESS_ZOOM, NETHERLANDS_CENTER, NETHERLANDS_ZOOM, PLACE_ZOOM, addSiteLayers, styleFor } from "./mapStyle";
 import { SitePanel, type FetchState } from "./SitePanel";
 import { convertArea, type Shape } from "./shapes";
-import { useAreaHistory } from "./useAreaHistory";
 import { useDrawing, type Tool } from "./useDrawing";
 import { useEditing } from "./useEditing";
 
@@ -66,8 +66,8 @@ export function SiteStep({ project, navigate }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<MapLibreMap | null>(null);
   const [tool, setTool] = useState<Tool>(project ? "pan" : "circle");
-  const history = useAreaHistory(project?.area ?? null);
-  const area = history.area;
+  const history = useHistory<Area | null>(project?.area ?? null);
+  const area = history.present;
   const [isPicked, setPicked] = useState(false);
   const isSelected = isPicked && area !== null;
   const [size, setSize] = useState<AreaSize | null>(null);

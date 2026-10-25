@@ -4,6 +4,10 @@
 import { useEffect, useRef } from "react";
 import { isMac } from "./platform";
 
+// Arrow keys nudge a selected mark or block by a millimetre of paper, or a centimetre with Shift.
+const NUDGE_MM = 1;
+const NUDGE_LARGE_MM = 10;
+
 export function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
@@ -41,4 +45,14 @@ export function usePlainKeys(handler: (key: string, event: KeyboardEvent) => voi
     if (document.querySelector("[data-modal-open]")) return;
     handler(event.key, event);
   });
+}
+
+/** The nudge an arrow key asks for, [dx, dy] in paper millimetres, or null for any other key. */
+export function arrowStep(event: KeyboardEvent): [number, number] | null {
+  const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
+  if (event.key === "ArrowLeft") return [-step, 0];
+  if (event.key === "ArrowRight") return [step, 0];
+  if (event.key === "ArrowUp") return [0, -step];
+  if (event.key === "ArrowDown") return [0, step];
+  return null;
 }

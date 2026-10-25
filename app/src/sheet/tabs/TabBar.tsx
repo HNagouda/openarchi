@@ -2,21 +2,20 @@
 // spreadsheet lists its sheets. Click to switch, double-click to rename, drag
 // to reorder, right-click (or the dots on the open tab) for the rest.
 //
-// Tabs are sheets and nothing else: reports and the analysis have their own
-// places, so every tab opens a sheet.
+// Tabs are sheets and nothing else: reports and the analysis open elsewhere,
+// so every tab opens a sheet.
 
 import { useRef, useState, type ReactNode } from "react";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import "./tabs.css";
 
-export type Tab = { key: string; label: string };
-
 // A press that moves less than this is a click, not a drag.
 const DRAG_THRESHOLD_PX = 4;
 
 type Props = {
-  tabs: Tab[];
+  /** One name per sheet, in tab order. */
+  labels: string[];
   activeIndex: number;
   onSelect: (index: number) => void;
   onAdd: () => void;
@@ -31,14 +30,14 @@ type Props = {
 type Drag = { from: number; to: number; dx: number };
 type Menu = { index: number; x: number; y: number };
 
-export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplicate, onDelete, onMove, children }: Props) {
+export function TabBar({ labels, activeIndex, onSelect, onAdd, onRename, onDuplicate, onDelete, onMove, children }: Props) {
   const [renaming, setRenaming] = useState<number | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
   const elements = useRef<(HTMLDivElement | null)[]>([]);
   // The dragged tab moves with the pointer, so letting go clicks it too; that click must not select by its old place.
   const wasDragged = useRef(false);
-  const canDelete = tabs.length > 1;
+  const canDelete = labels.length > 1;
 
   /** The slot a tab dragged to `clientX` lands in: before the first tab whose middle lies right of it. */
   const slotAt = (clientX: number, from: number) => {
@@ -86,7 +85,7 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
     if (step === undefined) return;
     event.preventDefault();
     const target = index + step;
-    if (target < 0 || target >= tabs.length) return;
+    if (target < 0 || target >= labels.length) return;
     // Alt with an arrow moves the tab; an arrow alone moves the focus.
     if (event.altKey) onMove(index, target);
     else elements.current[target]?.querySelector<HTMLButtonElement>(".sheet-tab-button")?.focus();
@@ -101,7 +100,7 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
   return (
     <div className="tab-bar" role="tablist" aria-label="Sheets">
       <div className="tab-strip">
-        {tabs.map((tab, index) => {
+        {labels.map((label, index) => {
           const isActive = index === activeIndex;
           const isDragged = drag?.from === index;
           // The line showing where the dragged tab lands: before the tab it pushes right, after the one it pushes left.
@@ -110,7 +109,8 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
           const classes = ["sheet-tab", isActive ? "is-active" : "", isDragged ? "is-dragged" : "", dropSide];
           return (
             <div
-              key={tab.key}
+              // Tabs are keyed by place: a sheet has no id of its own.
+              key={index}
               ref={(element) => {
                 elements.current[index] = element;
               }}
@@ -121,10 +121,10 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
             >
               {renaming === index ? (
                 <RenameField
-                  value={tab.label}
+                  value={label}
                   onDone={(name) => {
                     setRenaming(null);
-                    if (name !== null && name !== tab.label) onRename(index, name);
+                    if (name !== null && name !== label) onRename(index, name);
                   }}
                 />
               ) : (
@@ -140,7 +140,7 @@ export function TabBar({ tabs, activeIndex, onSelect, onAdd, onRename, onDuplica
                   onDoubleClick={() => setRenaming(index)}
                   onKeyDown={(event) => onTabKey(event, index)}
                 >
-                  {tab.label}
+                  {label}
                 </button>
               )}
               {isActive && renaming !== index && (

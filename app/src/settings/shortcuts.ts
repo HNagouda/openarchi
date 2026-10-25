@@ -1,5 +1,10 @@
 // Every keyboard shortcut, in one place: this list feeds the Shortcuts tab.
-// Keep it in step with the menu in src-tauri/src/menu.rs and the README.
+// Keep it in step with the menu in src-tauri/src/menu.rs and the README. The
+// sheet tools' single keys come from the tools, so a key changes in one place.
+
+import { HIGHLIGHT_KEY } from "../sheet/highlights/useHighlightTool";
+import { SECTION_KEY } from "../sheet/section/useSectionTool";
+import { VIEW_POINT_KEY } from "../sheet/viewpoint/useViewPointTool";
 
 export const SHORTCUTS: { title: string; items: { label: string; keys: string[] }[] }[] = [
   {
@@ -54,9 +59,19 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
       { label: "Move the focused sheet tab", keys: ["alt+←", "alt+→"] },
       { label: "Edit the selected pin's label", keys: ["enter"] },
       { label: "Nudge the selected pin, by 10 mm with Shift", keys: ["←", "→"] },
+      { label: "Make the selected pin larger or smaller", keys: ["plus", "-"] },
       { label: "Delete the selected pin", keys: ["delete"] },
-      { label: "Draw a section line", keys: ["s"] },
+      { label: "Draw a highlight, or stop drawing", keys: [HIGHLIGHT_KEY] },
+      { label: "Finish a polygon highlight", keys: ["enter"] },
+      { label: "Remove the polygon's last corner", keys: ["delete"] },
+      { label: "Edit the selected highlight's label", keys: ["enter"] },
+      { label: "Nudge the selected highlight, by 10 mm with Shift", keys: ["←", "→"] },
+      { label: "Grow or shrink the selected highlight", keys: ["plus", "-"] },
+      { label: "Delete the selected highlight", keys: ["delete"] },
+      { label: "Draw a section line, or stop drawing", keys: [SECTION_KEY] },
       { label: "Delete the selected section line", keys: ["delete"] },
+      { label: "Place the View diagram's viewpoint", keys: [VIEW_POINT_KEY] },
+      { label: "Stop drawing or deselect", keys: ["escape"] },
       { label: "Undo", keys: ["mod+z"] },
       { label: "Redo", keys: ["mod+shift+z"] },
       { label: "Export", keys: ["mod+e"] },
@@ -67,6 +82,7 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
   {
     title: "Report",
     items: [
+      { label: "Add a text block to the page", keys: ["t"] },
       { label: "Finish editing a text block, a new line with Shift", keys: ["enter"] },
       { label: "Nudge the selected block, by 10 mm with Shift", keys: ["←", "→"] },
       { label: "Duplicate the selected block", keys: ["mod+d"] },

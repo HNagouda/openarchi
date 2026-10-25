@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import type { Look, PinIcon } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { PinPalette } from "../pins/PinPalette";
-import { TabBar, type Tab } from "./TabBar";
+import { TabBar } from "./TabBar";
 import { sheetName, type Workbook } from "./workbook";
 
 type Props = {
@@ -25,20 +25,20 @@ type Props = {
   onPlacePin: (icon: PinIcon) => void;
   isDrawingSection: boolean;
   onSectionTool: () => void;
-  /** The highlight tool, which SheetStep wires to its own state. */
+  /** The highlight tool's buttons, from useSheetHighlights. */
   highlightTools: ReactNode;
 };
 
 export function SheetTabs(props: Props) {
   const { book, index, look, isReady } = props;
-  const tabs: Tab[] = book.sheets.map((sheet, at) => ({ key: `sheet-${at}`, label: sheetName(sheet, at) }));
+  const labels = book.sheets.map((sheet, at) => sheetName(sheet, at));
   const arePinsHidden = look.hide_pins ?? false;
   const isSectionView = look.view.mode === "section";
   const sectionTip = isSectionView ? "Section lines are drawn on the plan" : look.section ? "Draw the section line again" : "Draw a section line";
 
   return (
     <TabBar
-      tabs={tabs}
+      labels={labels}
       activeIndex={index}
       onSelect={props.onSelect}
       onAdd={props.onAdd}

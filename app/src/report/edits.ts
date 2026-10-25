@@ -1,6 +1,7 @@
 // Every change the report editor makes, as a function from one report to the
 // next. Nothing here mutates its input, so each result is one undo step.
 
+import { clamp } from "../lib/format";
 import type { BlockContent, Paper, Report, ReportBlock, ReportPage } from "../lib/types";
 
 // The same smallest box the core accepts (MIN_BLOCK_MM in report.rs).
@@ -101,8 +102,8 @@ export function placedRect(page: { width: number; height: number }, size: { widt
   const width = Math.min(size.width, page.width);
   const height = Math.min(size.height, page.height);
   return {
-    x: tidy(clampTo(at.x - width / 2, 0, page.width - width)),
-    y: tidy(clampTo(at.y - height / 2, 0, page.height - height)),
+    x: tidy(clamp(at.x - width / 2, 0, page.width - width)),
+    y: tidy(clamp(at.y - height / 2, 0, page.height - height)),
     width: tidy(width),
     height: tidy(height),
   };
@@ -131,8 +132,8 @@ export function duplicateBlock(report: Report, id: string): [Report, string | nu
   const copy: ReportBlock = {
     ...found.block,
     id: copyId,
-    x_mm: clampTo(found.block.x_mm + DUPLICATE_OFFSET_MM, 0, page.width - found.block.width_mm),
-    y_mm: clampTo(found.block.y_mm + DUPLICATE_OFFSET_MM, 0, page.height - found.block.height_mm),
+    x_mm: clamp(found.block.x_mm + DUPLICATE_OFFSET_MM, 0, page.width - found.block.width_mm),
+    y_mm: clamp(found.block.y_mm + DUPLICATE_OFFSET_MM, 0, page.height - found.block.height_mm),
   };
   const next = withPage(report, found.pageIndex, (entry) => ({ ...entry, blocks: [...entry.blocks, copy] }));
   return [next, copyId];
@@ -144,7 +145,7 @@ export function restack(report: Report, id: string, steps: number): Report {
   if (!found) return report;
   const blocks = [...report.pages[found.pageIndex].blocks];
   const from = blocks.findIndex((block) => block.id === id);
-  const to = clampTo(from + steps, 0, blocks.length - 1);
+  const to = clamp(from + steps, 0, blocks.length - 1);
   return reorderBlocks(report, found.pageIndex, from, to);
 }
 
@@ -168,8 +169,4 @@ export function findBlock(report: Report, id: string): { block: ReportBlock; pag
 /** Rounded to a tenth of a millimetre, so stored positions stay readable. */
 export function tidy(value: number): number {
   return Math.round(value * 10) / 10;
-}
-
-export function clampTo(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), Math.max(min, max));
 }

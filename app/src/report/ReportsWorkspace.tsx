@@ -1,15 +1,15 @@
 // The project's reports, over the sheet workspace: pick, add, rename or
 // delete a report and edit it, with undo for all of it and saving as you go.
 //
-// This is the temporary way in, from the sheet's Reports button. The editor
-// itself is `ReportEditor`, which only needs a report and somewhere to send
-// changes, so it can move into a sheet tab without this frame.
+// It opens from the sheet's Reports button. The editor itself is
+// `ReportEditor`, which only needs a report and somewhere to send changes.
+// #! NOTE[reports, tabs] : Move the report editor into a sheet tab, or keep it a screen of its own?
 
 import { useCallback, useRef, useState } from "react";
 import { useCommandHandler } from "../lib/commands";
 import { useHistory } from "../lib/history";
 import { saveReports } from "../lib/ipc";
-import type { Catalog, ProjectView, Report } from "../lib/types";
+import type { Catalog, Look, ProjectView, Report } from "../lib/types";
 import { useAutosave } from "../sheet/useAutosave";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
@@ -22,6 +22,8 @@ import { ReportEditor, type ZoomControls } from "./ReportEditor";
 
 type Props = {
   project: ProjectView;
+  /** The first sheet as it is now, which sheet blocks and the report's default palette follow. */
+  sheetLook: Look;
   catalog: Catalog;
   /** The library's data and pictures, gathered by the sheet while it was open. */
   previews: LibraryPreviews;
@@ -32,7 +34,7 @@ type Props = {
   onSaved: (reports: Report[]) => void;
 };
 
-export function ReportsWorkspace({ project, catalog, previews, sheetThumbnails, onClose, onSaved }: Props) {
+export function ReportsWorkspace({ project, sheetLook, catalog, previews, sheetThumbnails, onClose, onSaved }: Props) {
   const history = useHistory<Report[]>(project.reports);
   const reports = history.present;
   const [openId, setOpenId] = useState<string | null>(reports[0]?.id ?? null);
@@ -122,6 +124,7 @@ export function ReportsWorkspace({ project, catalog, previews, sheetThumbnails, 
         <ReportEditor
           key={report.id}
           project={project}
+          sheetLook={sheetLook}
           catalog={catalog}
           report={report}
           previews={previews}
