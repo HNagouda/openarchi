@@ -3,7 +3,7 @@
 //!
 //! They are drawn inside `map::draw`, right after the site outline, so in an
 //! axonometric they lie on the ground under the buildings, and in an explode
-//! view on the bottom plate, which holds the site's surroundings. Labels go
+//! view on every plate, named on the top one. Labels go
 //! in a second pass after the buildings, so a tall block never hides one.
 //! "Dim the rest" lays a paper-coloured veil over the frame with the
 //! highlights cut out of it, so the eye goes to them. In an axonometric the
@@ -18,7 +18,7 @@ use std::fmt::Write;
 
 use geo::{ConvexHull, Intersects, MultiPoint, Point, Polygon};
 
-use super::color::mix;
+use super::color::{mix, resolve as resolve_colour};
 use super::drawing::Canvas;
 use super::geometry::{decimal, mm, push_paper_points};
 use super::legend::{Row, Swatch};
@@ -36,6 +36,10 @@ const TINT_OPACITY: f64 = 0.16;
 const OUTLINE_MM: f64 = 0.6;
 const DASH_MM: f64 = 1.8;
 const GAP_MM: f64 = 1.1;
+/// From one dot's centre to the next: about two line widths of paper between dots.
+const DOT_GAP_MM: f64 = 1.5;
+/// A legend swatch is short; its dashes are drawn smaller so a few fit along each side.
+const SWATCH_DASH_SCALE: f64 = 0.6;
 /// How strongly "Dim the rest" fades what lies outside: a little, not a blackout.
 const DIM_OPACITY: f64 = 0.45;
 const LABEL_HALO_MM: f64 = 0.6;
@@ -50,6 +54,7 @@ pub struct HighlightLayer<'a> {
     pub scene: &'a Scene,
     /// Buildings stand up on this map, so the veil goes over them; see `write_over`.
     pub has_volume: bool,
+    pub has_labels: bool,
     pub canvas: &'a Canvas<'a>,
     pub palette: &'a Palette,
     pub typesetter: &'a Typesetter,
@@ -86,19 +91,15 @@ pub fn write_shapes(out: &mut String, layer: &HighlightLayer) {
         write_veil(out, layer);
     }
     for highlight in &layer.highlights {
-        let dash = match highlight.outline {
-            Outline::Solid => String::new(),
-            Outline::Dashed => format!(r#" stroke-dasharray="{} {}""#, mm(DASH_MM), mm(GAP_MM)),
-        };
+        let colour = colour_of(highlight, palette);
         let _ = write!(
             out,
-            r#"<path data-highlight="{}" d="{}" fill="{}" fill-opacity="{}" stroke="{}" stroke-width="{}" stroke-linejoin="round"{dash}/>"#,
+            r#"<path data-highlight="{}" d="{}" fill="{colour}" fill-opacity="{}" stroke="{colour}" stroke-width="{}" stroke-linejoin="round"{}/>"#,
             escape(&highlight.id),
             paper_path(highlight, layer),
-            palette.accent,
             decimal(TINT_OPACITY),
-            palette.accent,
-            mm(OUTLINE_MM)
+            mm(OUTLINE_MM),
+            line_attributes(highlight.outline, 1.0)
         );
     }
     out.push_str("</g>\n");
@@ -144,7 +145,9 @@ pub fn write_over(out: &mut String, layer: &HighlightLayer) {
     if layer.has_volume {
         write_veil(out, layer);
     }
-    write_labels(out, layer);
+    if layer.has_labels {
+        write_labels(out, layer);
+    }
 }
 
 /// Where the veil leaves a gap: the shape on a flat map; with volume, the
@@ -239,17 +242,63 @@ pub fn legend_rows(layer: &HighlightLayer) -> Vec<Row> {
         }
         rows.push(Row {
             label: label.to_string(),
-            swatch: Swatch::Area {
+            swatch: Swatch::Highlight {
                 // The tint as it shows over paper, since a swatch has no diagram under it.
-                fill: mix(&palette.paper, &palette.accent, TINT_OPACITY),
-                stroke: Some(palette.accent.clone()),
-                stroke_mm: OUTLINE_MM,
-                opacity: 1.0,
+                fill: mix(&palette.paper, &colour_of(highlight, palette), TINT_OPACITY),
+                stroke: colour_of(highlight, palette),
+                outline: highlight.outline,
             },
         });
     }
 
     rows
+}
+
+/// A legend swatch for a highlight: its tint, edged in its outline, solid, dashed or dotted.
+pub fn write_swatch(
+    out: &mut String,
+    (x, top): (f64, f64),
+    (width, height): (f64, f64),
+    fill: &str,
+    stroke: &str,
+    outline: Outline,
+) {
+    // Inset by half the line, so the edge sits inside the swatch like an Area swatch's.
+    let inset = OUTLINE_MM / 2.0;
+    let _ = write!(
+        out,
+        r#"<rect x="{}" y="{}" width="{}" height="{}" fill="{fill}" stroke="{stroke}" stroke-width="{}"{}/>"#,
+        mm(x + inset),
+        mm(top + inset),
+        mm(width - OUTLINE_MM),
+        mm(height - OUTLINE_MM),
+        mm(OUTLINE_MM),
+        line_attributes(outline, SWATCH_DASH_SCALE)
+    );
+}
+
+/// The dash attributes of an outline, with its dashes and gaps scaled by `scale`.
+/// Dots are dashes of no length with round caps, so each is a disc as wide as the line.
+fn line_attributes(outline: Outline, scale: f64) -> String {
+    match outline {
+        Outline::Solid => String::new(),
+        Outline::Dashed => format!(
+            r#" stroke-dasharray="{} {}""#,
+            mm(DASH_MM * scale),
+            mm(GAP_MM * scale)
+        ),
+        Outline::Dotted => format!(
+            r#" stroke-dasharray="0 {}" stroke-linecap="round""#,
+            mm(DOT_GAP_MM * scale)
+        ),
+    }
+}
+
+/// The highlight's own colour on this palette: a role resolved, a hex as it is.
+/// `Highlight::check` refuses anything else, so a bad value only reaches here
+/// from a hand-edited file, which then draws in the accent.
+fn colour_of(highlight: &Highlight, palette: &Palette) -> String {
+    resolve_colour(palette, &highlight.colour).unwrap_or_else(|_| palette.accent.clone())
 }
 
 fn paper_points(highlight: &Highlight, layer: &HighlightLayer) -> Vec<(f64, f64)> {

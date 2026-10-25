@@ -9,7 +9,7 @@ use std::path::Path;
 
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
 use openarchi_core::export::render_png;
-use openarchi_core::highlight::{Highlight, HighlightShape, Outline};
+use openarchi_core::highlight::{Highlight, HighlightShape, Outline, DEFAULT_COLOUR};
 use openarchi_core::pin::{Pin, PinIcon, PinSize};
 use openarchi_core::project::Look;
 use openarchi_core::render::{fitting_scale, render_svg, RenderInput};
@@ -18,6 +18,8 @@ use openarchi_core::view::ViewMode;
 
 const FIXTURE: &str = "tests/fixtures/westermarkt.scene.json";
 const SAMPLE_WIDTH_PX: u32 = 1800;
+/// The closest scale a sheet fits to, to see the scale bar and furniture at it.
+const CLOSEST_SCALE: u32 = 50;
 
 fn main() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -61,7 +63,11 @@ fn main() {
             ..Look::default()
         };
         look.view.mode = mode;
-        look.view.plates = vec!["building-use".to_string(), "context".to_string()];
+        look.view.plates = vec![
+            "building-use".to_string(),
+            "figure-ground".to_string(),
+            "context".to_string(),
+        ];
         let path = out_dir.join(format!("{name}--paper.png"));
         write(&scene, &look, &pins, &dimmed, &path);
     }
@@ -84,6 +90,36 @@ fn main() {
     let svg = svg(&scene, &opened, &pins, &highlights);
     std::fs::write(out_dir.join("opened--ink.svg"), svg).expect("write the SVG");
 
+    // A bike shed on the square as a sheet of its own: it fits at one of the closest scales.
+    let (x, y) = scene.origin;
+    let shed = HighlightShape::Rectangle {
+        min: [x + 5.0, y - 40.0],
+        max: [x + 12.0, y - 35.0],
+    };
+    let mut house = Look {
+        diagram_id: "context".to_string(),
+        selection: Some(shed.to_area()),
+        ..Look::default()
+    };
+    house.sheet.scale = fitting_scale(&scene, &house).expect("fit the house");
+    house.sheet.title = format!("Bike shed at 1:{}", house.sheet.scale);
+    write(
+        &scene,
+        &house,
+        &pins,
+        &highlights,
+        &out_dir.join("house--paper.png"),
+    );
+    house.sheet.scale = CLOSEST_SCALE;
+    house.sheet.title = format!("Bike shed at 1:{CLOSEST_SCALE}");
+    write(
+        &scene,
+        &house,
+        &pins,
+        &highlights,
+        &out_dir.join("house-1-50--paper.png"),
+    );
+
     println!("samples in {}", out_dir.display());
 }
 
@@ -103,6 +139,7 @@ fn highlights(scene: &Scene) -> Vec<Highlight> {
                 ],
             },
             outline: Outline::Solid,
+            colour: DEFAULT_COLOUR.to_string(),
             dims_rest: false,
             shows_area: true,
         },
@@ -114,6 +151,7 @@ fn highlights(scene: &Scene) -> Vec<Highlight> {
                 max: [x - 2.0, y + 2.0],
             },
             outline: Outline::Dashed,
+            colour: DEFAULT_COLOUR.to_string(),
             dims_rest: false,
             shows_area: false,
         },
@@ -124,7 +162,9 @@ fn highlights(scene: &Scene) -> Vec<Highlight> {
                 center: [x + 90.0, y + 80.0],
                 radius_m: 35.0,
             },
-            outline: Outline::Solid,
+            // A colour of its own and dots, for an area still being studied.
+            outline: Outline::Dotted,
+            colour: "#1F7A8C".to_string(),
             dims_rest: false,
             shows_area: false,
         },

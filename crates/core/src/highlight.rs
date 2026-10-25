@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::area::{Area, LonLat};
 use crate::crs::{rd_to_wgs84, wgs84_to_rd};
 use crate::pin::{self, MAX_LABEL_CHARS};
+use crate::render::{is_hex, ROLES};
 use crate::scene::Scene;
 use crate::{Error, Result};
 
@@ -37,6 +38,10 @@ pub struct Highlight {
     pub shape: HighlightShape,
     #[serde(default)]
     pub outline: Outline,
+    /// The colour of the outline and tint: a palette role like "@accent", or
+    /// "#RRGGBB". Older highlights have none and draw in the accent.
+    #[serde(default = "default_colour")]
+    pub colour: String,
     /// Fades everything outside the highlight a little, so the eye goes to it.
     #[serde(default)]
     pub dims_rest: bool,
@@ -64,7 +69,14 @@ pub enum HighlightShape {
     },
 }
 
-/// The few looks a highlight's edge can have, all in the palette's accent.
+/// What a highlight without a colour of its own is drawn in.
+pub const DEFAULT_COLOUR: &str = "@accent";
+
+fn default_colour() -> String {
+    DEFAULT_COLOUR.to_string()
+}
+
+/// The few looks a highlight's edge can have.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Outline {
@@ -73,6 +85,8 @@ pub enum Outline {
     Solid,
     /// A dashed line, for what is proposed: a new footprint.
     Dashed,
+    /// Round dots, for what is studied or uncertain: an area of intervention.
+    Dotted,
 }
 
 impl HighlightShape {
@@ -225,6 +239,16 @@ impl Highlight {
         if area < MIN_AREA_M2 {
             return invalid(format!(
                 "it covers {area:.1} m²; draw at least {MIN_AREA_M2} m²"
+            ));
+        }
+        let is_role = self
+            .colour
+            .strip_prefix('@')
+            .is_some_and(|name| ROLES.contains(&name));
+        if !is_role && !is_hex(&self.colour) {
+            return invalid(format!(
+                "its colour must look like '#RRGGBB' or a palette role like '@accent', got {:?}",
+                self.colour
             ));
         }
         let length = self.label.chars().count();

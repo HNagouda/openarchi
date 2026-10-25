@@ -44,10 +44,11 @@ const COOL_SHARE: f64 = 0.35;
 const MERGED_LABEL: &str = "Larger symbol: several places, or a big bicycle park";
 /// Room around the furthest walk band, so its edge does not touch the frame.
 const WALK_FRAME_MARGIN: f64 = 1.04;
-/// Scale denominators a fitted axonometric snaps to, so the note reads like a real scale.
-pub(super) const NICE_SCALES: [u32; 18] = [
-    500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10_000, 12_500, 15_000,
-    20_000, 25_000, 50_000,
+/// Scale denominators a fitted sheet snaps to, a tilted view or a sheet area,
+/// so the note reads like a real scale. Down to 1:50, for a sheet of one plot.
+pub(super) const NICE_SCALES: [u32; 21] = [
+    50, 100, 200, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10_000,
+    12_500, 15_000, 20_000, 25_000, 50_000,
 ];
 
 /// What a sheet's drawing zone ends up holding, for the furniture to describe.
@@ -85,8 +86,10 @@ pub struct MapSpec<'a> {
     /// Where the neighbourhood shows, when this map shows one.
     pub context: Option<ContextArea>,
     /// The project's highlights lie on this map's ground: a plan, an
-    /// axonometric, or the bottom plate of an explode view.
+    /// axonometric, or every plate of an explode view.
     pub has_highlights: bool,
+    /// Their labels are written too; an explode view names them on its top plate only.
+    pub has_highlight_labels: bool,
 }
 
 pub struct Map {
@@ -125,6 +128,7 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
             reach_m: None,
         }),
         has_highlights: true,
+        has_highlight_labels: true,
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -186,6 +190,7 @@ pub fn axonometric(
             reach_m: None,
         }),
         has_highlights: true,
+        has_highlight_labels: true,
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -469,6 +474,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         },
         scene,
         has_volume: spec.has_volume,
+        has_labels: spec.has_highlight_labels,
         canvas: &canvas,
         palette,
         typesetter,

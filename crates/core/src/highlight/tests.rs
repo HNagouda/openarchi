@@ -8,6 +8,7 @@ fn highlight(shape: HighlightShape) -> Highlight {
         label: "Plot".to_string(),
         shape,
         outline: Outline::Solid,
+        colour: DEFAULT_COLOUR.to_string(),
         dims_rest: false,
         shows_area: false,
     }
@@ -67,6 +68,12 @@ fn a_tiny_or_broken_highlight_is_refused_with_the_reason() {
         .to_string()
         .contains("south-west"));
 
+    let mut odd = highlight(rectangle(10.0, 10.0));
+    odd.colour = "teal".to_string();
+    assert!(odd.check().unwrap_err().to_string().contains("@accent"));
+    odd.colour = "#1F7A8C".to_string();
+    assert!(odd.check().is_ok());
+
     let mut long = highlight(rectangle(10.0, 10.0));
     long.label = "x".repeat(MAX_LABEL_CHARS + 1);
     assert!(long.check().unwrap_err().to_string().contains("80"));
@@ -117,5 +124,6 @@ fn an_old_highlight_without_its_style_fields_opens_with_the_defaults() {
     let json = r#"{"id": "highlight-1", "shape": {"kind": "circle", "center": [120900, 487400], "radius_m": 12}}"#;
     let opened: Highlight = serde_json::from_str(json).unwrap();
     assert_eq!(opened.outline, Outline::Solid);
+    assert_eq!(opened.colour, DEFAULT_COLOUR);
     assert!(!opened.dims_rest && !opened.shows_area && opened.label.is_empty());
 }

@@ -1,6 +1,6 @@
 mod render_support;
 
-use openarchi_core::highlight::{Highlight, HighlightShape, Outline, UNLABELLED};
+use openarchi_core::highlight::{Highlight, HighlightShape, Outline, DEFAULT_COLOUR, UNLABELLED};
 use openarchi_core::project::Look;
 use openarchi_core::render::{fitting_scale, render_svg, RenderInput};
 use openarchi_core::view::ViewMode;
@@ -16,6 +16,7 @@ fn plot(id: &str, label: &str, x: f64, y: f64, width: f64, height: f64) -> Highl
             max: [ORIGIN.0 + x + width, ORIGIN.1 + y + height],
         },
         outline: Outline::Solid,
+        colour: DEFAULT_COLOUR.to_string(),
         dims_rest: false,
         shows_area: false,
     }
@@ -95,27 +96,48 @@ fn a_sheet_that_hides_highlights_draws_none_and_lists_none() {
 }
 
 #[test]
-fn highlights_lie_on_the_ground_in_the_axonometric_and_the_explode_bottom_plate() {
+fn highlights_lie_on_every_explode_plate_and_are_named_on_the_top_one() {
     let highlights = [plot("highlight-1", "Plot", -20.0, -20.0, 40.0, 30.0)];
-    for mode in [ViewMode::Axonometric, ViewMode::Explode] {
-        let mut tilted = look();
-        tilted.view.mode = mode;
-        tilted.view.plates = vec!["context".to_string(), "figure-ground".to_string()];
-
-        let svg = svg_with(&tilted, &highlights);
-
-        assert_eq!(svg.matches("data-highlight=").count(), 1, "{mode:?}");
-    }
+    let mut axo = look();
+    axo.view.mode = ViewMode::Axonometric;
+    assert_eq!(
+        svg_with(&axo, &highlights)
+            .matches("data-highlight=")
+            .count(),
+        1
+    );
 
     let mut explode = look();
     explode.view.mode = ViewMode::Explode;
     explode.view.plates = vec!["context".to_string(), "figure-ground".to_string()];
     let svg = svg_with(&explode, &highlights);
-    let bottom = svg.find(r#"data-plate="figure-ground""#).unwrap();
-    assert!(
-        svg.find("data-highlight=").unwrap() > bottom,
-        "on the bottom plate"
-    );
+
+    assert_eq!(svg.matches("data-highlight=").count(), 2, "one per plate");
+    assert_eq!(svg.matches(">Plot</text>").count(), 1, "named once");
+    let top = svg.find(r#"data-plate="context""#).unwrap();
+    let label = svg.find(">Plot</text>").unwrap();
+    assert!(label > top, "on the top plate, drawn last");
+}
+
+#[test]
+fn a_highlight_in_its_own_colour_with_dots_colours_its_tint_outline_and_legend() {
+    let mut studied = plot("highlight-1", "Study area", 0.0, 0.0, 30.0, 30.0);
+    studied.colour = "#1F7A8C".to_string();
+    studied.outline = Outline::Dotted;
+
+    let svg = svg_with(&look(), &[studied.clone()]);
+
+    let shape = svg.find("data-highlight=").unwrap();
+    let path = &svg[shape..shape + svg[shape..].find("/>").unwrap()];
+    assert!(path.contains(r##"fill="#1F7A8C""##) && path.contains(r##"stroke="#1F7A8C""##));
+    assert!(path.contains(r#"stroke-linecap="round""#) && path.contains(r#"stroke-dasharray="0 "#));
+    // The legend swatch is dotted in the same colour.
+    let legend = svg.rfind(r##"stroke="#1F7A8C""##).unwrap();
+    assert!(legend > shape && svg[legend..].contains(r#"stroke-linecap="round""#));
+
+    studied.colour = "@water".to_string();
+    let water = theme("paper").palette.water;
+    assert!(svg_with(&look(), &[studied]).contains(&format!(r#"stroke="{water}""#)));
 }
 
 #[test]
@@ -168,9 +190,11 @@ fn a_sheet_opened_from_a_highlight_frames_exactly_it() {
 
     let svg = svg_with(&framed, std::slice::from_ref(&house));
 
-    // 1:500 is the closest round scale a sheet fits to; a 24 m house would fit closer still.
-    assert_eq!(framed.sheet.scale, 500);
+    // A 24 m house fills an A3 at 1:200, one of the round scales a sheet fits to.
+    assert_eq!(framed.sheet.scale, 200);
+    // The sheet keeps drawing the highlight it was opened from, with its legend row.
     assert!(svg.contains(r#"data-highlight="highlight-1""#));
+    assert_eq!(svg.matches(">New house</text>").count(), 2);
 }
 
 #[test]

@@ -18,10 +18,11 @@ const BAR_STROKE_MM: f64 = 0.18;
 const BAR_LABEL_GAP: f64 = 1.6;
 /// The height the arrow and bar take, for the blocks stacked around them.
 pub const TOOLS_HEIGHT: f64 = 14.0;
-/// Ground lengths a scale bar may span: round numbers a reader can halve in their head.
-const NICE_LENGTHS_M: [f64; 14] = [
-    5.0, 10.0, 20.0, 25.0, 50.0, 100.0, 200.0, 250.0, 500.0, 1000.0, 2000.0, 2500.0, 5000.0,
-    10000.0,
+/// Ground lengths a scale bar may span: round numbers a reader can halve in
+/// their head. The shortest serve a sheet of one plot at 1:50.
+const NICE_LENGTHS_M: [f64; 17] = [
+    1.0, 2.0, 2.5, 5.0, 10.0, 20.0, 25.0, 50.0, 100.0, 200.0, 250.0, 500.0, 1000.0, 2000.0, 2500.0,
+    5000.0, 10000.0,
 ];
 
 /// North arrow at the left, scale bar to its right, both from `top`.
@@ -216,7 +217,8 @@ mod tests {
     fn nice_length_picks_the_longest_round_length_that_fits() {
         assert_eq!(nice_length(180.0), 100.0);
         assert_eq!(nice_length(260.0), 250.0);
-        assert_eq!(nice_length(2.0), 5.0);
+        assert_eq!(nice_length(4.0), 2.5);
+        assert_eq!(nice_length(0.5), 1.0);
     }
 
     #[test]

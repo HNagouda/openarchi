@@ -10,11 +10,13 @@ use std::fmt::Write;
 
 use super::drawing::{pattern_id, Drawn};
 use super::geometry::{decimal, mm};
+use super::highlights;
 use super::layout::Rect;
 use super::style::{ResolvedLayer, Role};
 use super::symbols::{self, Shape};
 use super::typeset::{Kind, Typesetter};
 use crate::diagram::Diagram;
+use crate::highlight::Outline;
 use crate::scene::Layer;
 use crate::theme::LayerStyle;
 
@@ -61,6 +63,12 @@ pub enum Swatch {
         fill: Option<String>,
         stroke: Option<String>,
         opacity: f64,
+    },
+    /// A highlight: its tint, edged in its outline, solid, dashed or dotted.
+    Highlight {
+        fill: String,
+        stroke: String,
+        outline: Outline,
     },
     /// A place or stop symbol in its class's shape.
     Symbol {
@@ -340,6 +348,7 @@ fn with_fill(swatch: &Swatch, fill: &str) -> Swatch {
             stroke_mm: 0.0,
             opacity: 1.0,
         },
+        Swatch::Highlight { .. } => swatch.clone(),
         Swatch::Symbol { shape, stroke, .. } => Swatch::Symbol {
             shape: *shape,
             fill: fill.to_string(),
@@ -412,6 +421,13 @@ fn write_swatch(out: &mut String, swatch: &Swatch, x: f64, top: f64, unit: f64, 
                 mm(stroke_mm.max(0.15)),
                 decimal(*opacity)
             );
+        }
+        Swatch::Highlight {
+            fill,
+            stroke,
+            outline,
+        } => {
+            highlights::write_swatch(out, (x, top), (width, height), fill, stroke, *outline);
         }
         Swatch::Dot {
             fill,
