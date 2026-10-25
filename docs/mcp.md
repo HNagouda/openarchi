@@ -72,7 +72,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `fetch_site` | Downloads buildings, roads, water, green and terrain into the project |
 | `list_diagrams`, `list_themes` | Shows the diagrams, with their group and variants, and the themes to choose from |
 | `set_look` | Changes the diagram and its variant, theme, sheet, single layers, the view and the sun's date and time, on the first sheet tab or the one `tab` names |
-| `list_sheets`, `add_sheet` | Lists a project's sheet tabs, and adds one copied from another that shows the whole site |
+| `list_sheets`, `add_sheet` | Lists a project's sheet tabs, and adds one copied from another that shows the whole site, named after the first free "Sheet N" as the app's + does unless `name` is given |
 | `list_pins`, `add_pin`, `move_pin`, `remove_pin` | Marks landmarks with a pin, star, flag or dot in one of four sizes and a label, shown on every sheet that does not hide pins |
 | `list_highlights`, `add_highlight`, `edit_highlight`, `remove_highlight` | Highlights an area inside the site, like the plot or a proposed house, as a circle, rectangle or polygon with a label, a solid, dashed or dotted outline, a colour, and optionally its area and "dim the rest" |
 | `open_highlight_as_sheet` | Adds a sheet tab framing exactly one highlight, so its ratios and figures describe that area; the only way to a sheet of part of the site |

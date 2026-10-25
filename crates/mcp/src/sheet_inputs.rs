@@ -13,7 +13,7 @@ use crate::inputs::LonLatInput;
 pub struct AddSheet {
     /// The project id.
     pub id: String,
-    /// The tab's name, like "Square detail". Defaults to "Sheet N".
+    /// The tab's name, like "Square detail". Defaults to the first "Sheet N" no tab uses, as the app names a new tab.
     pub name: Option<String>,
     /// The tab to copy the look from (diagram, theme, sheet, view), counting
     /// from 1. Defaults to 1. Change the copy afterwards with set_look and its `tab`.

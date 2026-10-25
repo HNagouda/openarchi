@@ -254,10 +254,7 @@ fn export_refuses_a_path_whose_extension_is_not_the_format() {
     let out = TempDir::new().unwrap();
     let path = out.path().join("westermarkt.pdf");
 
-    let message = server.call_err(
-        "export",
-        json!({ "id": id, "format": "png", "path": path }),
-    );
+    let message = server.call_err("export", json!({ "id": id, "format": "png", "path": path }));
 
     assert!(message.contains("must end in .png"), "{message}");
     assert!(!path.exists());

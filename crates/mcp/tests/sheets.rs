@@ -1,5 +1,7 @@
 //! Protocol tests for the sheet tab and pin tools.
 
+use openarchi_core::library::Library;
+use openarchi_core::project::Look;
 use serde_json::json;
 
 mod common;
@@ -38,6 +40,25 @@ fn a_sheet_opened_from_a_highlight_zooms_in_and_its_ratios_describe_that_area() 
     );
     let message = server.call_err("set_look", json!({ "id": id, "tab": 3 }));
     assert!(message.contains("1 to 2"), "{message}");
+}
+
+#[test]
+fn add_sheet_names_a_new_tab_after_the_first_free_number() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    // As after deleting the second of three tabs in the app.
+    let library = Library::at(server.library.path()).unwrap();
+    let mut project = library.load(&id).unwrap();
+    let third = Look {
+        name: "Sheet 3".to_string(),
+        ..project.look.clone()
+    };
+    project.more_sheets.push(third);
+    library.save(&mut project).unwrap();
+
+    let added = server.call_ok("add_sheet", json!({ "id": id }));
+
+    assert_eq!(added["sheets"][2]["name"], json!("Sheet 4"));
 }
 
 #[test]

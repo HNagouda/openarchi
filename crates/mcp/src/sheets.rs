@@ -36,11 +36,11 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let mut project = library.load(&input.id).map_err(text)?;
-                let number = project.sheet_count() + 1;
+                let name = input.name.unwrap_or_else(|| unused_sheet_name(&project));
                 let source = project.sheet(input.copy_of.unwrap_or(1)).map_err(text)?;
                 // A new tab shows the whole site, as the app's + does.
                 let look = Look {
-                    name: input.name.unwrap_or_else(|| format!("Sheet {number}")),
+                    name,
                     selection: None,
                     hide_pins: false,
                     hide_highlights: false,
@@ -142,20 +142,40 @@ impl OpenArchi {
     }
 }
 
+/// The name a tab shows: its own, or "Sheet 2" for the second when it has none.
+fn sheet_name(look: &Look, index: usize) -> String {
+    match look.name.trim() {
+        "" => format!("Sheet {}", index + 1),
+        name => name.to_string(),
+    }
+}
+
+/// The first "Sheet N" from the next tab's number on that no tab shows yet,
+/// as the app's + names a new tab.
+fn unused_sheet_name(project: &Project) -> String {
+    let names: Vec<String> = project
+        .sheets()
+        .iter()
+        .enumerate()
+        .map(|(index, look)| sheet_name(look, index))
+        .collect();
+    let mut number = project.sheet_count() + 1;
+    while names.contains(&format!("Sheet {number}")) {
+        number += 1;
+    }
+
+    format!("Sheet {number}")
+}
+
 pub(crate) fn sheets_of(project: &Project) -> Value {
     let sheets: Vec<Value> = project
         .sheets()
         .iter()
         .enumerate()
         .map(|(index, look)| {
-            let name = if look.name.is_empty() {
-                format!("Sheet {}", index + 1)
-            } else {
-                look.name.clone()
-            };
             json!({
                 "tab": index + 1,
-                "name": name,
+                "name": sheet_name(look, index),
                 "diagram_id": look.diagram_id,
                 "variant": look.variant,
                 "theme_id": look.theme_id,
