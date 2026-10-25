@@ -166,7 +166,7 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
           </div>
         )}
 
-        <SectionFields look={look} onLook={onLook} onSeal={onSeal} />
+        <SectionFields look={look} isSectionView={view.mode === "section"} onLook={onLook} onSeal={onSeal} />
       </div>
     </Section>
   );

@@ -28,11 +28,13 @@ const FITTED = "fit";
 
 type Props = {
   look: Look;
+  // The scale and heights only change the section view, so other views leave them out.
+  isSectionView: boolean;
   onLook: (next: Look, mergeKey?: string) => void;
   onSeal: () => void;
 };
 
-export function SectionFields({ look, onLook, onSeal }: Props) {
+export function SectionFields({ look, isSectionView, onLook, onSeal }: Props) {
   const line = look.section;
   if (!line) {
     return (
@@ -55,35 +57,39 @@ export function SectionFields({ look, onLook, onSeal }: Props) {
         onChange={(depth_m) => onLook(withSectionDepth(look, depth_m), "section-depth")}
         onSeal={onSeal}
       />
-      <label className="field-stack">
-        <span className="field-label">Scale</span>
-        <select
-          className="text-input"
-          value={line.scale ?? FITTED}
-          onChange={(event) => {
-            const value = event.target.value;
-            onLook(withSectionScale(look, value === FITTED ? null : Number(value)));
-          }}
-        >
-          <option value={FITTED}>Fit to the sheet</option>
-          {SECTION_SCALES.map((scale) => (
-            <option key={scale} value={scale}>
-              1:{scale}
-            </option>
-          ))}
-        </select>
-      </label>
-      <span className="field-label">Heights</span>
-      <Segmented
-        label="Heights"
-        value={line.exaggeration ?? 1}
-        options={EXAGGERATIONS.map((times) => ({
-          value: times,
-          label: `×${times}`,
-          tip: times === 1 ? "Heights at the same scale as lengths" : `Heights drawn ${times} times taller; the legend says so`,
-        }))}
-        onChange={(times) => onLook(withSectionExaggeration(look, times))}
-      />
+      {isSectionView && (
+        <>
+          <label className="field-stack">
+            <span className="field-label">Scale</span>
+            <select
+              className="text-input"
+              value={line.scale ?? FITTED}
+              onChange={(event) => {
+                const value = event.target.value;
+                onLook(withSectionScale(look, value === FITTED ? null : Number(value)));
+              }}
+            >
+              <option value={FITTED}>Fit to the sheet</option>
+              {SECTION_SCALES.map((scale) => (
+                <option key={scale} value={scale}>
+                  1:{scale}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="field-label">Heights</span>
+          <Segmented
+            label="Heights"
+            value={line.exaggeration ?? 1}
+            options={EXAGGERATIONS.map((times) => ({
+              value: times,
+              label: `×${times}`,
+              tip: times === 1 ? "Heights at the same scale as lengths" : `Heights drawn ${times} times taller; the legend says so`,
+            }))}
+            onChange={(times) => onLook(withSectionExaggeration(look, times))}
+          />
+        </>
+      )}
       <div className="section-actions">
         <Button icon="restore" tip="Look the other way: swap A and A′" onClick={() => onLook(withSectionFlipped(look))}>
           Flip
