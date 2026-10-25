@@ -14,7 +14,7 @@
 mod a4;
 mod a4_blocks;
 mod charts;
-pub(crate) mod climate;
+mod climate;
 mod comfort;
 mod comfort_chart;
 mod figure;

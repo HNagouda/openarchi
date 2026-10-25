@@ -2,11 +2,12 @@
 //! and humidity.
 
 use super::fact;
-use crate::analysis::climate::{sector_name, Climate};
+use crate::analysis::climate::Climate;
 use crate::analysis::comfort::{yearly_hours, Exposure};
 use crate::analysis::figure::percent;
 use crate::analysis::utci::NO_STRESS;
 use crate::analysis::Fact;
+use crate::meteo::{sector_name, SECTOR_DEG};
 use crate::ratios::grouped;
 
 pub(super) fn temperature_facts(climate: &Climate) -> Vec<Fact> {
@@ -92,7 +93,7 @@ pub(super) fn sun_facts(climate: &Climate) -> Vec<Fact> {
             (a.1.winter_kwh_m2 + a.1.summer_kwh_m2)
                 .total_cmp(&(b.1.winter_kwh_m2 + b.1.summer_kwh_m2))
         })
-        .map(|(index, _)| sector_name(index as f64 * 22.5))
+        .map(|(index, _)| sector_name(index as f64 * SECTOR_DEG))
         .unwrap_or("S");
     vec![
         fact("Global, per year", format!("{} kWh/m²", grouped(global))),

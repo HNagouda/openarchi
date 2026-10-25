@@ -20,6 +20,7 @@ pub(crate) mod grid;
 pub mod highlight;
 pub mod library;
 pub(crate) mod memo;
+pub(crate) mod meteo;
 pub mod palette;
 pub mod pin;
 pub mod project;

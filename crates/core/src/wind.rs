@@ -23,9 +23,9 @@ use std::sync::Arc;
 use geo::{BoundingRect, Geometry, LineString, MultiPolygon, Polygon, Rect};
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::climate::SEASONS;
 use crate::grid::{banded, cells, Cell, Raster, FINEST_CELL_M};
 use crate::memo;
+use crate::meteo::SEASONS;
 use crate::scene::{Attributes, Credit, Feature, Layer, Scene};
 use crate::sources::pvgis;
 use field::Field;

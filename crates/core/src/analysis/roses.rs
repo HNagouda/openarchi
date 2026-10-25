@@ -7,11 +7,12 @@
 use std::f64::consts::TAU;
 use std::fmt::Write;
 
-use super::climate::{Climate, SECTORS, WIND_LABELS};
+use super::climate::{Climate, WIND_LABELS};
 use super::figure::{
     figure, legend, text, Figure, Paint, HAIRLINE_MM, INSET_MM, LABEL_MM, SMALL_MM, WIDTH_MM,
 };
 use super::notes::winter_half_text;
+use crate::meteo::SECTORS;
 
 const WIND_RADIUS_MM: f64 = 12.0;
 /// The calm circle in the middle of a wind rose.
