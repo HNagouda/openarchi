@@ -102,6 +102,14 @@ What changed in each version of openarchi, newest first.
 - Assistants can read noise, air quality, flood depth, slope, residents and dwellings for a site with the new `get_environment` tool.
 - A source that does not answer is tried twice more, the second time after a longer pause, before the site arrives without it.
 
+### Trees, green and heat
+
+- Trees and green is a new diagram with three measures. Trees shows every tree of 2.5 m and taller by its height, from the RIVM tree map. Green shows where grass, shrubs and trees are, split by whether the land is farmland, Natura 2000, the Nature Network or none of these. NDVI shows how green the ground reads in the newest summer infrared aerial photo from PDOK, as an approximate vegetation index; the legend says it is approximate because the photo is colour-corrected, not calibrated.
+- Heat island is a new diagram: how much warmer the air over the site is than in the countryside around, on average over June to August, in bands of 0.5 °C, from RIVM's heat island map.
+- The Analysis site summary adds the share of the site under tree canopy and the mean heat island.
+- Assistants get the canopy share, the mean vegetation index and the mean heat island from `get_environment`, each with its year.
+- Sites fetched before this say so on these diagrams and ask to be fetched again. Sheets credit RIVM and Beeldmateriaal Nederland only when they show their data.
+
 ### Newest editions
 
 - Noise, air quality and population come from the newest year RIVM and CBS publish, found when the site is fetched instead of fixed in openarchi. When RIVM publishes its 2023 noise map, the next fetch uses it and the legend says "RIVM, 2023."
