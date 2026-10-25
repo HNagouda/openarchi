@@ -57,6 +57,8 @@ fn sheet_dxf(input: &RenderInput) -> Result<String> {
     let look = input.look;
     let drawn = input.diagram.drawn_as(look.variant.as_deref());
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
+    // The same classes as the sheet, so the DXF's class layers match its legend.
+    let drawn = crate::radiation::sited(&drawn, &scene).unwrap_or(drawn);
     let input = &RenderInput {
         diagram: &drawn,
         scene: &scene,

@@ -26,6 +26,10 @@ use crate::viewshed::{self, EYE_HEIGHT_M};
 
 const LEGEND_TITLE: &str = "Ground in view";
 const PERCENT: f64 = 100.0;
+/// How trees count, see `forest.rs`.
+const WOODS_NOTE: &str =
+    "Woods block it (FAO forest: over 0.5 ha, trees over 5 m); single trees do not.";
+const NO_TREE_MAP_NOTE: &str = "Trees are left out: this site has no tree map.";
 // Sizes at A3, in millimetres; multiplied by the layout unit.
 /// Half the eye's width and half its height, an almond twice as wide as tall.
 const EYE_HALF_WIDTH: f64 = 2.4;
@@ -44,6 +48,8 @@ pub struct Seen {
     share: Option<f64>,
     is_on_roof: bool,
     has_terrain: bool,
+    /// The scene kept the tree map, so woods block the view.
+    has_tree_map: bool,
 }
 
 /// The view, for a diagram that draws the viewshed layer. `extent` is the
@@ -74,6 +80,7 @@ pub fn compute(
         share: view.share_of_site(),
         is_on_roof: view.is_on_roof,
         has_terrain: view.has_terrain(),
+        has_tree_map: scene.measured.grids.contains_key(&Layer::TreeCanopy),
     })
 }
 
@@ -152,14 +159,20 @@ pub fn describe(legend: &mut Legend, seen: &Seen, palette: &Palette) {
 }
 
 /// "Line of sight past building heights and the terrain (R2 viewshed,
-/// Franklin & Ray 1994). 62% of the site's open ground is in view."
+/// Franklin & Ray 1994). Woods block … 62% of the site's open ground is in view."
 fn note(seen: &Seen) -> String {
     let surface = if seen.has_terrain {
         "building heights and the terrain"
     } else {
         "building heights on flat ground"
     };
-    let method = format!("Line of sight past {surface} (R2 viewshed, Franklin & Ray 1994).");
+    let trees = if seen.has_tree_map {
+        WOODS_NOTE
+    } else {
+        NO_TREE_MAP_NOTE
+    };
+    let method =
+        format!("Line of sight past {surface} (R2 viewshed, Franklin & Ray 1994). {trees}");
     match seen.share {
         Some(share) => format!(
             "{method} {:.0}% of the site's open ground is in view.",
@@ -187,16 +200,16 @@ mod tests {
             share,
             is_on_roof: false,
             has_terrain,
+            has_tree_map: has_terrain,
         }
     }
 
     #[test]
-    fn the_note_names_the_method_and_the_share_in_view() {
+    fn the_note_names_the_method_the_trees_and_the_share_in_view() {
         assert_eq!(
             note(&seen(Some(0.624), true)),
-            "Line of sight past building heights and the terrain (R2 viewshed, Franklin & Ray 1994). 62% of the site's open ground is in view."
+            format!("Line of sight past building heights and the terrain (R2 viewshed, Franklin & Ray 1994). {WOODS_NOTE} 62% of the site's open ground is in view.")
         );
-        assert!(note(&seen(None, false))
-            .ends_with("on flat ground (R2 viewshed, Franklin & Ray 1994)."));
+        assert!(note(&seen(None, false)).ends_with(NO_TREE_MAP_NOTE));
     }
 }

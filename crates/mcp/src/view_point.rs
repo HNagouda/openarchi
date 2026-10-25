@@ -35,7 +35,7 @@ pub struct SetViewPoint {
 #[tool_router(router = view_point_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "Set where the eye of a sheet's View diagram stands: the ground a person standing there can see is tinted, worked out by line of sight past the buildings and the terrain. Pass exactly one of at (a lon/lat inside the site or its neighbourhood), pin (a pin id from list_pins; the eye then follows the pin, and goes back to the site centre if it is removed) or centre: true (back to the street or square nearest the site centre, the default). Then set_look with diagram_id \"view\" shows it. Returns the sheet's viewpoint, null for the site centre."
+        description = "Set where the eye of a sheet's View diagram stands: the ground a person standing there can see is tinted, worked out by line of sight past the buildings, the woods and the terrain. Pass exactly one of at (a lon/lat inside the site or its neighbourhood), pin (a pin id from list_pins; the eye then follows the pin, and goes back to the site centre if it is removed) or centre: true (back to the street or square nearest the site centre, the default). Then set_look with diagram_id \"view\" shows it. Returns the sheet's viewpoint, null for the site centre."
     )]
     async fn set_view_point(&self, Parameters(input): Parameters<SetViewPoint>) -> CallToolResult {
         let result = self

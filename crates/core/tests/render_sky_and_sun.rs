@@ -81,3 +81,14 @@ fn the_radiation_is_drawn_from_the_kept_year_and_credits_pvgis() {
     // The credit belongs to the radiation, not to every sheet.
     assert!(!sky.contains("PVGIS"));
 }
+
+#[test]
+fn the_radiation_legend_gives_this_sites_kwh_as_shares_of_open_ground() {
+    let scene = scene_with_solar_year();
+    let (diagram, theme, look) = (diagram("solar-radiation"), theme("paper"), look());
+    let svg = render_svg(&input(&scene, &diagram, &theme, &look)).unwrap();
+
+    assert!(svg.contains("open ground receives here"));
+    assert!(svg.contains("(95 % or more)"));
+    assert!(svg.contains("FAO forest"));
+}

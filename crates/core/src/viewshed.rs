@@ -14,9 +14,11 @@
 //!
 //! The surface is the ground, from the kept terrain when the scene has it,
 //! with every building of the site and its neighbourhood standing on it as a
-//! prism of its footprint and roof height, as the shadow diagram casts them.
-//! The eye stands `EYE_HEIGHT_M` above the surface where it is, so a viewpoint
-//! placed on a building looks from its roof.
+//! prism of its footprint and roof height, as the shadow diagram casts them,
+//! and every wood as a solid stand of its canopy height (`forest.rs`); single
+//! trees are see-through. The eye stands `EYE_HEIGHT_M` above the ground
+//! where it is, so a viewpoint placed on a building looks from its roof, and
+//! one placed in a wood looks from the floor of the wood.
 
 mod surface;
 #[cfg(test)]
@@ -101,7 +103,13 @@ pub fn viewshed(scene: &Scene, eye: Option<(f64, f64)>, extent: Rect<f64>) -> Vi
         Some(eye) => eye,
         None => raster.centre(eye_index),
     };
-    let eye_height_m = surface.height_m[eye_index] + EYE_HEIGHT_M;
+    // On a roof the eye looks from the roof; under a canopy, from the ground under it.
+    let stands_on_m = if surface.is_roof[eye_index] {
+        surface.height_m[eye_index]
+    } else {
+        surface.ground_m[eye_index]
+    };
+    let eye_height_m = stands_on_m + EYE_HEIGHT_M;
     let is_visible = sight_lines(&raster, &surface.height_m, eye_index, eye_height_m);
 
     Viewshed {
@@ -120,7 +128,7 @@ impl Viewshed {
         let mut ground = 0usize;
         let mut seen = 0usize;
         for index in 0..self.raster.len() {
-            if !self.surface.is_site[index] || self.surface.is_roof[index] {
+            if !self.surface.is_site[index] || self.is_covered(index) {
                 continue;
             }
             ground += 1;
@@ -137,6 +145,16 @@ impl Viewshed {
         self.surface.has_terrain
     }
 
+    /// Some dense trees stand on the grid and hide what lies behind them.
+    pub fn has_forest(&self) -> bool {
+        self.surface.is_forest.contains(&true)
+    }
+
+    /// Under a roof or a wood's canopy: not open ground, so never counted as in view.
+    fn is_covered(&self, index: usize) -> bool {
+        self.surface.is_roof[index] || self.surface.is_forest[index]
+    }
+
     /// The open ground in view, as one feature. Roofs are left out: the
     /// buildings are drawn over them.
     pub fn area(&self) -> Feature {
@@ -146,8 +164,7 @@ impl Viewshed {
             let mut start = None;
             for column in 0..=columns {
                 let index = row * columns + column;
-                let is_seen =
-                    column < columns && self.is_visible[index] && !self.surface.is_roof[index];
+                let is_seen = column < columns && self.is_visible[index] && !self.is_covered(index);
                 match (is_seen, start) {
                     (true, None) => start = Some(column),
                     (false, Some(first)) => {
@@ -277,7 +294,9 @@ fn cell_at(raster: &Raster, point: (f64, f64)) -> usize {
 /// open ground in it when it has neither, or the cell under `point` when the
 /// site has no open ground at all.
 fn nearest_open_ground(raster: &Raster, surface: &Surface, point: (f64, f64)) -> usize {
-    let is_open = |index: usize| surface.is_site[index] && !surface.is_roof[index];
+    let is_open = |index: usize| {
+        surface.is_site[index] && !surface.is_roof[index] && !surface.is_forest[index]
+    };
     let is_public = |index: usize| is_open(index) && surface.is_public[index];
     nearest_where(raster, point, is_public)
         .or_else(|| nearest_where(raster, point, is_open))

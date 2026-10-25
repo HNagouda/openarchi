@@ -11,7 +11,8 @@
 //! 3. for layers in `as_figure`: fill and stroke become `@figure`, patterns,
 //!    dashes and shadows are dropped, so the layers fuse into one solid figure;
 //!    for layers in `blank`: fill becomes the paper tinted towards ink and the
-//!    edge a fine `@ink` line, so they stand back from a coloured ground without matching a class,
+//!    edge a fine `@ink` line, so they stand back from a coloured ground without matching a class;
+//!    for layers in `outline` on a plan: no fill and a fine `@ink` edge, blank in a tilted view,
 //! 4. for the classified layer: fill comes from the theme's ramp or categories,
 //!    and features with no value get `@unknown`,
 //! 5. the user's layer overrides.
@@ -60,6 +61,11 @@ pub struct Diagram {
     /// buildings over hours of sun, where any fill would read as a class.
     #[serde(default)]
     pub blank: Vec<Layer>,
+    /// Layers drawn as a fine ink edge without a fill on a plan, so a layer
+    /// under them that covers roofs too shows through: the buildings over the
+    /// solar radiation. In a tilted view they stand up blank instead.
+    #[serde(default)]
+    pub outline: Vec<Layer>,
     pub classify: Option<Classify>,
     /// A computed sun drawing on top of the layers. Needs no data beyond
     /// building heights and the site's position.

@@ -33,8 +33,9 @@ crates/core/            the library: no window, no async
   src/blocks.rs         city blocks cut from the street surfaces, with their coverage and floor space
   src/sunlight.rs       hours of direct sun on a grid over the site; sunlight/ fills the grid
   src/skyview.rs        the share of the sky each ground cell sees, from the horizon in 32 directions
-  src/radiation.rs      yearly sunlight on the ground, from the typical year kept with the scene
-  src/viewshed.rs       the ground in view from a sheet's viewpoint, by line of sight over buildings and terrain
+  src/radiation.rs      yearly sunlight on the ground and the roofs, from the typical year kept with the scene, in classes set per site
+  src/viewshed.rs       the ground in view from a sheet's viewpoint, by line of sight over buildings, woods and terrain
+  src/forest.rs         the trees dense enough to block sight, sky and sun, by the FAO definition of forest
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
@@ -49,7 +50,7 @@ crates/core/            the library: no window, no async
   src/selection.rs      a sheet's area, opened from a highlight: the scene cut to it
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
-  examples/             fetch_site, render_samples and render_timing, for working on data, looks and speed
+  examples/             fetch_site, render_samples, render_timing and compute_timing, for working on data, looks and speed
 crates/mcp/             openarchi-mcp, a stdio MCP server over the core
 app/                    the desktop app
   src-tauri/            Tauri commands, each a thin call into the core
@@ -120,6 +121,12 @@ When the app feels slow, time it before changing anything. `render_timing` loads
 ```sh
 cargo run --release -p openarchi-core --example render_timing -- <library folder> <project id>
 VIEW=axonometric SELECT_RADIUS=150 DUMP_DIR=.scratch/svgs cargo run --release -p openarchi-core --example render_timing -- <library folder> <project id>
+```
+
+`compute_timing` times only the layers worked out when drawn (the woods that block, the sky view, the solar radiation and the view from the site centre) on scenes written by `fetch_site`, so a slow one shows up before it reaches the app.
+
+```sh
+cargo run --release -p openarchi-core --example compute_timing -- .scratch/site.json
 ```
 
 To work on the front end in a plain browser, render the fixtures once and start Vite on its own. Outside Tauri, `app/src/dev/mockIpc.ts` answers every command from those fixtures, so the gallery, the sheet and the site step all work without the Rust side. This is how the screenshots in `docs/screenshots/` are taken. The mock is loaded only in dev, so it never reaches a release build.

@@ -136,6 +136,8 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
     let look = input.look;
     let drawn = input.diagram.drawn_as(look.variant.as_deref());
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
+    // The solar radiation's classes are set by the site's own sunlight.
+    let drawn = crate::radiation::sited(&drawn, &scene).unwrap_or(drawn);
     let input = &RenderInput {
         diagram: &drawn,
         scene: &scene,

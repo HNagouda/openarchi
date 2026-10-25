@@ -9,15 +9,16 @@
 //! its roof height, which is measured from the ground around it. A scene
 //! without terrain stands on flat ground at 0.
 //!
-//! Trees are left out. Their crowns stand above eye height, so a sight line
-//! from a standing eye down to the ground passes under them, and a 2.5D
-//! surface can only hold a crown as a solid column down to the ground, which
-//! would hide far more than a tree does.
-
-// #! NOTE[view, trees] : Trees left out of the viewshed; count crowns as solid in summer, when they hide most?
+//! Dense trees, a wood by the FAO's definition of forest (`forest.rs`), stand
+//! on the ground as a solid column up to their canopy, since trunks and
+//! undergrowth close a wood off at eye height. A single tree is left out: a
+//! standing eye looks under and past its crown, and a 2.5D surface could only
+//! hold that crown as a column down to the ground, which hides far more than
+//! a tree does.
 
 use geo::{Geometry, Polygon};
 
+use crate::forest;
 use crate::render::building_height;
 use crate::scene::{Layer, Scene};
 use crate::sources::raster::Grid;
@@ -39,10 +40,15 @@ const PUBLIC_GROUND: [Layer; 5] = [
 
 /// What stands on each cell of a viewshed's grid.
 pub struct Surface {
-    /// The top of the ground or the roof, in the terrain's heights (above NAP
-    /// in the Netherlands), or above flat ground at 0 without terrain.
+    /// The top of the ground, the roof or a wood's canopy, in the terrain's
+    /// heights (above NAP in the Netherlands), or above flat ground at 0
+    /// without terrain.
     pub height_m: Vec<f64>,
+    /// The ground itself, under a roof or a canopy too.
+    pub ground_m: Vec<f64>,
     pub is_roof: Vec<bool>,
+    /// Under a wood's canopy, see `forest.rs`.
+    pub is_forest: Vec<bool>,
     /// Inside the site's boundary.
     pub is_site: Vec<bool>,
     /// On a street, path or square, see `PUBLIC_GROUND`.
@@ -52,12 +58,13 @@ pub struct Surface {
 
 pub fn build(scene: &Scene, raster: &Raster) -> Surface {
     let ground = scene.terrain.as_ref().map(filled);
-    let mut height_m: Vec<f64> = (0..raster.len())
+    let ground_m: Vec<f64> = (0..raster.len())
         .map(|index| {
             let (x, y) = raster.centre(index);
             ground.as_ref().map_or(0.0, |grid| ground_at(grid, x, y))
         })
         .collect();
+    let mut height_m = ground_m.clone();
     let mut is_roof = vec![false; raster.len()];
     let mut is_site = vec![false; raster.len()];
     raster.fill_rings(&rings(&scene.boundary), |index| is_site[index] = true);
@@ -89,9 +96,21 @@ pub fn build(scene: &Scene, raster: &Raster) -> Surface {
         }
     }
 
+    let mut is_forest = vec![false; raster.len()];
+    if let Some(forest) = forest::forest(scene) {
+        for index in (0..raster.len()).filter(|&index| !is_roof[index]) {
+            if let Some(canopy_m) = forest.height_at(raster.centre(index)) {
+                height_m[index] = ground_m[index] + canopy_m;
+                is_forest[index] = true;
+            }
+        }
+    }
+
     Surface {
         height_m,
+        ground_m,
         is_roof,
+        is_forest,
         is_site,
         is_public,
         has_terrain: ground.is_some(),

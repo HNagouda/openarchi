@@ -13,8 +13,11 @@
 //! factor as a relief visualization technique", Remote Sensing 3, 2011).
 //!
 //! What hides the sky: buildings in the site and its neighbourhood as prisms
-//! of their footprint and roof height, and the terrain where the scene kept
-//! it. The same factor weights the diffuse light in `radiation.rs`.
+//! of their footprint and roof height, dense trees as solid stands of their
+//! canopy height (`forest.rs`; a single tree is left out, the sky shows
+//! through and around it), and the terrain where the scene kept it. The same
+//! factor weights the diffuse light in `radiation.rs`, which also asks it for
+//! roofs, seen from roof height.
 
 mod surface;
 
@@ -23,7 +26,7 @@ use std::thread;
 use crate::scene::{Feature, Layer, Scene};
 use crate::sunlight::raster::Raster;
 use crate::sunlight::{banded, cells, raster_over, Cell};
-use surface::Surface;
+pub(crate) use surface::{surface, Surface};
 
 /// Directions the horizon is searched in, evenly round the compass.
 pub const DIRECTIONS: usize = 32;
@@ -32,8 +35,6 @@ pub const SEARCH_RADIUS_M: f64 = 150.0;
 /// At most this many cells, a quarter of what the hours of sun allow: the
 /// factor changes slowly over the ground, and each cell walks 32 lines.
 pub const MAX_CELLS: f64 = 40_000.0;
-
-// #! NOTE[skyview, trees] : Trees are left out of the sky view and the radiation: the scene has tree positions but no height or crown, crowns are partly see-through, and bare half the year. Count them as solid crowns, like the shadow diagram does?
 
 /// The sky view factor per grid cell. Cells outside the site or under a roof have none.
 pub struct SkyGrid {
@@ -44,8 +45,16 @@ pub struct SkyGrid {
 /// The sky view factor of every ground cell of the site.
 pub fn sky_view(scene: &Scene) -> SkyGrid {
     let raster = raster_over(&scene.boundary, MAX_CELLS);
-    let cells = cells(scene, &raster);
-    let factors = factors(scene, &raster, &cells);
+    // Roofs are left out of this diagram, so the ground cells alone are worked out.
+    let cells: Vec<Cell> = cells(scene, &raster)
+        .into_iter()
+        .map(|cell| match cell {
+            Cell::Roof => Cell::Outside,
+            _ => cell,
+        })
+        .collect();
+    let surface = surface(scene, &raster, SEARCH_RADIUS_M);
+    let factors = factors(&surface, &raster, &cells);
 
     SkyGrid { raster, factors }
 }
@@ -55,10 +64,11 @@ pub fn bands(grid: &SkyGrid, breaks: &[f64]) -> Vec<Feature> {
     banded(&grid.raster, &grid.factors, breaks, Layer::SkyView)
 }
 
-/// The factor of each ground cell of `raster`, `None` elsewhere. Every cell
-/// stands on its own, so the cells are shared out over the processor's cores.
-pub(crate) fn factors(scene: &Scene, raster: &Raster, cells: &[Cell]) -> Vec<Option<f64>> {
-    let surface = surface::surface(scene, raster, SEARCH_RADIUS_M);
+/// The factor of each ground and roof cell of `raster`, `None` outside the
+/// site. A ground cell looks from the ground, under a canopy too; a roof cell
+/// from the roof. Every cell stands on its own, so the cells are shared out
+/// over the processor's cores.
+pub(crate) fn factors(surface: &Surface, raster: &Raster, cells: &[Cell]) -> Vec<Option<f64>> {
     let directions: Vec<(f64, f64)> = (0..DIRECTIONS)
         .map(|index| {
             let azimuth = std::f64::consts::TAU * index as f64 / DIRECTIONS as f64;
@@ -73,15 +83,25 @@ pub(crate) fn factors(scene: &Scene, raster: &Raster, cells: &[Cell]) -> Vec<Opt
             .chunks(chunk)
             .enumerate()
             .map(|(part, part_cells)| {
-                let (surface, directions) = (&surface, &directions);
+                let directions = &directions;
                 scope.spawn(move || {
                     let first = part * chunk;
                     part_cells
                         .iter()
                         .enumerate()
                         .map(|(offset, &cell)| {
-                            (cell == Cell::Ground)
-                                .then(|| factor_at(surface, raster, first + offset, directions))
+                            let point = raster.centre(first + offset);
+                            match cell {
+                                Cell::Ground => {
+                                    let base = surface.ground_at(point);
+                                    Some(factor_at(surface, raster, point, base, directions))
+                                }
+                                Cell::Roof => {
+                                    let base = surface.height_at(point);
+                                    Some(factor_at(surface, raster, point, base, directions))
+                                }
+                                Cell::Outside => None,
+                            }
                         })
                         .collect::<Vec<_>>()
                 })
@@ -98,10 +118,14 @@ pub(crate) fn factors(scene: &Scene, raster: &Raster, cells: &[Cell]) -> Vec<Opt
     })
 }
 
-/// 1 - mean(sin² horizon) over every direction, for the cell `index`.
-fn factor_at(surface: &Surface, raster: &Raster, index: usize, directions: &[(f64, f64)]) -> f64 {
-    let point = raster.centre(index);
-    let base = surface.height_at(point);
+/// 1 - mean(sin² horizon) over every direction, seen from `point` at height `base`.
+fn factor_at(
+    surface: &Surface,
+    raster: &Raster,
+    point: (f64, f64),
+    base: f64,
+    directions: &[(f64, f64)],
+) -> f64 {
     let mut hidden = 0.0;
     for &direction in directions {
         let tangent = horizon_tangent(surface, raster.cell_m, point, base, direction);
