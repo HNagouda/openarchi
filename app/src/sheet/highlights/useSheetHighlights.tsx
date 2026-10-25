@@ -1,7 +1,7 @@
 // Everything the sheet workspace needs for highlights in one place: the tool,
 // what it draws over the sheet, its buttons in the tab bar, and "Open as
 // sheet", which asks the core for the highlight's shape as a sheet area and
-// adds a tab framing it, the same machinery a drawn sheet area uses.
+// adds a tab framing it.
 
 import type { RefObject } from "react";
 import { errorText, highlightArea } from "../../lib/ipc";

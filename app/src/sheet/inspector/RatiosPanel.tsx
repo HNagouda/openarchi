@@ -23,7 +23,7 @@ const count = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
 const percent = new Intl.NumberFormat("en-GB", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const ratio = new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** `selection` is the sheet's sub-selection, whose ratios are shown instead of the whole site's. */
+/** `selection` is the sheet's area, from a highlight opened as a sheet, whose ratios are shown instead of the whole site's. */
 type Props = { project: ProjectView; themeId: string; selection?: Area | null };
 
 export function RatiosPanel({ project, themeId, selection = null }: Props) {

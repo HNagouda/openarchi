@@ -1,7 +1,7 @@
 // The report editor: the block library on the left, the pages under their
 // rulers in the middle and the inspector on the right. It edits one report
 // and hands every change to its owner through `onChange`, which keeps the undo
-// history, so it can sit in any container: a screen of its own now, a sheet tab later.
+// history, so it does not care which screen holds it.
 
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import { shortcutLabel } from "../lib/platform";

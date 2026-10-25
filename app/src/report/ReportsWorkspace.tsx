@@ -1,9 +1,9 @@
 // The project's reports, over the sheet workspace: pick, add, rename or
 // delete a report and edit it, with undo for all of it and saving as you go.
 //
-// This is the temporary way in, from the sheet's Reports button. The editor
-// itself is `ReportEditor`, which only needs a report and somewhere to send
-// changes, so it can move into a sheet tab without this frame.
+// It opens from the sheet's Reports button. The editor itself is
+// `ReportEditor`, which only needs a report and somewhere to send changes.
+// #! NOTE[reports, tabs] : Move the report editor into a sheet tab, or keep it a screen of its own?
 
 import { useCallback, useRef, useState } from "react";
 import { useCommandHandler } from "../lib/commands";
