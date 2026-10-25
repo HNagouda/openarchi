@@ -2,7 +2,7 @@
 //! diagram shows up as a number rather than a feeling.
 //!
 //! It also times loading the project and encoding it for a save. VIEW
-//! (axonometric or explode) changes the view, SELECT_RADIUS frames a sheet
+//! (plan, axonometric or explode) changes the view, SELECT_RADIUS frames a sheet
 //! area that many metres around the site centre, and DUMP_DIR writes every
 //! SVG there to look at.
 //!
@@ -68,6 +68,7 @@ fn main() {
         look.variant = None;
         look.selection = selection.clone();
         look.view.mode = match std::env::var("VIEW").as_deref() {
+            Ok("plan") => ViewMode::Plan,
             Ok("axonometric") => ViewMode::Axonometric,
             Ok("explode") => ViewMode::Explode,
             _ => look.view.mode,

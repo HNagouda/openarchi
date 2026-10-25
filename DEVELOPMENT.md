@@ -134,6 +134,13 @@ cargo run --release -p openarchi-core --example render_timing -- <library folder
 VIEW=axonometric SELECT_RADIUS=150 DUMP_DIR=.scratch/svgs cargo run --release -p openarchi-core --example render_timing -- <library folder> <project id>
 ```
 
+Then time what WebKit does with those SVGs, which on a large site is most of an edit. `scripts/paint-timing.swift` (macOS) shows each dumped SVG in a WebKit view the size of the sheet and prints how long it takes to appear; an empty sheet takes about 33 ms. On a 1.1 km site at 1:5650 the core writes a sheet in about 75 ms and WebKit takes 250 to 370 ms to paint it. What costs is the amount of geometry and the number of elements that carry a fill pattern, not the element count as such, which is why each layer draws all its areas as one path.
+
+```sh
+swiftc -O scripts/paint-timing.swift -o target/paint-timing
+target/paint-timing .scratch/svgs/*.svg
+```
+
 `compute_timing` times the layers worked out when drawn (the woods that block, the hours of sun, the sky view, the solar radiation, the city blocks, the wind solve and the view from the site centre) on scenes written by `fetch_site`, so a slow one shows up before it reaches the app. It times the work itself; the app keeps each result between redraws (`memo.rs`).
 
 `library_timing` times the project list, the check whether someone else saved a project, and a save the way the app saves after an edit. It saves into the library's backups, so give it a copy: `cargo run --release -p openarchi-core --example library_timing -- <copy of a library folder>`.
