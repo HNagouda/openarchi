@@ -1,13 +1,14 @@
 //! Saving a theme an assistant designed into the user's themes folder.
 //!
 //! The theme is checked by `catalog::read_theme`, the same function the app
-//! uses to load themes, so a theme that saves here is one the app will open.
+//! uses to load themes, so a theme that saves here is one the app will open,
+//! and refused when its text is hard to read, as the app's palette editor does.
 
 use std::io::Write;
 
-use openarchi_core::catalog;
 use openarchi_core::library::Library;
 use openarchi_core::theme::Theme;
+use openarchi_core::{catalog, palette};
 use serde_json::{Map, Value};
 
 use crate::server::text;
@@ -21,6 +22,13 @@ pub fn save_user_theme(library: &Library, theme_json: Map<String, Value>) -> Res
     }
 
     let theme = validate(&Value::Object(theme_json))?;
+    // The app's palette editor will not save a theme whose text cannot be read, so neither does this.
+    if !palette::is_readable(&theme) {
+        return Err(format!(
+            "'{id}' is hard to read: ink {} on paper {} needs more contrast for text",
+            theme.palette.ink, theme.palette.paper
+        ));
+    }
     // The library moves a theme it replaces to Recently Deleted first.
     library.save_theme(&theme).map_err(text)?;
     Ok(theme)

@@ -269,6 +269,26 @@ fn created_theme_is_saved_and_listed() {
 }
 
 #[test]
+fn created_theme_with_unreadable_text_is_refused_as_in_the_palette_editor() {
+    let mut server = Server::start();
+    let listed = server.call_ok("list_themes", json!({ "full": true }));
+    let mut theme = listed["themes"][0].clone();
+    theme["id"] = json!("pale-on-pale");
+    theme["name"] = json!("Pale on pale");
+    theme["palette"]["paper"] = json!("#FFFFFF");
+    theme["palette"]["ink"] = json!("#EEEEEE");
+
+    let message = server.call_err("create_theme", json!({ "theme_json": theme }));
+
+    assert!(message.contains("hard to read"), "{message}");
+    assert!(!server
+        .library
+        .path()
+        .join("themes/pale-on-pale.json")
+        .exists());
+}
+
+#[test]
 fn import_palette_saves_a_theme_set_look_can_use_and_lists_it() {
     let mut server = Server::start();
     let imported = server.call_ok(

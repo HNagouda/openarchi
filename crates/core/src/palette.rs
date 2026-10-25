@@ -187,8 +187,9 @@ fn swatch_index(swatches: &mut Vec<Swatch>, hex: &str) -> usize {
     swatches.len() - 1
 }
 
-/// Text in ink on paper, which a sheet cannot do without.
-fn is_readable(theme: &Theme) -> bool {
+/// Text in ink on paper, which a sheet cannot do without. The app's palette
+/// editor and the assistant's create_theme both refuse a theme without it.
+pub fn is_readable(theme: &Theme) -> bool {
     let palette = &theme.palette;
     contrast_ratio(&palette.ink, &palette.paper) >= TEXT_CONTRAST
 }
