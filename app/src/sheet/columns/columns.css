@@ -77,7 +77,7 @@
 
 /* A wider diagram column shows bigger thumbnails: the usual 56 px at the usual
    232 px width, growing with the column. Scoped under the column so this wins
-   over sheet.css whichever loads last. */
+   over diagram-column.css whichever loads last. */
 .diagram-column {
   container: diagram-column / inline-size;
 }

@@ -391,6 +391,8 @@ fn no_project(id: &str) -> Error {
 }
 
 #[cfg(test)]
+mod format_tests;
+#[cfg(test)]
 mod packed_save_tests;
 #[cfg(test)]
 mod tests;

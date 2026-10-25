@@ -1,0 +1,124 @@
+/* * ==== layers ==== */
+
+/* Rows line up with the section header: the chevron sits under its chevron. */
+.layer-list {
+  list-style: none;
+  margin: 0 -10px;
+  padding: 0;
+}
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding-right: 2px;
+  border-radius: var(--radius);
+  transition: background var(--fast) var(--ease);
+}
+
+.layer-row:hover,
+.layer.is-open .layer-row {
+  background: var(--hover);
+}
+
+.layer-row.is-hidden .layer-name,
+.layer-row.is-hidden .layer-swatch {
+  opacity: 0.4;
+}
+
+.layer-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 6px 0 4px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  text-align: left;
+}
+
+.layer-chevron {
+  flex: none;
+  display: inline-flex;
+  margin-right: -2px;
+  color: var(--text-3);
+  transition: transform var(--medium) var(--ease), color var(--fast) var(--ease);
+}
+
+.layer-row:hover .layer-chevron {
+  color: var(--text);
+}
+
+.layer.is-open .layer-chevron {
+  transform: rotate(90deg);
+  color: var(--text);
+}
+
+.layer-swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-s);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
+}
+
+.layer-swatch.is-empty {
+  background: var(--surface);
+}
+
+.layer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layer-edited {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.layer-badge {
+  padding: 0 5px;
+  border-radius: var(--radius-s);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.layer-eye {
+  width: 26px;
+  height: 26px;
+  color: var(--text-3);
+}
+
+.layer-eye.is-off {
+  color: var(--text);
+}
+
+/* The detail hangs from the row like an open drawer, aligned with the layer name. */
+.layer-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 8px 11px;
+  padding: 10px 8px 10px 23px;
+  border-left: 1px solid var(--line-strong);
+  animation: fade-in var(--medium) var(--ease);
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 8px;
+}

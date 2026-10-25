@@ -1,0 +1,167 @@
+/* * ==== inspector ==== */
+
+.inspector-slot {
+  flex: none;
+  width: 0;
+  overflow: hidden;
+  border-left: 1px solid transparent;
+  background: var(--bg);
+  transition: width var(--medium) var(--ease), border-color var(--medium) var(--ease);
+}
+
+.inspector-slot.is-open {
+  width: var(--inspector-width);
+  border-left-color: var(--line);
+}
+
+.inspector {
+  width: var(--inspector-width);
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.inspector-note {
+  margin: 10px 0 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.text-button {
+  height: 22px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.text-button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* * ==== palette picker ==== */
+
+.section-keys {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.section-keys .keys {
+  height: 18px;
+  min-width: 18px;
+  font-size: 11px;
+}
+
+.theme-picker {
+  position: relative;
+}
+
+.theme-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px 0 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--text-3);
+  text-align: left;
+  transition: box-shadow var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+
+.theme-trigger:hover,
+.theme-trigger.is-open {
+  box-shadow: inset 0 0 0 1px var(--text-3);
+}
+
+.theme-trigger-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-strip {
+  flex: none;
+  display: flex;
+  width: 70px;
+  height: 20px;
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
+}
+
+.theme-strip span {
+  flex: 1;
+}
+
+.theme-menu {
+  position: absolute;
+  top: 38px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  animation: sheet-in var(--fast) var(--ease);
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 32px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  text-align: left;
+}
+
+.theme-option:hover,
+.theme-option:focus-visible {
+  background: var(--hover);
+  outline: none;
+}
+
+.theme-option-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.theme-option.is-selected .theme-option-name {
+  font-weight: 500;
+}
+
+.theme-option-check {
+  flex: none;
+  width: 14px;
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.theme-menu-heading {
+  margin: 6px 6px 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--text-3);
+  font-size: 11.5px;
+}

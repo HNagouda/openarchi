@@ -17,7 +17,7 @@ crates/core/            the library: no window, no async
   src/area.rs           the site the user drew, in lon/lat
   src/scene.rs          a fetched site: every feature in RD New metres, and the Layer list
   src/site.rs           build_scene: fetch every tile, join, clip
-  src/site/             the drawn boundary, the neighbourhood around it, fetching tiles from the cache or PDOK, and the water bed and levels for sections
+  src/site/             the drawn boundary, the neighbourhood around it, fetching tiles from the cache or PDOK, joining and clipping them (join.rs), and the water bed and levels for sections
   src/sources/          one module per data service (BGT, BAG, BRK, AHN, OpenStreetMap), shared paging,
                         the 250 m tile grid and the tile cache
   src/crs.rs            WGS84 to RD New and back
@@ -84,7 +84,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | Something drawn on the ground of every map, like highlights | a module in `crates/core/src/render/`, called from `map::draw` for maps whose `MapSpec::has_highlights` is set |
 | A new view mode | a `ViewMode` in `view.rs`, drawn by a module in `crates/core/src/render/` that returns a `SheetDrawing`, like `render/section.rs` |
 | A new export format | `crates/core/src/export/` |
-| A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs`, the rule in `notes.rs` |
+| A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs` (a climate section's facts in `sections/climate_facts.rs`), the rule in `notes.rs` |
 | A new kind of report block | a `Content` variant in `crates/core/src/report.rs`, drawn in `report/draw.rs`, offered in `app/src/report/library.ts` |
 | A new assistant tool | `crates/mcp/src/server.rs` |
 | A screen or control | `app/src/<screen>/`, with the Tauri command in `app/src-tauri/src/commands/` |

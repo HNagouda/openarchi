@@ -1,0 +1,48 @@
+/* * ==== top bar shared by every screen ==== */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--topbar-height);
+  padding: 0 10px 0 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  flex: none;
+  position: relative;
+  z-index: 5;
+}
+
+/* Room for the inset traffic lights on macOS. */
+:root[data-platform="mac"] .topbar {
+  padding-left: 84px;
+}
+
+.topbar-spacer {
+  flex: 1;
+  align-self: stretch;
+}
+
+.topbar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--line-strong);
+  margin: 0 4px;
+}
+
+.topbar-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.topbar-subtle {
+  color: var(--text-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
