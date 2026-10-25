@@ -2,9 +2,12 @@
 // selected one's handles, a bar to restyle it, open it as a sheet or delete
 // it, and a field for its label while it is being edited.
 
-import { useLayoutEffect, useState } from "react";
+import { useContext, useLayoutEffect, useRef, useState } from "react";
 import type { Highlight } from "../../lib/types";
 import { Button } from "../../ui/Button";
+import { ColorPicker, PaletteSwatches } from "../../ui/ColorPicker";
+import { ColorPopover } from "../../ui/ColorPopover";
+import { rememberColour } from "../../ui/colour";
 import type { PaperView } from "../Canvas";
 import { LabelField } from "../pins/PinOverlay";
 import type { Point } from "../pins/sheetPins";
@@ -97,13 +100,47 @@ export function HighlightOverlay(props: Props) {
   );
 }
 
-function HighlightBar({ highlight, highlights, onHighlights, onEdit, onDeleted, onOpenAsSheet }: Props & { highlight: Highlight }) {
-  const change = (patch: Partial<Omit<Highlight, "id">>) => onHighlights(withChangedHighlight(highlights, highlight.id, patch));
+function HighlightBar({ highlight, highlights, onHighlights, onSeal, onEdit, onDeleted, onOpenAsSheet }: Props & { highlight: Highlight }) {
+  const [isColourOpen, setColourOpen] = useState(false);
+  const swatch = useRef<HTMLButtonElement>(null);
+  const palette = useContext(PaletteSwatches);
+  // A role shows as what it is on this sheet's palette.
+  const shown = palette.find((role) => role.value === highlight.colour)?.colour ?? highlight.colour;
+  const change = (patch: Partial<Omit<Highlight, "id">>, mergeKey?: string) =>
+    onHighlights(withChangedHighlight(highlights, highlight.id, patch), mergeKey);
+
+  const closeColour = () => {
+    setColourOpen(false);
+    rememberColour(shown);
+    onSeal();
+  };
 
   return (
     <div className="pin-toolbar" role="toolbar" aria-label="Highlight" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
       <Button icon="lineSolid" tip="Solid outline, for what is there" isActive={highlight.outline === "solid"} onClick={() => change({ outline: "solid" })} />
       <Button icon="lineDashed" tip="Dashed outline, for what is proposed" isActive={highlight.outline === "dashed"} onClick={() => change({ outline: "dashed" })} />
+      <Button icon="lineDotted" tip="Dotted outline, for what is studied" isActive={highlight.outline === "dotted"} onClick={() => change({ outline: "dotted" })} />
+      <button
+        ref={swatch}
+        type="button"
+        className="swatch highlight-colour"
+        style={{ background: shown }}
+        data-tip="Colour"
+        aria-label="Highlight colour"
+        aria-expanded={isColourOpen}
+        onClick={() => (isColourOpen ? closeColour() : setColourOpen(true))}
+      />
+      {isColourOpen && (
+        <ColorPopover anchor={swatch.current} label="Highlight colour" onClose={closeColour}>
+          <ColorPicker
+            value={shown}
+            acceptsRoles
+            selected={highlight.colour}
+            swatches={palette}
+            onChange={(colour) => change({ colour }, `colour:${highlight.id}`)}
+          />
+        </ColorPopover>
+      )}
       <span className="toolbar-divider" />
       <Button icon="dim" tip="Dim the rest of the sheet" isActive={highlight.dims_rest} onClick={() => change({ dims_rest: !highlight.dims_rest })} />
       <Button icon="measure" tip="Show the area in m²" isActive={highlight.shows_area} onClick={() => change({ shows_area: !highlight.shows_area })} />

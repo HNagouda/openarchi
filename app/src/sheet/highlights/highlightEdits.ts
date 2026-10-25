@@ -16,6 +16,8 @@ export const HIGHLIGHT_KINDS: { kind: HighlightKind; label: string; drawTip: str
 export const UNLABELLED = "Highlighted area";
 // The same limit as the core's MIN_AREA_M2: less is a slip of the mouse.
 export const MIN_AREA_M2 = 4;
+// What a highlight is drawn in until the user picks a colour, as in crates/core/src/highlight.rs.
+export const DEFAULT_COLOUR = "@accent";
 // A shape placed from the keyboard, before it is reshaped: about a house on its plot.
 const PLACED_HALF_M = 10;
 // Enough segments that a drafted circle looks round.
@@ -40,9 +42,9 @@ export function withoutHighlight(highlights: Highlight[], id: string): Highlight
   return highlights.filter((highlight) => highlight.id !== id);
 }
 
-/** A fresh highlight with the plainest style: a solid outline, nothing dimmed, no area. */
+/** A fresh highlight with the plainest style: a solid outline in the accent, nothing dimmed, no area. */
 export function newHighlight(id: string, shape: HighlightShape): Highlight {
-  return { id, label: "", shape, outline: "solid", dims_rest: false, shows_area: false };
+  return { id, label: "", shape, outline: "solid", colour: DEFAULT_COLOUR, dims_rest: false, shows_area: false };
 }
 
 /** The shape a drag from `start` to `end` draws, or a polygon through `points`. */

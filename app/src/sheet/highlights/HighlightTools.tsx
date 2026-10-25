@@ -12,7 +12,7 @@ import "./highlights.css";
 type Props = {
   look: Look;
   isReady: boolean;
-  /** False on an explode or section view, where highlights are not edited. */
+  /** False on a section view, where highlights are not drawn. */
   isAvailable: boolean;
   drawingKind: HighlightKind | null;
   onDraw: (kind: HighlightKind) => void;
@@ -24,7 +24,7 @@ type Props = {
 export function HighlightTools({ look, isReady, isAvailable, drawingKind, onDraw, onStop, onPlace, onLook }: Props) {
   const areHidden = look.hide_highlights ?? false;
   const isOff = !isReady || !isAvailable || areHidden;
-  const offTip = !isReady ? "Highlights need a fetched site" : areHidden ? "Highlights are hidden on this sheet" : "Highlights are drawn on a plan or an axonometric view";
+  const offTip = !isReady ? "Highlights need a fetched site" : areHidden ? "Highlights are hidden on this sheet" : "Highlights are drawn on a plan, axonometric or explode view";
 
   return (
     <div className="highlight-tools" role="toolbar" aria-label="Highlights">

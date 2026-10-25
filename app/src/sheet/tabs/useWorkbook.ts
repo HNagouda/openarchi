@@ -117,17 +117,6 @@ export function useWorkbook(project: ProjectView) {
     else if (from > index && to <= index) setActive(index + 1);
   };
 
-  /** Frames the showing sheet to `selection`, or the whole site, at the scale that fills the paper. */
-  const applySelection = async (selection: Area | null) => {
-    const framed: Look = { ...look, selection };
-    try {
-      const scale = await fittingScale(framed);
-      changeLook({ ...framed, sheet: { ...framed.sheet, scale } });
-    } catch (error) {
-      toast(`Couldn't use that area. ${errorText(error)}`, { isError: true });
-    }
-  };
-
   return {
     book,
     look,
@@ -148,6 +137,5 @@ export function useWorkbook(project: ProjectView) {
     deleteSheet,
     renameSheet,
     moveSheet,
-    applySelection,
   };
 }

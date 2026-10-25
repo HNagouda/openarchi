@@ -155,13 +155,15 @@ export type HighlightShape =
   | { kind: "rectangle"; min: [number, number]; max: [number, number] }
   | { kind: "polygon"; points: [number, number][] };
 export type HighlightKind = HighlightShape["kind"];
-export type Outline = "solid" | "dashed";
+export type Outline = "solid" | "dashed" | "dotted";
 /** An area marked inside the site, shown on every sheet that does not hide highlights. */
 export type Highlight = {
   id: string;
   label: string;
   shape: HighlightShape;
   outline: Outline;
+  /** A palette role like "@accent", or "#RRGGBB". */
+  colour: string;
   dims_rest: boolean;
   shows_area: boolean;
 };

@@ -31,7 +31,6 @@ import { PinOverlay } from "./pins/PinOverlay";
 import { usePinTool } from "./pins/usePinTool";
 import { useSheetHighlights } from "./highlights/useSheetHighlights";
 import { doubleClickPaper, pressPaper } from "./paperPress";
-import { SelectionDialog } from "./selection/SelectionDialog";
 import { SectionOverlay } from "./section/SectionOverlay";
 import { useSectionTool } from "./section/useSectionTool";
 import { SheetTabs } from "./tabs/SheetTabs";
@@ -54,7 +53,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const [project, setProject] = useState(initial);
   const history = useWorkbook(initial);
   const { book, look } = history;
-  const [isAreaOpen, setAreaOpen] = useState(false);
   const [revision, setRevision] = useState(0);
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
   const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
@@ -81,7 +79,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const sheetCount = diagrams.reduce((count, entry) => count + Math.max(1, entry.variants.length), 0);
   const theme = themes.find((entry) => entry.id === look.theme_id);
   const swatches = theme ? paletteSwatches(theme.palette) : [];
-  const isEditable = !isExportOpen && !isAreaOpen && !isReportsOpen && isReady;
+  const isEditable = !isExportOpen && !isReportsOpen && isReady;
   const textTool = useTextTool(look, { change: history.changeLook, seal: history.seal }, canvas, preview.svg, isEditable);
   const pinTool = usePinTool({
     pins: book.pins,
@@ -106,7 +104,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   });
   const sectionTool = useSectionTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: isEditable, onRefused: (message) => toast(message) });
   const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool };
-  useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isAreaOpen && !isReportsOpen);
+  useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
 
   // A new diagram starts on its first variant.
   const selectDiagram = (diagram_id: string) => {
@@ -182,8 +180,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   }, [isInspectorOpen, isDiagramsOpen]);
 
   useCommandHandler((id) => {
-    // The area dialog has no undo of its own; the sheet's must not change under it.
-    if ((id === "undo" || id === "redo") && isAreaOpen) return true;
     if (id === "undo") {
       history.undo();
       return true;
@@ -223,7 +219,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       event.preventDefault();
       steps[key]();
     }
-  }, !isExportOpen && !isAreaOpen && !isReportsOpen);
+  }, !isExportOpen && !isReportsOpen);
 
   const saveText = { saved: "Saved", pending: "Edited", saving: "Saving…", failed: "Not saved" }[autosave.status];
 
@@ -341,7 +337,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             onLook={history.changeLook}
             onDropPin={pinTool.dropAt}
             onPlacePin={pinTool.placeInView}
-            onEditArea={() => setAreaOpen(true)}
             isDrawingSection={sectionTool.isDrawing}
             onSectionTool={sectionTool.toggle}
             highlightTools={highlights.tabTools}
@@ -377,17 +372,6 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           variantId={variant?.id ?? null}
           sheetCount={sheetCount}
           onClose={() => setExportOpen(false)}
-        />
-      )}
-      {isAreaOpen && (
-        <SelectionDialog
-          site={project.area}
-          selection={look.selection ?? null}
-          onApply={(selection) => {
-            setAreaOpen(false);
-            history.applySelection(selection);
-          }}
-          onClose={() => setAreaOpen(false)}
         />
       )}
     </div>

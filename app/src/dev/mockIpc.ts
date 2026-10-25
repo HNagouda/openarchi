@@ -156,8 +156,9 @@ async function answer(command: string, args: Args) {
     const svg = await fetch(`${FIXTURES}/previews/${name}.svg`).then((response) => response.text());
     if (shown.view.mode === "section") return svg;
     const withLine = withMockSection(svg, shown);
-    // The explode fixture's ground points belong to its top plate, so its highlights are left off, as the app edits none there.
-    const highlights = shown.hide_highlights || shown.view.mode === "explode" ? [] : ((args.highlights as Highlight[] | undefined) ?? []);
+    // The explode fixture's ground points belong to its top plate, so the mock draws highlights there only;
+    // the core draws them on every plate.
+    const highlights = shown.hide_highlights ? [] : ((args.highlights as Highlight[] | undefined) ?? []);
     const withHighlights = withMockHighlights(withLine, highlights);
     return shown.hide_pins ? withHighlights : withMockPins(withHighlights, (args.pins as Pin[] | undefined) ?? []);
   }

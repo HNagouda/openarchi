@@ -12,6 +12,7 @@ const ACCENT = "#c4502a";
 const TINT_OPACITY = 0.16;
 const OUTLINE_MM = 0.6;
 const DASH = "1.8 1.1";
+const DOTS = "0 1.5";
 const LABEL_SIZE_MM = 3.8;
 const LABEL_GAP_MM = 1.2;
 
@@ -23,16 +24,23 @@ export function withMockHighlights(svg: string, highlights: Highlight[]): string
   const groups = highlights.map((highlight) => {
     const points = ringOf(highlight.shape).map(({ x, y }) => toPaper(x, y));
     const path = `M${points.map(([x, y]) => `${x} ${y}`).join("L")}Z`;
-    const dash = highlight.outline === "dashed" ? ` stroke-dasharray="${DASH}"` : "";
+    const colour = mockColour(highlight.colour);
+    const dash =
+      highlight.outline === "dashed" ? ` stroke-dasharray="${DASH}"` : highlight.outline === "dotted" ? ` stroke-dasharray="${DOTS}" stroke-linecap="round"` : "";
     const left = Math.min(...points.map(([x]) => x));
     const right = Math.max(...points.map(([x]) => x));
     const top = Math.min(...points.map(([, y]) => y));
     const label = highlight.label
       ? `<text x="${(left + right) / 2}" y="${top - LABEL_GAP_MM}" font-size="${LABEL_SIZE_MM}" text-anchor="middle" fill="#222" stroke="#fff" stroke-width="0.6" paint-order="stroke">${escape(highlight.label)}</text>`
       : "";
-    return `<path data-highlight="${highlight.id}" d="${path}" fill="${ACCENT}" fill-opacity="${TINT_OPACITY}" stroke="${ACCENT}" stroke-width="${OUTLINE_MM}"${dash}/>${label}`;
+    return `<path data-highlight="${highlight.id}" d="${path}" fill="${colour}" fill-opacity="${TINT_OPACITY}" stroke="${colour}" stroke-width="${OUTLINE_MM}"${dash}/>${label}`;
   });
   return svg.replace("</svg>", `<g id="highlights">${groups.join("")}</g></svg>`);
+}
+
+// The mock knows no palette, so every role draws in the fixture's accent; a hex draws as itself.
+function mockColour(colour: string): string {
+  return colour.startsWith("@") ? ACCENT : colour;
 }
 
 /** The sheet area a highlight opens as, as the core's `HighlightShape::to_area` gives it. */

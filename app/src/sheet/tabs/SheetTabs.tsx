@@ -1,5 +1,6 @@
 // The bar under the sheet: one tab per sheet, and on the right the tools that
-// belong to the showing sheet, its pins, its highlights, its section line and the area it frames.
+// belong to the showing sheet: its pins, its highlights and its section line. A
+// sheet of part of the site comes from a highlight's Open as sheet.
 
 import type { ReactNode } from "react";
 import type { Look, PinIcon } from "../../lib/types";
@@ -22,7 +23,6 @@ type Props = {
   onLook: (next: Look) => void;
   onDropPin: (icon: PinIcon, clientX: number, clientY: number) => void;
   onPlacePin: (icon: PinIcon) => void;
-  onEditArea: () => void;
   isDrawingSection: boolean;
   onSectionTool: () => void;
   /** The highlight tool, which SheetStep wires to its own state. */
@@ -33,7 +33,6 @@ export function SheetTabs(props: Props) {
   const { book, index, look, isReady } = props;
   const tabs: Tab[] = book.sheets.map((sheet, at) => ({ key: `sheet-${at}`, label: sheetName(sheet, at) }));
   const arePinsHidden = look.hide_pins ?? false;
-  const hasArea = Boolean(look.selection);
   const isSectionView = look.view.mode === "section";
   const sectionTip = isSectionView ? "Section lines are drawn on the plan" : look.section ? "Draw the section line again" : "Draw a section line";
 
@@ -74,16 +73,6 @@ export function SheetTabs(props: Props) {
         disabled={!isReady || isSectionView}
         onClick={props.onSectionTool}
       />
-      <Button
-        icon="area"
-        className={hasArea ? "area-button is-set" : "area-button"}
-        tip={hasArea ? "Change or clear the area this sheet shows" : "Show a smaller area on this sheet"}
-        tipSide="above"
-        disabled={!isReady}
-        onClick={props.onEditArea}
-      >
-        {hasArea ? "Part of the site" : "Whole site"}
-      </Button>
     </TabBar>
   );
 }

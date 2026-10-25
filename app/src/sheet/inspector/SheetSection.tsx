@@ -9,7 +9,8 @@ import { Segmented } from "../../ui/Segmented";
 import { Toggle } from "../../ui/Toggle";
 import { withSheet } from "./lookEdits";
 
-const MIN_SCALE = 500;
+// Down to 1:50, the largest round scale a sheet opened from a small highlight fits to.
+const MIN_SCALE = 50;
 const MAX_SCALE = 10_000;
 const SCALE_STEP = 50;
 

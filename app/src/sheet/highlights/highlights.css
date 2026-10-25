@@ -53,3 +53,7 @@ polyline.highlight-draft {
 .highlight-tools .button.is-active {
   color: var(--accent);
 }
+
+.highlight-colour {
+  margin: 0 5px;
+}

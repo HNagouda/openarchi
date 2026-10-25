@@ -29,9 +29,15 @@ export function rdToPaper(paper: Element | null): ((point: Point) => Point) | nu
 
 /** The highlight under a paper point, the one drawn last when several overlap. */
 export function highlightAt(paper: Element | null, point: Point): string | null {
-  const paths = paper ? [...paper.querySelectorAll<SVGPathElement>("path[data-highlight]")] : [];
+  // An explode view draws each highlight on every plate, but only the top plate lies on the sheet's ground.
+  const paths = paper ? [...paper.querySelectorAll<SVGPathElement>("path[data-highlight]")].filter(isOnGround) : [];
   const hits = paths.filter((path) => path.isPointInFill(svgPoint(path, point)) || isNearEdge(path, svgPoint(path, point)));
   return hits[hits.length - 1]?.getAttribute("data-highlight") ?? null;
+}
+
+function isOnGround(path: SVGPathElement): boolean {
+  const plate = path.closest("[data-plate]");
+  return plate === null || plate.getAttribute("data-index") === "0";
 }
 
 /** Near the outline counts too, so a thin ring of a highlight can be picked up by its edge. */

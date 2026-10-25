@@ -7,8 +7,8 @@
 // body or its handles. Like pins, only the drop changes the highlights, so
 // every edit is one undo step, and paper points go through the sheet's ground
 // points into RD New metres, so a shape drawn on a tilted view lies on the
-// same ground in every other view. An explode view draws highlights on its
-// bottom plate, whose ground the sheet does not carry, so it is not edited there.
+// same ground in every other view. An explode view draws highlights on every
+// plate but carries the top plate's ground, so they are edited there, as pins are.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { usePlainKeys } from "../../lib/keys";
@@ -74,8 +74,8 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
   latest.current = highlights;
   const latestCorners = useRef(corners);
   latestCorners.current = corners;
-  const isAvailable = look.view.mode === "plan" || look.view.mode === "axonometric";
-  const unavailable = "Highlights are drawn and edited on a plan or an axonometric view.";
+  const isAvailable = look.view.mode !== "section";
+  const unavailable = "Highlights are drawn and edited on a plan, axonometric or explode view.";
 
   // The core's new SVG has the shape where the drop put it.
   useEffect(() => setPreview(null), [svg]);
