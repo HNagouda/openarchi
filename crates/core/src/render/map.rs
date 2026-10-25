@@ -4,24 +4,24 @@
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
-use geo::CoordsIter;
-
-use super::color;
 use super::context::{self, ContextArea, Neighbourhood};
 use super::cull;
 use super::derived;
-use super::drawing::{pattern_id, shadow_colour, write_layer, Canvas, Drawn};
-use super::frame::{ground_outline, FrameShape};
-use super::geometry::{ground_centre, Projection};
+use super::drawing::{pattern_id, write_layer, Canvas, Drawn};
+use super::frame::FrameShape;
+use super::geometry::Projection;
 use super::highlights::{self, HighlightLayer};
-use super::layout::{Layout, Rect};
-use super::legend::{self, Legend, Row, Swatch};
+use super::layout::Rect;
+use super::legend::{self, Legend};
+use super::map_legend::{add_lines_to_mode_rows, add_merged_row};
+use super::map_shadows::{
+    shadow_casters, shadow_row, write_shadows, AMBIENT_SHADOW_OPACITY, DIAGRAM_SHADOW_OPACITY,
+};
 use super::massing;
 use super::patterns;
 use super::points::{self, PointLayer};
-use super::shadow;
 use super::solid::{self, Neighbours};
-use super::style::{self, ResolvedLayer};
+use super::style;
 use super::sunpath::{self, SunPath};
 use super::svg::layer_attributes;
 use super::typeset::Typesetter;
@@ -30,27 +30,9 @@ use super::walk_bands::{self, Bands};
 use super::RenderInput;
 use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER};
 use crate::scene::{Feature, Layer, Scene};
-use crate::sources::osm;
-use crate::sun::{self, SunPosition};
+use crate::sun;
 use crate::theme::Theme;
 use crate::Result;
-
-/// Shadows in the shadow diagram: clearly there, but the ground still reads through.
-const DIAGRAM_SHADOW_OPACITY: f64 = 0.32;
-/// Shadows that only light a tilted view: soft, so they model without shouting.
-const AMBIENT_SHADOW_OPACITY: f64 = 0.2;
-/// A cool blue-grey the ambient shadows lean towards, the colour of shade outdoors.
-const COOL_SHADE: &str = "#4A5878";
-const COOL_SHARE: f64 = 0.35;
-const MERGED_LABEL: &str = "Larger symbol: several places, or a big bicycle park";
-/// Room around the furthest walk band, so its edge does not touch the frame.
-const WALK_FRAME_MARGIN: f64 = 1.04;
-/// Scale denominators a fitted sheet snaps to, a tilted view or a sheet area,
-/// so the note reads like a real scale. Down to 1:50, for a sheet of one plot.
-pub(super) const NICE_SCALES: [u32; 21] = [
-    50, 100, 200, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 6000, 7500, 10_000,
-    12_500, 15_000, 20_000, 25_000, 50_000,
-];
 
 /// What a sheet's drawing zone ends up holding, for the furniture to describe.
 pub struct SheetDrawing {
@@ -99,225 +81,13 @@ pub struct Map {
     pub legend: Legend,
 }
 
-pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Result<SheetDrawing> {
-    let sheet = &input.look.sheet;
-    let zone = layout.drawing;
-    let mut projection = Projection::new(&input.scene.boundary, sheet.scale, &zone);
-    let mut scale = sheet.scale;
-    let mut reach_m = None;
-    if let Some(walk_reach_m) = walk_reach(input, projection.ground_centre) {
-        // Zoom out until the walk fits, and never in past the sheet's own scale.
-        let fitting_mm_per_m = zone.width.min(zone.height) / (2.0 * walk_reach_m);
-        scale = fitted_scale(sheet.scale, fitting_mm_per_m);
-        projection = projection.scaled_to(1000.0 / scale as f64);
-        // The frame takes in the whole site too, but stops at the drawing zone,
-        // so a site larger than the walk is cut off rather than run into the legend.
-        let zone_reach_m = zone.width.min(zone.height) / 2.0 / projection.mm_per_m;
-        let site_reach_m = site_reach(input.scene, projection.ground_centre);
-        reach_m = Some(walk_reach_m.max(site_reach_m).min(zone_reach_m));
-    }
-    let spec = MapSpec {
-        diagram: input.diagram,
-        projection,
-        crop_zone: Some(zone),
-        scope: String::new(),
-        has_volume: false,
-        is_plate: false,
-        reach_m,
-        context: Some(ContextArea {
-            zone,
-            reach_m: None,
-        }),
-        has_highlights: true,
-        has_highlight_labels: true,
-    };
-    let map = draw(input, &spec, typesetter)?;
-
-    Ok(SheetDrawing {
-        defs: map.defs,
-        body: map.body,
-        legend: sheet.show_legend.then_some(map.legend),
-        mm_per_m: projection.mm_per_m,
-        scale,
-        north_deg: 0.0,
-        is_foreshortened: false,
-        title_name: input.diagram.name.clone(),
-        ground: projection,
-    })
-}
-
-pub fn axonometric(
-    input: &RenderInput,
-    layout: &Layout,
-    typesetter: &Typesetter,
-) -> Result<SheetDrawing> {
-    let sheet = &input.look.sheet;
-    let view = &input.look.view;
-    let scene = input.scene;
-    let centre = ground_centre(&scene.boundary);
-    let unit_view = Projection::tilted(centre, 1.0, view.rotation_deg, view.tilt_deg);
-    let tallest = if input.diagram.layers.contains(&Layer::Building) {
-        tallest_building(scene)
-    } else {
-        0.0
-    };
-
-    // The frame's outline at ground level and at the tallest roof, at 1 mm per metre.
-    let mut bounds = Bounds::default();
-    for (x, y) in ground_outline(sheet.frame, scene, centre) {
-        bounds.add(unit_view.to_paper_at(x, y, 0.0));
-        bounds.add(unit_view.to_paper_at(x, y, tallest));
-    }
-    let zone = layout.drawing;
-    let fitting_mm_per_m = (zone.width / bounds.width()).min(zone.height / bounds.height());
-    let scale = fitted_scale(sheet.scale, fitting_mm_per_m);
-    let mm_per_m = 1000.0 / scale as f64;
-    let (middle_x, middle_y) = bounds.middle();
-    let (zone_x, zone_y) = zone.centre();
-    let projection = unit_view
-        .scaled_to(mm_per_m)
-        .moved_to((zone_x - middle_x * mm_per_m, zone_y - middle_y * mm_per_m));
-
-    let spec = MapSpec {
-        diagram: input.diagram,
-        projection,
-        crop_zone: None,
-        scope: String::new(),
-        has_volume: true,
-        is_plate: false,
-        reach_m: None,
-        context: Some(ContextArea {
-            zone,
-            reach_m: None,
-        }),
-        has_highlights: true,
-        has_highlight_labels: true,
-    };
-    let map = draw(input, &spec, typesetter)?;
-
-    Ok(SheetDrawing {
-        defs: map.defs,
-        body: map.body,
-        legend: sheet.show_legend.then_some(map.legend),
-        mm_per_m,
-        scale,
-        north_deg: projection.north_angle_deg(),
-        is_foreshortened: true,
-        title_name: input.diagram.name.clone(),
-        ground: projection,
-    })
-}
-
-/// The sheet's own scale when the drawing fits at it, or the nearest round scale that does.
-pub(super) fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
-    let needed = 1000.0 / fitting_mm_per_m;
-    if sheet_scale as f64 >= needed {
-        return sheet_scale;
-    }
-
-    NICE_SCALES
-        .iter()
-        .copied()
-        .find(|&scale| scale as f64 >= needed)
-        .unwrap_or_else(|| (needed / 1000.0).ceil() as u32 * 1000)
-}
-
-/// A row after the classes saying what a larger symbol means.
-fn add_merged_row(legend: &mut Legend, ink: &str) {
-    let after_classes = legend
-        .rows
-        .iter()
-        .rposition(|row| matches!(row.swatch, Swatch::Symbol { .. }))
-        .map_or(0, |index| index + 1);
-    legend.rows.insert(
-        after_classes,
-        Row {
-            label: MERGED_LABEL.to_string(),
-            swatch: Swatch::Dot {
-                fill: None,
-                stroke: Some(ink.to_string()),
-                opacity: 1.0,
-            },
-        },
-    );
-}
-
-/// For a walk diagram, how far its furthest drawn band reaches from `centre`,
-/// with a little room. `None` for other diagrams and scenes without a walk.
-fn walk_reach(input: &RenderInput, centre: (f64, f64)) -> Option<f64> {
-    let minutes = f64::from(input.diagram.walk_minutes?);
-    let walk = input.scene.walk.as_ref()?;
-    let furthest = walk
-        .bands
-        .iter()
-        .filter(|band| {
-            band.attributes
-                .walk_min
-                .is_some_and(|band_min| band_min <= minutes)
-        })
-        .flat_map(|band| band.geometry.coords_iter())
-        .map(|coord| ((coord.x - centre.0).powi(2) + (coord.y - centre.1).powi(2)).sqrt())
-        .fold(0.0, f64::max);
-
-    (furthest > 0.0).then_some(furthest * WALK_FRAME_MARGIN)
-}
-
-/// The furthest the site boundary reaches from `centre`, so a zoomed-out frame never cuts the site.
-fn site_reach(scene: &Scene, centre: (f64, f64)) -> f64 {
-    scene
-        .boundary
-        .exterior()
-        .0
-        .iter()
-        .map(|coord| ((coord.x - centre.0).powi(2) + (coord.y - centre.1).powi(2)).sqrt())
-        .fold(0.0, f64::max)
-}
-
-fn tallest_building(scene: &Scene) -> f64 {
+pub(super) fn tallest_building(scene: &Scene) -> f64 {
     scene
         .features
         .iter()
         .filter(|feature| feature.layer == Layer::Building)
         .map(|feature| solid::building_height(feature).0)
         .fold(0.0, f64::max)
-}
-
-/// Paper bounds of a set of points.
-#[derive(Debug, Clone, Copy)]
-pub struct Bounds {
-    pub min: (f64, f64),
-    pub max: (f64, f64),
-}
-
-impl Default for Bounds {
-    fn default() -> Self {
-        Bounds {
-            min: (f64::INFINITY, f64::INFINITY),
-            max: (f64::NEG_INFINITY, f64::NEG_INFINITY),
-        }
-    }
-}
-
-impl Bounds {
-    pub fn add(&mut self, (x, y): (f64, f64)) {
-        self.min = (self.min.0.min(x), self.min.1.min(y));
-        self.max = (self.max.0.max(x), self.max.1.max(y));
-    }
-
-    pub fn width(&self) -> f64 {
-        (self.max.0 - self.min.0).max(1e-9)
-    }
-
-    pub fn height(&self) -> f64 {
-        (self.max.1 - self.min.1).max(1e-9)
-    }
-
-    pub fn middle(&self) -> (f64, f64) {
-        (
-            (self.min.0 + self.max.0) / 2.0,
-            (self.min.1 + self.max.1) / 2.0,
-        )
-    }
 }
 
 /// Draws one diagram into one frame: ground, layers, shadows, solids, sun path.
@@ -581,71 +351,7 @@ fn write_outlines(out: &mut String, frame: &FrameShape, spec: &MapSpec, theme: &
     }
 }
 
-/// Buildings and trees the diagram draws, which are the ones that cast shadows.
-fn shadow_casters<'a>(
-    layers: &[ResolvedLayer],
-    features: &BTreeMap<Layer, Vec<&'a Feature>>,
-) -> Vec<&'a Feature> {
-    layers
-        .iter()
-        .filter(|resolved| matches!(resolved.layer, Layer::Building | Layer::Tree))
-        .flat_map(|resolved| layer_features(features, resolved.layer).iter().copied())
-        .collect()
-}
-
-fn write_shadows(
-    out: &mut String,
-    casters: &[&Feature],
-    sun: &SunPosition,
-    canvas: &Canvas,
-    theme: &Theme,
-    opacity: f64,
-) {
-    let colour = color_for_shadows(theme, opacity);
-    let _ = write!(
-        out,
-        r#"<g {} clip-path="url(#{})" stroke="none" fill="{colour}">"#,
-        layer_attributes(&format!("{}shadows", canvas.scope), "Shadows"),
-        canvas.clip_id
-    );
-    shadow::write(
-        out,
-        casters,
-        sun,
-        &canvas.projection,
-        &shadow::opacity_attribute(opacity),
-    );
-    out.push_str("</g>\n");
-}
-
-/// Diagram shadows in the theme's shadow colour; the softer ambient ones lean cool.
-fn color_for_shadows(theme: &Theme, opacity: f64) -> String {
-    let base = shadow_colour(theme);
-    if opacity < DIAGRAM_SHADOW_OPACITY {
-        color::mix(&base, COOL_SHADE, COOL_SHARE)
-    } else {
-        base
-    }
-}
-
-fn shadow_row(sun: &SunPosition, look: &crate::project::Look, theme: &Theme) -> Row {
-    let label = if sun.altitude_deg < shadow::MIN_SUN_ALTITUDE_DEG {
-        format!("No sun on {}", look.sun.label())
-    } else {
-        format!("Shadow on {}", look.sun.label())
-    };
-    Row {
-        label,
-        swatch: Swatch::Area {
-            fill: shadow_colour(theme),
-            stroke: None,
-            stroke_mm: 0.0,
-            opacity: DIAGRAM_SHADOW_OPACITY,
-        },
-    }
-}
-
-fn layer_features<'a, 'b>(
+pub(super) fn layer_features<'a, 'b>(
     features: &'b BTreeMap<Layer, Vec<&'a Feature>>,
     layer: Layer,
 ) -> &'b [&'a Feature] {
@@ -682,56 +388,4 @@ fn features_by_layer<'a>(
     }
 
     grouped
-}
-
-/// "Tram" -> "Tram 2 · 13 · 17": each transit mode lists the lines that call
-/// at a drawn stop. A mode whose lines only call at stops of a busier mode,
-/// such as buses at a tram stop, gets a row of its own without a symbol.
-fn add_lines_to_mode_rows(legend: &mut Legend, lines: &[String]) {
-    let mut after_symbols = legend
-        .rows
-        .iter()
-        .rposition(|row| matches!(row.swatch, Swatch::Symbol { .. }))
-        .map_or(0, |index| index + 1);
-    for (_, mode) in osm::TRANSIT_GROUPS {
-        let prefix = format!("{mode} ");
-        let mut of_mode: Vec<String> = lines
-            .iter()
-            .filter(|line| line.starts_with(&prefix))
-            .cloned()
-            .collect();
-        if of_mode.is_empty() {
-            continue;
-        }
-        of_mode.sort_by_key(|line| osm::line_order(&line[prefix.len()..]));
-        let label = format!("{mode} {}", points::line_numbers(&of_mode));
-        match legend.rows.iter_mut().find(|row| row.label == mode) {
-            Some(row) => row.label = label,
-            None => {
-                let swatch = Swatch::Dot {
-                    fill: None,
-                    stroke: None,
-                    opacity: 0.0,
-                };
-                legend.rows.insert(after_symbols, Row { label, swatch });
-                after_symbols += 1;
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_drawing_that_fits_keeps_the_sheet_scale() {
-        assert_eq!(fitted_scale(2500, 0.5), 2500);
-    }
-
-    #[test]
-    fn a_drawing_too_big_snaps_to_the_next_round_scale() {
-        // 0.36 mm per metre needs 1:2778, and the next round scale is 1:3000.
-        assert_eq!(fitted_scale(2500, 0.36), 3000);
-    }
 }

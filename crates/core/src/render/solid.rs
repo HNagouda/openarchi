@@ -9,15 +9,16 @@
 
 use std::fmt::Write;
 
-use geo::{Geometry, LineString, Polygon};
+use geo::{Geometry, Polygon};
 
 use super::classify;
 use super::color;
 use super::drawing::{Canvas, Drawn};
-use super::geometry::{decimal, mm, push_paper_points, Projection};
-use super::lighting::{light, wall_fill, Light};
+use super::geometry::{decimal, mm, Projection};
+use super::lighting::light;
 use super::order::{back_to_front, Footprint};
-use super::shadow::{polygons, signed_area};
+use super::shadow::polygons;
+use super::solid_draw::{write_building, write_tree};
 use super::style::ResolvedLayer;
 use super::svg::layer_attributes;
 use crate::diagram::Diagram;
@@ -36,7 +37,6 @@ const ESTIMATED_GREY: f64 = 0.65;
 /// Edges between faces: a light hairline in the paper colour.
 const EDGE_MM: f64 = 0.06;
 const EDGE_OPACITY: f64 = 0.7;
-const TRUNK_MM: f64 = 0.14;
 /// Neighbours' walls stay this close to their roof, so the site's own
 /// massing is the one that models in the light.
 const NEIGHBOUR_LIGHT: f64 = 0.35;
@@ -268,134 +268,6 @@ fn footprint(solid: &Solid, projection: &Projection) -> Footprint {
     };
 
     Footprint::new(ring, solid.height)
-}
-
-struct Wall {
-    corners: [(f64, f64, f64); 4],
-    /// Outward normal on the ground, unit length.
-    normal: (f64, f64),
-    depth: f64,
-}
-
-fn write_building(
-    out: &mut String,
-    polygon: &Polygon<f64>,
-    height: f64,
-    roof: &str,
-    light: &Light,
-    projection: &Projection,
-) {
-    let mut walls = Vec::new();
-    collect_walls(polygon.exterior(), false, height, projection, &mut walls);
-    for interior in polygon.interiors() {
-        collect_walls(interior, true, height, projection, &mut walls);
-    }
-    walls.sort_by(|a, b| b.depth.total_cmp(&a.depth));
-
-    let base = if roof.starts_with('#') {
-        roof
-    } else {
-        "#808080"
-    };
-    for wall in &walls {
-        let points: Vec<(f64, f64)> = wall
-            .corners
-            .iter()
-            .map(|&(x, y, z)| projection.to_paper_at(x, y, z))
-            .collect();
-        let mut data = String::new();
-        if push_paper_points(&mut data, &points, true) {
-            let _ = write!(
-                out,
-                r#"<path d="{data}" fill="{}"/>"#,
-                wall_fill(base, wall.normal, light)
-            );
-        }
-    }
-
-    let mut data = String::new();
-    for ring in std::iter::once(polygon.exterior()).chain(polygon.interiors()) {
-        let points: Vec<(f64, f64)> = ring
-            .0
-            .iter()
-            .map(|c| projection.to_paper_at(c.x, c.y, height))
-            .collect();
-        push_paper_points(&mut data, &points, true);
-    }
-    if !data.is_empty() {
-        let _ = write!(out, r#"<path d="{data}" fill="{roof}"/>"#);
-    }
-}
-
-/// The walls along one ring that face the viewer.
-fn collect_walls(
-    ring: &LineString<f64>,
-    is_hole: bool,
-    height: f64,
-    projection: &Projection,
-    walls: &mut Vec<Wall>,
-) {
-    let points: Vec<(f64, f64)> = ring.0.iter().map(|c| (c.x, c.y)).collect();
-    // For a counterclockwise outer ring the solid is on the left, so outward is to the right.
-    let outward_sign = if (signed_area(&points) > 0.0) != is_hole {
-        1.0
-    } else {
-        -1.0
-    };
-    for pair in points.windows(2) {
-        let ((x1, y1), (x2, y2)) = (pair[0], pair[1]);
-        let length = ((x2 - x1).powi(2) + (y2 - y1).powi(2)).sqrt();
-        if length < 1e-6 {
-            continue;
-        }
-        let normal = (
-            outward_sign * (y2 - y1) / length,
-            -outward_sign * (x2 - x1) / length,
-        );
-        // Facing the viewer means the normal points to smaller v in the view frame.
-        let (_, normal_v) = projection.turn(normal.0, normal.1);
-        if normal_v >= 0.0 {
-            continue;
-        }
-        let (_, depth) = projection.to_view((x1 + x2) / 2.0, (y1 + y2) / 2.0);
-        walls.push(Wall {
-            corners: [
-                (x1, y1, 0.0),
-                (x2, y2, 0.0),
-                (x2, y2, height),
-                (x1, y1, height),
-            ],
-            normal,
-            depth,
-        });
-    }
-}
-
-fn write_tree(
-    out: &mut String,
-    at: (f64, f64),
-    fill: &str,
-    opacity: f64,
-    light: &Light,
-    projection: &Projection,
-) {
-    let (height, radius) = tree_size();
-    let (base_x, base_y) = projection.to_paper_at(at.0, at.1, 0.0);
-    let (crown_x, crown_y) = projection.to_paper_at(at.0, at.1, height - radius);
-    let trunk = color::mix(fill, &light.shade, 0.5);
-    let crown_radius = radius * projection.mm_per_m;
-    let _ = write!(
-        out,
-        r#"<path d="M{} {}V{}" stroke="{trunk}" stroke-width="{}" stroke-opacity="1"/><circle cx="{}" cy="{}" r="{}" fill="{fill}" opacity="{}"/>"#,
-        mm(base_x),
-        mm(base_y),
-        mm(crown_y),
-        mm(TRUNK_MM),
-        mm(crown_x),
-        mm(crown_y),
-        mm(crown_radius),
-        decimal(opacity)
-    );
 }
 
 #[cfg(test)]

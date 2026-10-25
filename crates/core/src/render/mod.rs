@@ -20,8 +20,12 @@ mod geometry;
 mod highlights;
 mod layout;
 mod legend;
+mod legend_draw;
 mod lighting;
 mod map;
+mod map_legend;
+mod map_shadows;
+mod map_sheet;
 mod massing;
 mod missing;
 mod order;
@@ -37,11 +41,14 @@ mod section_water;
 mod shadow;
 mod simplify;
 mod solid;
+mod solid_draw;
 mod style;
 mod sunpath;
+mod sunpath_guides;
 mod svg;
 mod symbols;
 mod text;
+mod title_block;
 mod tools;
 mod typeset;
 mod viewpoint;
@@ -157,8 +164,8 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         &palette.accent,
     );
     let drawing = match look.view.mode {
-        ViewMode::Plan => map::plan(input, &layout, &typesetter)?,
-        ViewMode::Axonometric => map::axonometric(input, &layout, &typesetter)?,
+        ViewMode::Plan => map_sheet::plan(input, &layout, &typesetter)?,
+        ViewMode::Axonometric => map_sheet::axonometric(input, &layout, &typesetter)?,
         ViewMode::Explode => explode::render(input, &layout, &typesetter)?,
         ViewMode::Section => section::render(input, &layout, &typesetter)?,
     };

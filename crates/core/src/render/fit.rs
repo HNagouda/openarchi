@@ -5,7 +5,7 @@
 use super::frame::ground_outline;
 use super::geometry::ground_centre;
 use super::layout::Layout;
-use super::map::{Bounds, NICE_SCALES};
+use super::map_sheet::{Bounds, NICE_SCALES};
 use crate::project::Look;
 use crate::scene::Scene;
 use crate::selection;
