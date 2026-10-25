@@ -4,11 +4,11 @@ use std::path::Path;
 use std::sync::Arc;
 
 use openarchi_core::export::laser::{self, LaserExport, LaserSettings, LaserSummary};
+use openarchi_core::export::series::slug;
 use openarchi_core::project::Look;
 use openarchi_core::scene::Scene;
 use tauri::State;
 
-use crate::commands::export::slug;
 use crate::guard::blocking;
 use crate::state::{lock, Shared};
 

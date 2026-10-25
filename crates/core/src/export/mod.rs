@@ -12,6 +12,7 @@ mod dxf_marks;
 mod dxf_section;
 mod dxf_write;
 pub mod laser;
+pub mod series;
 
 use std::path::Path;
 

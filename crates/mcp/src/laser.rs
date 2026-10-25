@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use openarchi_core::export::laser::{
     self, LaserFormat, LaserSettings, DEFAULT_BED_MM, DEFAULT_THICKNESS_MM,
 };
+use openarchi_core::export::series::slug;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use rmcp::{tool, tool_router};
@@ -128,23 +129,4 @@ fn written_folder(folder: Option<&str>) -> Result<PathBuf, String> {
     }
 
     Ok(path)
-}
-
-/// "Westermarkt, Amsterdam" -> "westermarkt-amsterdam", as the app names its exports.
-pub(crate) fn slug(name: &str) -> String {
-    let mut slug = String::new();
-    for letter in name.to_lowercase().chars() {
-        if letter.is_alphanumeric() {
-            slug.push(letter);
-        } else if !slug.ends_with('-') {
-            slug.push('-');
-        }
-    }
-
-    let slug = slug.trim_matches('-').to_string();
-    if slug.is_empty() {
-        "site".to_string()
-    } else {
-        slug
-    }
 }

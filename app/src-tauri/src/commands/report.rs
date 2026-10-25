@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use openarchi_core::catalog;
+use openarchi_core::export::series::slug;
 use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
@@ -13,7 +14,6 @@ use openarchi_core::report::{
 use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::export::slug;
 use crate::commands::library::save_open_project;
 use crate::commands::ratios::find_theme;
 use crate::commands::render::open_scene;

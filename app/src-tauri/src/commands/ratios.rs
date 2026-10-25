@@ -3,11 +3,11 @@
 use std::path::Path;
 
 use openarchi_core::area::Area;
+use openarchi_core::export::series::slug;
 use openarchi_core::ratios::{self, ChartStyle, Ratios};
 use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::export::slug;
 use crate::commands::render::{current_catalog, shown_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};

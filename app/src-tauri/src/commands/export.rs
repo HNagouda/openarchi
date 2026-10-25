@@ -1,7 +1,8 @@
 //! Writing files: one sheet, or the whole series of diagrams into a folder.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
+use openarchi_core::export::series::{self, file_name};
 use openarchi_core::export::{export_with_dxf_layers, DxfLayers, ExportFormat};
 use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
@@ -12,40 +13,6 @@ use tauri_plugin_opener::OpenerExt;
 use crate::commands::render::{current_catalog, with_input};
 use crate::guard::blocking;
 use crate::state::{lock, Shared};
-
-/// "Westermarkt, Amsterdam" -> "westermarkt-amsterdam".
-pub fn slug(name: &str) -> String {
-    let mut slug = String::new();
-    for letter in name.to_lowercase().chars() {
-        if letter.is_alphanumeric() {
-            slug.push(letter);
-        } else if !slug.ends_with('-') {
-            slug.push('-');
-        }
-    }
-
-    let slug = slug.trim_matches('-').to_string();
-    if slug.is_empty() {
-        "site".to_string()
-    } else {
-        slug
-    }
-}
-
-/// The file name an export of a diagram, or one of its variants, gets:
-/// "westermarkt-figure-ground.pdf", "westermarkt-air-quality-pm10.pdf".
-fn file_name(
-    project_name: &str,
-    diagram_id: &str,
-    variant: Option<&str>,
-    format: ExportFormat,
-) -> String {
-    let drawing = match variant {
-        Some(variant) => format!("{diagram_id}-{variant}"),
-        None => diagram_id.to_string(),
-    };
-    format!("{}-{drawing}.{}", slug(project_name), format.extension())
-}
 
 /// The suggested name in the save dialog, the same one a series export uses.
 #[tauri::command]
@@ -93,10 +60,8 @@ pub async fn export_sheet(
     .await
 }
 
-/// One file per diagram, in the given look's theme and sheet, named after the
-/// project. A diagram with variants writes one file per variant: the series is
-/// everything the site shows, and a variant left out would be a sheet missing
-/// without a word.
+/// One file per diagram and per variant, in the given look's theme and sheet,
+/// named after the project; see `series::files`.
 // The front end names each argument of the call, so they stay apart.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
@@ -121,26 +86,14 @@ pub async fn export_series(
         };
         let catalog = current_catalog(&state);
 
+        let files = series::files(&catalog.diagrams, &name, &look, format, Path::new(&folder));
+
         let mut written = Vec::new();
-        for diagram in &catalog.diagrams {
-            for (variant, _) in diagram.drawings() {
-                let file = file_name(&name, &diagram.id, variant.as_deref(), format);
-                let path: PathBuf = Path::new(&folder).join(file);
-                let diagram_look = Look {
-                    diagram_id: diagram.id.clone(),
-                    variant,
-                    ..look.clone()
-                };
-                with_input(
-                    &catalog,
-                    &scene,
-                    &diagram_look,
-                    &pins,
-                    &highlights,
-                    |input| export_with_dxf_layers(input, format, dpi, dxf_layers, &path),
-                )?;
-                written.push(path.display().to_string());
-            }
+        for file in &files {
+            with_input(&catalog, &scene, &file.look, &pins, &highlights, |input| {
+                export_with_dxf_layers(input, format, dpi, dxf_layers, &file.path)
+            })?;
+            written.push(file.path.display().to_string());
         }
         Ok(written)
     })

@@ -5,12 +5,12 @@ use std::sync::Arc;
 
 use openarchi_core::analysis::{self, report_pages, report_svg, section_svg, Part, Section, PARTS};
 use openarchi_core::area::Area;
+use openarchi_core::export::series::slug;
 use openarchi_core::export::{svg_pages_to_pdf, svg_to_pdf};
 use openarchi_core::scene::Scene;
 use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::export::slug;
 use crate::commands::ratios::find_theme;
 use crate::commands::render::{open_scene, shown_scene};
 use crate::guard::{blocking, text};
