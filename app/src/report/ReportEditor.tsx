@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import { shortcutLabel } from "../lib/platform";
 import { hasModifier, isTyping, useKeyDown } from "../lib/keys";
-import type { Catalog, ProjectView, Report, ReportBlock, TextStyle } from "../lib/types";
+import type { Catalog, Look, ProjectView, Report, ReportBlock, TextStyle } from "../lib/types";
 import { ColumnResizer, REPORT_INSPECTOR_COLUMN, REPORT_LIBRARY_COLUMN } from "../sheet/columns/ColumnResizer";
 import { useThumbnails } from "../sheet/useThumbnails";
 import { Button } from "../ui/Button";
@@ -43,6 +43,8 @@ export type ZoomControls = { zoomIn: () => void; zoomOut: () => void; fit: () =>
 
 type Props = {
   project: ProjectView;
+  /** The first sheet as it is now: sheet blocks are drawn in it, and the report follows its palette unless it has its own. */
+  sheetLook: Look;
   catalog: Catalog;
   report: Report;
   previews: LibraryPreviews;
@@ -56,11 +58,13 @@ type Props = {
 /** A block from the library on its way to a page: the page under the pointer and where it would land. */
 type Incoming = { pageIndex: number; rect: { x: number; y: number; width: number; height: number } };
 
-export function ReportEditor({ project, catalog, report, previews, sheetThumbnails, onChange, onSeal, controls }: Props) {
-  const look = project.look;
+export function ReportEditor({ project, sheetLook: look, catalog, report, previews, sheetThumbnails, onChange, onSeal, controls }: Props) {
   const themeId = report.theme_id ?? look.theme_id;
-  const { diagram_id: _diagram, variant: _variant, theme_id: _theme, ...sheetLook } = look;
-  const lookKey = JSON.stringify(sheetLook);
+  // Serialized when the sheet changes, not on every render while a block is dragged.
+  const lookKey = useMemo(() => {
+    const { diagram_id: _diagram, variant: _variant, theme_id: _theme, ...shared } = look;
+    return JSON.stringify(shared);
+  }, [look]);
   const [pageIndex, setPageIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);

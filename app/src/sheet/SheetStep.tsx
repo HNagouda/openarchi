@@ -377,8 +377,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
 
       {isReportsOpen && catalog && (
         <ReportsWorkspace
+          project={project}
           // Sheet blocks follow the first sheet, as the core draws them.
-          project={{ ...project, look: book.sheets[0] }}
+          sheetLook={book.sheets[0]}
           catalog={catalog}
           previews={libraryPreviews}
           sheetThumbnails={look === book.sheets[0] ? thumbnails : undefined}

@@ -11,10 +11,9 @@ import { useToast } from "../../ui/Toasts";
 import { withoutLostViewPins } from "../viewpoint/viewPointEdits";
 import { movedTo, sheetName, withAreaSheet, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
 
-/** The sheets, pins and highlights a project view holds; a view from before tabs has only its look. */
+/** The sheets, pins and highlights a project view holds. The core migrates older projects, so all three are always there. */
 export function workbookOf(project: ProjectView): Workbook {
-  const sheets = project.sheets?.length ? project.sheets : [project.look];
-  return { sheets, pins: project.pins ?? [], highlights: project.highlights ?? [] };
+  return { sheets: project.sheets, pins: project.pins, highlights: project.highlights };
 }
 
 /** Writes every sheet, pin and highlight of the open project. */
