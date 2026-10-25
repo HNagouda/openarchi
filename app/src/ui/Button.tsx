@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { shortcutLabel } from "../lib/platform";
 import { Icon, type IconName } from "./Icon";
 
-type Variant = "plain" | "primary" | "secondary" | "ghost" | "danger";
+type Variant = "plain" | "primary" | "secondary" | "ghost";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: Variant;

@@ -43,10 +43,17 @@ type Props = {
   isEditing: boolean;
 };
 
+// The drawing tools' single keys, here so the site step, the shortcuts list and the tour follow them.
+export const CIRCLE_KEY = "c";
+export const RECTANGLE_KEY = "r";
+export const POLYGON_KEY = "p";
+/** Back to moving the map, as Hand and Move are in drawing programs. */
+export const PAN_KEYS = ["h", "v"];
+
 const TOOLS: { tool: Tool; icon: "circle" | "rectangle" | "polygon"; label: string; tip: string; key: string }[] = [
-  { tool: "circle", icon: "circle", label: "Circle", tip: "Drag out from the centre", key: "c" },
-  { tool: "rectangle", icon: "rectangle", label: "Rectangle", tip: "Drag corner to corner", key: "r" },
-  { tool: "polygon", icon: "polygon", label: "Polygon", tip: "Click each corner", key: "p" },
+  { tool: "circle", icon: "circle", label: "Circle", tip: "Drag out from the centre", key: CIRCLE_KEY },
+  { tool: "rectangle", icon: "rectangle", label: "Rectangle", tip: "Drag corner to corner", key: RECTANGLE_KEY },
+  { tool: "polygon", icon: "polygon", label: "Polygon", tip: "Click each corner", key: POLYGON_KEY },
 ];
 
 const SHAPE_OPTIONS: { value: Shape; label: ReactNode; tip: string }[] = [

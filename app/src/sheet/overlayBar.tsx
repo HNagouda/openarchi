@@ -15,7 +15,7 @@ type FieldProps = {
   onCancel: () => void;
 };
 
-/** The label as a field under the mark. Return applies, Escape cancels, an empty label leaves the mark alone. */
+/** The label as a field under the mark. Return applies, Escape cancels, an unchanged label leaves the mark alone. */
 export function LabelField({ initial, style, onCommit, onCancel }: FieldProps) {
   const [draft, setDraft] = useState(initial);
   const field = useRef<HTMLInputElement>(null);

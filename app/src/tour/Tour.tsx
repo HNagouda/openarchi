@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 import { isTyping, useKeyDown } from "../lib/keys";
 import { writePreference } from "../lib/storage";
 import { Button, Keys } from "../ui/Button";
+import { CIRCLE_KEY, POLYGON_KEY, RECTANGLE_KEY } from "../site/SitePanel";
 import { Dialog } from "../ui/Dialog";
 import { TourArt } from "./TourArt";
 
@@ -18,8 +19,8 @@ const STEPS: Step[] = [
     art: "site",
     body: (
       <>
-        Search an address in the Netherlands, then draw the site as a circle <Keys shortcut="c" />, rectangle{" "}
-        <Keys shortcut="r" /> or polygon <Keys shortcut="p" />. openarchi fetches the buildings, streets, water and
+        Search an address in the Netherlands, then draw the site as a circle <Keys shortcut={CIRCLE_KEY} />, rectangle{" "}
+        <Keys shortcut={RECTANGLE_KEY} /> or polygon <Keys shortcut={POLYGON_KEY} />. openarchi fetches the buildings, streets, water and
         green inside it.
       </>
     ),

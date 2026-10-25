@@ -10,11 +10,9 @@ import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { NumberField } from "../ui/NumberField";
 import { Segmented } from "../ui/Segmented";
+import { DEFAULT_DPI, MAX_DPI, MIN_DPI } from "../lib/units";
 import { useToast } from "../ui/Toasts";
 
-const MIN_DPI = 72;
-const MAX_DPI = 600;
-const DEFAULT_DPI = 300;
 
 const FORMATS: { value: ReportFormat; label: string; name: string; note: string }[] = [
   { value: "pdf", label: "PDF", name: "PDF document", note: "Every page in one vector file, ready to print or send." },

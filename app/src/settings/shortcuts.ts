@@ -1,8 +1,9 @@
 // Every keyboard shortcut, in one place: this list feeds the Shortcuts tab.
 // Keep it in step with the menu in src-tauri/src/menu.rs and the README. The
-// sheet tools' single keys come from the tools, so a key changes in one place.
+// site and sheet tools' single keys come from the tools, so a key changes in one place.
 
 import { HIGHLIGHT_KEY } from "../sheet/highlights/useHighlightTool";
+import { CIRCLE_KEY, PAN_KEYS, POLYGON_KEY, RECTANGLE_KEY } from "../site/SitePanel";
 import { SECTION_KEY } from "../sheet/section/useSectionTool";
 import { VIEW_POINT_KEY } from "../sheet/viewpoint/useViewPointTool";
 
@@ -27,9 +28,10 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
   {
     title: "Site",
     items: [
-      { label: "Circle", keys: ["c"] },
-      { label: "Rectangle", keys: ["r"] },
-      { label: "Polygon", keys: ["p"] },
+      { label: "Circle", keys: [CIRCLE_KEY] },
+      { label: "Rectangle", keys: [RECTANGLE_KEY] },
+      { label: "Polygon", keys: [POLYGON_KEY] },
+      { label: "Move the map", keys: PAN_KEYS },
       { label: "Finish the polygon", keys: ["enter"] },
       { label: "Remove the last corner", keys: ["delete"] },
       { label: "Delete the selected shape", keys: ["delete"] },

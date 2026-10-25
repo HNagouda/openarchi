@@ -27,7 +27,7 @@ import { Button } from "../ui/Button";
 import { useToast } from "../ui/Toasts";
 import { bounds } from "./geometry";
 import { ADDRESS_ZOOM, NETHERLANDS_CENTER, NETHERLANDS_ZOOM, PLACE_ZOOM, addSiteLayers, styleFor } from "./mapStyle";
-import { SitePanel, type FetchState } from "./SitePanel";
+import { CIRCLE_KEY, PAN_KEYS, POLYGON_KEY, RECTANGLE_KEY, SitePanel, type FetchState } from "./SitePanel";
 import { convertArea, type Shape } from "./shapes";
 import { useDrawing, type Tool } from "./useDrawing";
 import { useEditing } from "./useEditing";
@@ -261,10 +261,10 @@ export function SiteStep({ project, navigate }: Props) {
 
   usePlainKeys((key, event) => {
     const lower = key.toLowerCase();
-    if (lower === "c") setTool("circle");
-    if (lower === "r") setTool("rectangle");
-    if (lower === "p") setTool("polygon");
-    if (lower === "h" || lower === "v") setTool("pan");
+    if (lower === CIRCLE_KEY) setTool("circle");
+    if (lower === RECTANGLE_KEY) setTool("rectangle");
+    if (lower === POLYGON_KEY) setTool("polygon");
+    if (PAN_KEYS.includes(lower)) setTool("pan");
     if (key === "Enter" && tool === "polygon") drawing.finishPolygon();
     const isDeleteKey = key === "Backspace" || key === "Delete";
     if (isDeleteKey && tool === "polygon") {

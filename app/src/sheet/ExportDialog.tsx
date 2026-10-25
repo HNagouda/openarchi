@@ -12,12 +12,11 @@ import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { NumberField } from "../ui/NumberField";
 import { Segmented } from "../ui/Segmented";
+import { clamp } from "../lib/format";
+import { DEFAULT_DPI, MAX_DPI, MIN_DPI } from "../lib/units";
 import { useToast } from "../ui/Toasts";
 import { LaserFields, useLaserSettings } from "./LaserFields";
 
-const MIN_DPI = 72;
-const MAX_DPI = 1200;
-const DEFAULT_DPI = 300;
 
 // Laser cutting is not a drawing of the sheet but files for a model, so it sits beside the formats.
 type Choice = ExportFormat | "laser";
@@ -50,10 +49,11 @@ type Props = { look: Look; pins: Pin[]; highlights: Highlight[]; diagramName: st
 
 export function ExportDialog({ look, pins, highlights, diagramName, variantId, sheetCount, onClose }: Props) {
   // Settings saved before an option existed lack it, so the defaults fill the gap.
-  const [settings, setSettings] = useState<Settings>(() => ({
-    ...DEFAULT_SETTINGS,
-    ...readPreference<Partial<Settings>>("export", DEFAULT_SETTINGS),
-  }));
+  // A resolution saved when the dialog allowed more is brought within today's limit.
+  const [settings, setSettings] = useState<Settings>(() => {
+    const saved = { ...DEFAULT_SETTINGS, ...readPreference<Partial<Settings>>("export", DEFAULT_SETTINGS) };
+    return { ...saved, dpi: clamp(saved.dpi, MIN_DPI, MAX_DPI) };
+  });
   const [laser, updateLaser] = useLaserSettings(look);
   const [isExporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);

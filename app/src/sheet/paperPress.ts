@@ -1,5 +1,5 @@
 // Which tool a press on the paper goes to. A line or shape being drawn takes
-// every press. Otherwise pins come first, then the section marker, then text,
+// every press. Otherwise the View eye comes first, then pins, the section marker and text,
 // which all sit on top of the drawing, and highlights last, since a highlight
 // covers ground and would otherwise swallow presses meant for what lies on it.
 // Each tool lets go of its selection when a press misses it, and the one that
