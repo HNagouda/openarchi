@@ -1,3 +1,4 @@
+use super::colour::lch;
 use super::*;
 use crate::catalog::{builtin_themes, theme_problems};
 

@@ -7,18 +7,13 @@
 //! Paper otherwise. Paper styles its newer layers with palette roles, so they
 //! follow the theme's own colours either way. Nothing is written back to disk.
 
-use super::builtin_themes;
-use crate::palette::{layer_style, TEMPLATE_THEME};
+use crate::palette::{layer_style, template_theme};
 use crate::theme::Theme;
-use crate::{Error, Result};
+use crate::Result;
 
 /// The theme with a style for every layer the template styles.
 pub fn filled(mut theme: Theme) -> Result<Theme> {
-    let template = builtin_themes()
-        .into_iter()
-        .find(|builtin| builtin.id == TEMPLATE_THEME)
-        .ok_or_else(|| Error::Invalid(format!("built-in theme {TEMPLATE_THEME:?} is missing")))?;
-    for (layer, style) in template.layers {
+    for (layer, style) in template_theme()?.layers {
         if theme.layers.contains_key(&layer) {
             continue;
         }
@@ -35,6 +30,7 @@ pub fn filled(mut theme: Theme) -> Result<Theme> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::catalog::builtin_themes;
     use crate::palette::PaletteSource;
     use crate::scene::Layer;
 

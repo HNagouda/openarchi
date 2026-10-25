@@ -25,9 +25,6 @@ use super::{RoleChoice, Swatch};
 use crate::render::mix;
 use crate::{Error, Result};
 
-/// The roles a palette fills from its swatches, in the order the editor lists them.
-pub const RESOLVED_ROLES: [&str; 6] = ["paper", "ink", "figure", "accent", "water", "green"];
-
 /// Up to this chroma a swatch reads as a neutral, fit to be paper.
 const QUIET_CHROMA: f64 = 0.05;
 /// From this lightness a quiet swatch reads as paper rather than as a grey.
@@ -52,7 +49,7 @@ const WHITE: &str = "#FFFFFF";
 /// How one role was filled.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct RoleColour {
-    /// "paper", "ink" and so on, as in `RESOLVED_ROLES`.
+    /// "paper", "ink", "figure", "accent", "water" or "green", in that order.
     pub role: String,
     /// The colour the theme uses, "#RRGGBB".
     pub hex: String,
