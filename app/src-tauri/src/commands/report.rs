@@ -14,8 +14,7 @@ use openarchi_core::theme::Theme;
 use tauri::State;
 
 use crate::commands::library::save_open_project;
-use crate::commands::ratios::find_theme;
-use crate::commands::render::{current_catalog, open_scene};
+use crate::commands::render::{current_catalog, find_theme, open_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 

@@ -5,12 +5,11 @@ use std::path::Path;
 use openarchi_core::area::Area;
 use openarchi_core::export::series::slug;
 use openarchi_core::ratios::{self, ChartStyle, Ratios};
-use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::render::{current_catalog, shown_scene};
+use crate::commands::render::{find_theme, project_name, shown_scene};
 use crate::guard::{blocking, text};
-use crate::state::{lock, AppState, Shared};
+use crate::state::Shared;
 
 /// The ratios of the open site, or of the sheet's sub-selection, coloured by
 /// `theme_id` so they match the sheet.
@@ -32,11 +31,7 @@ pub async fn get_ratios(
 /// The suggested name in the save dialog: "westermarkt-ratios.csv".
 #[tauri::command]
 pub fn ratios_file_name(state: State<'_, Shared>) -> String {
-    let name = lock(&state.open)
-        .as_ref()
-        .map(|open| open.project.name.clone())
-        .unwrap_or_default();
-    format!("{}-ratios.csv", slug(&name))
+    format!("{}-ratios.csv", slug(&project_name(&state)))
 }
 
 /// Writes the ratios as a CSV table or an SVG page of charts, chosen by the
@@ -61,13 +56,7 @@ pub async fn export_ratios(
             .to_lowercase();
         let contents = match extension.as_str() {
             "csv" => ratios::to_csv(&ratios),
-            "svg" => {
-                let title = lock(&state.open)
-                    .as_ref()
-                    .map(|open| open.project.name.clone())
-                    .unwrap_or_default();
-                ratios::chart_svg(&ratios, &theme, style, &title)
-            }
+            "svg" => ratios::chart_svg(&ratios, &theme, style, &project_name(&state)),
             _ => return Err(format!("Ratios export as .csv or .svg, not “{extension}”.")),
         };
         std::fs::write(&path, contents)
@@ -75,13 +64,4 @@ pub async fn export_ratios(
         Ok(path)
     })
     .await
-}
-
-pub fn find_theme(state: &AppState, id: &str) -> Result<Theme, String> {
-    current_catalog(state)
-        .themes
-        .iter()
-        .find(|theme| theme.id == id)
-        .cloned()
-        .ok_or_else(|| format!("There is no theme called “{id}”."))
 }

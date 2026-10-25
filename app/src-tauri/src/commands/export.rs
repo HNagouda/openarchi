@@ -10,9 +10,9 @@ use openarchi_core::project::Look;
 use tauri::{AppHandle, State};
 use tauri_plugin_opener::OpenerExt;
 
-use crate::commands::render::{current_catalog, with_input};
+use crate::commands::render::{current_catalog, open_scene, project_name, with_input};
 use crate::guard::blocking;
-use crate::state::{lock, Shared};
+use crate::state::Shared;
 
 /// The suggested name in the save dialog, the same one a series export uses.
 #[tauri::command]
@@ -22,11 +22,12 @@ pub fn export_file_name(
     variant: Option<String>,
     format: ExportFormat,
 ) -> String {
-    let name = lock(&state.open)
-        .as_ref()
-        .map(|open| open.project.name.clone())
-        .unwrap_or_default();
-    file_name(&name, &diagram_id, variant.as_deref(), format)
+    file_name(
+        &project_name(&state),
+        &diagram_id,
+        variant.as_deref(),
+        format,
+    )
 }
 
 // The front end names each argument of the call, so they stay apart.
@@ -44,13 +45,7 @@ pub async fn export_sheet(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = match lock(&state.open)
-            .as_ref()
-            .and_then(|open| open.scene.clone())
-        {
-            Some(scene) => scene,
-            None => return Err("Fetch the site before exporting.".to_string()),
-        };
+        let scene = open_scene(&state)?;
         let catalog = current_catalog(&state);
         with_input(&catalog, &scene, &look, &pins, &highlights, |input| {
             export_with_dxf_layers(input, format, dpi, dxf_layers, Path::new(&path))
@@ -77,14 +72,9 @@ pub async fn export_series(
 ) -> Result<Vec<String>, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let (name, scene) = match lock(&state.open).as_ref() {
-            Some(open) => (open.project.name.clone(), open.scene.clone()),
-            None => return Err("No project is open.".to_string()),
-        };
-        let Some(scene) = scene else {
-            return Err("Fetch the site before exporting.".to_string());
-        };
+        let scene = open_scene(&state)?;
         let catalog = current_catalog(&state);
+        let name = project_name(&state);
 
         let files = series::files(&catalog.diagrams, &name, &look, format, Path::new(&folder));
 

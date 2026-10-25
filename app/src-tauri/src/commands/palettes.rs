@@ -8,7 +8,7 @@ use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::render::{current_catalog, shown_scene};
+use crate::commands::render::{current_catalog, find_theme, shown_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
@@ -82,7 +82,7 @@ pub async fn palette_draft(
     name: String,
 ) -> Result<PaletteDraft, String> {
     let state = state.inner().clone();
-    blocking(move || Ok(palette::draft_from(&find(&state, &theme_id)?, &name))).await
+    blocking(move || Ok(palette::draft_from(&find_theme(&state, &theme_id)?, &name))).await
 }
 
 /// Saves a draft to the user's themes. `id` is the palette being edited; a
@@ -139,19 +139,10 @@ pub async fn restore_palette(state: State<'_, Shared>, kept: String) -> Result<T
 /// Checks a draft, as a copy of the theme it was duplicated from when it names one.
 fn checked(state: &AppState, draft: &PaletteDraft, id: &str) -> Result<PaletteCheck, String> {
     match &draft.based_on {
-        Some(base_id) => palette::check_copy(draft, id, &find(state, base_id)?),
+        Some(base_id) => palette::check_copy(draft, id, &find_theme(state, base_id)?),
         None => palette::check(draft, id),
     }
     .map_err(text)
-}
-
-fn find(state: &AppState, id: &str) -> Result<Theme, String> {
-    current_catalog(state)
-        .themes
-        .iter()
-        .find(|theme| theme.id == id)
-        .cloned()
-        .ok_or_else(|| format!("There is no palette called “{id}”."))
 }
 
 /// The next catalog read picks the palette files up again.

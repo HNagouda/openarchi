@@ -11,10 +11,9 @@ use openarchi_core::scene::Scene;
 use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::ratios::find_theme;
-use crate::commands::render::{open_scene, shown_scene};
+use crate::commands::render::{find_theme, open_scene, project_name, shown_scene};
 use crate::guard::{blocking, text};
-use crate::state::{lock, AppState, Shared};
+use crate::state::{AppState, Shared};
 
 /// One part of the analysis, drawn in `theme_id`. Climate and rain may wait
 /// on PVGIS and KNMI the first time; afterwards they come from the cache.
@@ -139,11 +138,4 @@ fn every_section(
     }
 
     Ok((sections, failures))
-}
-
-fn project_name(state: &AppState) -> String {
-    lock(&state.open)
-        .as_ref()
-        .map(|open| open.project.name.clone())
-        .unwrap_or_default()
 }

@@ -13,6 +13,7 @@ use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::scene::{Layer, Scene};
 use openarchi_core::selection;
+use openarchi_core::theme::Theme;
 use tauri::State;
 
 use crate::guard::{blocking, text};
@@ -46,6 +47,24 @@ pub fn current_catalog(state: &AppState) -> Arc<Catalog> {
     cached
         .get_or_insert_with(|| Arc::new(read_catalog(state)))
         .clone()
+}
+
+/// A theme of the catalog by id, as a copy the caller can keep.
+pub fn find_theme(state: &AppState, id: &str) -> Result<Theme, String> {
+    current_catalog(state)
+        .themes
+        .iter()
+        .find(|theme| theme.id == id)
+        .cloned()
+        .ok_or_else(|| format!("There is no palette called “{id}”."))
+}
+
+/// The open project's name, empty when none is open.
+pub fn project_name(state: &AppState) -> String {
+    lock(&state.open)
+        .as_ref()
+        .map(|open| open.project.name.clone())
+        .unwrap_or_default()
 }
 
 /// Resolves the look's diagram and theme ids and hands `work` a render input.
