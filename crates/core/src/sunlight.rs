@@ -14,21 +14,16 @@
 //! every shadow. A sun lower than the shadow diagram draws counts as no sun, as
 //! it would only graze the ground.
 
-// Shared with the sky view factor, solar radiation and viewshed, which work on the same kind of grid.
-pub(crate) mod raster;
+use geo::{Geometry, Polygon};
 
-use geo::{BooleanOps, Geometry, LineString, MultiPolygon, Polygon};
-
+use crate::grid::{banded, cells, raster_over, Cell, Raster};
 use crate::render::{building_height, shadow_per_metre, signed_area, tree_shadow_ring};
-use crate::scene::{Attributes, Feature, Layer, Scene};
+use crate::scene::{polygons, Feature, Layer, Scene};
 use crate::sun::{self, SunPosition};
-use raster::Raster;
 
 /// Minutes between two sun positions.
 pub const STEP_MINUTES: u32 = 10;
 const MINUTES_PER_DAY: u32 = 24 * 60;
-/// The finest grid, in metres: a little over a parking bay is as fine as a site sheet reads.
-const FINEST_CELL_M: f64 = 2.0;
 /// At most this many cells, so a large site coarsens its grid instead of slowing down.
 const MAX_CELLS: f64 = 160_000.0;
 
@@ -36,14 +31,6 @@ const MAX_CELLS: f64 = 160_000.0;
 pub struct SunGrid {
     raster: Raster,
     hours: Vec<Option<f64>>,
-}
-
-/// What lies on a grid cell.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Cell {
-    Outside,
-    Ground,
-    Roof,
 }
 
 /// One thing that casts a shadow, reduced to what the shadow needs.
@@ -102,85 +89,6 @@ pub fn sun_hours(scene: &Scene, month: u32, day: u32) -> SunGrid {
 /// n + 1 areas; classes no cell falls in are left out.
 pub fn bands(grid: &SunGrid, breaks: &[f64]) -> Vec<Feature> {
     banded(&grid.raster, &grid.hours, breaks, Layer::SunHours)
-}
-
-/// Any grid of values as bands of `layer`, the way `bands` draws hours of sun.
-pub(crate) fn banded(
-    raster: &Raster,
-    values: &[Option<f64>],
-    breaks: &[f64],
-    layer: Layer,
-) -> Vec<Feature> {
-    let mut squares: Vec<Vec<Polygon<f64>>> = vec![Vec::new(); breaks.len() + 1];
-    for (index, value) in values.iter().enumerate() {
-        let Some(value) = value else {
-            continue;
-        };
-        let class = breaks.iter().filter(|&&limit| *value >= limit).count();
-        squares[class].push(cell_square(raster, index));
-    }
-
-    squares
-        .into_iter()
-        .enumerate()
-        .filter(|(_, class_squares)| !class_squares.is_empty())
-        .map(|(class, class_squares)| {
-            // Squares never overlap, so one overlay merges them into the band's outline.
-            let band = MultiPolygon::new(class_squares).union(&MultiPolygon::new(Vec::new()));
-            let lower_edge = if class == 0 { 0.0 } else { breaks[class - 1] };
-            Feature {
-                layer,
-                geometry: Geometry::MultiPolygon(band),
-                attributes: Attributes {
-                    value: Some(lower_edge),
-                    ..Attributes::default()
-                },
-            }
-        })
-        .collect()
-}
-
-/// A grid over the boundary's bounds, as fine as `max_cells` allows.
-pub(crate) fn raster_over(boundary: &Polygon<f64>, max_cells: f64) -> Raster {
-    let (mut min_x, mut min_y) = (f64::INFINITY, f64::INFINITY);
-    let (mut max_x, mut max_y) = (f64::NEG_INFINITY, f64::NEG_INFINITY);
-    for coord in &boundary.exterior().0 {
-        min_x = min_x.min(coord.x);
-        min_y = min_y.min(coord.y);
-        max_x = max_x.max(coord.x);
-        max_y = max_y.max(coord.y);
-    }
-    let width = (max_x - min_x).max(0.0);
-    let height = (max_y - min_y).max(0.0);
-    let cell_m = FINEST_CELL_M.max((width * height / max_cells).sqrt());
-
-    Raster {
-        min: (min_x, min_y),
-        cell_m,
-        columns: (width / cell_m).ceil() as usize,
-        rows: (height / cell_m).ceil() as usize,
-    }
-}
-
-/// Which cells lie in the site, and which of those under a roof.
-pub(crate) fn cells(scene: &Scene, raster: &Raster) -> Vec<Cell> {
-    let mut cells = vec![Cell::Outside; raster.len()];
-    raster.fill_rings(&rings(&scene.boundary), |index| cells[index] = Cell::Ground);
-    let buildings = scene
-        .features
-        .iter()
-        .filter(|feature| feature.layer == Layer::Building);
-    for building in buildings {
-        for polygon in polygons(&building.geometry) {
-            raster.fill_rings(&rings(polygon), |index| {
-                if cells[index] == Cell::Ground {
-                    cells[index] = Cell::Roof;
-                }
-            });
-        }
-    }
-
-    cells
 }
 
 /// Buildings and trees in the site and its neighbourhood.
@@ -258,36 +166,6 @@ fn walls(polygon: &Polygon<f64>) -> Vec<((f64, f64), (f64, f64))> {
     }
 
     walls
-}
-
-pub(crate) fn rings(polygon: &Polygon<f64>) -> Vec<Vec<(f64, f64)>> {
-    std::iter::once(polygon.exterior())
-        .chain(polygon.interiors())
-        .map(|ring| ring.0.iter().map(|c| (c.x, c.y)).collect())
-        .collect()
-}
-
-pub(crate) fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
-        _ => Vec::new(),
-    }
-}
-
-fn cell_square(raster: &Raster, index: usize) -> Polygon<f64> {
-    let (x, y) = raster.centre(index);
-    let half = raster.cell_m / 2.0;
-    Polygon::new(
-        LineString::from(vec![
-            (x - half, y - half),
-            (x + half, y - half),
-            (x + half, y + half),
-            (x - half, y + half),
-            (x - half, y - half),
-        ]),
-        Vec::new(),
-    )
 }
 
 #[cfg(test)]

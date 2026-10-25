@@ -11,8 +11,7 @@
 use std::collections::HashMap;
 
 use super::field::Field;
-use crate::sunlight::raster::Raster;
-use crate::sunlight::Cell;
+use crate::grid::{Cell, Raster};
 
 /// Lines this many flow cells apart.
 const SPACING_CELLS: f64 = 4.0;

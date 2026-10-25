@@ -16,13 +16,11 @@
 //! hold that crown as a column down to the ground, which hides far more than
 //! a tree does.
 
-use geo::{Geometry, Polygon};
-
 use crate::forest;
+use crate::grid::{rings, Raster};
 use crate::render::building_height;
-use crate::scene::{Layer, Scene};
+use crate::scene::{polygons, Layer, Scene};
 use crate::sources::raster::Grid;
-use crate::sunlight::raster::Raster;
 
 /// How many rings of cells a gap in the terrain is filled from its edge.
 /// The widest gap is a large building or a harbour basin; 60 cells of 4 to
@@ -193,19 +191,4 @@ fn median_height(grid: &Grid) -> Option<f32> {
     measured.sort_by(f32::total_cmp);
 
     Some(measured[measured.len() / 2])
-}
-
-fn rings(polygon: &Polygon<f64>) -> Vec<Vec<(f64, f64)>> {
-    std::iter::once(polygon.exterior())
-        .chain(polygon.interiors())
-        .map(|ring| ring.0.iter().map(|c| (c.x, c.y)).collect())
-        .collect()
-}
-
-fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
-        _ => Vec::new(),
-    }
 }

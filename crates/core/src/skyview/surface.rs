@@ -8,11 +8,10 @@
 //! each building standing its roof height above it.
 
 use crate::forest;
+use crate::grid::{rings, Raster};
 use crate::render::building_height;
-use crate::scene::{Layer, Scene};
+use crate::scene::{polygons, Layer, Scene};
 use crate::sources::raster::Grid;
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{polygons, rings};
 
 /// The ground, and what stands on it, on a grid of square cells.
 pub struct Surface {

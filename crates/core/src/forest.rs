@@ -26,10 +26,9 @@ pub(crate) mod tests;
 
 use geo::Polygon;
 
-use crate::scene::{Layer, Scene};
+use crate::grid::{rings, Raster};
+use crate::scene::{polygons, Layer, Scene};
 use crate::sources::raster::Grid;
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{polygons, rings};
 
 /// The FAO's thresholds, see the module comment.
 pub const MIN_TREE_HEIGHT_M: f64 = 5.0;

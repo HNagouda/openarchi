@@ -31,7 +31,8 @@ crates/core/            the library: no window, no async
   src/walk.rs           walk bands from the site centre and the 15 minute neighbourhood
   src/floors.rs         floors and gross floor area, estimated from roof height
   src/blocks.rs         city blocks cut from the street surfaces, with their coverage and floor space
-  src/sunlight.rs       hours of direct sun on a grid over the site; sunlight/ fills the grid
+  src/grid.rs           the square grid every computed layer below lays over the site: ground and roof cells, filling shapes, values back into bands
+  src/sunlight.rs       hours of direct sun on a grid over the site
   src/skyview.rs        the share of the sky each ground cell sees, from the horizon in 32 directions
   src/radiation.rs      yearly sunlight on the ground and the roofs, from the typical year kept with the scene, in classes set per site
   src/viewshed.rs       the ground in view from a sheet's viewpoint, by line of sight over buildings, woods and terrain

@@ -1,7 +1,7 @@
 //! Puts each feature of the classified layer into a class, and gives each class its colour.
 
 use super::color;
-use crate::diagram::{Attribute, Classify, Ramp, Scheme};
+use crate::diagram::{class_index, Attribute, Classify, Ramp, Scheme};
 use crate::floors;
 use crate::scene::Feature;
 use crate::theme::Theme;
@@ -69,7 +69,7 @@ pub fn class_of(feature: &Feature, classify: &Classify) -> Option<usize> {
     match &classify.scheme {
         Scheme::Sequential { breaks, .. } => {
             let value = numeric_value(feature, classify.attribute)?;
-            Some(breaks.iter().filter(|&&limit| value >= limit).count())
+            Some(class_index(value, breaks))
         }
         Scheme::Categorical { categories } => {
             let value = text_value(feature, classify.attribute)?;

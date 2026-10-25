@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use geo::Polygon;
 
 use super::WindFlow;
-use crate::sunlight::raster::Raster;
+use crate::grid::Raster;
 
 /// Enough for each season of one site, or the sheets of a few sites.
 const FLOWS_KEPT: usize = 6;

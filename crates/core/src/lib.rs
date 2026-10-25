@@ -16,6 +16,7 @@ pub mod export;
 pub mod floors;
 pub mod forest;
 pub mod geocode;
+pub(crate) mod grid;
 pub mod highlight;
 pub mod library;
 pub mod palette;

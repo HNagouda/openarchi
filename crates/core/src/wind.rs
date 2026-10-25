@@ -14,21 +14,20 @@
 //! for comfort criteria, and its legend says so.
 
 mod field;
-pub mod lattice;
+mod lattice;
 mod lines;
 mod memo;
 mod year;
 
 use std::sync::Arc;
 
-use geo::{BoundingRect, Geometry, LineString, MultiPolygon, Polygon};
+use geo::{BoundingRect, Geometry, LineString, MultiPolygon, Polygon, Rect};
 use serde::{Deserialize, Serialize};
 
 use crate::analysis::climate::SEASONS;
+use crate::grid::{banded, cells, Cell, Raster, FINEST_CELL_M};
 use crate::scene::{Attributes, Credit, Feature, Layer, Scene};
 use crate::sources::pvgis;
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{banded, cells};
 use field::Field;
 use lines::Line;
 pub use year::{Prevailing, WindMonth, WindYear};
@@ -37,8 +36,6 @@ const PERCENT: f64 = 100.0;
 /// The flow is blended between its cells, so the site is read on a grid this
 /// share of a flow cell, for bands that follow the streets more smoothly.
 const SITE_CELL_SHARE: f64 = 0.5;
-/// But never finer than the hours of sun's grid.
-const FINEST_SITE_CELL_M: f64 = 2.0;
 
 /// The months the prevailing wind is taken from. A sheet keeps its own.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -162,12 +159,12 @@ pub fn features(flow: &WindFlow, breaks: &[f64]) -> Vec<Feature> {
 
 /// The solved flow read on a grid of the flow's own fineness over the site.
 fn over_site(scene: &Scene, field: &Field) -> WindFlow {
-    let cell_m = (field.cell_m() * SITE_CELL_SHARE).max(FINEST_SITE_CELL_M);
+    let cell_m = (field.cell_m() * SITE_CELL_SHARE).max(FINEST_CELL_M);
     let raster = site_raster(scene, cell_m);
     let cells = cells(scene, &raster);
     let ratios = (0..raster.len())
         .map(|index| {
-            if cells[index] != crate::sunlight::Cell::Ground {
+            if cells[index] != Cell::Ground {
                 return None;
             }
             let (x, y) = field.at(raster.centre(index)).unwrap_or((0.0, 0.0));
@@ -185,18 +182,10 @@ fn over_site(scene: &Scene, field: &Field) -> WindFlow {
 }
 
 fn site_raster(scene: &Scene, cell_m: f64) -> Raster {
-    let Some(bounds) = scene.boundary.bounding_rect() else {
-        return Raster {
-            min: (0.0, 0.0),
-            cell_m,
-            columns: 0,
-            rows: 0,
-        };
-    };
-    Raster {
-        min: (bounds.min().x, bounds.min().y),
-        cell_m,
-        columns: (bounds.width() / cell_m).ceil() as usize,
-        rows: (bounds.height() / cell_m).ceil() as usize,
-    }
+    // An empty boundary gets an empty grid.
+    let bounds = scene
+        .boundary
+        .bounding_rect()
+        .unwrap_or(Rect::new((0.0, 0.0), (0.0, 0.0)));
+    Raster::over(bounds, cell_m)
 }

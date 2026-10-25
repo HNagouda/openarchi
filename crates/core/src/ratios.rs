@@ -27,6 +27,7 @@ use std::collections::BTreeMap;
 use geo::Area;
 use serde::Serialize;
 
+use crate::diagram::class_index;
 use crate::environment::population_in;
 use crate::render::{resolve_colour, sample_ramp};
 use crate::scene::{Feature, Layer, Scene};
@@ -236,7 +237,7 @@ fn binned(
     let mut unknown = 0.0;
     for value in values {
         match value {
-            Some(value) => counts[breaks.iter().filter(|&&limit| *value >= limit).count()] += 1.0,
+            Some(value) => counts[class_index(*value, breaks)] += 1.0,
             None => unknown += 1.0,
         }
     }

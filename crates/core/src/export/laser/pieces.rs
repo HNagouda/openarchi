@@ -1,14 +1,14 @@
 //! Buildings as stacks of identical footprint pieces, each with its id.
 
 use geo::{
-    Area, BoundingRect, Coord, Geometry, LineString, MapCoords, MinimumRotatedRect, Point, Polygon,
-    Rotate, Simplify,
+    Area, BoundingRect, Coord, LineString, MapCoords, MinimumRotatedRect, Point, Polygon, Rotate,
+    Simplify,
 };
 
 use super::glyphs::{self, centred_label, fitted_label, LABEL_MIN_MM};
 use super::{Frame, LaserSettings, Part};
 use crate::render::DEFAULT_HEIGHT_M;
-use crate::scene::{Layer, Scene};
+use crate::scene::{polygons, Layer, Scene};
 
 /// Wiggles in a footprint smaller than this, in model millimetres, are finer
 /// than a laser cuts cleanly, so the outline is simplified to this tolerance.
@@ -100,14 +100,6 @@ pub fn buildings(scene: &Scene, frame: Frame, settings: &LaserSettings) -> Build
     }
 
     buildings
-}
-
-fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
-        _ => Vec::new(),
-    }
 }
 
 /// A ground polygon in model millimetres, simplified to what the laser can

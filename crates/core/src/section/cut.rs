@@ -8,6 +8,7 @@
 use geo::{BooleanOps, BoundingRect, Centroid, Contains, Geometry, MultiPolygon, Point, Polygon};
 
 use super::Axis;
+use crate::scene::polygons;
 
 /// Along-line positions closer than this are one crossing, so a line
 /// running exactly through a corner does not split a cut in two.
@@ -151,14 +152,6 @@ fn push_joined(stretches: &mut Vec<Stretch>, stretch: Stretch) {
         }
     }
     stretches.push(stretch);
-}
-
-fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
-        _ => Vec::new(),
-    }
 }
 
 #[cfg(test)]

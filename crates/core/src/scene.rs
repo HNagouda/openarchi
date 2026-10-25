@@ -112,6 +112,16 @@ pub struct Feature {
     pub attributes: Attributes,
 }
 
+/// The polygons of an area geometry: one for a polygon, each member of a
+/// multipolygon, none for points and lines.
+pub fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
+    match geometry {
+        Geometry::Polygon(polygon) => vec![polygon],
+        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
+        _ => Vec::new(),
+    }
+}
+
 /// What we know about a feature beyond its shape. Unknown stays `None`, so a
 /// diagram can show it as "unknown" instead of guessing.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -246,6 +246,13 @@ pub enum Scheme {
     Categorical { categories: Vec<Category> },
 }
 
+/// The class of `value` under sequential `breaks`: a value on a break falls in
+/// the class above it, so n breaks make n + 1 classes, 0 below the first.
+/// The map bands, the legend and the ratio bins all split here, so they agree.
+pub fn class_index(value: f64, breaks: &[f64]) -> usize {
+    breaks.iter().filter(|&&limit| value >= limit).count()
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Category {
     pub value: String,

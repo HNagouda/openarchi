@@ -1,66 +1,14 @@
-use geo::{polygon, Geometry, Point};
+use geo::Point;
 
 use super::*;
-use crate::area::{Area as SiteArea, LonLat};
+use crate::grid::tests::{building, site, square, value_at};
+use crate::scene::Attributes;
 
 const EQUINOX: (u32, u32) = (3, 21);
 const MIDSUMMER: (u32, u32) = (6, 21);
 
-fn square(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> Polygon<f64> {
-    polygon![
-        (x: min_x, y: min_y),
-        (x: max_x, y: min_y),
-        (x: max_x, y: max_y),
-        (x: min_x, y: max_y),
-    ]
-}
-
-fn building(footprint: Polygon<f64>, height_m: f64) -> Feature {
-    Feature {
-        layer: Layer::Building,
-        geometry: Geometry::Polygon(footprint),
-        attributes: Attributes {
-            height_m: Some(height_m),
-            ..Attributes::default()
-        },
-    }
-}
-
-/// A 200 m square site in Amsterdam.
-fn site(features: Vec<Feature>, context: Vec<Feature>) -> Scene {
-    Scene {
-        area: SiteArea::Circle {
-            center: LonLat {
-                lon: 4.9041,
-                lat: 52.3676,
-            },
-            radius_m: 100.0,
-        },
-        crs: "EPSG:28992".to_string(),
-        origin: (0.0, 0.0),
-        boundary: square(-100.0, -100.0, 100.0, 100.0),
-        features,
-        credits: Vec::new(),
-        fetched_at: String::new(),
-        warnings: Vec::new(),
-        measured: Default::default(),
-        walk: None,
-        editions: Default::default(),
-        context,
-        terrain: None,
-        water_bed: None,
-        water_levels: Vec::new(),
-        solar: None,
-        wind: None,
-    }
-}
-
-/// The hours of the cell under a ground point.
 fn hours_at(grid: &SunGrid, x: f64, y: f64) -> Option<f64> {
-    let raster = &grid.raster;
-    let column = ((x - raster.min.0) / raster.cell_m) as usize;
-    let row = ((y - raster.min.1) / raster.cell_m) as usize;
-    grid.hours[row * raster.columns + column]
+    value_at(&grid.raster, &grid.hours, x, y)
 }
 
 /// A 40 m wide, 30 m tall block whose north face runs along y = 0.

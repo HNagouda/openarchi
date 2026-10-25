@@ -8,9 +8,8 @@
 use geo::Polygon;
 
 use super::lattice::{self, Obstacles};
-use crate::scene::{Layer, Scene};
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{polygons, rings};
+use crate::grid::{cell_size, rings, Raster};
+use crate::scene::{polygons, Layer, Scene};
 
 /// Neighbourhood around the site that takes part, in metres. On the three test
 /// sites, 400 m kept every band's share of the site within 4 points of 200 m,
@@ -21,8 +20,6 @@ pub const MARGIN_M: f64 = 200.0;
 /// At most this many cells, so a large site coarsens its grid instead of
 /// slowing down: about half a second to solve in a release build.
 pub const MAX_CELLS: f64 = 40_000.0;
-/// The finest grid, in metres, as for the hours of sun.
-const FINEST_CELL_M: f64 = 2.0;
 
 /// The solved flow, in a grid whose x runs downwind.
 pub struct Field {
@@ -138,7 +135,7 @@ fn wind_raster(boundary: &Polygon<f64>, downwind: (f64, f64)) -> Raster {
     }
     let width = (high.0 - low.0).max(0.0) + 2.0 * MARGIN_M;
     let height = (high.1 - low.1).max(0.0) + 2.0 * MARGIN_M;
-    let cell_m = FINEST_CELL_M.max((width * height / MAX_CELLS).sqrt());
+    let cell_m = cell_size(width, height, MAX_CELLS);
 
     Raster {
         min: (low.0 - MARGIN_M, low.1 - MARGIN_M),

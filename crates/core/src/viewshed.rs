@@ -26,9 +26,9 @@ mod tests;
 
 use geo::{BooleanOps, Centroid, Geometry, LineString, MultiPolygon, Polygon, Rect};
 
+use crate::grid::{cell_size, Raster, FINEST_CELL_M};
 use crate::scene::{Attributes, Feature, Layer, Scene};
 use crate::section;
-use crate::sunlight::raster::Raster;
 use crate::{Error, Result};
 use surface::Surface;
 
@@ -43,8 +43,6 @@ pub const EYE_HEIGHT_M: f64 = 1.7;
 /// flat ground a sight line grazes it, so without this the rounding alone
 /// would hide stray cells of an open square.
 const TARGET_HEIGHT_M: f64 = 0.1;
-/// The finest grid, in metres, the same as the sunlight hours.
-const FINEST_CELL_M: f64 = 2.0;
 /// At most this many cells, so a large drawing coarsens its grid instead of slowing down.
 const MAX_CELLS: f64 = 160_000.0;
 
@@ -143,11 +141,6 @@ impl Viewshed {
     /// The scene was drawn on the kept terrain, not on flat ground.
     pub fn has_terrain(&self) -> bool {
         self.surface.has_terrain
-    }
-
-    /// Some dense trees stand on the grid and hide what lies behind them.
-    pub fn has_forest(&self) -> bool {
-        self.surface.is_forest.contains(&true)
     }
 
     /// Under a roof or a wood's canopy: not open ground, so never counted as in view.
@@ -270,7 +263,7 @@ fn grown(extent: Rect<f64>, scene: &Scene, eye: (f64, f64)) -> Rect<f64> {
 fn raster_over(extent: Rect<f64>) -> Raster {
     let width = extent.width().max(FINEST_CELL_M);
     let height = extent.height().max(FINEST_CELL_M);
-    let cell_m = FINEST_CELL_M.max((width * height / MAX_CELLS).sqrt());
+    let cell_m = cell_size(width, height, MAX_CELLS);
 
     Raster {
         min: (extent.min().x, extent.min().y),

@@ -17,12 +17,11 @@ use super::drawing::{Canvas, Drawn};
 use super::geometry::{decimal, mm, Projection};
 use super::lighting::light;
 use super::order::{back_to_front, Footprint};
-use super::shadow::polygons;
 use super::solid_draw::{write_building, write_tree};
 use super::style::ResolvedLayer;
 use super::svg::layer_attributes;
 use crate::diagram::Diagram;
-use crate::scene::Feature;
+use crate::scene::{polygons, Feature};
 use crate::sun::SunPosition;
 use crate::theme::Theme;
 

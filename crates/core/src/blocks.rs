@@ -19,7 +19,7 @@ use i_overlay::core::overlay_rule::OverlayRule;
 use i_overlay::float::single::SingleFloatOverlay;
 
 use crate::floors::gross_floor_area_m2;
-use crate::scene::{Attributes, Feature, Layer, Scene};
+use crate::scene::{polygons, Attributes, Feature, Layer, Scene};
 
 /// The surfaces that separate blocks, in one place. Verges and banks belong to
 /// the street or the canal they line. Paving and yards stay in the block,
@@ -90,14 +90,6 @@ fn buildings(scene: &Scene) -> Vec<Building> {
             })
         })
         .collect()
-}
-
-fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
-        _ => Vec::new(),
-    }
 }
 
 /// A polygon's rings as overlay contours: open, the outline counterclockwise

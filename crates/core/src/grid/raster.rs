@@ -3,6 +3,8 @@
 //! A cell is covered when its centre lies inside the shape, found row by row
 //! where the shape's edges cross the row's centre line.
 
+use geo::Rect;
+
 /// The grid: its south-west corner, cell size and cell counts. Cells are
 /// numbered row by row from the south-west.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -14,6 +16,16 @@ pub struct Raster {
 }
 
 impl Raster {
+    /// A grid of `cell_m` cells from the south-west corner of `rect`, enough to cover it.
+    pub fn over(rect: Rect<f64>, cell_m: f64) -> Raster {
+        Raster {
+            min: (rect.min().x, rect.min().y),
+            cell_m,
+            columns: (rect.width() / cell_m).ceil() as usize,
+            rows: (rect.height() / cell_m).ceil() as usize,
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.columns * self.rows
     }

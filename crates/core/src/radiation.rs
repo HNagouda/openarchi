@@ -29,12 +29,11 @@ mod year;
 
 use std::thread;
 
+use crate::grid::{banded, cells, raster_over, Raster};
 use crate::scene::{Credit, Feature, Layer, Scene};
 use crate::skyview;
 use crate::sources::pvgis;
 use crate::sun;
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{banded, cells, raster_over};
 use beam::Lit;
 pub use classes::sited;
 pub use year::{SolarMonth, SolarYear};
@@ -83,7 +82,7 @@ pub fn yearly(scene: &Scene, solar: &SolarYear) -> RadiationGrid {
 
 /// What level ground that nothing shades receives over the typical year,
 /// kWh/m²: the top of the scale the classes are shares of.
-pub fn open_ground_kwh(scene: &Scene, solar: &SolarYear) -> f64 {
+fn open_ground_kwh(scene: &Scene, solar: &SolarYear) -> f64 {
     let location = sun::site_location(&scene.area);
     (beam::open_beam(location, solar) + open_diffuse(solar)) / WH_PER_KWH
 }

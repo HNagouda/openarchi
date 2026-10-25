@@ -23,9 +23,8 @@ mod surface;
 
 use std::thread;
 
+use crate::grid::{banded, cells, raster_over, Cell, Raster};
 use crate::scene::{Feature, Layer, Scene};
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{banded, cells, raster_over, Cell};
 pub(crate) use surface::{surface, Surface};
 
 /// Directions the horizon is searched in, evenly round the compass.
