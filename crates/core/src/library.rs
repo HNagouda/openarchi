@@ -34,7 +34,7 @@ use crate::{Error, Result};
 
 use self::files::{
     backup_stamps, check_file_stem, file_name, now_rfc3339, read_project, read_summaries,
-    rfc3339_from_stamp, saved_modified, slugify, stamp_from_rfc3339, write_atomically,
+    rfc3339_from_stamp, saved_modified, slugify, stamp_from_rfc3339, summarize, write_atomically,
 };
 pub use self::migrate::migrate;
 
@@ -183,6 +183,16 @@ impl Library {
             return Err(no_project(id));
         }
         read_project(&path)
+    }
+
+    /// When the project on disk was last saved, read without unpacking its
+    /// scene, so the app can tell whether someone else wrote it since.
+    pub fn modified(&self, id: &str) -> Result<String> {
+        let path = self.project_path(id)?;
+        if !path.exists() {
+            return Err(no_project(id));
+        }
+        Ok(summarize(&path)?.modified)
     }
 
     /// Writes atomically, backs up the previous version, stamps `modified`.

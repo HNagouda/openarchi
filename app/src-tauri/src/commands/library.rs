@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use openarchi_core::area::Area;
-use openarchi_core::library::ProjectSummary;
+use openarchi_core::library::{Library, ProjectSummary};
 use openarchi_core::pin::Pin;
 use openarchi_core::project::{packed_scene, Look, Project};
 use openarchi_core::report::Report;
@@ -84,6 +84,8 @@ fn save_project(state: &AppState, project: &mut Project) -> Result<(), String> {
 /// time. Packing the scene takes most of a save, so it is packed once after
 /// opening or fetching and the text is reused while the scene stays the same.
 pub fn save_open_project(state: &AppState) -> Result<String, String> {
+    let library = state.library()?;
+    let has_newer_scene = adopt_newer_scene(state, library)?;
     let (mut project, scene, packed) = match lock(&state.open).as_ref() {
         Some(open) => (
             open.project.clone(),
@@ -97,14 +99,19 @@ pub fn save_open_project(state: &AppState) -> Result<String, String> {
         (_, packed) => packed,
     };
 
-    let library = state.library()?;
-    lock(&state.own_saves).insert(project.id.clone(), Instant::now());
+    // A save that took in someone else's fetch is left for the watcher to
+    // report, so the window reloads and draws the new data.
+    if !has_newer_scene {
+        lock(&state.own_saves).insert(project.id.clone(), Instant::now());
+    }
     match &packed {
         Some(packed) => library.save_with_packed_scene(&mut project, packed),
         None => library.save(&mut project),
     }
     .map_err(text)?;
-    lock(&state.own_saves).insert(project.id.clone(), Instant::now());
+    if !has_newer_scene {
+        lock(&state.own_saves).insert(project.id.clone(), Instant::now());
+    }
 
     if let Some(open) = lock(&state.open).as_mut() {
         if open.project.id == project.id {
@@ -112,6 +119,45 @@ pub fn save_open_project(state: &AppState) -> Result<String, String> {
         }
     }
     Ok(project.modified)
+}
+
+/// An assistant may fetch the open site again while the app holds the old
+/// scene. The app's next save would write that old scene back over the new
+/// one, so when the file on disk was written since the app last read or saved
+/// it and carries a later fetch, its scene replaces the one in memory. The
+/// user's own edits (looks, sheets, pins) still win, as before.
+fn adopt_newer_scene(state: &AppState, library: &Library) -> Result<bool, String> {
+    let (id, modified, fetched_at) = match lock(&state.open).as_ref() {
+        Some(open) => (
+            open.project.id.clone(),
+            open.project.modified.clone(),
+            open.scene.as_ref().map(|scene| scene.fetched_at.clone()),
+        ),
+        None => return Ok(false),
+    };
+    // `modified` is always UTC with nine fraction digits, so the strings compare like the times.
+    let is_written_since = library.modified(&id).map_err(text)? > modified;
+    if !is_written_since {
+        return Ok(false);
+    }
+    let on_disk = library.load(&id).map_err(text)?;
+    let Some(theirs) = on_disk.scene else {
+        return Ok(false);
+    };
+    if Some(&theirs.fetched_at) <= fetched_at.as_ref() {
+        return Ok(false);
+    }
+
+    if let Some(open) = lock(&state.open).as_mut() {
+        if open.project.id == id {
+            // The drawn site goes with the fetch made from it.
+            open.project.area = on_disk.area;
+            open.scene = Some(Arc::new(theirs));
+            open.packed_scene = None;
+        }
+    }
+    lock(&state.framed).clear();
+    Ok(true)
 }
 
 /// Packs `scene` outside the lock, so previews keep rendering meanwhile.
