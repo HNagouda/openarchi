@@ -10,7 +10,6 @@ use std::sync::OnceLock;
 use geo::{MapCoords, MultiPolygon, Polygon};
 use serde::Serialize;
 
-use super::cached;
 use crate::area::LonLat;
 use crate::crs::rd_to_wgs84;
 use crate::geocode;
@@ -124,7 +123,7 @@ fn municipality(
     spot: Tile,
     rd: (f64, f64),
 ) -> Result<(Option<Municipality>, Option<String>)> {
-    let (bytes, warning) = cached(cache, MUNICIPALITY_DATASET, spot, || {
+    let (bytes, warning) = cache.read_or_fetch(MUNICIPALITY_DATASET, spot, || {
         let found = boundaries::fetch_municipality(rd)?;
         serde_json::to_vec(&found).map_err(|error| Error::Invalid(error.to_string()))
     })?;
@@ -138,7 +137,7 @@ fn address(
     spot: Tile,
     centre: LonLat,
 ) -> Result<(Option<String>, Option<String>)> {
-    let (bytes, warning) = cached(cache, ADDRESS_DATASET, spot, || {
+    let (bytes, warning) = cache.read_or_fetch(ADDRESS_DATASET, spot, || {
         let found = geocode::nearest_address(centre)?;
         serde_json::to_vec(&found).map_err(|error| Error::Invalid(error.to_string()))
     })?;

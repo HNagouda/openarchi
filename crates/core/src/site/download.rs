@@ -11,6 +11,7 @@ use std::vec;
 
 use geo::{Coord, Polygon, Rect};
 
+use super::boundary::site_reach;
 use super::editions::Editions;
 use super::environment::{self, Raster, RIVM_RASTERS};
 use super::greenery::{self, Greenery};
@@ -187,11 +188,7 @@ pub fn tiles_for(
 /// The one OpenStreetMap job of a site centred at `origin`: the tile the
 /// centre falls in, and a reach that covers the walk and the whole site.
 pub fn osm_job(origin: (f64, f64), boundary: &Polygon<f64>) -> (Dataset, Tile) {
-    let site_radius_m = boundary
-        .exterior()
-        .points()
-        .map(|point| ((point.x() - origin.0).powi(2) + (point.y() - origin.1).powi(2)).sqrt())
-        .fold(0.0, f64::max);
+    let site_radius_m = site_reach(boundary, origin);
     let tile = Tile {
         column: (origin.0 / TILE_M).floor() as i64,
         row: (origin.1 / TILE_M).floor() as i64,
@@ -203,8 +200,10 @@ pub fn osm_job(origin: (f64, f64), boundary: &Polygon<f64>) -> (Dataset, Tile) {
 pub fn fetch_from_pdok(dataset: &Dataset, tile: Tile) -> Result<Payload> {
     let rect = tile.rect();
     match dataset {
-        Dataset::Bgt(collection) => bgt::fetch_tile(collection, rect).map(Payload::Records),
-        Dataset::Bag => bag::fetch_tile(rect).map(Payload::Records),
+        Dataset::Bgt(collection) | Dataset::ContextBgt(collection) => {
+            bgt::fetch_tile(collection, rect).map(Payload::Records)
+        }
+        Dataset::Bag | Dataset::ContextBag => bag::fetch_tile(rect).map(Payload::Records),
         Dataset::Brk => brk::fetch_tile(rect).map(Payload::Records),
         Dataset::AhnSurface => ahn::fetch_tile(ahn::SURFACE_COVERAGE, rect).map(Payload::Cells),
         Dataset::AhnTerrain => ahn::fetch_tile(ahn::TERRAIN_COVERAGE, rect).map(Payload::Cells),
@@ -215,8 +214,6 @@ pub fn fetch_from_pdok(dataset: &Dataset, tile: Tile) -> Result<Payload> {
         Dataset::BagUnits => bag_units::fetch_tile(rect).map(Payload::Records),
         // Not PDOK, but fetched and cached through the same pool and cache.
         Dataset::Osm(radius_m) => osm::fetch(tile, *radius_m).map(Payload::Osm),
-        Dataset::ContextBgt(collection) => bgt::fetch_tile(collection, rect).map(Payload::Records),
-        Dataset::ContextBag => bag::fetch_tile(rect).map(Payload::Records),
         Dataset::ContextSurface => {
             ahn::fetch_coarse_tile(ahn::SURFACE_COVERAGE, rect).map(Payload::Raster)
         }

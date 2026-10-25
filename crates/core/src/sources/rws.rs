@@ -12,7 +12,7 @@
 
 use std::time::Duration;
 
-use geo::{Geometry, LineString, Rect};
+use geo::{Geometry, Rect};
 
 use crate::scene::{Credit, WaterLevel};
 use crate::sources::edition::ASK_TIMEOUT;
@@ -132,14 +132,6 @@ pub fn credit() -> Credit {
         url: "https://geo.rijkswaterstaat.nl".to_string(),
         layers: Vec::new(),
     }
-}
-
-/// A line kept in the scene's frame.
-pub fn localised(line: LineString<f64>, origin: (f64, f64)) -> LineString<f64> {
-    line.0
-        .into_iter()
-        .map(|coord| (coord.x - origin.0, coord.y - origin.1))
-        .collect()
 }
 
 #[cfg(test)]

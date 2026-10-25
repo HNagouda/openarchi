@@ -10,6 +10,7 @@ use tempfile::TempDir;
 use super::*;
 use crate::catalog::builtin_themes;
 use crate::export::{svg_pages_to_pdf, svg_to_png};
+use crate::Error;
 use comfort::{yearly_hours, Exposure};
 
 const SCENE: &str = concat!(
@@ -372,7 +373,7 @@ fn a_part_that_cannot_be_fetched_is_an_error_and_nothing_is_cached() {
     let folder = TempDir::new().unwrap();
     let cache = TileCache::at(folder.path());
     let key = Tile { column: 1, row: 1 };
-    let result = cached(&cache, "test", key, || {
+    let result = cache.read_or_fetch("test", key, || {
         Err(Error::Network {
             service: "test".to_string(),
             detail: "offline".to_string(),

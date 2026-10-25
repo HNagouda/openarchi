@@ -122,6 +122,15 @@ pub fn site_centre(area: &Area, boundary: &Polygon<f64>) -> (f64, f64) {
     }
 }
 
+/// How far the site reaches from `centre`: the distance to its farthest corner.
+pub fn site_reach(boundary: &Polygon<f64>, centre: (f64, f64)) -> f64 {
+    boundary
+        .exterior()
+        .points()
+        .map(|point| (point.x() - centre.0).hypot(point.y() - centre.1))
+        .fold(0.0, f64::max)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

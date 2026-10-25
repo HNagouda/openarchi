@@ -6,7 +6,6 @@
 //! diagram keeps only its cut-down part: monthly sunlight, and monthly hours
 //! of wind by direction.
 
-use crate::analysis::cached;
 use crate::radiation::{self, SolarYear};
 use crate::scene::Scene;
 use crate::sources::cache::TileCache;
@@ -58,7 +57,7 @@ fn typical_year(
     fetch: &dyn Fn(Tile) -> Result<Vec<u8>>,
 ) -> Result<(Tmy, Option<String>)> {
     let cell = pvgis::cell_of(scene.origin);
-    let (bytes, warning) = cached(cache, pvgis::CACHE_DATASET, cell, || {
+    let (bytes, warning) = cache.read_or_fetch(pvgis::CACHE_DATASET, cell, || {
         let bytes = fetch(cell)?;
         // Only an answer that parses is worth keeping for a month.
         pvgis::parse(&bytes)?;
