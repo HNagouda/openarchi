@@ -68,10 +68,12 @@ pub fn project_name(state: &AppState) -> String {
 }
 
 /// Resolves the look's diagram and theme ids and hands `work` a render input.
+/// `draft` is a theme to draw in instead of the look's, such as the palette editor's.
 pub fn with_input<T>(
     catalog: &Catalog,
     scene: &Scene,
     look: &Look,
+    draft: Option<&Theme>,
     pins: &[Pin],
     highlights: &[Highlight],
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
@@ -83,11 +85,12 @@ pub fn with_input<T>(
     else {
         return Err(format!("There is no diagram called “{}”.", look.diagram_id));
     };
-    let Some(theme) = catalog
-        .themes
-        .iter()
-        .find(|theme| theme.id == look.theme_id)
-    else {
+    let Some(theme) = draft.or_else(|| {
+        catalog
+            .themes
+            .iter()
+            .find(|theme| theme.id == look.theme_id)
+    }) else {
         return Err(format!("There is no theme called “{}”.", look.theme_id));
     };
 
@@ -143,11 +146,12 @@ pub fn shown_scene(state: &AppState, selection: Option<&Area>) -> Result<Arc<Sce
     Ok(cut)
 }
 
-/// `look` drawn on the scene its sheet shows. The look's own selection is
-/// dropped, since the scene is already cut to it.
-fn render_shown<T>(
+/// `look` drawn on the scene its sheet shows, in `draft` when one is given.
+/// The look's own selection is dropped, since the scene is already cut to it.
+pub fn render_shown<T>(
     state: &AppState,
     look: &Look,
+    draft: Option<&Theme>,
     pins: &[Pin],
     highlights: &[Highlight],
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
@@ -158,7 +162,7 @@ fn render_shown<T>(
         selection: None,
         ..look.clone()
     };
-    with_input(&catalog, &scene, &whole, pins, highlights, work)
+    with_input(&catalog, &scene, &whole, draft, pins, highlights, work)
 }
 
 fn png_data_url(bytes: &[u8]) -> String {
@@ -185,7 +189,7 @@ pub async fn render_preview(
     highlights: Vec<Highlight>,
 ) -> Result<String, String> {
     let state = state.inner().clone();
-    blocking(move || render_shown(&state, &look, &pins, &highlights, render_svg)).await
+    blocking(move || render_shown(&state, &look, None, &pins, &highlights, render_svg)).await
 }
 
 /// A PNG of the open project in `look`, for the diagram column. Pins and
@@ -207,7 +211,9 @@ pub async fn render_thumbnail(
             hide_pins: true,
             ..look
         };
-        let bytes = render_shown(&state, &look, &pins, &[], |input| render_png(input, width))?;
+        let bytes = render_shown(&state, &look, None, &pins, &[], |input| {
+            render_png(input, width)
+        })?;
         Ok(png_data_url(&bytes))
     })
     .await
@@ -238,6 +244,7 @@ pub async fn project_thumbnail(
             &catalog,
             scene,
             &project.look,
+            None,
             &project.pins,
             &project.highlights,
             |input| render_png(input, width),

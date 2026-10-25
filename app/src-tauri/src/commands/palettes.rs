@@ -4,11 +4,11 @@
 
 use openarchi_core::palette::{self, PaletteCheck, PaletteDraft, Swatch};
 use openarchi_core::project::Look;
-use openarchi_core::render::{render_svg, RenderInput};
+use openarchi_core::render::render_svg;
 use openarchi_core::theme::Theme;
 use tauri::State;
 
-use crate::commands::render::{current_catalog, find_theme, shown_scene};
+use crate::commands::render::{find_theme, render_shown};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
@@ -40,35 +40,13 @@ pub async fn render_palette_preview(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = shown_scene(&state, look.selection.as_ref())?;
-        // The scene is already cut to the sheet area.
-        let look = Look {
-            selection: None,
-            ..look
-        };
-        let catalog = current_catalog(&state);
         let theme = checked(&state, &draft, DRAFT_ID)?.theme;
         // The editor is modal, so the saved pins and highlights are the ones on the sheet.
         let (pins, highlights) = match lock(&state.open).as_ref() {
             Some(open) => (open.project.pins.clone(), open.project.highlights.clone()),
             None => (Vec::new(), Vec::new()),
         };
-        let Some(diagram) = catalog
-            .diagrams
-            .iter()
-            .find(|diagram| diagram.id == look.diagram_id)
-        else {
-            return Err(format!("There is no diagram called “{}”.", look.diagram_id));
-        };
-        let input = RenderInput {
-            scene: &scene,
-            diagram,
-            theme: &theme,
-            look: &look,
-            pins: &pins,
-            highlights: &highlights,
-        };
-        render_svg(&input).map_err(text)
+        render_shown(&state, &look, Some(&theme), &pins, &highlights, render_svg)
     })
     .await
 }
