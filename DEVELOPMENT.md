@@ -88,7 +88,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new export format | `crates/core/src/export/` |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs` (a climate section's facts in `sections/climate_facts.rs`), the rule in `notes.rs` |
 | A new kind of report block | a `Content` variant in `crates/core/src/report.rs`, drawn in `report/draw.rs`, offered in `app/src/report/library.ts` |
-| A new assistant tool | the module for its area in `crates/mcp/src/` (`styles.rs`, `figures.rs`, `export.rs`, `sheets.rs` and so on), with its input in the matching `*_inputs.rs` and its router joined in `server.rs`; its protocol test goes in the matching file in `crates/mcp/tests/`, with the shared harness in `tests/common/mod.rs` |
+| A new assistant tool | the module for its area in `crates/mcp/src/` (`styles.rs`, `figures.rs`, `export.rs`, `sheets.rs` and so on), with its input in the matching `*_inputs.rs` (or beside the tool when the module has only one) and its router joined in `server.rs`; its protocol test goes in the matching file in `crates/mcp/tests/`, with the shared harness in `tests/common/mod.rs` |
 | A screen or control | `app/src/<screen>/`, with the Tauri command in `app/src-tauri/src/commands/` |
 
 ## Running it

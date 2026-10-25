@@ -5,7 +5,7 @@
 
 use openarchi_core::sheet::{Align, Position, Sheet, TextBox, TextStyle, SUBTITLE_ID, TITLE_ID};
 
-use crate::text_inputs::{AlignInput, EditText, PositionInput, TextStyleInput};
+use crate::text_inputs::{EditText, PositionInput, TextStyleInput};
 
 /// The text id that adds a text box instead of changing one.
 const NEW_TEXT_ID: &str = "new";
@@ -145,16 +145,6 @@ fn checked_position(position: PositionInput, width: f64, height: f64) -> Result<
         x_mm: position.x_mm,
         y_mm: position.y_mm,
     })
-}
-
-impl From<AlignInput> for Align {
-    fn from(align: AlignInput) -> Self {
-        match align {
-            AlignInput::Left => Align::Left,
-            AlignInput::Centre => Align::Centre,
-            AlignInput::Right => Align::Right,
-        }
-    }
 }
 
 #[cfg(test)]

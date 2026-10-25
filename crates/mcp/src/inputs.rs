@@ -3,7 +3,8 @@
 //! Core types do not derive `JsonSchema`, so the ones a tool takes are mirrored
 //! here with descriptions written for a model, and converted on the way in.
 //! This module holds the project and area inputs the other `*_inputs` modules
-//! share; each tool area keeps the rest in its own.
+//! share. A tool area with several tools keeps the rest in its own `*_inputs`
+//! module; a module with a single tool keeps its input beside the tool.
 
 use openarchi_core::area::{Area, LonLat};
 use schemars::JsonSchema;

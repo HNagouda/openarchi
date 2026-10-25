@@ -1,5 +1,6 @@
 //! What edit_text accepts: which text, its words, style and position.
 
+use openarchi_core::sheet::Align;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -51,6 +52,16 @@ pub enum AlignInput {
     Left,
     Centre,
     Right,
+}
+
+impl From<AlignInput> for Align {
+    fn from(align: AlignInput) -> Self {
+        match align {
+            AlignInput::Left => Align::Left,
+            AlignInput::Centre => Align::Centre,
+            AlignInput::Right => Align::Right,
+        }
+    }
 }
 
 /// Millimetres from the top-left corner of the paper. edit_text returns the sheet's size.
