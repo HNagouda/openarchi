@@ -34,17 +34,17 @@ use crate::theme::Palette;
 const TINT_OPACITY: f64 = 0.16;
 /// The outline, a little heavier than the site outline so the two never blur.
 const OUTLINE_MM: f64 = 0.6;
-const DASH_MM: f64 = 1.8;
-const GAP_MM: f64 = 1.1;
+pub const DASH_MM: f64 = 1.8;
+pub const GAP_MM: f64 = 1.1;
 /// From one dot's centre to the next: about two line widths of paper between dots.
-const DOT_GAP_MM: f64 = 1.5;
+pub const DOT_GAP_MM: f64 = 1.5;
 /// A legend swatch is short; its dashes are drawn smaller so a few fit along each side.
 const SWATCH_DASH_SCALE: f64 = 0.6;
 /// How strongly "Dim the rest" fades what lies outside: a little, not a blackout.
 const DIM_OPACITY: f64 = 0.45;
 const LABEL_HALO_MM: f64 = 0.6;
 /// Room between a highlight's top edge and its label's baseline, at A3.
-const LABEL_GAP_MM: f64 = 1.2;
+pub const LABEL_GAP_MM: f64 = 1.2;
 /// Far enough out, in paper millimetres, that the veil covers any frame before its clip cuts it.
 const VEIL_REACH_MM: f64 = 5000.0;
 

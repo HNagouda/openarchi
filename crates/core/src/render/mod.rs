@@ -85,6 +85,15 @@ pub(crate) use fonts::Face;
 pub(crate) use highlights::shown as shown_highlights;
 // Shared with the DXF export, so each CAD layer takes its colour on the sheet.
 pub(crate) use highlights::colour_of as highlight_colour;
+// Shared with the DXF marks, so they plot with the sheet's own dashes and sizes.
+pub(crate) use highlights::{
+    DASH_MM as HIGHLIGHT_DASH_MM, DOT_GAP_MM as HIGHLIGHT_DOT_GAP_MM, GAP_MM as HIGHLIGHT_GAP_MM,
+    LABEL_GAP_MM as HIGHLIGHT_LABEL_GAP_MM,
+};
+pub(crate) use section_marker::{
+    ARROW_HALF_WIDTH as ARROW_HALF_WIDTH_MM, ARROW_LENGTH as ARROW_LENGTH_MM,
+    DASHES as SECTION_DASHES_MM, LABEL_GAP as SECTION_LABEL_GAP_MM, TICK_LENGTH as SECTION_TICK_MM,
+};
 pub(crate) use section_pieces::{
     pieces as section_pieces, water_body as section_water_body, Building as SectionBuilding,
     Tree as SectionTree, AIR_M as SECTION_AIR_M, EARTH_M as SECTION_EARTH_M,
