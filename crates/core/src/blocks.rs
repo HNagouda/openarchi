@@ -168,10 +168,8 @@ fn block(polygon: Polygon<f64>, buildings: &[Building]) -> Feature {
 
 #[cfg(test)]
 mod tests {
-    use geo::polygon;
-
     use super::*;
-    use crate::area::{Area as SiteArea, LonLat};
+    use crate::grid::tests::{site as grid_site, square};
 
     fn feature(layer: Layer, geometry: Polygon<f64>, height_m: Option<f64>) -> Feature {
         Feature {
@@ -184,42 +182,12 @@ mod tests {
         }
     }
 
-    fn square(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> Polygon<f64> {
-        polygon![
-            (x: min_x, y: min_y),
-            (x: max_x, y: min_y),
-            (x: max_x, y: max_y),
-            (x: min_x, y: max_y),
-        ]
-    }
-
     /// A 100 m square site with a north-south road through the middle and an
     /// east-west road that stops halfway, at the first road.
     fn site(features: Vec<Feature>) -> Scene {
         Scene {
-            area: SiteArea::Circle {
-                center: LonLat {
-                    lon: 4.9,
-                    lat: 52.4,
-                },
-                radius_m: 50.0,
-            },
-            crs: "EPSG:28992".to_string(),
-            origin: (0.0, 0.0),
             boundary: square(-50.0, -50.0, 50.0, 50.0),
-            features,
-            credits: Vec::new(),
-            fetched_at: String::new(),
-            warnings: Vec::new(),
-            measured: Default::default(),
-            walk: None,
-            editions: Default::default(),
-            context: Vec::new(),
-            terrain: None,
-            water_bed: None,
-            water_levels: Vec::new(),
-            solar: None,
-            wind: None,
+            ..grid_site(features, Vec::new())
         }
     }
 
