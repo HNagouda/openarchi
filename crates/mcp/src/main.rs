@@ -12,6 +12,7 @@ mod palettes;
 mod reports;
 mod resolve;
 mod sections;
+mod series;
 mod server;
 mod sheet_inputs;
 mod sheets;

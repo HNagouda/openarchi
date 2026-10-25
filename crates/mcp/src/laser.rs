@@ -19,8 +19,8 @@ use crate::server::{reply, text, OpenArchi};
 pub struct ExportLaser {
     /// The project id.
     pub id: String,
-    /// Absolute path of an existing folder; the files are named "<project>-laser-1.svg" and on.
-    pub folder: String,
+    /// Absolute path of an existing folder; the files are named "<project>-laser-1.svg" and on. Needed unless check_only is true.
+    pub folder: Option<String>,
     /// Which sheet tab, counting from 1 for the first, which is the default. A tab opened from a highlight makes a model of that area only.
     pub tab: Option<usize>,
     /// The model's scale, 1000 for 1:1000. Defaults to the sheet's scale when it is 1:200, 1:500, 1:1000, 1:2000 or 1:2500, else 1:1000.
@@ -60,13 +60,6 @@ impl OpenArchi {
     async fn export_laser(&self, Parameters(input): Parameters<ExportLaser>) -> CallToolResult {
         let result = self
             .with_library(move |library| {
-                let folder = PathBuf::from(&input.folder);
-                if !folder.is_absolute() || !folder.is_dir() {
-                    return Err(format!(
-                        "folder must be an absolute path to an existing folder, got \"{}\"",
-                        input.folder
-                    ));
-                }
                 let project = library.load(&input.id).map_err(text)?;
                 let Some(scene) = &project.scene else {
                     return Err(format!(
@@ -82,6 +75,7 @@ impl OpenArchi {
                 if input.check_only.unwrap_or(false) {
                     return Ok(json!({ "summary": summary }));
                 }
+                let folder = written_folder(input.folder.as_deref())?;
                 let stem = slug(&project.name);
                 for number in 1..=summary.sheet_count {
                     let path = folder.join(laser::file_name(&stem, number, settings.format));
@@ -121,8 +115,23 @@ fn settings(input: &ExportLaser, sheet_scale: u32) -> LaserSettings {
     }
 }
 
+/// The folder the files go in: needed, absolute and existing once anything is written.
+fn written_folder(folder: Option<&str>) -> Result<PathBuf, String> {
+    let Some(folder) = folder else {
+        return Err("folder is needed unless check_only is true".to_string());
+    };
+    let path = PathBuf::from(folder);
+    if !path.is_absolute() || !path.is_dir() {
+        return Err(format!(
+            "folder must be an absolute path to an existing folder, got \"{folder}\""
+        ));
+    }
+
+    Ok(path)
+}
+
 /// "Westermarkt, Amsterdam" -> "westermarkt-amsterdam", as the app names its exports.
-fn slug(name: &str) -> String {
+pub(crate) fn slug(name: &str) -> String {
     let mut slug = String::new();
     for letter in name.to_lowercase().chars() {
         if letter.is_alphanumeric() {

@@ -28,6 +28,7 @@ use crate::look::updated_look;
 use crate::palettes::{self, ImportPalette};
 use crate::reports::{self, ExportReport};
 use crate::resolve::{check_plate, chosen_diagram, find_theme, with_render_input};
+use crate::series::export_series;
 use crate::summary::summarize;
 use crate::text::edited_sheet;
 use crate::user_themes::save_user_theme;
@@ -380,12 +381,42 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Write the project's sheet to a file: svg or pdf for print, png for slides, dxf for CAD. Refuses to replace an existing file unless overwrite is true. The site must have been fetched first."
+        description = "Write the project's sheet to a file: svg or pdf for print, png for slides, dxf for CAD. A plan's DXF is in RD New metres with a layer per data layer, per legend class of the diagram, for the diagram's computed layers (city blocks, hours of sun), highlights (solid, dashed, dotted), the section line and pins; a section sheet's DXF is the section in metres along the line and metres NAP. series=true writes one file per diagram and variant into folder instead, as the app's \"whole series\" export does. Refuses to replace an existing file unless overwrite is true. The site must have been fetched first."
     )]
     async fn export(&self, Parameters(input): Parameters<Export>) -> CallToolResult {
-        let path = PathBuf::from(&input.path);
+        let format = ExportFormat::from(input.format);
+        let dpi = input.dpi.unwrap_or(DEFAULT_EXPORT_DPI);
+        if input.series.unwrap_or(false) {
+            let Some(folder) = input.folder.clone().map(PathBuf::from) else {
+                return failure("folder is needed when series is true".to_string());
+            };
+            if !folder.is_absolute() || !folder.is_dir() {
+                return failure(format!(
+                    "folder must be an absolute path to an existing folder, got \"{}\"",
+                    folder.display()
+                ));
+            }
+            let result = self
+                .with_library(move |library| {
+                    export_series(
+                        library,
+                        &input.id,
+                        input.tab.unwrap_or(1),
+                        format,
+                        dpi,
+                        &folder,
+                        input.overwrite.unwrap_or(false),
+                    )
+                })
+                .await;
+            return reply(result);
+        }
+        let Some(path_text) = input.path.clone() else {
+            return failure("path is needed unless series is true".to_string());
+        };
+        let path = PathBuf::from(&path_text);
         if !path.is_absolute() {
-            return failure(format!("path must be absolute, got \"{}\"", input.path));
+            return failure(format!("path must be absolute, got \"{path_text}\""));
         }
         if path.exists() && !input.overwrite.unwrap_or(false) {
             return failure(format!(
@@ -397,8 +428,6 @@ impl OpenArchi {
             return failure(format!("the folder for {} does not exist", path.display()));
         }
 
-        let format = ExportFormat::from(input.format);
-        let dpi = input.dpi.unwrap_or(DEFAULT_EXPORT_DPI);
         let result = self
             .with_library(move |library| {
                 with_render_input(library, &input.id, input.tab.unwrap_or(1), |render| {
