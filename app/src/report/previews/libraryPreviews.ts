@@ -5,12 +5,11 @@
 // It lives outside React state on purpose: a picture arriving must not
 // re-render the sheet. Only the report editor subscribes to it.
 
+import { ANALYSIS_PARTS } from "../../lib/analysisParts";
 import { errorText, getAnalysis, getRatios, renderReportBlock } from "../../lib/ipc";
 import type { AnalysisPart, AnalysisSection, Ratios, ReportBlock } from "../../lib/types";
 import { analysisItems, ratiosItems, type LibraryItem } from "../library";
 
-// Every analysis part, in report order, in one place.
-const PARTS: AnalysisPart[] = ["location", "site", "climate", "rain"];
 // A pause before each picture, so this work never crowds out the sheet
 // preview or a block the user is placing.
 const PICTURE_GAP_MS = 120;
@@ -95,15 +94,15 @@ export function createLibraryPreviews(): LibraryPreviews {
     const ratios = getRatios(themeId, null)
       .then((found) => settle((library) => ({ ...library, ratios: found })))
       .catch((reason) => complain("Ratios", reason));
-    const parts = PARTS.map((part) =>
+    const parts = ANALYSIS_PARTS.map(({ part, title }) =>
       getAnalysis(part, themeId, null)
         .then((found) =>
           settle((library) => {
             const next = { ...library.parts, [part]: found };
-            return { ...library, parts: next, sections: PARTS.flatMap((entry) => next[entry] ?? []) };
+            return { ...library, parts: next, sections: ANALYSIS_PARTS.flatMap((entry) => next[entry.part] ?? []) };
           }),
         )
-        .catch((reason) => complain(part[0].toUpperCase() + part.slice(1), reason)),
+        .catch((reason) => complain(title, reason)),
     );
     await Promise.all([ratios, ...parts]);
     settle((library) => ({ ...library, isLoading: false }));

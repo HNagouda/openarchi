@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
+import { ANALYSIS_PARTS } from "../../lib/analysisParts";
 import { analysisFileName, errorText, exportAnalysis, getAnalysis, revealPath } from "../../lib/ipc";
 import { fileManagerName } from "../../lib/platform";
 import type { AnalysisPart, AnalysisSection, Area, ProjectView } from "../../lib/types";
@@ -15,13 +16,7 @@ import { Section } from "../../ui/Section";
 import { useToast } from "../../ui/Toasts";
 import "./analysis.css";
 
-/** Every part in report order, with what the panel says while it loads. */
-const PARTS: { part: AnalysisPart; title: string; waiting: string }[] = [
-  { part: "location", title: "Location", waiting: "Looking up the address and municipality." },
-  { part: "site", title: "Site", waiting: "Summing up the site." },
-  { part: "climate", title: "Climate", waiting: "Fetching a typical year of weather from PVGIS. The first time takes a few seconds." },
-  { part: "rain", title: "Rain", waiting: "Fetching thirty years of rain from KNMI." },
-];
+// #! NOTE[runtime, analysis] : The report library asks for the same parts in the sheet's palette; share one cache with it? The core caches the PVGIS and KNMI downloads, so the second ask only redraws.
 
 const SVG_FILTER = { name: "SVG page", extensions: ["svg"] };
 const PDF_FILTER = { name: "PDF page", extensions: ["pdf"] };
@@ -61,7 +56,7 @@ export function AnalysisPanel({ project, themeId, selection = null }: Props) {
           Export
         </Button>
       </div>
-      {PARTS.map((entry) => (
+      {ANALYSIS_PARTS.map((entry) => (
         <PartView
           key={entry.part}
           {...entry}
