@@ -92,8 +92,7 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
             scene.origin,
         );
     }
-    let is_context_shown = look.sheet.show_context && look.sheet.context_opacity > 0.0;
-    if dxf_layers == DxfLayers::All || is_context_shown {
+    if dxf_layers == DxfLayers::All || look.sheet.shows_context() {
         write_context(&mut drawing, scene);
     }
     // The sheet outlines the site in the accent.

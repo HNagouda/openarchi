@@ -151,6 +151,12 @@ fn full_context_opacity() -> f64 {
 }
 
 impl Sheet {
+    /// Whether the neighbourhood is drawn: switched on and not faded away. The
+    /// sheet and both DXF exports ask this, so they never disagree.
+    pub fn shows_context(&self) -> bool {
+        self.show_context && self.context_opacity > 0.0
+    }
+
     /// Width and height in millimetres, turned for landscape. Square paper never turns.
     pub fn size_mm(&self) -> (f64, f64) {
         let (width, height) = self.paper.size_mm();

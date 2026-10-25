@@ -84,7 +84,7 @@ pub fn write(input: &RenderInput) -> Result<String> {
         &profile,
         scene,
     ));
-    if look.sheet.show_context && look.sheet.context_opacity > 0.0 {
+    if look.sheet.shows_context() {
         let neighbours = layer_of(&scene.context, Layer::Building);
         highest = highest.max(write_buildings(
             &mut drawing,

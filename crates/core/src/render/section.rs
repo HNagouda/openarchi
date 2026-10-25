@@ -63,7 +63,7 @@ pub fn render(
         .find(|resolved| resolved.layer == Layer::Building);
 
     let mut site_buildings: Vec<&Feature> = layer_of(&scene.features, Layer::Building);
-    let neighbours = if look.sheet.show_context && look.sheet.context_opacity > 0.0 {
+    let neighbours = if look.sheet.shows_context() {
         layer_of(&scene.context, Layer::Building)
     } else {
         Vec::new()
