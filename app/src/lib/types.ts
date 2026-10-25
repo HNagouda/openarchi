@@ -282,6 +282,9 @@ export type Progress = { step: string; done: number; total: number };
 
 export type ExportFormat = "svg" | "pdf" | "png" | "dxf";
 
+// Which layers a plan DXF holds: those the sheet shows, or every fetched layer.
+export type DxfLayers = "shown" | "all";
+
 // crates/core/src/export/laser/mod.rs
 export type LaserFormat = "svg" | "dxf";
 export type LaserSettings = {

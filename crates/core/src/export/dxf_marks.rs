@@ -1,6 +1,7 @@
 //! What the user marks on a plan, in a plan DXF: highlights, the section line
 //! and pins, each on layers of their own in real RD New metres, so a CAD user
-//! can switch the marks off apart from the data.
+//! can switch the marks off apart from the data. Each takes its colour on the
+//! sheet: the section line and pins the accent, a highlight its own colour.
 //!
 //! Paper sizes (a dash, a tick, a label) are the sheet's own millimetres
 //! turned into ground metres at the sheet's scale, so the DXF plotted at that
@@ -9,28 +10,27 @@
 
 use crate::highlight::{Highlight, Outline};
 use crate::pin::{is_on_site, number_of, Pin, PinIcon};
+use crate::render::highlight_colour;
 use crate::scene::Scene;
 use crate::section::SectionLine;
+use crate::theme::Palette;
 
-use super::dxf_write::{write_point, write_points, write_text, Drawing, Linetype};
+use super::aci;
+use super::dxf_write::{cad_name, write_point, write_points, write_text, Drawing, Linetype};
 
-/// Highlight outlines, one layer per kind of line, so each takes its line type by layer.
+/// Highlight outlines, one layer per kind of line and colour, such as
+/// "OA-HIGHLIGHT-DASHED-ACCENT" or "OA-HIGHLIGHT-FF8800", so each takes its line
+/// type and colour by layer, as CAD users expect, rather than per entity.
 const HIGHLIGHT_LAYER: &str = "OA-HIGHLIGHT";
 const HIGHLIGHT_DASHED_LAYER: &str = "OA-HIGHLIGHT-DASHED";
 const HIGHLIGHT_DOTTED_LAYER: &str = "OA-HIGHLIGHT-DOTTED";
+/// Captions are in ink on the sheet, whatever the highlight's colour.
 const HIGHLIGHT_LABEL_LAYER: &str = "OA-HIGHLIGHT-LABEL";
-/// AutoCAD colour index for highlights: cyan, apart from the red site and magenta pins.
-// #! NOTE[dxf, highlights] : Every highlight is cyan by layer; its own palette colour is not carried over to the nearest AutoCAD colour.
-const HIGHLIGHT_COLOUR: u8 = 4;
 /// The cut line itself in a centre-line pattern, and its ticks, arrows and labels solid.
 const SECTION_LINE_LAYER: &str = "OA-SECTION-LINE";
 const SECTION_MARK_LAYER: &str = "OA-SECTION-MARK";
-/// AutoCAD colour index for the section line: yellow, the usual colour of a cut on screen.
-const SECTION_COLOUR: u8 = 2;
 /// Pins get their own layer, so a CAD user can switch the landmarks off in one go.
 const PINS_LAYER: &str = "OA-PINS";
-/// AutoCAD colour index for pins: magenta, apart from every data layer.
-const PINS_COLOUR: u8 = 6;
 
 pub(super) const DASHED: &str = "DASHED";
 /// The far end of a section. The sheet sets a prime, A′; CAD gets the plain
@@ -86,9 +86,14 @@ pub fn linetypes(scale: u32) -> Vec<Linetype> {
 }
 
 /// Each highlight's outline on the layer of its line, and its caption centred just above it.
-pub fn write_highlights(drawing: &mut Drawing, highlights: &[&Highlight], scale: u32) {
+pub fn write_highlights(
+    drawing: &mut Drawing,
+    highlights: &[&Highlight],
+    scale: u32,
+    palette: &Palette,
+) {
     for highlight in highlights {
-        let layer = match highlight.outline {
+        let line_layer = match highlight.outline {
             Outline::Solid => HIGHLIGHT_LAYER,
             Outline::Dashed => HIGHLIGHT_DASHED_LAYER,
             Outline::Dotted => HIGHLIGHT_DOTTED_LAYER,
@@ -98,9 +103,12 @@ pub fn write_highlights(drawing: &mut Drawing, highlights: &[&Highlight], scale:
             Outline::Dashed => DASHED,
             Outline::Dotted => DOTTED,
         };
-        drawing.layer_with_line(layer, HIGHLIGHT_COLOUR, linetype);
+        // "@accent" -> "OA-HIGHLIGHT-ACCENT", "#ff8800" -> "OA-HIGHLIGHT-FF8800".
+        let layer = cad_name(&format!("{line_layer}-{}", highlight.colour));
+        let colour = aci::nearest(&highlight_colour(highlight, palette));
+        drawing.layer_with_line(&layer, colour, linetype);
         let ring = highlight.shape.ring();
-        write_points(&mut drawing.entities, &ring, layer, true);
+        write_points(&mut drawing.entities, &ring, &layer, true);
 
         let caption = highlight.caption();
         if caption.is_empty() {
@@ -108,7 +116,7 @@ pub fn write_highlights(drawing: &mut Drawing, highlights: &[&Highlight], scale:
         }
         let (middle_x, _) = highlight.shape.middle();
         let top = ring.iter().map(|point| point.1).fold(f64::MIN, f64::max);
-        drawing.layer(HIGHLIGHT_LABEL_LAYER, HIGHLIGHT_COLOUR);
+        drawing.layer(HIGHLIGHT_LABEL_LAYER, aci::nearest(&palette.ink));
         write_text(
             &mut drawing.entities,
             (middle_x, top + metres(HIGHLIGHT_LABEL_GAP_MM, scale)),
@@ -123,9 +131,15 @@ pub fn write_highlights(drawing: &mut Drawing, highlights: &[&Highlight], scale:
 /// The cut marker of the plan: the line from A to A', a tick running inwards
 /// from each end, an arrow at each end pointing where the section looks, and
 /// the labels A and A' just past the ends.
-pub fn write_section_line(drawing: &mut Drawing, line: &SectionLine, scale: u32) {
-    drawing.layer_with_line(SECTION_LINE_LAYER, SECTION_COLOUR, DASHDOT);
-    drawing.layer(SECTION_MARK_LAYER, SECTION_COLOUR);
+pub fn write_section_line(
+    drawing: &mut Drawing,
+    line: &SectionLine,
+    scale: u32,
+    palette: &Palette,
+) {
+    let colour = aci::nearest(&palette.accent);
+    drawing.layer_with_line(SECTION_LINE_LAYER, colour, DASHDOT);
+    drawing.layer(SECTION_MARK_LAYER, colour);
     let axis = line.axis((0.0, 0.0));
     let along = axis.along;
     let looking = axis.looking;
@@ -191,8 +205,14 @@ pub fn write_section_line(drawing: &mut Drawing, line: &SectionLine, scale: u32)
 
 /// Each pin on the site as a point with its label beside it; a numbered pin's
 /// label starts with its number. Pins are in RD New metres already.
-pub fn write_pins(drawing: &mut Drawing, scene: &Scene, pins: &[Pin], scale: u32) {
-    drawing.layer(PINS_LAYER, PINS_COLOUR);
+pub fn write_pins(
+    drawing: &mut Drawing,
+    scene: &Scene,
+    pins: &[Pin],
+    scale: u32,
+    palette: &Palette,
+) {
+    drawing.layer(PINS_LAYER, aci::nearest(&palette.accent));
     for pin in pins {
         if !is_on_site(scene, pin.x, pin.y) {
             continue;

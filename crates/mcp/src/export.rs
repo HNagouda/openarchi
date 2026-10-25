@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 
 use base64::prelude::{Engine, BASE64_STANDARD};
-use openarchi_core::export::{self, ExportFormat};
+use openarchi_core::export::{self, DxfLayers, ExportFormat};
 use openarchi_core::render;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock};
@@ -61,11 +61,14 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Write the project's sheet to a file: svg or pdf for print, png for slides, dxf for CAD. A plan's DXF is in RD New metres with a layer per data layer, per legend class of the diagram, for the diagram's computed layers (city blocks, hours of sun), highlights (solid, dashed, dotted), the section line and pins; a section sheet's DXF is the section in metres along the line and metres NAP. series=true writes one file per diagram and variant into folder instead, as the app's \"whole series\" export does. Refuses to replace an existing file unless overwrite is true. The site must have been fetched first."
+        description = "Write the project's sheet to a file: svg or pdf for print, png for slides, dxf for CAD. A plan's DXF is in RD New metres with a layer per data layer, per legend class of the diagram, for the diagram's computed layers (city blocks, hours of sun), highlights (solid, dashed, dotted), the section line and pins, each in its colour on the sheet as the nearest AutoCAD colour; dxf_layers picks only the layers the sheet shows (the default) or every fetched layer; a section sheet's DXF is the section in metres along the line and metres NAP. series=true writes one file per diagram and variant into folder instead, as the app's \"whole series\" export does. Refuses to replace an existing file unless overwrite is true. The site must have been fetched first."
     )]
     async fn export(&self, Parameters(input): Parameters<Export>) -> CallToolResult {
         let format = ExportFormat::from(input.format);
         let dpi = input.dpi.unwrap_or(DEFAULT_EXPORT_DPI);
+        let dxf_layers = input
+            .dxf_layers
+            .map_or(DxfLayers::default(), DxfLayers::from);
         if input.series.unwrap_or(false) {
             let Some(folder) = input.folder.clone().map(PathBuf::from) else {
                 return failure("folder is needed when series is true".to_string());
@@ -84,6 +87,7 @@ impl OpenArchi {
                         input.tab.unwrap_or(1),
                         format,
                         dpi,
+                        dxf_layers,
                         &folder,
                         input.overwrite.unwrap_or(false),
                     )
@@ -111,7 +115,7 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 with_render_input(library, &input.id, input.tab.unwrap_or(1), |render| {
-                    export::export(render, format, dpi, &path)
+                    export::export_with_dxf_layers(render, format, dpi, dxf_layers, &path)
                 })?;
                 Ok(json!({ "path": path, "format": format }))
             })

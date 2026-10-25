@@ -3,8 +3,11 @@
 //! a plan, `dxf_section.rs` for a section. Laser cutting files are written
 //! from the scene too, see `laser`.
 
+pub mod aci;
+mod colour_difference;
 mod convert;
 mod dxf;
+mod dxf_colours;
 mod dxf_marks;
 mod dxf_section;
 mod dxf_write;
@@ -28,6 +31,18 @@ pub enum ExportFormat {
     Dxf,
 }
 
+/// Which layers a plan DXF holds. A section sheet's DXF is its section either way.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum DxfLayers {
+    /// The layers the sheet draws, without those the user hid, and the
+    /// neighbourhood when the sheet shows it: the drawing as it looks.
+    #[default]
+    Shown,
+    /// Every fetched layer and the whole neighbourhood, whatever the sheet shows.
+    All,
+}
+
 impl ExportFormat {
     pub fn extension(self) -> &'static str {
         match self {
@@ -39,13 +54,25 @@ impl ExportFormat {
     }
 }
 
-/// Writes the sheet to `path` in `format`. PNG is rendered at `dpi`.
+/// Writes the sheet to `path` in `format`. PNG is rendered at `dpi`, and a
+/// DXF holds the layers the sheet shows.
 pub fn export(input: &RenderInput, format: ExportFormat, dpi: u32, path: &Path) -> Result<()> {
+    export_with_dxf_layers(input, format, dpi, DxfLayers::default(), path)
+}
+
+/// `export`, with a DXF holding `dxf_layers`. Other formats ignore it.
+pub fn export_with_dxf_layers(
+    input: &RenderInput,
+    format: ExportFormat,
+    dpi: u32,
+    dxf_layers: DxfLayers,
+    path: &Path,
+) -> Result<()> {
     let bytes = match format {
         ExportFormat::Svg => render_svg(input)?.into_bytes(),
         ExportFormat::Pdf => convert::pdf(&render_svg(input)?)?,
         ExportFormat::Png => convert::png_at_dpi(&render_svg(input)?, dpi)?,
-        ExportFormat::Dxf => sheet_dxf(input)?.into_bytes(),
+        ExportFormat::Dxf => sheet_dxf(input, dxf_layers)?.into_bytes(),
     };
 
     std::fs::write(path, bytes).map_err(|source| Error::io(path, source))
@@ -53,7 +80,7 @@ pub fn export(input: &RenderInput, format: ExportFormat, dpi: u32, path: &Path) 
 
 /// The DXF of what the sheet shows, cut to its area like the SVG: a section
 /// sheet as its section, any other view as the plan under it.
-fn sheet_dxf(input: &RenderInput) -> Result<String> {
+fn sheet_dxf(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
     let look = input.look;
     let drawn = input.diagram.drawn_as(look.variant.as_deref());
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
@@ -64,7 +91,7 @@ fn sheet_dxf(input: &RenderInput) -> Result<String> {
     };
     match look.view.mode {
         ViewMode::Section => dxf_section::write(input),
-        _ => dxf::write(input),
+        _ => dxf::write(input, dxf_layers),
     }
 }
 

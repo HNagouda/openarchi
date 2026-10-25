@@ -66,8 +66,6 @@ fn a_classifying_diagram_puts_each_legend_class_on_its_own_layer() {
     assert_eq!(dxf.on("OA-BUILDING-UNDER-6-M").len(), 1);
     assert_eq!(dxf.on("OA-BUILDING-UNKNOWN").len(), 1);
     assert!(dxf.on("OA-BUILDING").is_empty());
-    // Every stored layer is still there, whatever the diagram shows.
-    assert_eq!(dxf.on("OA-ROAD").len(), 1);
 }
 
 #[test]
@@ -104,10 +102,10 @@ fn highlights_get_a_layer_per_line_and_their_captions_in_rd_new() {
     ];
     let dxf = dxf_of(&scene(), "context", &look(), &[], &highlights);
 
-    assert_eq!(dxf.layer("OA-HIGHLIGHT").unwrap().2, "CONTINUOUS");
-    assert_eq!(dxf.layer("OA-HIGHLIGHT-DASHED").unwrap().2, "DASHED");
-    assert_eq!(dxf.layer("OA-HIGHLIGHT-DOTTED").unwrap().2, "DOTTED");
-    let plot = dxf.on("OA-HIGHLIGHT");
+    assert_eq!(dxf.layer("OA-HIGHLIGHT-ACCENT").unwrap().2, "CONTINUOUS");
+    assert_eq!(dxf.layer("OA-HIGHLIGHT-DASHED-ACCENT").unwrap().2, "DASHED");
+    assert_eq!(dxf.layer("OA-HIGHLIGHT-DOTTED-ACCENT").unwrap().2, "DOTTED");
+    let plot = dxf.on("OA-HIGHLIGHT-ACCENT");
     assert_eq!(plot.len(), 1);
     assert_eq!(plot[0].points[0], (ORIGIN.0 - 20.0, ORIGIN.1 - 20.0));
     let captions: Vec<&str> = dxf
@@ -129,7 +127,7 @@ fn highlights_get_a_layer_per_line_and_their_captions_in_rd_new() {
         ..look()
     };
     assert!(dxf_of(&scene(), "context", &hidden, &[], &highlights)
-        .on("OA-HIGHLIGHT")
+        .on("OA-HIGHLIGHT-ACCENT")
         .is_empty());
 }
 

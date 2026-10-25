@@ -4,13 +4,16 @@
 //! back with ezdxf, to check what a CAD user gets.
 //!
 //! cargo run --release -p openarchi-core --example dxf_samples -- <library> <project-id> [out folder]
+//!
+//! THEME=<palette id> draws in that palette instead of the project's, and
+//! DXF_LAYERS=all writes every fetched layer instead of those the sheet shows.
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use geo::BoundingRect;
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
-use openarchi_core::export::{export, ExportFormat};
+use openarchi_core::export::{export_with_dxf_layers, DxfLayers, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Look;
 use openarchi_core::render::RenderInput;
@@ -27,10 +30,15 @@ fn main() {
     std::fs::create_dir_all(&out).expect("make the out folder");
     let scene = project.scene.as_ref().expect("a fetched site");
     let themes = builtin_themes();
+    let theme_id = std::env::var("THEME").unwrap_or(project.look.theme_id.clone());
     let theme = themes
         .iter()
-        .find(|theme| theme.id == project.look.theme_id)
+        .find(|theme| theme.id == theme_id)
         .unwrap_or(&themes[0]);
+    let dxf_layers = match std::env::var("DXF_LAYERS").as_deref() {
+        Ok("all") => DxfLayers::All,
+        _ => DxfLayers::Shown,
+    };
     let diagrams = builtin_diagrams();
     let write = |name: &str, look: &Look| {
         let diagram = diagrams
@@ -47,7 +55,8 @@ fn main() {
         };
         let path = out.join(format!("{name}.dxf"));
         let started = Instant::now();
-        export(&input, ExportFormat::Dxf, 0, &path).expect("export the DXF");
+        export_with_dxf_layers(&input, ExportFormat::Dxf, 0, dxf_layers, &path)
+            .expect("export the DXF");
         let size = std::fs::metadata(&path).expect("written").len();
         println!(
             "{name:<40} {:>8.1?} {:>7} KB",
