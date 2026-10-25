@@ -54,6 +54,7 @@ pub(crate) fn site(features: Vec<Feature>, context: Vec<Feature>) -> Scene {
         water_bed: None,
         water_levels: Vec::new(),
         solar: None,
+        wind: None,
     }
 }
 

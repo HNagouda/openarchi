@@ -28,6 +28,8 @@ use crate::scene::{Layer, Scene};
 const YEAR_PLACEHOLDER: &str = "{year}";
 /// Stands in a legend note for the look's sun date: "21 March".
 pub const DATE_PLACEHOLDER: &str = "{date}";
+/// Stands in a legend note for the wind the look draws: "from the SW, most common all year (12% of hours)".
+pub const WIND_PLACEHOLDER: &str = "{wind}";
 /// What a note says when the scene does not know the year of its data.
 const UNKNOWN_YEAR: &str = "year unknown";
 
@@ -70,6 +72,11 @@ pub struct Diagram {
     /// with a walk; without one the diagram stays at the site.
     #[serde(default)]
     pub walk_minutes: Option<u32>,
+    /// Drawn in plan only: the axonometric and explode views are refused,
+    /// and an old look that asks for one draws the plan. The wind is solved
+    /// in two dimensions, so a tilted view would add height it never had.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub plan_only: bool,
     /// Ways to draw the same question with another layer or measure, such as
     /// NO₂, PM10 and PM2.5 for air quality. The first is the default.
     #[serde(default)]

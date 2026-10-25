@@ -9,6 +9,7 @@ use openarchi_core::scene::Scene;
 use openarchi_core::sheet::Sheet;
 use openarchi_core::sources::pvgis;
 use openarchi_core::view::{View, ViewMode};
+use openarchi_core::wind::{self, WindYear};
 
 use crate::{RECORDED_SOLAR_YEAR, SAMPLE_WIDTH_PX};
 
@@ -30,6 +31,8 @@ pub(crate) fn add_solar_year(scene: &mut Scene, manifest: &Path) {
     let tmy = pvgis::parse(&bytes).expect("parse the recorded PVGIS year");
     scene.solar = Some(SolarYear::from_tmy(&tmy).expect("a full typical year"));
     scene.credits.push(radiation::credit());
+    scene.wind = Some(WindYear::from_tmy(&tmy).expect("a full typical year"));
+    scene.credits.push(wind::credit());
 }
 
 pub(crate) fn write_scene(scene_path: &Path, out_dir: &Path, only: Option<&String>) {

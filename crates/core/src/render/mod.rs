@@ -132,13 +132,26 @@ pub fn missing_data(input: &RenderInput) -> Result<Vec<String>> {
     Ok(missing::notes(&scene, &drawn, look))
 }
 
+/// The look as `diagram` can draw it: a plan-only diagram turns a tilted or
+/// exploded view into its plan. The app and set_look never ask for one; a
+/// look from elsewhere still draws.
+fn planned(diagram: &Diagram, look: &Look) -> Look {
+    let is_tilted = matches!(look.view.mode, ViewMode::Axonometric | ViewMode::Explode);
+    let mut planned = look.clone();
+    if diagram.plan_only && is_tilted {
+        planned.view.mode = ViewMode::Plan;
+    }
+    planned
+}
+
 pub fn render_svg(input: &RenderInput) -> Result<String> {
-    let look = input.look;
-    let drawn = input.diagram.drawn_as(look.variant.as_deref());
+    let drawn = input.diagram.drawn_as(input.look.variant.as_deref());
+    let look = &planned(&drawn, input.look);
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
     let input = &RenderInput {
         diagram: &drawn,
         scene: &scene,
+        look,
         ..*input
     };
     if look.sheet.scale == 0 {

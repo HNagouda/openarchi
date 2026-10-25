@@ -18,7 +18,7 @@ const COLUMN_GAP: f64 = 5.0;
 const TITLE_GAP: f64 = 4.2;
 /// From the title's baseline to the note's, and the most lines a note may take.
 const NOTE_GAP: f64 = 1.6;
-const MAX_NOTE_LINES: usize = 2;
+const MAX_NOTE_LINES: usize = 3;
 const MIN_SWATCH_STROKE_MM: f64 = 0.1;
 const SWATCH_EDGE_OPACITY: f64 = 0.3;
 /// A symbol's radius as a share of the swatch height, leaving room for its corners.

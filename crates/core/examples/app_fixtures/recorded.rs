@@ -9,6 +9,7 @@ use openarchi_core::selection;
 use openarchi_core::sources::cache::TileCache;
 use openarchi_core::sources::grid::Tile;
 use openarchi_core::sources::pvgis;
+use openarchi_core::wind::{self, WindYear};
 
 use crate::palettes::fixture_themes;
 
@@ -25,6 +26,8 @@ pub(crate) fn add_solar_year(scene: &mut Scene, cache: &TileCache) {
     let tmy = pvgis::parse(&bytes).expect("parse the recorded PVGIS year");
     scene.solar = Some(SolarYear::from_tmy(&tmy).expect("a full typical year"));
     scene.credits.push(radiation::credit());
+    scene.wind = Some(WindYear::from_tmy(&tmy).expect("a full typical year"));
+    scene.credits.push(wind::credit());
 }
 
 pub(crate) fn recorded_cache() -> (tempfile::TempDir, TileCache) {

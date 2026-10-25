@@ -87,6 +87,7 @@ fn is_missing(scene: &Scene, layer: Layer) -> bool {
         Layer::Population => true,
         // Worked out when drawn, but from the typical year kept at fetch time.
         Layer::SolarRadiation => scene.solar.is_none(),
+        Layer::Wind => scene.wind.is_none(),
         _ => false,
     }
 }

@@ -117,6 +117,20 @@ mod tests {
     }
 
     #[test]
+    fn a_theme_saved_before_the_wind_layers_gets_their_styles() {
+        let mut theme = old_ink();
+        theme.layers.remove(&Layer::Wind);
+        theme.layers.remove(&Layer::WindLine);
+        let filled = filled(theme).unwrap();
+
+        assert_eq!(filled.layers[&Layer::Wind].fill.as_deref(), Some("@muted"));
+        assert_eq!(
+            filled.layers[&Layer::WindLine].stroke.as_deref(),
+            Some("@paper")
+        );
+    }
+
+    #[test]
     fn styles_the_theme_has_are_kept() {
         let mut theme = old_ink();
         let mut road = theme.layers[&Layer::Road].clone();

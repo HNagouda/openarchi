@@ -182,6 +182,7 @@ mod tests {
             water_bed: None,
             water_levels: Vec::new(),
             solar: None,
+            wind: None,
         }
     }
 

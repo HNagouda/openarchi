@@ -56,7 +56,7 @@ pub fn write(input: &RenderInput) -> Result<String> {
         None => None,
     };
 
-    let computed = computed_features(scene, input.diagram, &look.sun);
+    let computed = computed_features(scene, input.diagram, look);
     for feature in scene.features.iter().chain(&computed) {
         let layer = match &classes {
             Some((classify, classes)) if classify.layer == feature.layer => {
@@ -194,6 +194,8 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::TreeCanopy | Layer::GreenCover | Layer::VegetationIndex => 3,
         Layer::HeatIsland => 30,
         Layer::Viewshed => 50,
+        Layer::Wind => 150,
+        Layer::WindLine => 7,
         #[allow(unreachable_patterns)]
         _ => PLAIN_COLOUR,
     }

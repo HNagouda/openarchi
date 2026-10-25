@@ -28,10 +28,11 @@ use super::typeset::Typesetter;
 use super::viewpoint;
 use super::walk_bands::{self, Bands};
 use super::RenderInput;
-use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER};
+use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER, WIND_PLACEHOLDER};
 use crate::scene::{Feature, Layer, Scene};
 use crate::sun;
 use crate::theme::Theme;
+use crate::wind;
 use crate::Result;
 
 /// What a sheet's drawing zone ends up holding, for the furniture to describe.
@@ -122,7 +123,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     let location = sun::site_location(&scene.area);
     let sun = sun::position_at(location, &look.sun);
     let seen = viewpoint::compute(scene, diagram, look, frame.ground_bounds());
-    let mut computed = derived::features(scene, diagram, &look.sun);
+    let mut computed = derived::features(scene, diagram, look);
     computed.extend(seen.iter().map(|seen| seen.area.clone()));
     let features = cull::within_frame(
         features_by_layer(scene, &computed, diagram),
@@ -297,7 +298,8 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
             .classify
             .as_ref()
             .and_then(|classify| classify.note_for(scene))
-            .map(|note| note.replace(DATE_PLACEHOLDER, &look.sun.date_label()));
+            .map(|note| note.replace(DATE_PLACEHOLDER, &look.sun.date_label()))
+            .map(|note| note.replace(WIND_PLACEHOLDER, &wind::described(scene, look.wind_season)));
     }
     add_lines_to_mode_rows(&mut legend, &transit_lines);
     if has_merged_points {

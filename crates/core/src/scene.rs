@@ -13,6 +13,7 @@ use crate::area::Area;
 use crate::environment::Measured;
 use crate::radiation::SolarYear;
 use crate::sources::raster::Grid;
+use crate::wind::WindYear;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scene {
@@ -67,6 +68,10 @@ pub struct Scene {
     /// when the source could not be reached.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub solar: Option<SolarYear>,
+    /// The site's typical year of wind, month by month, for the wind diagram.
+    /// `None` for scenes fetched before it was kept, or when the source could not be reached.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wind: Option<WindYear>,
 }
 
 /// The level a water is held at, published as a line along its fairway.
@@ -251,16 +256,23 @@ pub enum Layer {
     /// The ground a person standing at the sheet's viewpoint can see.
     /// Computed from building heights and the terrain when drawn, never stored.
     Viewshed,
+    /// The wind speed at street level as a share of the incoming wind, in
+    /// bands. Computed from building footprints and the scene's typical year
+    /// when drawn, never stored.
+    Wind,
+    /// Flow lines and arrowheads of the wind diagram, drawn over its bands.
+    WindLine,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 40] = [
+    pub const ALL: [Layer; 42] = [
         // Measured surfaces lie under the map, as the ground they describe.
         Layer::SolarRadiation,
         Layer::SkyView,
         Layer::Viewshed,
         Layer::SunHours,
+        Layer::Wind,
         Layer::HeatIsland,
         Layer::VegetationIndex,
         Layer::GreenCover,
@@ -292,6 +304,8 @@ impl Layer {
         Layer::Contour,
         Layer::Block,
         Layer::Parcel,
+        // Flow lines read over the ground and its blocks, under the buildings they pass.
+        Layer::WindLine,
         Layer::Tree,
         Layer::Building,
         Layer::Facility,
@@ -341,6 +355,8 @@ impl Layer {
             Layer::VegetationIndex => "Vegetation index",
             Layer::HeatIsland => "Heat island",
             Layer::Viewshed => "Ground in view",
+            Layer::Wind => "Wind speed",
+            Layer::WindLine => "Flow lines, arrows downwind",
         }
     }
 }

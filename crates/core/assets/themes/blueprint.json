@@ -103,6 +103,18 @@
       "opacity": 0.3,
       "pattern": null
     },
+    "wind": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "wind_line": {
+      "fill": "@ink",
+      "stroke": "@paper",
+      "stroke_mm": 0.12,
+      "pattern": null
+    },
     "block": {
       "fill": "@figure",
       "stroke": "@paper",

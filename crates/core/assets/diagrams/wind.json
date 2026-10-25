@@ -1,0 +1,45 @@
+{
+    "id": "wind",
+    "name": "Wind",
+    "group": "Environment",
+    "description": "How the prevailing wind moves through the site at street level, in plan: where it speeds up between buildings and where the ground lies sheltered.",
+    "layers": [
+        "wind",
+        "wind_line",
+        "building"
+    ],
+    "emphasis": "wind",
+    "mute_others": true,
+    "highlight": [
+        "wind_line"
+    ],
+    "as_figure": [],
+    "blank": [
+        "building"
+    ],
+    "plan_only": true,
+    "classify": {
+        "layer": "wind",
+        "attribute": "value",
+        "title": "Wind speed, share of the incoming wind",
+        "note": "Wind {wind}. 2D lattice Boltzmann flow (D2Q9 BGK, Qian et al. 1992) round footprints: no flow over roofs, no turbulence model. Compare places, not comfort criteria.",
+        "scheme": {
+            "kind": "sequential",
+            "breaks": [
+                0.2,
+                0.4,
+                0.6,
+                0.8,
+                1.0
+            ],
+            "labels": [
+                "Under 20%, sheltered",
+                "20–40%",
+                "40–60%",
+                "60–80%",
+                "80–100%",
+                "100% or more, windier than open ground"
+            ]
+        }
+    }
+}
