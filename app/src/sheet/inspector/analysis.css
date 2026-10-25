@@ -10,7 +10,7 @@
 .analysis-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--toolbar-gap);
   padding: 10px 12px 10px 16px;
   border-bottom: 1px solid var(--line);
 }

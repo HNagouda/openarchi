@@ -13,6 +13,7 @@ import { Segmented } from "../../ui/Segmented";
 import { Toggle } from "../../ui/Toggle";
 import { sizeLabel, withReplaced } from "./modelEdits";
 import { MODEL_KEY, type ModelTool } from "./useModelTool";
+import { PERCENT } from "../../lib/units";
 import "./model.css";
 
 const TURN_MERGE_KEY = "model-turn";
@@ -22,7 +23,6 @@ const FULL_TURN_DEG = 360;
 const LOWEST_BASE_M = -10;
 const HIGHEST_BASE_M = 50;
 const BASE_STEP_M = 0.1;
-const PERCENT = 100;
 
 const UNITS: { value: ModelUnit; label: string }[] = [
   { value: "metre", label: "m" },

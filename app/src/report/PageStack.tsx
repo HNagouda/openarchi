@@ -3,15 +3,13 @@
 // the header do the same from the keyboard.
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { DRAG_THRESHOLD_PX } from "../lib/pointerDrag";
 import type { Report, ReportBlock } from "../lib/types";
 import { Button } from "../ui/Button";
 import { addPage, deletePage, movePage } from "./edits";
 import type { Handle } from "./geometry";
 import { PageView, type Live } from "./PageView";
 import "./pages.css";
-
-// A press that moves less than this is not a drag.
-const DRAG_START_PX = 3;
 
 type Props = {
   report: Report;
@@ -53,7 +51,7 @@ export function PageStack(props: Props) {
 
   const move = (event: ReactPointerEvent) => {
     if (!drag) return;
-    const isMoving = drag.isMoving || Math.abs(event.clientY - drag.startY) > DRAG_START_PX;
+    const isMoving = drag.isMoving || Math.abs(event.clientY - drag.startY) > DRAG_THRESHOLD_PX;
     setDrag({ ...drag, to: slotAt(event.clientY), isMoving });
   };
 

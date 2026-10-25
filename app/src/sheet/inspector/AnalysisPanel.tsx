@@ -7,13 +7,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
 import { ANALYSIS_PARTS } from "../../lib/analysisParts";
-import { analysisFileName, errorText, exportAnalysis, getAnalysis, revealPath } from "../../lib/ipc";
-import { fileManagerName } from "../../lib/platform";
+import { fileNameOf } from "../../lib/format";
+import { analysisFileName, errorText, exportAnalysis, getAnalysis } from "../../lib/ipc";
 import type { AnalysisPart, AnalysisSection, Area, ProjectView } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { Problem } from "../../ui/Problem";
 import { Section } from "../../ui/Section";
-import { useToast } from "../../ui/Toasts";
+import { useExportedToast, useToast } from "../../ui/Toasts";
 import "./analysis.css";
 
 // #! NOTE[runtime, analysis] : The report library asks for the same parts in the sheet's palette; share one cache with it? The core caches the PVGIS and KNMI downloads, so the second ask only redraws.
@@ -28,6 +28,7 @@ type Props = { project: ProjectView; themeId: string; selection?: Area | null };
 
 export function AnalysisPanel({ project, themeId, selection = null }: Props) {
   const toast = useToast();
+  const exported = useExportedToast();
 
   const exportTo = async (sectionId: string | null) => {
     try {
@@ -37,8 +38,7 @@ export function AnalysisPanel({ project, themeId, selection = null }: Props) {
       });
       if (!path) return;
       const written = await exportAnalysis(themeId, selection, sectionId, path);
-      const fileName = written.split(/[\\/]/).pop() ?? written;
-      toast(`Exported ${fileName}`, { action: { label: `Show in ${fileManagerName}`, run: () => revealPath(written) } });
+      exported(`Exported ${fileNameOf(written)}`, written);
     } catch (reason) {
       toast(`Couldn't export the analysis. ${errorText(reason)}`, { isError: true });
     }

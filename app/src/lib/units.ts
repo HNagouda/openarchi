@@ -11,3 +11,6 @@ export const MM_PER_PT = 25.4 / 72;
 export const MIN_DPI = 72;
 export const MAX_DPI = 600;
 export const DEFAULT_DPI = 300;
+
+/** Hundredths in a whole, for a share or a zoom shown as a percentage. */
+export const PERCENT = 100;

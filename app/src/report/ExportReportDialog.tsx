@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
-import { errorText, exportReport, reportFileName, revealPath } from "../lib/ipc";
-import { fileManagerName } from "../lib/platform";
+import { fileNameOf } from "../lib/format";
+import { errorText, exportReport, reportFileName } from "../lib/ipc";
 import { readPreference, writePreference } from "../lib/storage";
 import type { Report, ReportFormat } from "../lib/types";
 import { Button } from "../ui/Button";
@@ -11,7 +11,7 @@ import { Dialog } from "../ui/Dialog";
 import { NumberField } from "../ui/NumberField";
 import { Segmented } from "../ui/Segmented";
 import { DEFAULT_DPI, MAX_DPI, MIN_DPI } from "../lib/units";
-import { useToast } from "../ui/Toasts";
+import { useExportedToast } from "../ui/Toasts";
 
 
 const FORMATS: { value: ReportFormat; label: string; name: string; note: string }[] = [
@@ -26,7 +26,7 @@ export function ExportReportDialog({ report, onClose }: { report: Report; onClos
   const [settings, setSettings] = useState<Settings>(() => readPreference<Settings>("reportExport", { format: "pdf", dpi: DEFAULT_DPI }));
   const [isExporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const toast = useToast();
+  const exported = useExportedToast();
   const format = FORMATS.find((entry) => entry.value === settings.format) ?? FORMATS[0];
   const pageCount = report.pages.length;
 
@@ -44,8 +44,8 @@ export function ExportReportDialog({ report, onClose }: { report: Report; onClos
       const path = await save({ defaultPath: suggested, filters: [{ name: format.name, extensions: [settings.format] }] });
       if (!path) return;
       const written = await exportReport(report, settings.format, settings.dpi, path);
-      const shown = written.length === 1 ? (written[0].split(/[\\/]/).pop() ?? written[0]) : `${written.length} pages`;
-      toast(`Exported ${shown}`, { action: { label: `Show in ${fileManagerName}`, run: () => revealPath(written[0]) } });
+      const shown = written.length === 1 ? fileNameOf(written[0]) : `${written.length} pages`;
+      exported(`Exported ${shown}`, written[0]);
       onClose();
     } catch (reason) {
       setError(errorText(reason));

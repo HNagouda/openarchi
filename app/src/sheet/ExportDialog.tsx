@@ -4,17 +4,16 @@
 
 import { useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { errorText, exportFileName, exportLaser, exportSeries, exportSheet, revealPath } from "../lib/ipc";
-import { fileManagerName } from "../lib/platform";
+import { errorText, exportFileName, exportLaser, exportSeries, exportSheet } from "../lib/ipc";
 import { readPreference, writePreference } from "../lib/storage";
 import type { DxfLayers, ExportFormat, Highlight, Look, Pin } from "../lib/types";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { NumberField } from "../ui/NumberField";
 import { Segmented } from "../ui/Segmented";
-import { clamp } from "../lib/format";
+import { clamp, fileNameOf } from "../lib/format";
 import { DEFAULT_DPI, MAX_DPI, MIN_DPI } from "../lib/units";
-import { useToast } from "../ui/Toasts";
+import { useExportedToast } from "../ui/Toasts";
 import { LaserFields, useLaserSettings } from "./LaserFields";
 
 
@@ -57,7 +56,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
   const [laser, updateLaser] = useLaserSettings(look);
   const [isExporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const toast = useToast();
+  const exported = useExportedToast();
   const format = FORMATS.find((entry) => entry.value === settings.format) ?? FORMATS[0];
   const isLaser = settings.format === "laser";
   // A section sheet's DXF is its section, which has no layers to choose from.
@@ -75,8 +74,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
     const path = await save({ defaultPath: suggested, filters: [{ name: format.name, extensions: [drawing] }] });
     if (!path) return false;
     const written = await exportSheet(look, pins, highlights, drawing, settings.dpi, settings.dxfLayers, path);
-    const fileName = written.split(/[\\/]/).pop() ?? written;
-    toast(`Exported ${fileName}`, { action: { label: `Show in ${fileManagerName}`, run: () => revealPath(written) } });
+    exported(`Exported ${fileNameOf(written)}`, written);
     return true;
   };
 
@@ -84,9 +82,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
     const folder = await open({ directory: true, title: "Choose a folder for the series" });
     if (typeof folder !== "string") return false;
     const written = await exportSeries(look, pins, highlights, drawing, settings.dpi, settings.dxfLayers, folder);
-    toast(`Exported ${written.length} diagrams`, {
-      action: written[0] ? { label: `Show in ${fileManagerName}`, run: () => revealPath(written[0]) } : undefined,
-    });
+    exported(`Exported ${written.length} diagrams`, written[0]);
     return true;
   };
 
@@ -95,9 +91,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
     if (typeof folder !== "string") return false;
     const written = await exportLaser(look, laser, folder);
     const count = written.files.length;
-    toast(count === 1 ? "Wrote 1 laser sheet" : `Wrote ${count} laser sheets`, {
-      action: written.files[0] ? { label: `Show in ${fileManagerName}`, run: () => revealPath(written.files[0]) } : undefined,
-    });
+    exported(count === 1 ? "Wrote 1 laser sheet" : `Wrote ${count} laser sheets`, written.files[0]);
     return true;
   };
 

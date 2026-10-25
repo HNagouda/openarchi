@@ -25,6 +25,7 @@ import { isTyping, usePlainKeys } from "../lib/keys";
 import type { Area, AreaSize, Place, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
 import { useToast } from "../ui/Toasts";
+import { ZoomControl } from "../ui/ZoomControl";
 import { bounds } from "./geometry";
 import { ADDRESS_ZOOM, NETHERLANDS_CENTER, NETHERLANDS_ZOOM, PLACE_ZOOM, addSiteLayers, styleFor } from "./mapStyle";
 import { CIRCLE_KEY, PAN_KEYS, POLYGON_KEY, RECTANGLE_KEY, SitePanel, type FetchState } from "./SitePanel";
@@ -302,11 +303,12 @@ export function SiteStep({ project, navigate }: Props) {
         <div className="map-wrap">
           <div ref={container} className="map" />
           {statusText && <div className="draw-status">{statusText}</div>}
-          <div className="map-zoom">
-            <Button icon="zoomOut" tip="Zoom out" shortcut="mod+-" tipSide="above" onClick={() => map?.zoomOut()} />
-            <Button icon="fit" tip={area ? "Fit the site" : "Show the Netherlands"} shortcut="mod+0" tipSide="above" onClick={resetView} />
-            <Button icon="zoomIn" tip="Zoom in" shortcut="mod+=" tipSide="above" onClick={() => map?.zoomIn()} />
-          </div>
+          <ZoomControl
+            fitTip={area ? "Fit the site" : "Show the Netherlands"}
+            onZoomIn={() => map?.zoomIn()}
+            onZoomOut={() => map?.zoomOut()}
+            onFit={resetView}
+          />
           {drawing.live && (
             <div className="live-label tabular" style={{ left: drawing.live.x + 14, top: drawing.live.y + 14 }}>
               {drawing.live.text}

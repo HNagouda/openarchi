@@ -100,7 +100,7 @@ export function ReportsWorkspace({ project, sheetLook, catalog, previews, sheetT
           {report && <EditableText className="topbar-crumb report-name" value={report.name} onCommit={(name) => changeReport({ ...report, name })} />}
         </div>
         {reports.length > 1 && (
-          <select className="report-select report-switch" aria-label="Report" value={report?.id ?? ""} onChange={(event) => setOpenId(event.target.value)}>
+          <select className="report-switch" aria-label="Report" value={report?.id ?? ""} onChange={(event) => setOpenId(event.target.value)}>
             {reports.map((entry) => (
               <option key={entry.id} value={entry.id}>
                 {entry.name}

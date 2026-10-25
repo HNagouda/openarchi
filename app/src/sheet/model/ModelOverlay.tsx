@@ -6,7 +6,7 @@
 import type { PaperView } from "../Canvas";
 import { useLive } from "../liveValue";
 import { paperToRd, rdToPaper, type Point } from "../paper";
-import { followPointer } from "../pointerDrag";
+import { followPointer } from "../../lib/pointerDrag";
 import { bearingDeg, footprintOnSite, normalisedTurn } from "./modelEdits";
 import type { ModelTool } from "./useModelTool";
 import "./model.css";

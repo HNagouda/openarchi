@@ -24,12 +24,26 @@ export function formatScale(denominator: number): string {
   return `1:${wholeNumber.format(denominator).replace(/,/g, " ")}`;
 }
 
+/** The last part of a path, on any platform: "/a/b/plan.pdf" -> "plan.pdf". */
+export function fileNameOf(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
 /** A typed number that may use a comma as decimal mark: "0,5" -> 0.5. */
 export function parseTyped(text: string): number | null {
   const cleaned = text.trim().replace(/\s| /g, "").replace(",", ".").replace(/^1:/, "");
   if (cleaned === "") return null;
   const value = Number(cleaned);
   return Number.isFinite(value) ? value : null;
+}
+
+// Twelve significant digits is far more than any field shows, and few enough
+// to drop the float noise in 102 * 0.1 = 10.200000000000001.
+const STEP_PRECISION = 12;
+
+/** `value` rounded to a whole number of steps: (10.24, 0.1) -> 10.2. */
+export function snapToStep(value: number, step: number): number {
+  return Number((Math.round(value / step) * step).toPrecision(STEP_PRECISION));
 }
 
 /** `value` kept between `min` and `max`; `min` wins when the range is empty, so a block wider than its page sits at its edge. */

@@ -3,11 +3,9 @@
 // from the keyboard.
 
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { DRAG_THRESHOLD_PX } from "../lib/pointerDrag";
 import type { BlockContent, Report } from "../lib/types";
 import { reorderBlocks } from "./edits";
-
-// A press that moves less than this selects the row instead of dragging it.
-const DRAG_START_PX = 3;
 
 type Props = {
   report: Report;
@@ -40,7 +38,7 @@ export function LayerList({ report, pageIndex, selectedId, onChange, onSelect }:
 
   const move = (event: ReactPointerEvent) => {
     if (!drag) return;
-    const isMoving = drag.isMoving || Math.abs(event.clientY - drag.startY) > DRAG_START_PX;
+    const isMoving = drag.isMoving || Math.abs(event.clientY - drag.startY) > DRAG_THRESHOLD_PX;
     setDrag({ ...drag, to: rowAt(event.clientY), isMoving });
   };
 

@@ -182,6 +182,7 @@ What changed in each version of openarchi, newest first.
 
 ### Under the hood
 
+- The neighbourhood only writes what the paper can show: features beyond the drawing zone, and standing neighbours too far away for their walls to rise into it, are left out instead of clipped. On a large city-centre site a plan sheet drops from about 3 MB to 0.6 MB and an axonometric one from 9.7 MB to 7.4 MB, and thumbnails draw up to five times faster.
 - Project files move to format 2. Files from 0.1.0 open as before, with their title in the automatic layout.
 
 Sheets can now show the site in three dimensions and the sun over it.

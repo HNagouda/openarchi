@@ -114,6 +114,7 @@ function BlockEditor({ block, text, pxPerMm, onCommit, onDone }: EditorProps) {
     <textarea
       ref={field}
       className="text-editor report-text-editor"
+      aria-label="Text"
       value={draft}
       spellCheck={false}
       style={{

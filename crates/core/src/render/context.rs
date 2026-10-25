@@ -9,10 +9,14 @@
 use std::collections::BTreeMap;
 use std::fmt::Write;
 
+use geo::Rect as GroundRect;
+
 use super::color;
+use super::cull;
 use super::drawing::{layer_slug, write_areas_and_lines, Canvas};
 use super::geometry::{decimal, mm, Projection};
 use super::layout::Rect;
+use super::solid::building_height;
 use super::svg::{layer_attributes, paint_attributes};
 use crate::scene::{Feature, Layer, Scene};
 use crate::sheet::Sheet;
@@ -103,9 +107,14 @@ impl<'a> Neighbourhood<'a> {
         canvas: &Canvas,
         has_volume: bool,
     ) -> Result<()> {
+        // The neighbourhood reaches well past the paper on a large site; what
+        // the clip would hide anyway is left out, so the app parses less.
+        let shown = self.shown_ground(&canvas.projection);
         let mut by_layer: BTreeMap<Layer, Vec<&Feature>> = BTreeMap::new();
         for feature in self.features {
-            by_layer.entry(feature.layer).or_default().push(feature);
+            if cull::reaches(feature, shown, 0.0) {
+                by_layer.entry(feature.layer).or_default().push(feature);
+            }
         }
 
         let _ = write!(
@@ -146,6 +155,32 @@ impl<'a> Neighbourhood<'a> {
         Ok(())
     }
 
+    /// The ground the neighbourhood can show on: the drawing zone taken back
+    /// to the ground, and on an explode plate no further than its reach.
+    fn shown_ground(&self, projection: &Projection) -> GroundRect<f64> {
+        let zone = &self.area.zone;
+        let corners = [
+            (zone.x, zone.y),
+            (zone.x + zone.width, zone.y),
+            (zone.x, zone.y + zone.height),
+            (zone.x + zone.width, zone.y + zone.height),
+        ];
+        let ground = corners.map(|(x, y)| projection.to_ground(x, y));
+        let mut min = ground[0];
+        let mut max = ground[0];
+        for (x, y) in ground {
+            min = (min.0.min(x), min.1.min(y));
+            max = (max.0.max(x), max.1.max(y));
+        }
+        if let Some(reach_m) = self.area.reach_m {
+            let (centre_x, centre_y) = projection.ground_centre;
+            min = (min.0.max(centre_x - reach_m), min.1.max(centre_y - reach_m));
+            max = (max.0.min(centre_x + reach_m), max.1.min(centre_y + reach_m));
+        }
+
+        GroundRect::new(min, max)
+    }
+
     /// ` opacity="0.4"`, or nothing at full opacity, so the usual sheet stays byte for byte the same.
     pub fn opacity_attribute(&self) -> String {
         if self.opacity < 1.0 {
@@ -155,11 +190,22 @@ impl<'a> Neighbourhood<'a> {
         }
     }
 
-    /// The buildings, for a tilted view to stand up among the site's own.
-    pub fn buildings(&self) -> Vec<&'a Feature> {
+    /// The buildings, for a tilted view to stand up among the site's own:
+    /// those on the shown ground, or near enough for their walls to rise into it.
+    pub fn buildings(&self, projection: &Projection) -> Vec<&'a Feature> {
+        let shown = self.shown_ground(projection);
+        let rise_per_metre = if projection.squash > 0.0 {
+            projection.rise / projection.squash
+        } else {
+            0.0
+        };
         self.features
             .iter()
             .filter(|feature| feature.layer == Layer::Building)
+            .filter(|feature| {
+                let walls_m = building_height(feature).0 * rise_per_metre;
+                cull::reaches(feature, shown, walls_m)
+            })
             .collect()
     }
 }

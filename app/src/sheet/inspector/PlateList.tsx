@@ -7,13 +7,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { Diagram, Look } from "../../lib/types";
 import { plateName } from "../../lib/diagrams";
+import { DRAG_THRESHOLD_PX } from "../../lib/pointerDrag";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { withPlateMoved, withView } from "./lookEdits";
 import "./plates.css";
-
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 3;
 
 type Drag = { from: number; to: number; dy: number; rowHeight: number };
 

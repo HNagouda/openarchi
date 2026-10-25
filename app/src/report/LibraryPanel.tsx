@@ -4,14 +4,13 @@
 // to the middle of the current page.
 
 import { useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { DRAG_THRESHOLD_PX } from "../lib/pointerDrag";
 import { Icon } from "../ui/Icon";
 import type { LibraryGroup, LibraryItem } from "./library";
 import "./library.css";
 
 // Every group, in the order the panel lists them.
 const GROUPS: LibraryGroup[] = ["Ratios", "Analysis", "Sheets"];
-// A press that moves less than this is a click, not a drag.
-const DRAG_START_PX = 4;
 
 type Drag = { item: LibraryItem; startX: number; startY: number; x: number; y: number; isMoving: boolean };
 
@@ -50,7 +49,7 @@ export function LibraryPanel({ items, pictures, thumbnails, paper, isLoading, pr
   const move = (event: ReactPointerEvent) => {
     if (!drag) return;
     const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
-    const isMoving = drag.isMoving || distance > DRAG_START_PX;
+    const isMoving = drag.isMoving || distance > DRAG_THRESHOLD_PX;
     setDrag({ ...drag, x: event.clientX, y: event.clientY, isMoving });
     if (isMoving) onDragOver({ item: drag.item, clientX: event.clientX, clientY: event.clientY });
   };

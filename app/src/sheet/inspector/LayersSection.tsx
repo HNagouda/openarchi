@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Catalog, Diagram, Layer, Look, Theme } from "../../lib/types";
+import { PERCENT } from "../../lib/units";
 import { Button } from "../../ui/Button";
 import { ColorField } from "../../ui/ColorField";
 import { Icon } from "../../ui/Icon";
@@ -9,7 +10,6 @@ import { mixHex, swatchColour, withOverride } from "./lookEdits";
 
 const MAX_STROKE_MM = 2;
 const STROKE_STEP_MM = 0.05;
-const PERCENT = 100;
 /** How far a blank layer's fill leans from paper towards ink, as BLANK_TINT in crates/core/src/render/style.rs. */
 const BLANK_TINT = 0.08;
 /** All a section draws, whatever the diagram: SECTION_LAYERS in crates/core/src/render/mod.rs. */

@@ -11,7 +11,7 @@ import { usePlainKeys } from "../../lib/keys";
 import type { Look } from "../../lib/types";
 import type { PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
-import { followPointer } from "../pointerDrag";
+import { followPointer } from "../../lib/pointerDrag";
 import { paperToRd, type Point } from "../paper";
 import { readEye, withViewPoint } from "./viewPointEdits";
 

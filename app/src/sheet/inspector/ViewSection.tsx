@@ -1,4 +1,5 @@
 import type { Diagram, Look, ViewMode, WindSeason } from "../../lib/types";
+import { PERCENT } from "../../lib/units";
 import { NumberField } from "../../ui/NumberField";
 import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
@@ -29,7 +30,6 @@ const MAX_ROTATION = 355;
 /** Below this the neighbourhood is all but gone; the toggle hides it outright. */
 const MIN_CONTEXT_OPACITY = 0.1;
 const CONTEXT_OPACITY_STEP = 0.05;
-const PERCENT = 100;
 const ROTATION_STEP = 5;
 /** Degrees above the horizon, as MIN_TILT_DEG and MAX_TILT_DEG in crates/core/src/view.rs. */
 const MIN_TILT = 15;

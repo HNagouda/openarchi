@@ -4,14 +4,13 @@
 // history, so it does not care which screen holds it.
 
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
-import { shortcutLabel } from "../lib/platform";
 import { arrowStep, hasModifier, isTyping, useKeyDown } from "../lib/keys";
 import { clamp } from "../lib/format";
-import { MM_TO_PX } from "../lib/units";
+import { MM_TO_PX, PERCENT } from "../lib/units";
 import type { Catalog, Look, ProjectView, Report, ReportBlock, TextStyle } from "../lib/types";
 import { ColumnResizer, REPORT_INSPECTOR_COLUMN, REPORT_LIBRARY_COLUMN } from "../sheet/columns/ColumnResizer";
 import { useThumbnails } from "../sheet/useThumbnails";
-import { Button } from "../ui/Button";
+import { ZoomControl } from "../ui/ZoomControl";
 import { addBlock, deleteBlock, duplicateBlock, findBlock, pageSize, placedRect, restack, tidy, updateBlock } from "./edits";
 import { analysisItems, ratiosItems, sheetItems, type LibraryItem } from "./library";
 import { LibraryPanel, type LibraryDrag } from "./LibraryPanel";
@@ -101,7 +100,7 @@ export function ReportEditor({ project, sheetLook: look, catalog, report, previe
     const across = (width - FIT_PADDING_PX) / (widest * MM_TO_PX);
     const down = (height - FIT_VERTICAL_PX) / (tallest * MM_TO_PX);
     // Rounded down to a whole percent, so the fitted page never spills by a pixel.
-    const fitted = Math.floor(Math.min(across, down) * 100) / 100;
+    const fitted = Math.floor(Math.min(across, down) * PERCENT) / PERCENT;
     if (width > 0) setZoom(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, fitted)));
   }, [report.pages]);
   const zoomBy = (factor: number) => setZoom((current) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current * factor)));
@@ -269,13 +268,7 @@ export function ReportEditor({ project, sheetLook: look, catalog, report, previe
             onHandlePointerDown={drag.beginResize}
             onBlockDoubleClick={(block) => block.content.kind === "text" && setEditingId(block.id)}
           />
-          <div className="zoom-control">
-            <Button icon="zoomOut" tip="Zoom out" shortcut="mod+-" tipSide="above" onClick={() => zoomBy(1 / ZOOM_STEP)} />
-            <button type="button" className="zoom-value tabular" data-tip="Fit pages" data-tip-key={shortcutLabel("mod+0")} data-tip-side="above" onClick={fit}>
-              {Math.round(zoom * 100)}%
-            </button>
-            <Button icon="zoomIn" tip="Zoom in" shortcut="mod+=" tipSide="above" onClick={() => zoomBy(ZOOM_STEP)} />
-          </div>
+          <ZoomControl zoom={zoom} fitTip="Fit pages" onZoomIn={() => zoomBy(ZOOM_STEP)} onZoomOut={() => zoomBy(1 / ZOOM_STEP)} onFit={fit} />
         </div>
         <div className="report-column-slot">
           <ColumnResizer column={REPORT_INSPECTOR_COLUMN} />

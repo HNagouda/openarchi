@@ -5,11 +5,9 @@
 
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { PaletteSwatch } from "../../lib/palette";
+import { DRAG_THRESHOLD_PX } from "../../lib/pointerDrag";
 import { Icon } from "../../ui/Icon";
 import { MAX_SWATCHES, MIN_SWATCHES } from "./draftEdits";
-
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 4;
 
 type Props = {
   swatches: PaletteSwatch[];

@@ -10,6 +10,7 @@ import { useToast } from "../ui/Toasts";
 import { fileStem, saveDay, saveOrbit, savePicture } from "./frames";
 import { createStage, type Stage } from "./stage";
 import { clockLabel, daylight, MINUTES_PER_DAY, sunAt } from "./sunDay";
+import { PERCENT } from "../lib/units";
 import "./viewer.css";
 
 // Playing, the clock runs this many minutes a second: a summer day in about ten seconds.
@@ -18,7 +19,6 @@ const TIME_STEP_MINUTES = 5;
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 // Days in each month of the core's reference year, 2026, which is no leap year.
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-const PERCENT = 100;
 
 type Props = {
   themeId: string;

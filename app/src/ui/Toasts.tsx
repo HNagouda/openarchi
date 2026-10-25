@@ -2,6 +2,8 @@
 // happen out of view: a delete, an export, an assistant's edit.
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { revealPath } from "../lib/ipc";
+import { fileManagerName } from "../lib/platform";
 
 // Long enough to reach for Undo, short enough not to linger.
 const TOAST_MS = 5000;
@@ -13,6 +15,16 @@ type Show = (message: string, options?: { action?: Action; isError?: boolean }) 
 const ToastContext = createContext<Show>(() => undefined);
 
 export const useToast = () => useContext(ToastContext);
+
+/** Shows `message` after an export, with a button that shows `path` in Finder or Explorer when there is one. */
+export function useExportedToast() {
+  const toast = useToast();
+  return useCallback(
+    (message: string, path: string | undefined) =>
+      toast(message, { action: path ? { label: `Show in ${fileManagerName}`, run: () => revealPath(path) } : undefined }),
+    [toast],
+  );
+}
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
