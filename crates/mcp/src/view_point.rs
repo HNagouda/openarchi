@@ -76,9 +76,14 @@ impl OpenArchi {
     }
 }
 
+/// The sheet's viewpoint and diagram, as set_view_point answers.
+fn view_point_of(look: &Look, pins: &[Pin]) -> Value {
+    json!({ "view_point": view_point_json(look, pins), "diagram_id": look.diagram_id })
+}
+
 /// The sheet's viewpoint in longitude and latitude and in RD New metres, with
 /// the pin it stands on, or null at the site centre.
-pub fn view_point_of(look: &Look, pins: &[Pin]) -> Value {
+pub fn view_point_json(look: &Look, pins: &[Pin]) -> Value {
     let view_point = look.eye_among(pins).map(|(x, y)| {
         json!({
             "at": rd_to_wgs84(x, y),
@@ -87,5 +92,5 @@ pub fn view_point_of(look: &Look, pins: &[Pin]) -> Value {
         })
     });
 
-    json!({ "view_point": view_point, "diagram_id": look.diagram_id })
+    json!(view_point)
 }

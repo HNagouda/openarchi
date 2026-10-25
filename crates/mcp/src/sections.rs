@@ -131,8 +131,13 @@ fn updated_line(line: Option<&SectionLine>, input: &SetSection) -> Result<Sectio
     }
 }
 
-/// The sheet's line in longitude and latitude and in RD New metres, and its view.
-pub fn section_of(look: &Look) -> Value {
+/// The sheet's line and its view, as set_section answers.
+fn section_of(look: &Look) -> Value {
+    json!({ "section": section_json(look), "view": look.view.mode })
+}
+
+/// The sheet's line in longitude and latitude and in RD New metres, or null.
+pub fn section_json(look: &Look) -> Value {
     let section = look.section.as_ref().map(|line| {
         json!({
             "from": rd_to_wgs84(line.start.0, line.start.1),
@@ -145,5 +150,5 @@ pub fn section_of(look: &Look) -> Value {
         })
     });
 
-    json!({ "section": section, "view": look.view.mode })
+    json!(section)
 }

@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 
 use crate::highlight_inputs::{AddHighlight, EditHighlight, HighlightId, OpenHighlight, ShowMarks};
 use crate::server::{fetched_scene, reply, text, OpenArchi};
+use crate::sheets::{sheet_json, sheets_of};
 
 #[tool_router(router = highlight_tools, vis = "pub(crate)")]
 impl OpenArchi {
@@ -140,7 +141,7 @@ impl OpenArchi {
                 look.sheet.scale = fitting_scale(scene, &look).map_err(text)?;
                 project.more_sheets.push(look);
                 library.save(&mut project).map_err(text)?;
-                Ok(crate::sheets::sheets_of(&project))
+                Ok(sheets_of(&project))
             })
             .await;
         reply(result)
@@ -162,7 +163,8 @@ impl OpenArchi {
                     look.hide_highlights = !highlights;
                 }
                 library.save(&mut project).map_err(text)?;
-                Ok(crate::sheets::sheets_of(&project)["sheets"][tab - 1].clone())
+                let look = project.sheet(tab).map_err(text)?;
+                Ok(sheet_json(&project, look, tab - 1))
             })
             .await;
         reply(result)

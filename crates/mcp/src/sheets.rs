@@ -11,8 +11,10 @@ use rmcp::{tool, tool_router};
 use serde_json::{json, Value};
 
 use crate::inputs::ProjectId;
+use crate::sections::section_json;
 use crate::server::{fetched_scene, reply, text, OpenArchi};
 use crate::sheet_inputs::{AddPin, AddSheet, EditPin, PinId};
+use crate::view_point::view_point_json;
 
 #[tool_router(router = sheet_tools, vis = "pub(crate)")]
 impl OpenArchi {
@@ -172,25 +174,28 @@ pub(crate) fn sheets_of(project: &Project) -> Value {
         .sheets()
         .iter()
         .enumerate()
-        .map(|(index, look)| {
-            json!({
-                "tab": index + 1,
-                "name": sheet_name(look, index),
-                "diagram_id": look.diagram_id,
-                "variant": look.variant,
-                "theme_id": look.theme_id,
-                "view": look.view.mode,
-                "scale": look.sheet.scale,
-                "selection": look.selection,
-                "hide_pins": look.hide_pins,
-                "hide_highlights": look.hide_highlights,
-                "section": crate::sections::section_of(look)["section"],
-                "view_point": crate::view_point::view_point_of(look, &project.pins)["view_point"],
-            })
-        })
+        .map(|(index, look)| sheet_json(project, look, index))
         .collect();
 
     json!({ "sheets": sheets })
+}
+
+/// One tab as list_sheets shows it; `index` counts from 0.
+pub(crate) fn sheet_json(project: &Project, look: &Look, index: usize) -> Value {
+    json!({
+        "tab": index + 1,
+        "name": sheet_name(look, index),
+        "diagram_id": look.diagram_id,
+        "variant": look.variant,
+        "theme_id": look.theme_id,
+        "view": look.view.mode,
+        "scale": look.sheet.scale,
+        "selection": look.selection,
+        "hide_pins": look.hide_pins,
+        "hide_highlights": look.hide_highlights,
+        "section": section_json(look),
+        "view_point": view_point_json(look, &project.pins),
+    })
 }
 
 fn pins_of(project: &Project) -> Value {
