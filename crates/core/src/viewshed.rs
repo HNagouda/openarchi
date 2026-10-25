@@ -24,9 +24,9 @@ mod surface;
 #[cfg(test)]
 mod tests;
 
-use geo::{BooleanOps, Centroid, Geometry, LineString, MultiPolygon, Polygon, Rect};
+use geo::{Centroid, Geometry, Rect};
 
-use crate::grid::{cell_size, Raster, FINEST_CELL_M};
+use crate::grid::{area_of_cells, cell_size, Raster, FINEST_CELL_M};
 use crate::scene::{Attributes, Feature, Layer, Scene};
 use crate::section;
 use crate::{Error, Result};
@@ -151,51 +151,14 @@ impl Viewshed {
     /// The open ground in view, as one feature. Roofs are left out: the
     /// buildings are drawn over them.
     pub fn area(&self) -> Feature {
-        let columns = self.raster.columns;
-        let mut runs = Vec::new();
-        for row in 0..self.raster.rows {
-            let mut start = None;
-            for column in 0..=columns {
-                let index = row * columns + column;
-                let is_seen = column < columns && self.is_visible[index] && !self.is_covered(index);
-                match (is_seen, start) {
-                    (true, None) => start = Some(column),
-                    (false, Some(first)) => {
-                        runs.push(self.run_rectangle(row, first, column));
-                        start = None;
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        // Runs never overlap, so one overlay merges them into the outline.
-        let area = MultiPolygon::new(runs).union(&MultiPolygon::new(Vec::new()));
+        let area = area_of_cells(&self.raster, |index| {
+            self.is_visible[index] && !self.is_covered(index)
+        });
         Feature {
             layer: Layer::Viewshed,
             geometry: Geometry::MultiPolygon(area),
             attributes: Attributes::default(),
         }
-    }
-
-    /// The cells `first` up to (not including) `end` of `row`, as one rectangle.
-    fn run_rectangle(&self, row: usize, first: usize, end: usize) -> Polygon<f64> {
-        let cell_m = self.raster.cell_m;
-        let (min_x, min_y) = self.raster.min;
-        let west = min_x + first as f64 * cell_m;
-        let east = min_x + end as f64 * cell_m;
-        let south = min_y + row as f64 * cell_m;
-        let north = south + cell_m;
-        Polygon::new(
-            LineString::from(vec![
-                (west, south),
-                (east, south),
-                (east, north),
-                (west, north),
-                (west, south),
-            ]),
-            Vec::new(),
-        )
     }
 }
 

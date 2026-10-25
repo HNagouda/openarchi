@@ -73,21 +73,15 @@ pub fn banded(
     breaks: &[f64],
     layer: Layer,
 ) -> Vec<Feature> {
-    let mut squares: Vec<Vec<Polygon<f64>>> = vec![Vec::new(); breaks.len() + 1];
-    for (index, value) in values.iter().enumerate() {
-        let Some(value) = value else {
-            continue;
-        };
-        squares[class_index(*value, breaks)].push(cell_square(raster, index));
-    }
+    let classes: Vec<Option<usize>> = values
+        .iter()
+        .map(|value| value.map(|value| class_index(value, breaks)))
+        .collect();
 
-    squares
-        .into_iter()
-        .enumerate()
-        .filter(|(_, class_squares)| !class_squares.is_empty())
-        .map(|(class, class_squares)| {
-            // Squares never overlap, so one overlay merges them into the band's outline.
-            let band = MultiPolygon::new(class_squares).union(&MultiPolygon::new(Vec::new()));
+    (0..=breaks.len())
+        .filter(|class| classes.contains(&Some(*class)))
+        .map(|class| {
+            let band = area_of_cells(raster, |index| classes[index] == Some(class));
             let lower_edge = if class == 0 { 0.0 } else { breaks[class - 1] };
             Feature {
                 layer,
@@ -101,6 +95,31 @@ pub fn banded(
         .collect()
 }
 
+/// The cells `is_in` picks, as one area. Each row's unbroken run of picked
+/// cells is one rectangle, so the overlay that merges them into an outline
+/// gets a tenth or less of the shapes one square per cell would give it.
+pub fn area_of_cells(raster: &Raster, is_in: impl Fn(usize) -> bool) -> MultiPolygon<f64> {
+    let columns = raster.columns;
+    let mut runs = Vec::new();
+    for row in 0..raster.rows {
+        let mut start = None;
+        for column in 0..=columns {
+            let is_picked = column < columns && is_in(row * columns + column);
+            match (is_picked, start) {
+                (true, None) => start = Some(column),
+                (false, Some(first)) => {
+                    runs.push(run_rectangle(raster, row, first, column));
+                    start = None;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // Runs never overlap, so one overlay merges them into the outline.
+    MultiPolygon::new(runs).union(&MultiPolygon::new(Vec::new()))
+}
+
 /// Every ring of a polygon, the outline first, as the point lists `Raster` fills.
 pub fn rings(polygon: &Polygon<f64>) -> Vec<Vec<(f64, f64)>> {
     std::iter::once(polygon.exterior())
@@ -109,16 +128,20 @@ pub fn rings(polygon: &Polygon<f64>) -> Vec<Vec<(f64, f64)>> {
         .collect()
 }
 
-fn cell_square(raster: &Raster, index: usize) -> Polygon<f64> {
-    let (x, y) = raster.centre(index);
-    let half = raster.cell_m / 2.0;
+/// The cells `first` up to (not including) `end` of `row`, as one rectangle.
+fn run_rectangle(raster: &Raster, row: usize, first: usize, end: usize) -> Polygon<f64> {
+    let (min_x, min_y) = raster.min;
+    let west = min_x + first as f64 * raster.cell_m;
+    let east = min_x + end as f64 * raster.cell_m;
+    let south = min_y + row as f64 * raster.cell_m;
+    let north = south + raster.cell_m;
     Polygon::new(
         LineString::from(vec![
-            (x - half, y - half),
-            (x + half, y - half),
-            (x + half, y + half),
-            (x - half, y + half),
-            (x - half, y - half),
+            (west, south),
+            (east, south),
+            (east, north),
+            (west, north),
+            (west, south),
         ]),
         Vec::new(),
     )
