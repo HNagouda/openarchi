@@ -266,6 +266,7 @@ AHN `dsm_05m` and `dtm_05m` plus BAG footprints already cover a lot, and computi
 - Sunlight hours by repeating the shadow test every 15 minutes over a day or a season.
 - Sky view factor by sampling the horizon angle in 16 to 36 directions per cell over the DSM. Built as `skyview.rs`, over building prisms and the kept terrain rather than the DSM, in 32 directions.
 - Yearly solar radiation on the ground from the PVGIS typical year, the shadow test and the sky view factor. Built as `radiation.rs`.
+- Wind at street level from the PVGIS typical year's prevailing direction, as a 2D lattice Boltzmann flow round the building footprints. Built as `wind.rs`.
 - View (what can be seen from a point) as a viewshed over the DSM.
 - Storeys from DSM minus DTM per footprint, divided by a storey height.
 - Floor area ratio and building coverage from BAG footprints, storeys and the site area.

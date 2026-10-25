@@ -289,6 +289,18 @@ Sheets can now show the site in three dimensions and the sun over it.
 - A fetch now keeps that typical year with the site, about 600 numbers, from the same cache cell as the analysis. A site fetched before this says in a note over the sheet that the solar radiation needs a fresh fetch, and the PVGIS credit is printed only on sheets that draw it.
 - Both draw in bands under a legend like the sunlight hours, in every palette, in plan, axonometric and explode views and on a sheet that shows part of the site, and assistants find them through `list_diagrams`.
 
+### Wind
+
+- A Wind diagram shows how the site's prevailing wind moves through it at street level: the ground in bands of how fast the air moves as a share of the incoming wind, from "under 20%, sheltered" to "100% or more, windier than open ground", with flow lines and arrowheads that point downwind.
+- The flow is worked out in two dimensions round the building footprints of the site and 200 m of neighbourhood, with the lattice Boltzmann method (D2Q9 with the BGK collision of Qian, d'Humières & Lallemand, 1992), on a grid of about 4 m. The flow lines are spaced evenly after Jobard & Lefer. The legend names the method and says plainly what it leaves out: no air over the roofs and no turbulence model, so it is for comparing sheltered and windy places on one site, not for comfort criteria.
+- Because a plan cannot let air over the roofs, the gaps between buildings come out windier and dense old centres calmer than they are. At the Domplein in Utrecht almost the whole site reads as sheltered.
+- The wind comes from the most common direction in the site's typical year, the longest wedge of the wind rose in the analysis. The View section picks the whole year or one season, and the legend names the direction and its share of hours, like "from the SW, most common all year (12% of hours)". The choice undoes like any other edit.
+- The Wind diagram is drawn in plan only. Its Axo and Explode buttons are greyed out, it is not offered as an explode plate, and choosing it on a tilted sheet turns the sheet to its plan.
+- A fetch now keeps the typical year's wind with the site too: the hours from each of 16 directions per month, 204 numbers, from the same PVGIS answer as the solar radiation. A site fetched before this says in a note over the sheet that the wind needs a fresh fetch.
+- Solving takes about half a second on a large site, so it is kept for the last few sites and seasons: changing the palette, the title or a thumbnail draws it again in a few milliseconds. Large sites draw on a coarser grid instead of slowing down.
+- A legend note may now run to three lines instead of two.
+- Assistants choose the season with `set_wind_season`, and `set_look` refuses the axonometric and explode views and explode plates for the Wind diagram, as the app does.
+
 ### DXF
 
 - A DXF now holds what the sheet shows, not only the fetched data. A diagram that colours a layer by class writes one CAD layer per legend class, so a building height sheet arrives as `OA-BUILDING-UNDER-6-M`, `OA-BUILDING-6-10-M` and so on, with `OA-BUILDING-UNKNOWN` for buildings without a height. Computed layers the diagram draws, city blocks and hours of sun, come along on `OA-BLOCK` and `OA-SUN-HOURS-...`. Every fetched layer is still written whatever the diagram shows.
