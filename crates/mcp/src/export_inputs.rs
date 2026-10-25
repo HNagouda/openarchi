@@ -19,7 +19,7 @@ pub struct Export {
     /// The project id.
     pub id: String,
     pub format: FormatInput,
-    /// Absolute path of the file to write, including the extension. The folder must exist. Needed unless series is true.
+    /// Absolute path of the file to write, ending in the format's extension (.svg, .pdf, .png or .dxf). The folder must exist. Needed unless series is true.
     pub path: Option<String>,
     /// Resolution for png. Defaults to 300.
     pub dpi: Option<u32>,

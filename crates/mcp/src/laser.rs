@@ -14,7 +14,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::server::{fetched_scene, reply, text, OpenArchi};
+use crate::server::{existing_folder, fetched_scene, reply, text, OpenArchi};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExportLaser {
@@ -113,15 +113,8 @@ fn settings(input: &ExportLaser, sheet_scale: u32) -> LaserSettings {
 
 /// The folder the files go in: needed, absolute and existing once anything is written.
 fn written_folder(folder: Option<&str>) -> Result<PathBuf, String> {
-    let Some(folder) = folder else {
-        return Err("folder is needed unless check_only is true".to_string());
-    };
-    let path = PathBuf::from(folder);
-    if !path.is_absolute() || !path.is_dir() {
-        return Err(format!(
-            "folder must be an absolute path to an existing folder, got \"{folder}\""
-        ));
+    match folder {
+        Some(folder) => existing_folder(folder),
+        None => Err("folder is needed unless check_only is true".to_string()),
     }
-
-    Ok(path)
 }

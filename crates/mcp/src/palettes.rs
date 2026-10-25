@@ -8,6 +8,8 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use crate::server::text;
+
 /// The name an imported palette gets when the assistant gives none.
 const DEFAULT_NAME: &str = "Imported palette";
 
@@ -33,13 +35,13 @@ pub fn import(library: &Library, input: ImportPalette) -> Result<Value, String> 
         .unwrap_or(DEFAULT_NAME.to_string());
     let draft = PaletteDraft {
         name: name.clone(),
-        swatches: palette::parse(&input.text).map_err(|e| e.to_string())?,
+        swatches: palette::parse(&input.text).map_err(text)?,
         roles: RoleChoice::default(),
         typography: None,
         based_on: None,
     };
     let id = library.free_theme_id(&name);
-    let checked = palette::check(&draft, &id).map_err(|e| e.to_string())?;
+    let checked = palette::check(&draft, &id).map_err(text)?;
 
     let is_saved = input.save.unwrap_or(true);
     // The app's editor will not save a palette whose text cannot be read, so neither does the assistant.
@@ -50,9 +52,7 @@ pub fn import(library: &Library, input: ImportPalette) -> Result<Value, String> 
         ));
     }
     if is_saved {
-        library
-            .save_theme(&checked.theme)
-            .map_err(|e| e.to_string())?;
+        library.save_theme(&checked.theme).map_err(text)?;
     }
     Ok(json!({
         "id": if is_saved { Some(id) } else { None },

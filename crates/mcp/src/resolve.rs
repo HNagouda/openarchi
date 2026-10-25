@@ -10,7 +10,7 @@ use openarchi_core::render::RenderInput;
 use openarchi_core::theme::Theme;
 use openarchi_core::view::ViewMode;
 
-use crate::server::fetched_scene;
+use crate::server::{fetched_scene, text};
 
 /// A built-in diagram, following the ids of diagrams folded into another.
 pub fn find_diagram(id: &str) -> Result<Diagram, String> {
@@ -103,9 +103,9 @@ pub fn with_render_input<T>(
     tab: usize,
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
-    let project = library.load(id).map_err(|e| e.to_string())?;
+    let project = library.load(id).map_err(text)?;
     let scene = fetched_scene(&project)?;
-    let look = project.sheet(tab).map_err(|e| e.to_string())?;
+    let look = project.sheet(tab).map_err(text)?;
     let diagram = find_diagram(&look.diagram_id)?;
     let theme = find_theme(&library.themes_dir(), &look.theme_id)?;
 
@@ -117,5 +117,5 @@ pub fn with_render_input<T>(
         pins: &project.pins,
         highlights: &project.highlights,
     };
-    work(&input).map_err(|e| e.to_string())
+    work(&input).map_err(text)
 }

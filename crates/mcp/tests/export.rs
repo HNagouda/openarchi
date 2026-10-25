@@ -248,6 +248,22 @@ fn export_refuses_a_relative_path() {
 }
 
 #[test]
+fn export_refuses_a_path_whose_extension_is_not_the_format() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    let out = TempDir::new().unwrap();
+    let path = out.path().join("westermarkt.pdf");
+
+    let message = server.call_err(
+        "export",
+        json!({ "id": id, "format": "png", "path": path }),
+    );
+
+    assert!(message.contains("must end in .png"), "{message}");
+    assert!(!path.exists());
+}
+
+#[test]
 fn render_preview_returns_a_png_image() {
     let mut server = Server::start();
     let id = fetched_westermarkt(&mut server);

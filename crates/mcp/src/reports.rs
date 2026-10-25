@@ -2,8 +2,6 @@
 //! or as an SVG or PNG per page. Reports are laid out in the app; the
 //! assistant reads and exports them.
 
-use std::path::PathBuf;
-
 use openarchi_core::catalog;
 use openarchi_core::library::Library;
 use openarchi_core::report::{self, ReportData, ReportFormat};
@@ -11,12 +9,9 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
+use crate::export::DEFAULT_EXPORT_DPI;
 use crate::resolve::find_theme;
-use crate::server::fetched_scene;
-
-/// PNG resolution when none is asked for, the same as the sheet's export.
-/// PDF and SVG pages are vector and ignore it.
-const DEFAULT_DPI: u32 = 300;
+use crate::server::{checked_path, fetched_scene, text};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExportReport {
@@ -56,7 +51,7 @@ impl From<ReportFormatInput> for ReportFormat {
 
 /// Every report of the project, with its pages and the blocks on them.
 pub fn list(library: &Library, id: &str) -> Result<Value, String> {
-    let project = library.load(id).map_err(|error| error.to_string())?;
+    let project = library.load(id).map_err(text)?;
     let reports: Vec<Value> = project
         .reports
         .iter()
@@ -77,8 +72,8 @@ pub fn list(library: &Library, id: &str) -> Result<Value, String> {
 /// Writes the report as one PDF with a page per report page, or one SVG or PNG per page.
 pub fn export(library: &Library, input: ExportReport) -> Result<Value, String> {
     let format = ReportFormat::from(input.format.unwrap_or(ReportFormatInput::Pdf));
-    let path = checked_path(&input.path, format)?;
-    let project = library.load(&input.id).map_err(|error| error.to_string())?;
+    let path = checked_path(&input.path, format.extension())?;
+    let project = library.load(&input.id).map_err(text)?;
     let scene = fetched_scene(&project)?;
     let Some(report) = project
         .reports
@@ -129,30 +124,9 @@ pub fn export(library: &Library, input: ExportReport) -> Result<Value, String> {
         &cache,
         contents,
     )
-    .map_err(|error| error.to_string())?;
-    let dpi = input.dpi.unwrap_or(DEFAULT_DPI);
-    let written =
-        report::export(report, &data, format, dpi, &path).map_err(|error| error.to_string())?;
+    .map_err(text)?;
+    let dpi = input.dpi.unwrap_or(DEFAULT_EXPORT_DPI);
+    let written = report::export(report, &data, format, dpi, &path).map_err(text)?;
 
     Ok(json!({ "path": path, "files": written, "pages": report.pages.len() }))
-}
-
-/// An absolute path with the format's extension, in a folder that exists.
-fn checked_path(typed: &str, format: ReportFormat) -> Result<PathBuf, String> {
-    let path = PathBuf::from(typed);
-    if !path.is_absolute() {
-        return Err(format!("path must be absolute, got \"{typed}\""));
-    }
-    let wanted = format.extension();
-    let has_extension = path
-        .extension()
-        .is_some_and(|extension| extension.eq_ignore_ascii_case(wanted));
-    if !has_extension {
-        return Err(format!("path must end in .{wanted}, got \"{typed}\""));
-    }
-    if !path.parent().is_some_and(|folder| folder.is_dir()) {
-        return Err(format!("the folder for {} does not exist", path.display()));
-    }
-
-    Ok(path)
 }

@@ -10,6 +10,8 @@ use openarchi_core::library::Library;
 use openarchi_core::theme::Theme;
 use serde_json::{Map, Value};
 
+use crate::server::text;
+
 pub fn save_user_theme(library: &Library, theme_json: Map<String, Value>) -> Result<Theme, String> {
     let id = theme_id(&theme_json)?;
     if catalog::builtin_themes().iter().any(|theme| theme.id == id) {
@@ -20,7 +22,7 @@ pub fn save_user_theme(library: &Library, theme_json: Map<String, Value>) -> Res
 
     let theme = validate(&Value::Object(theme_json))?;
     // The library moves a theme it replaces to Recently Deleted first.
-    library.save_theme(&theme).map_err(|e| e.to_string())?;
+    library.save_theme(&theme).map_err(text)?;
     Ok(theme)
 }
 
@@ -50,8 +52,8 @@ fn validate(theme: &Value) -> Result<Theme, String> {
         .suffix(".json")
         .tempfile()
         .map_err(|e| format!("could not write a temporary theme file: {e}"))?;
-    serde_json::to_writer(&mut draft, theme).map_err(|e| e.to_string())?;
-    draft.flush().map_err(|e| e.to_string())?;
+    serde_json::to_writer(&mut draft, theme).map_err(text)?;
+    draft.flush().map_err(text)?;
 
     catalog::read_theme(draft.path()).map_err(|e| format!("the theme is not valid: {e}"))
 }

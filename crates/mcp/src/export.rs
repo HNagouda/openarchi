@@ -2,8 +2,6 @@
 //! at the sheet, export for a file of it, and the report tools. They join the
 //! router in `server.rs`, like the sheet and pin tools.
 
-use std::path::PathBuf;
-
 use base64::prelude::{Engine, BASE64_STANDARD};
 use openarchi_core::export::{self, DxfLayers, ExportFormat};
 use openarchi_core::render;
@@ -17,7 +15,7 @@ use crate::inputs::ProjectId;
 use crate::reports::{self, ExportReport};
 use crate::resolve::with_render_input;
 use crate::series::export_series;
-use crate::server::{failure, reply, OpenArchi};
+use crate::server::{checked_path, existing_folder, failure, reply, OpenArchi};
 
 const DEFAULT_PREVIEW_WIDTH_PX: u32 = 1200;
 /// Narrower than this the labels are unreadable.
@@ -25,7 +23,9 @@ const MIN_PREVIEW_WIDTH_PX: u32 = 200;
 /// Wider than this the image is more than an assistant can take in at once.
 const MAX_PREVIEW_WIDTH_PX: u32 = 4000;
 
-const DEFAULT_EXPORT_DPI: u32 = 300;
+/// PNG resolution when none is asked for, for a sheet and a report alike.
+/// PDF and SVG are vector and ignore it.
+pub(crate) const DEFAULT_EXPORT_DPI: u32 = 300;
 
 #[tool_router(router = export_tools, vis = "pub(crate)")]
 impl OpenArchi {
@@ -56,7 +56,7 @@ impl OpenArchi {
                 content.extend(missing.into_iter().map(ContentBlock::text));
                 CallToolResult::success(content)
             }
-            Err(message) => CallToolResult::error(vec![ContentBlock::text(message)]),
+            Err(message) => failure(message),
         }
     }
 
@@ -70,15 +70,13 @@ impl OpenArchi {
             .dxf_layers
             .map_or(DxfLayers::default(), DxfLayers::from);
         if input.series.unwrap_or(false) {
-            let Some(folder) = input.folder.clone().map(PathBuf::from) else {
+            let Some(typed) = input.folder.clone() else {
                 return failure("folder is needed when series is true".to_string());
             };
-            if !folder.is_absolute() || !folder.is_dir() {
-                return failure(format!(
-                    "folder must be an absolute path to an existing folder, got \"{}\"",
-                    folder.display()
-                ));
-            }
+            let folder = match existing_folder(&typed) {
+                Ok(folder) => folder,
+                Err(message) => return failure(message),
+            };
             let result = self
                 .with_library(move |library| {
                     export_series(
@@ -98,18 +96,16 @@ impl OpenArchi {
         let Some(path_text) = input.path.clone() else {
             return failure("path is needed unless series is true".to_string());
         };
-        let path = PathBuf::from(&path_text);
-        if !path.is_absolute() {
-            return failure(format!("path must be absolute, got \"{path_text}\""));
-        }
+        // The same check as export_report: a .pdf holding PNG bytes helps no one.
+        let path = match checked_path(&path_text, format.extension()) {
+            Ok(path) => path,
+            Err(message) => return failure(message),
+        };
         if path.exists() && !input.overwrite.unwrap_or(false) {
             return failure(format!(
                 "{} already exists; pass overwrite: true to replace it",
                 path.display()
             ));
-        }
-        if !path.parent().is_some_and(|folder| folder.is_dir()) {
-            return failure(format!("the folder for {} does not exist", path.display()));
         }
 
         let result = self

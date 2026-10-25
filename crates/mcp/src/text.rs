@@ -5,6 +5,7 @@
 
 use openarchi_core::sheet::{Align, Position, Sheet, TextBox, TextStyle, SUBTITLE_ID, TITLE_ID};
 
+use crate::server::text;
 use crate::text_inputs::{EditText, PositionInput, TextStyleInput};
 
 /// The text id that adds a text box instead of changing one.
@@ -125,7 +126,7 @@ fn updated_style(
         colour: change.colour.or(base.colour),
         opacity: change.opacity.or(base.opacity),
     };
-    updated.check().map_err(|error| error.to_string())?;
+    updated.check().map_err(text)?;
 
     Ok(updated)
 }

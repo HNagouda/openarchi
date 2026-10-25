@@ -251,6 +251,37 @@ pub(crate) fn reply<T: Serialize>(result: Result<T, String>) -> CallToolResult {
     }
 }
 
+/// An absolute path ending in `.extension`, in a folder that exists.
+pub(crate) fn checked_path(typed: &str, extension: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(typed);
+    if !path.is_absolute() {
+        return Err(format!("path must be absolute, got \"{typed}\""));
+    }
+    let has_extension = path
+        .extension()
+        .is_some_and(|found| found.eq_ignore_ascii_case(extension));
+    if !has_extension {
+        return Err(format!("path must end in .{extension}, got \"{typed}\""));
+    }
+    if !path.parent().is_some_and(|folder| folder.is_dir()) {
+        return Err(format!("the folder for {} does not exist", path.display()));
+    }
+
+    Ok(path)
+}
+
+/// An absolute path to a folder that exists, for tools that write several files.
+pub(crate) fn existing_folder(typed: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(typed);
+    if !path.is_absolute() || !path.is_dir() {
+        return Err(format!(
+            "folder must be an absolute path to an existing folder, got \"{typed}\""
+        ));
+    }
+
+    Ok(path)
+}
+
 pub(crate) fn failure(message: String) -> CallToolResult {
     CallToolResult::error(vec![ContentBlock::text(message)])
 }
