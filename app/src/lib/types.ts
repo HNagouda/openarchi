@@ -41,7 +41,8 @@ export type Layer =
   | "slope"
   | "population"
   | "block"
-  | "sun_hours";
+  | "sun_hours"
+  | "viewshed";
 
 export type Paper = "a4" | "a3" | "a2" | "a1" | "a0" | "square";
 export type Frame = "circle" | "square" | "area";
@@ -127,6 +128,8 @@ export type Look = {
   hide_highlights?: boolean;
   /** The line the section view cuts along; missing until one is drawn. */
   section?: SectionLine | null;
+  /** Where the View diagram's eye stands, in RD New metres; missing or null is the site centre. */
+  view_point?: [number, number] | null;
 };
 
 // crates/core/src/section.rs

@@ -11,6 +11,7 @@ import { answerPalette, withPaletteEdits } from "./mockPalettes";
 import { mockHighlightArea, withMockHighlights } from "./mockHighlights";
 import { withMockPins } from "./mockPins";
 import { withMockSection } from "./mockSection";
+import { withMockViewPoint } from "./mockViewPoint";
 import { mockBackdrop, mockBlockFixture, mockTextBlock } from "./mockReports";
 
 const FIXTURES = "/dev-fixtures";
@@ -155,7 +156,7 @@ async function answer(command: string, args: Args) {
     const name = isFixedView ? `${shown.view.mode}--${shown.theme_id}` : fixtureName(shown);
     const svg = await fetch(`${FIXTURES}/previews/${name}.svg`).then((response) => response.text());
     if (shown.view.mode === "section") return svg;
-    const withLine = withMockSection(svg, shown);
+    const withLine = withMockSection(withMockViewPoint(svg, shown), shown);
     // The explode fixture's ground points belong to its top plate, so the mock draws highlights there only;
     // the core draws them on every plate.
     const highlights = shown.hide_highlights ? [] : ((args.highlights as Highlight[] | undefined) ?? []);

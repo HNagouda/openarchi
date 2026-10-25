@@ -9,6 +9,8 @@ import { RatiosPanel } from "./RatiosPanel";
 import { SheetSection } from "./SheetSection";
 import { ThemeSection } from "./ThemeSection";
 import { ViewSection } from "./ViewSection";
+import { drawsView } from "../viewpoint/viewPointEdits";
+import { ViewPointSection, type ViewPointControls } from "../viewpoint/ViewPointSection";
 
 type Tab = "style" | "ratios" | "analysis";
 
@@ -19,10 +21,11 @@ type Props = {
   onLook: (next: Look, mergeKey?: string) => void;
   onSeal: () => void;
   onCatalogChanged: () => Promise<unknown> | void;
+  viewPoint: ViewPointControls;
 };
 
 /** The right-hand panel. Every control edits the look, and every edit can be undone. */
-export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogChanged }: Props) {
+export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogChanged, viewPoint }: Props) {
   const [tab, setTab] = useState<Tab>(() => readPreference<Tab>("inspectorTab", "style"));
   const diagram = catalog.diagrams.find((entry) => entry.id === look.diagram_id);
   const theme = catalog.themes.find((entry) => entry.id === look.theme_id);
@@ -68,6 +71,7 @@ export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogCha
               onSeal={onSeal}
             />
           )}
+          {diagram && drawsView(drawnDiagram(diagram, look.variant)) && <ViewPointSection look={look} controls={viewPoint} onLook={onLook} />}
           <ViewSection diagrams={catalog.diagrams} look={look} onLook={onLook} onSeal={onSeal} />
           <SheetSection look={look} onLook={onLook} onSeal={onSeal} />
         </>
