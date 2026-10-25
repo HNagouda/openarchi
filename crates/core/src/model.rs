@@ -7,7 +7,7 @@
 //! of every sheet. A project holds one model.
 //
 // #! NOTE[3d, owner] : One model per project; would variants of a proposal side by side be worth several?
-// #! NOTE[3d, ifc] : IFC is not read yet. It is the one format that can place itself; see the spike note in the 3D plan
+// #! NOTE[3d, ifc] : IFC is not read yet. It is the one format that can place itself; see the IFC spike in .scratch/3d-plan.md
 
 mod analysed;
 mod faces;
