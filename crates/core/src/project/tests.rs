@@ -5,7 +5,7 @@ use tempfile::TempDir;
 
 use crate::area::{Area, LonLat};
 use crate::library::Library;
-use crate::pin::{Pin, PinIcon};
+use crate::pin::{Pin, PinIcon, PinSize};
 use crate::project::{Look, PROJECT_FORMAT_VERSION};
 
 fn westermarkt() -> Area {
@@ -90,6 +90,7 @@ fn sheets_and_pins_survive_a_save_and_load() {
         label: "Westerkerk".to_string(),
         x: 120_906.5,
         y: 487_460.25,
+        size: PinSize::Large,
     });
     library.save(&mut project).unwrap();
 

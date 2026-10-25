@@ -60,6 +60,7 @@ fn main() {
             &scene,
             &look,
             &[],
+            &[],
             &diagrams,
             &theme,
             &cache,

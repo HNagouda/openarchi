@@ -108,6 +108,7 @@ fn main() {
                 theme: &theme,
                 look: &look,
                 pins: &[],
+                highlights: &[],
             };
             let stem = match &variant {
                 Some(variant) => format!("{}-{variant}", diagram.id),
@@ -244,6 +245,7 @@ fn write_explode_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
             theme: &theme,
             look: &look,
             pins: &[],
+            highlights: &[],
         };
         let svg = render_svg(&input).expect("render the explode preview");
         fs::write(
@@ -287,6 +289,7 @@ fn write_section_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
             theme: &theme,
             look: &look,
             pins: &[],
+            highlights: &[],
         };
         let svg = render_svg(&input).expect("render the section preview");
         fs::write(
@@ -488,7 +491,7 @@ fn write_report_blocks(scene: &Scene, cache: &TileCache, out_dir: &Path) {
         }
 
         let contents: Vec<&Content> = blocks.iter().map(|(_, content, _)| content).collect();
-        let data = ReportData::gather(scene, &look, &[], &diagrams, &theme, cache, contents)
+        let data = ReportData::gather(scene, &look, &[], &[], &diagrams, &theme, cache, contents)
             .expect("gather the report data");
         for (name, content, (width_mm, height_mm)) in &blocks {
             let block = Block {

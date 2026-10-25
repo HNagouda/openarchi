@@ -15,6 +15,7 @@ pub mod error;
 pub mod export;
 pub mod floors;
 pub mod geocode;
+pub mod highlight;
 pub mod library;
 pub mod palette;
 pub mod pin;

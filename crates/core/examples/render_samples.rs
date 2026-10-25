@@ -142,6 +142,7 @@ fn write_views(scene: &Scene, out_dir: &Path) {
             theme,
             look: &look,
             pins: &[],
+            highlights: &[],
         };
         let started = Instant::now();
         let svg = render_svg(&input).expect("render the view");
@@ -245,6 +246,7 @@ fn main() {
                 theme: &theme,
                 look: &look,
                 pins: &[],
+                highlights: &[],
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             std::fs::write(out_dir.join(format!("{stem}--{}.png", theme.id)), png)
@@ -285,6 +287,7 @@ fn write_scene(scene_path: &Path, out_dir: &Path, only: Option<&String>) {
                 theme: &theme,
                 look: &look,
                 pins: &[],
+                highlights: &[],
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             let name = format!("{}--{}.png", diagram.id, theme.id);
@@ -318,6 +321,7 @@ fn write_osm(scene: &Scene, name: &str, out_dir: &Path) {
                 theme: &theme,
                 look: &look,
                 pins: &[],
+                highlights: &[],
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             let file = format!("{name}--{}--{}.png", diagram.id, theme.id);
@@ -357,6 +361,7 @@ fn write_context(scene: &Scene, diagram_id: &str, out_dir: &Path) {
                 theme: &theme,
                 look: &look,
                 pins: &[],
+                highlights: &[],
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             let file = format!("{}--{view_name}--{}.png", diagram.id, theme.id);
@@ -404,6 +409,7 @@ fn write_layouts(scene: &Scene, out_dir: &Path) {
             theme,
             look: &look,
             pins: &[],
+            highlights: &[],
         };
         let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the layout");
         std::fs::write(out_dir.join(format!("layout--{name}.png")), png).expect("write the layout");
@@ -422,6 +428,7 @@ fn write_layouts(scene: &Scene, out_dir: &Path) {
         theme: &themes[0],
         look: &look,
         pins: &[],
+        highlights: &[],
     };
     for format in [ExportFormat::Svg, ExportFormat::Pdf, ExportFormat::Dxf] {
         let path = out_dir.join(format!("westermarkt.{}", format.extension()));
@@ -494,6 +501,7 @@ fn write_custom_text(scene: &Scene, out_dir: &Path) {
         theme: &themes[0],
         look: &look,
         pins: &[],
+        highlights: &[],
     };
     let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the custom text");
     std::fs::write(out_dir.join("text--custom.png"), png).expect("write the custom text");
@@ -560,6 +568,7 @@ fn time_big_site(scene: &Scene, out_dir: &Path) {
             theme: &themes[0],
             look: &look,
             pins: &[],
+            highlights: &[],
         };
         let started = Instant::now();
         let svg = render_svg(&input).expect("render the big site");

@@ -36,6 +36,7 @@ fn svg(scene: &Scene, look: &Look, theme_id: &str) -> String {
         theme: &theme,
         look,
         pins: &[],
+        highlights: &[],
     };
     render_svg(&input).expect("render the section")
 }
@@ -132,6 +133,7 @@ fn the_section_view_without_a_line_is_a_readable_error() {
         theme: &theme,
         look: &look,
         pins: &[],
+        highlights: &[],
     };
     let message = render_svg(&input).unwrap_err().to_string();
     assert!(message.contains("section line"), "{message}");
@@ -179,6 +181,7 @@ fn a_section_exports_as_pdf_and_png() {
         theme: &theme,
         look: &look,
         pins: &[],
+        highlights: &[],
     };
     let folder = tempfile::TempDir::new().unwrap();
     for (format, name) in [

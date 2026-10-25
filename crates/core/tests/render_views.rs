@@ -25,6 +25,7 @@ fn try_svg(diagram_id: &str, theme_id: &str, look: &Look) -> openarchi_core::Res
         theme: &theme,
         look,
         pins: &[],
+        highlights: &[],
     })
 }
 
@@ -45,6 +46,7 @@ fn every_diagram_renders_in_every_theme_in_the_tilted_views() {
                     theme: &theme,
                     look: &look,
                     pins: &[],
+                    highlights: &[],
                 })
                 .unwrap_or_else(|error| panic!("{} in {} {mode:?}: {error}", diagram.id, theme.id));
                 parse(&svg);

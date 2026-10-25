@@ -169,6 +169,7 @@ impl Library {
             reports: Vec::new(),
             more_sheets: Vec::new(),
             pins: Vec::new(),
+            highlights: Vec::new(),
         };
         project.look.sheet.title = project.name.clone();
         project.look.sheet.frame = frame_for(&project.area);

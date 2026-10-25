@@ -17,6 +17,7 @@ mod fonts;
 mod frame;
 mod furniture;
 mod geometry;
+mod highlights;
 mod layout;
 mod legend;
 mod lighting;
@@ -45,6 +46,7 @@ mod walk_bands;
 use std::fmt::Write;
 
 use crate::diagram::Diagram;
+use crate::highlight::Highlight;
 use crate::pin::Pin;
 use crate::project::Look;
 use crate::scene::{Layer, Scene};
@@ -93,6 +95,8 @@ pub struct RenderInput<'a> {
     pub look: &'a Look,
     /// The project's pins, in RD New metres. Drawn unless the look hides them.
     pub pins: &'a [Pin],
+    /// The project's highlights, in RD New metres. Drawn unless the look hides them.
+    pub highlights: &'a [Highlight],
 }
 
 /// The full sheet as an SVG document, sized in millimetres. A diagram with

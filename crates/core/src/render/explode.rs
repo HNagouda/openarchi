@@ -137,6 +137,8 @@ pub fn render(
             is_plate: true,
             reach_m: None,
             context: (index == plates.len() - 1).then_some(bottom_context),
+            // The bottom plate holds the surroundings, the ground a highlight marks.
+            has_highlights: index == plates.len() - 1,
         };
         let map = draw(input, &spec, typesetter)?;
         defs.push_str(&map.defs);
