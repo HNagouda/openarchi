@@ -153,6 +153,8 @@ pub fn scene() -> Scene {
         editions: Default::default(),
         context: vec![],
         terrain: None,
+        water_bed: None,
+        water_levels: Vec::new(),
     }
 }
 

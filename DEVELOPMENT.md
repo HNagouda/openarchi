@@ -17,7 +17,7 @@ crates/core/            the library: no window, no async
   src/area.rs           the site the user drew, in lon/lat
   src/scene.rs          a fetched site: every feature in RD New metres, and the Layer list
   src/site.rs           build_scene: fetch every tile, join, clip
-  src/site/             the drawn boundary, the neighbourhood around it, and fetching tiles from the cache or PDOK
+  src/site/             the drawn boundary, the neighbourhood around it, fetching tiles from the cache or PDOK, and the water bed and levels for sections
   src/sources/          one module per data service (BGT, BAG, BRK, AHN, OpenStreetMap), shared paging,
                         the 250 m tile grid and the tile cache
   src/crs.rs            WGS84 to RD New and back

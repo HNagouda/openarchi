@@ -25,5 +25,6 @@ pub mod pdok;
 pub mod pvgis;
 pub mod raster;
 pub mod rivm;
+pub mod rws;
 pub mod slope;
 pub mod wcs;

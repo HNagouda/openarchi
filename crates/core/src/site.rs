@@ -16,6 +16,7 @@ mod source;
 mod terrain;
 #[cfg(test)]
 mod tests;
+mod water;
 
 use std::collections::{HashMap, HashSet};
 use std::time::SystemTime;
@@ -70,6 +71,12 @@ pub fn build_scene(
         on_progress,
     )?;
     scene.warnings.extend(edition_warnings);
+    on_progress(Progress {
+        step: "Water beds and levels".to_string(),
+        done: 0,
+        total: 1,
+    });
+    water::keep(&mut scene, cache);
 
     Ok(scene)
 }
@@ -186,6 +193,8 @@ fn build_scene_with(
         editions: editions.years(),
         context,
         terrain,
+        water_bed: None,
+        water_levels: Vec::new(),
     })
 }
 
