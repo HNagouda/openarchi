@@ -13,7 +13,7 @@ use super::fonts::{wrap, Face, BOLD_WEIGHT, REGULAR_WEIGHT};
 use super::geometry::{decimal, mm};
 use super::layout::Rect;
 use super::svg::{escape, layer_attributes};
-use super::typeset::{Kind, Typesetter};
+use super::typeset::{capitals, Kind, Typesetter};
 use crate::sheet::{Align, Position, Sheet, TextBox, TextStyle};
 use crate::theme::Palette;
 use crate::{Error, Result};
@@ -150,7 +150,7 @@ impl StyledText {
 
     fn cased(&self, text: &str) -> String {
         if self.is_uppercase {
-            text.to_uppercase()
+            capitals(text)
         } else {
             text.to_string()
         }
@@ -253,4 +253,25 @@ pub fn write_boxes(out: &mut String, boxes: &[(&TextBox, StyledText)], drawing: 
 /// Opens the top-level layer moved and added text lives in, named for layout tools.
 pub fn open_layer(out: &mut String) {
     let _ = write!(out, "<g {}>", layer_attributes("text", "Text"));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::catalog::builtin_themes;
+    use crate::theme::Typography;
+
+    #[test]
+    fn an_uppercase_title_keeps_the_micro_sign() {
+        let palette = builtin_themes()[0].palette.clone();
+        let typography = Typography {
+            family: "Inter".to_string(),
+            uppercase_labels: true,
+        };
+        let typesetter = Typesetter::new(&typography, 1.0, &palette.ink, &palette.accent);
+        let title = StyledText::new(&typesetter, Kind::Title, &TextStyle::default(), &palette)
+            .expect("a plain title style");
+
+        assert_eq!(title.lines("PM2.5 in µg/m³"), vec!["PM2.5 IN µG/M³"]);
+    }
 }
