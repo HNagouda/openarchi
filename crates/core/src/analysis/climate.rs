@@ -161,7 +161,7 @@ pub fn sector_name(degrees: f64) -> &'static str {
     SECTOR_NAMES[sector_of(degrees)]
 }
 
-fn sector_of(degrees: f64) -> usize {
+pub fn sector_of(degrees: f64) -> usize {
     ((degrees.rem_euclid(360.0) / SECTOR_DEG).round() as usize) % SECTORS
 }
 

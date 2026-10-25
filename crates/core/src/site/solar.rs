@@ -1,41 +1,62 @@
-//! The typical year of sunlight kept with a scene, for the solar radiation
-//! diagram, which is drawn without asking any service.
+//! The typical year kept with a scene, for the solar radiation and wind
+//! diagrams, which are drawn without asking any service.
 //!
 //! It is the same PVGIS year the analysis reads for its climate, from the same
-//! cache cell, so a site whose climate was looked at fetches nothing new.
+//! cache cell, so a site whose climate was looked at fetches nothing new. Each
+//! diagram keeps only its cut-down part: monthly sunlight, and monthly hours
+//! of wind by direction.
 
 use crate::analysis::cached;
 use crate::radiation::{self, SolarYear};
 use crate::scene::Scene;
 use crate::sources::cache::TileCache;
 use crate::sources::grid::Tile;
-use crate::sources::pvgis;
+use crate::sources::pvgis::{self, Tmy};
+use crate::wind::{self, WindYear};
 use crate::Result;
 
-/// Adds the site's typical year from the cache or PVGIS, or a warning when
-/// it cannot be had; the rest of the scene stands without it.
+/// Adds the site's typical sunlight and wind from the cache or PVGIS, or a
+/// warning when they cannot be had; the rest of the scene stands without them.
 pub fn keep(scene: &mut Scene, cache: &TileCache) {
     keep_with(scene, cache, &pvgis::fetch);
 }
 
 pub fn keep_with(scene: &mut Scene, cache: &TileCache, fetch: &dyn Fn(Tile) -> Result<Vec<u8>>) {
-    match solar_year(scene, cache, fetch) {
-        Ok((solar, warning)) => {
+    let (tmy, warning) = match typical_year(scene, cache, fetch) {
+        Ok(found) => found,
+        Err(error) => {
+            scene.warnings.push(format!(
+                "The typical year of weather could not be fetched, so solar radiation and wind cannot be drawn: {error}"
+            ));
+            return;
+        }
+    };
+    scene.warnings.extend(warning);
+    match SolarYear::from_tmy(&tmy) {
+        Ok(solar) => {
             scene.solar = Some(solar);
-            scene.warnings.extend(warning);
             scene.credits.push(radiation::credit());
         }
-        Err(error) => scene.warnings.push(format!(
-            "The typical year of sunlight could not be fetched, so solar radiation cannot be drawn: {error}"
-        )),
+        Err(error) => scene
+            .warnings
+            .push(format!("Solar radiation cannot be drawn: {error}")),
+    }
+    match WindYear::from_tmy(&tmy) {
+        Ok(year) => {
+            scene.wind = Some(year);
+            scene.credits.push(wind::credit());
+        }
+        Err(error) => scene
+            .warnings
+            .push(format!("Wind cannot be drawn: {error}")),
     }
 }
 
-fn solar_year(
+fn typical_year(
     scene: &Scene,
     cache: &TileCache,
     fetch: &dyn Fn(Tile) -> Result<Vec<u8>>,
-) -> Result<(SolarYear, Option<String>)> {
+) -> Result<(Tmy, Option<String>)> {
     let cell = pvgis::cell_of(scene.origin);
     let (bytes, warning) = cached(cache, pvgis::CACHE_DATASET, cell, || {
         let bytes = fetch(cell)?;
@@ -43,9 +64,8 @@ fn solar_year(
         pvgis::parse(&bytes)?;
         Ok(bytes)
     })?;
-    let solar = SolarYear::from_tmy(&pvgis::parse(&bytes)?)?;
 
-    Ok((solar, warning))
+    Ok((pvgis::parse(&bytes)?, warning))
 }
 
 #[cfg(test)]
@@ -76,16 +96,17 @@ mod tests {
     }
 
     #[test]
-    fn a_fetched_year_is_kept_with_its_credit_for_the_radiation_only() {
+    fn a_fetched_year_is_kept_with_one_credit_for_the_radiation_and_one_for_the_wind() {
         let folder = TempDir::new().unwrap();
         let mut scene = westermarkt();
         keep_with(&mut scene, &TileCache::at(folder.path()), &|_| recorded());
 
-        let solar = scene.solar.unwrap();
-        assert_eq!(solar.months.len(), 12);
-        let credit = scene.credits.last().unwrap();
-        assert!(credit.name.contains("PVGIS"));
-        assert_eq!(credit.layers, vec![Layer::SolarRadiation]);
+        assert_eq!(scene.solar.unwrap().months.len(), 12);
+        assert_eq!(scene.wind.unwrap().months.len(), 12);
+        let credits = &scene.credits[scene.credits.len() - 2..];
+        assert!(credits.iter().all(|credit| credit.name.contains("PVGIS")));
+        assert_eq!(credits[0].layers, vec![Layer::SolarRadiation]);
+        assert_eq!(credits[1].layers, vec![Layer::Wind]);
     }
 
     #[test]
@@ -102,7 +123,9 @@ mod tests {
         keep_with(&mut scene, &TileCache::at(folder.path()), &down);
 
         assert!(scene.solar.is_none());
+        assert!(scene.wind.is_none());
         assert_eq!(scene.warnings.len(), warnings_before + 1);
-        assert!(scene.warnings.last().unwrap().contains("solar radiation"));
+        let warning = scene.warnings.last().unwrap();
+        assert!(warning.contains("solar radiation") && warning.contains("wind"));
     }
 }

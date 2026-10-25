@@ -8,6 +8,7 @@ use openarchi_core::library::Library;
 use openarchi_core::project::Look;
 use openarchi_core::render::RenderInput;
 use openarchi_core::theme::Theme;
+use openarchi_core::view::ViewMode;
 
 /// A built-in diagram, following the ids of diagrams folded into another.
 pub fn find_diagram(id: &str) -> Result<Diagram, String> {
@@ -19,13 +20,37 @@ pub fn find_diagram(id: &str) -> Result<Diagram, String> {
 }
 
 /// An explode plate: a diagram id, or "diagram:variant" for one variant.
+/// A plan-only diagram is no plate, as in the app's plate list.
 pub fn check_plate(plate: &str) -> Result<(), String> {
     match catalog::find_plate(&catalog::builtin_diagrams(), plate) {
+        Some(diagram) if diagram.plan_only => Err(format!(
+            "'{plate}' is drawn in plan only, so it cannot be an explode plate"
+        )),
         Some(_) => Ok(()),
         None => Err(format!(
             "no diagram for plate '{plate}'; use an id from list_diagrams, or 'id:variant' for one variant"
         )),
     }
+}
+
+/// Keeps a plan-only diagram in plan, as the app does: asking for a tilted or
+/// exploded view of it is refused, and choosing it on a tilted sheet turns the
+/// sheet to its plan. `asked` is the view mode set_look was given, if any.
+pub fn kept_in_plan(mut look: Look, asked: Option<ViewMode>) -> Result<Look, String> {
+    let diagram = find_diagram(&look.diagram_id)?;
+    let is_tilted = |mode| matches!(mode, ViewMode::Axonometric | ViewMode::Explode);
+    if !diagram.plan_only || !is_tilted(look.view.mode) {
+        return Ok(look);
+    }
+    if asked.is_some_and(is_tilted) {
+        return Err(format!(
+            "the {} diagram is drawn in plan only, because its flow is worked out in two dimensions; use view.mode \"plan\"",
+            diagram.name
+        ));
+    }
+
+    look.view.mode = ViewMode::Plan;
+    Ok(look)
 }
 
 /// The diagram and variant set_look ends on. The variant stays while the

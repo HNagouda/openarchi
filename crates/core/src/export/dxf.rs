@@ -73,7 +73,7 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
             colours: class_colours(classes),
         })
     });
-    let computed = computed_features(scene, input.diagram, &look.sun);
+    let computed = computed_features(scene, input.diagram, look);
     for feature in scene.features.iter().chain(&computed) {
         if !written.contains(&feature.layer) {
             continue;

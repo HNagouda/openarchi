@@ -48,7 +48,9 @@ export type Layer =
   | "green_cover"
   | "vegetation_index"
   | "heat_island"
-  | "viewshed";
+  | "viewshed"
+  | "wind"
+  | "wind_line";
 
 export type Paper = "a4" | "a3" | "a2" | "a1" | "a0" | "square";
 export type Frame = "circle" | "square" | "area";
@@ -103,6 +105,9 @@ export type LayerOverride = {
 
 export type ViewMode = "plan" | "axonometric" | "explode" | "section";
 
+/** crates/core/src/wind.rs: the whole year, or a meteorological season. */
+export type WindSeason = "year" | "winter" | "spring" | "summer" | "autumn";
+
 export type View = {
   mode: ViewMode;
   rotation_deg: number;
@@ -136,6 +141,8 @@ export type Look = {
   section?: SectionLine | null;
   /** Where the View diagram's eye stands, in RD New metres; missing or null is the site centre. */
   view_point?: [number, number] | null;
+  /** The months the Wind diagram takes its prevailing wind from; missing is the whole year. */
+  wind_season?: WindSeason;
 };
 
 // crates/core/src/section.rs
@@ -224,6 +231,8 @@ export type Diagram = {
   solar?: "sun_path" | "shadow" | "sun_hours" | null;
   /** Zooms the plan out to the walk band of this many minutes. */
   walk_minutes?: number | null;
+  /** Drawn in plan only: the axonometric and explode views are greyed out and it is no plate. */
+  plan_only?: boolean;
   /** Other layers or measures for the same question; the first is the default. */
   variants: Variant[];
 };

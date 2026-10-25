@@ -112,9 +112,13 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool, viewPoint: viewPointTool };
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
 
-  // A new diagram starts on its first variant.
+  // A new diagram starts on its first variant, and a plan-only one turns a tilted sheet to its plan in the same step.
   const selectDiagram = (diagram_id: string) => {
-    if (diagram_id !== look.diagram_id) history.changeLook({ ...look, diagram_id, variant: null });
+    if (diagram_id === look.diagram_id) return;
+    const isPlanOnly = diagrams.find((entry) => entry.id === diagram_id)?.plan_only === true;
+    const isTilted = look.view.mode === "axonometric" || look.view.mode === "explode";
+    const view = isPlanOnly && isTilted ? { ...look.view, mode: "plan" as const } : look.view;
+    history.changeLook({ ...look, diagram_id, variant: null, view });
   };
   const selectVariant = (variantId: string) => history.changeLook({ ...look, variant: variantId });
 

@@ -156,6 +156,7 @@ pub fn scene() -> Scene {
         water_bed: None,
         water_levels: Vec::new(),
         solar: None,
+        wind: None,
     }
 }
 

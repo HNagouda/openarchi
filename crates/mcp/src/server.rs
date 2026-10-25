@@ -62,7 +62,8 @@ impl OpenArchi {
                 + Self::laser_tools()
                 + Self::section_tools()
                 + Self::highlight_tools()
-                + Self::view_point_tools(),
+                + Self::view_point_tools()
+                + Self::wind_tools(),
         }
     }
 

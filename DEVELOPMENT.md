@@ -35,6 +35,7 @@ crates/core/            the library: no window, no async
   src/skyview.rs        the share of the sky each ground cell sees, from the horizon in 32 directions
   src/radiation.rs      yearly sunlight on the ground, from the typical year kept with the scene
   src/viewshed.rs       the ground in view from a sheet's viewpoint, by line of sight over buildings and terrain
+  src/wind.rs           the prevailing wind through the site in plan: wind/ solves the 2D flow, draws its lines and keeps recent flows
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme

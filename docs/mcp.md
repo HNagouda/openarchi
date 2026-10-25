@@ -79,6 +79,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `show_on_sheet` | Shows or hides the pins and the highlights on one sheet tab |
 | `set_section` | Draws, moves, flips or clears a sheet's section line, from A to A' in longitude and latitude, and sets how far beyond it the section shows buildings and trees, its scale and how much taller heights are drawn |
 | `set_view_point` | Stands the eye of a sheet's View diagram at a place, on a pin or back at the site centre |
+| `set_wind_season` | Chooses whether a sheet's Wind diagram blows the prevailing wind of the whole year or of one season |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
@@ -128,6 +129,14 @@ The View diagram tints the ground a person standing at the sheet's viewpoint can
 
 ```json
 { "id": "2026-10-24-westermarkt-3f9a", "from": { "lon": 4.8825, "lat": 52.3745 }, "to": { "lon": 4.8855, "lat": 52.3745 }, "depth_m": 80 }
+```
+
+## How does an assistant choose the wind?
+
+The Wind diagram blows the site's most common wind direction, from its typical year, through the site in plan, and colours the ground by how fast the air moves there as a share of the incoming wind. It is worked out in two dimensions, so it is drawn in plan only: `set_look` refuses `view.mode` `axonometric` or `explode` for it and refuses it as an explode plate, and choosing it on a tilted sheet turns the sheet to its plan, as in the app, where those view buttons are greyed out. `set_wind_season` takes `season`: `year` (the default), `winter`, `spring`, `summer` or `autumn`, the seasons of the wind roses in the analysis. It answers with the wind that gives, such as "from the SW, most common all year (12% of hours)".
+
+```json
+{ "id": "2026-10-24-westermarkt-3f9a", "season": "winter" }
 ```
 
 ## Trying it from a terminal

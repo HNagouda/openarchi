@@ -21,6 +21,7 @@ use crate::section::SectionLine;
 use crate::sheet::Sheet;
 use crate::theme::LayerOverride;
 use crate::view::{SunMoment, View};
+use crate::wind::WindSeason;
 use crate::{Error, Result};
 
 /// Bump when the file shape changes, and add a step to `library::migrate`.
@@ -153,6 +154,10 @@ pub struct Look {
     /// it at the site centre; older projects have none. See `viewshed`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub view_point: Option<(f64, f64)>,
+    /// The months the wind diagram takes its prevailing wind from. Older
+    /// projects have none and draw the wind of the whole year.
+    #[serde(default, skip_serializing_if = "WindSeason::is_year")]
+    pub wind_season: WindSeason,
 }
 
 impl Default for Look {
@@ -171,6 +176,7 @@ impl Default for Look {
             hide_highlights: false,
             section: None,
             view_point: None,
+            wind_season: WindSeason::Year,
         }
     }
 }

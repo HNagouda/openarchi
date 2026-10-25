@@ -37,5 +37,6 @@ pub mod theme;
 pub mod view;
 pub mod viewshed;
 pub mod walk;
+pub mod wind;
 
 pub use error::{Error, Result};

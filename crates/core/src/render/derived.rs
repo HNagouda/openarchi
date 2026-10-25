@@ -1,19 +1,22 @@
 //! Layers worked out from the scene when a diagram draws them, instead of
 //! fetched: city blocks from the street surfaces, hours of sun from building
 //! and tree heights, the sky view and the yearly solar radiation from building
-//! heights and terrain. They are computed per drawing and never stored, so an
-//! old project draws them too.
+//! heights and terrain, and the wind from building footprints and the
+//! typical year. They are computed per drawing and never stored, so an old
+//! project draws them too, except the two that need the kept typical year.
 
 use crate::blocks;
 use crate::diagram::{Diagram, Scheme};
+use crate::project::Look;
 use crate::radiation;
 use crate::scene::{Feature, Layer, Scene};
 use crate::skyview;
 use crate::sunlight;
-use crate::view::SunMoment;
+use crate::wind;
 
 /// The computed features of every computed layer `diagram` draws.
-pub fn features(scene: &Scene, diagram: &Diagram, sun: &SunMoment) -> Vec<Feature> {
+pub fn features(scene: &Scene, diagram: &Diagram, look: &Look) -> Vec<Feature> {
+    let sun = &look.sun;
     let mut features = Vec::new();
     if diagram.layers.contains(&Layer::Block) {
         features.extend(blocks::blocks(scene));
@@ -34,6 +37,13 @@ pub fn features(scene: &Scene, diagram: &Diagram, sun: &SunMoment) -> Vec<Featur
                 &grid,
                 &breaks(diagram, Layer::SolarRadiation),
             ));
+        }
+    }
+    // Likewise without the kept wind; a plan draws it, the app and set_look keep it off tilted views.
+    if diagram.layers.contains(&Layer::Wind) {
+        if let Some(prevailing) = wind::prevailing(scene, look.wind_season) {
+            let flow = wind::flow(scene, prevailing.from_deg);
+            features.extend(wind::features(&flow, &breaks(diagram, Layer::Wind)));
         }
     }
 

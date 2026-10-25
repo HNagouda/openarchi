@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 
 use crate::look::updated_look;
 use crate::palettes::{self, ImportPalette};
-use crate::resolve::{check_plate, chosen_diagram, find_theme};
+use crate::resolve::{check_plate, chosen_diagram, find_theme, kept_in_plan};
 use crate::server::{blocking, reply, text, OpenArchi};
 use crate::style_inputs::{CreateTheme, ListThemes, SetLook};
 use crate::text::edited_sheet;
@@ -56,7 +56,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id and its variant, theme_id, sheet fields, per-layer overrides, the view (plan, axonometric with buildings standing up, or explode with several diagrams stacked as plates) and the sun's date and time for the sun path and shadow diagrams. Returns the whole new look. Earlier versions stay in the project's backups."
+        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id and its variant, theme_id, sheet fields, per-layer overrides, the view (plan, axonometric with buildings standing up, or explode with several diagrams stacked as plates) and the sun's date and time for the sun path and shadow diagrams. A plan-only diagram (Wind) refuses the axonometric and explode views, and choosing it on a tilted sheet turns the sheet to its plan, as in the app. Returns the whole new look. Earlier versions stay in the project's backups."
     )]
     async fn set_look(&self, Parameters(input): Parameters<SetLook>) -> CallToolResult {
         let result = self
@@ -69,10 +69,16 @@ impl OpenArchi {
                     check_plate(plate)?;
                 }
 
+                let asked_mode = input
+                    .view
+                    .as_ref()
+                    .and_then(|view| view.mode)
+                    .map(Into::into);
+
                 let mut project = library.load(&input.id).map_err(text)?;
                 let look = project.sheet_mut(input.tab.unwrap_or(1)).map_err(text)?;
                 let diagram = chosen_diagram(look, input.diagram_id, input.variant)?;
-                *look = updated_look(
+                let updated = updated_look(
                     look,
                     Some(diagram),
                     input.theme_id,
@@ -81,6 +87,7 @@ impl OpenArchi {
                     input.view,
                     input.sun,
                 )?;
+                *look = kept_in_plan(updated, asked_mode)?;
                 let look = look.clone();
                 library.save(&mut project).map_err(text)?;
                 Ok(look)

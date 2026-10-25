@@ -1,4 +1,4 @@
-import type { Diagram, Look, ViewMode } from "../../lib/types";
+import type { Diagram, Look, ViewMode, WindSeason } from "../../lib/types";
 import { NumberField } from "../../ui/NumberField";
 import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
@@ -15,6 +15,15 @@ const MODES: { value: ViewMode; label: string; tip: string }[] = [
   { value: "section", label: "Section", tip: "An elevation along the sheet's section line" },
 ];
 const NO_LINE_TIP = "Draw a section line on the sheet first";
+const PLAN_ONLY_TIP = "This diagram is worked out in plan only";
+const TILTED_MODES: ViewMode[] = ["axonometric", "explode"];
+const SEASONS: { value: WindSeason; label: string; tip: string }[] = [
+  { value: "year", label: "Year", tip: "The most common wind of the whole year" },
+  { value: "winter", label: "Winter", tip: "December to February" },
+  { value: "spring", label: "Spring", tip: "March to May" },
+  { value: "summer", label: "Summer", tip: "June to August" },
+  { value: "autumn", label: "Autumn", tip: "September to November" },
+];
 
 const MAX_ROTATION = 355;
 /** Below this the neighbourhood is all but gone; the toggle hides it outright. */
@@ -34,13 +43,19 @@ type Props = {
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
-/** Plan, axonometric, explode or section, whether the neighbourhood shows and how strongly, the sun's date and time where it shows, and the section line. */
+/** Plan, axonometric, explode or section, whether the neighbourhood shows and how strongly, the sun's date and time where it shows, the wind's season, and the section line. */
 export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const view = look.view;
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
   const isTilted = view.mode === "axonometric" || view.mode === "explode";
   // The section view needs a line to cut along; until one is drawn it is greyed out.
-  const modes = MODES.map((mode) => (mode.value === "section" && !look.section ? { ...mode, isDisabled: true, tip: NO_LINE_TIP } : mode));
+  // A plan-only diagram, such as the wind, greys out the tilted views for good.
+  const modes = MODES.map((mode) => {
+    if (mode.value === "section" && !look.section) return { ...mode, isDisabled: true, tip: NO_LINE_TIP };
+    if (diagram?.plan_only && TILTED_MODES.includes(mode.value)) return { ...mode, isDisabled: true, tip: PLAN_ONLY_TIP };
+    return mode;
+  });
+  const hasWind = diagram?.layers.includes("wind") === true;
   const hasSun = view.mode === "axonometric" || Boolean(diagram?.solar);
   // Hours of sun add up a whole day, so only a tilted view, which is lit at one moment, needs the time.
   const hasTime = view.mode === "axonometric" || diagram?.solar !== "sun_hours";
@@ -141,6 +156,13 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {hasWind && (
+          <div className="field-stack">
+            <span className="field-label">Prevailing wind of</span>
+            <Segmented label="Prevailing wind of" value={look.wind_season ?? "year"} options={SEASONS} onChange={(wind_season) => onLook({ ...look, wind_season })} />
           </div>
         )}
 
