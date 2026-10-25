@@ -2,7 +2,7 @@
 //! atomic writes, and the checks that keep ids inside the library folder.
 
 use std::fs;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::Path;
 use std::time::SystemTime;
 
@@ -15,7 +15,7 @@ use crate::project::{Project, PROJECT_EXTENSION};
 use crate::{Error, Result};
 
 /// The few fields the project list needs. `IgnoredAny` skips the scene without
-/// building it, which keeps listing fast when scenes are large.
+/// building it, for a file whose scene does not come last.
 #[derive(Deserialize)]
 struct SummaryFields {
     name: String,
@@ -25,6 +25,14 @@ struct SummaryFields {
     #[serde(default)]
     look: Option<Value>,
 }
+
+/// How much of a project file is read for its summary before the whole file
+/// is. Everything before the scene takes a few kB; the scene takes megabytes.
+const HEAD_BYTES: u64 = 256 * 1024;
+
+/// The scene's key in a compact project file. `Project` writes the scene last,
+/// so every field a summary needs comes before it.
+const SCENE_KEY: &[u8] = b",\"scene\":";
 
 /// A save writes here first and renames over the real file when complete.
 const TEMP_EXTENSION: &str = "tmp";
@@ -68,23 +76,81 @@ pub(super) fn read_summaries(folder: &Path) -> Result<Vec<(ProjectSummary, Syste
 }
 
 pub(super) fn summarize(path: &Path) -> Result<ProjectSummary> {
-    let bytes = fs::read(path).map_err(|e| Error::io(path, e))?;
-    let fields: SummaryFields = serde_json::from_slice(&bytes).map_err(|e| Error::Format {
-        path: path.display().to_string(),
-        detail: e.to_string(),
-    })?;
+    // A file saved before the scene moved last has its look after the scene.
+    let (fields, has_scene) = match head_fields(path)? {
+        Some((fields, has_scene)) if fields.look.is_some() => (fields, has_scene),
+        _ => {
+            let fields = whole_fields(path)?;
+            let has_scene = fields.scene.is_some();
+            (fields, has_scene)
+        }
+    };
 
     Ok(ProjectSummary {
         id: file_stem(path),
         name: fields.name,
         modified: fields.modified,
-        has_scene: fields.scene.is_some(),
+        has_scene,
         // Summaries skip migration to stay fast, so a look in an older shape
         // is left out rather than failing the whole entry.
         look: fields
             .look
             .and_then(|look| serde_json::from_value(look).ok()),
         error: None,
+    })
+}
+
+/// The `modified` saved in a project file, as written.
+pub(super) fn read_modified(path: &Path) -> Result<String> {
+    match head_fields(path)? {
+        Some((fields, _)) => Ok(fields.modified),
+        None => Ok(whole_fields(path)?.modified),
+    }
+}
+
+/// The fields before the scene, and whether there is a scene, read from the
+/// start of the file only. `None` when that is not enough: the scene does not
+/// start within `HEAD_BYTES`, or a longer file has none.
+fn head_fields(path: &Path) -> Result<Option<(SummaryFields, bool)>> {
+    let file = fs::File::open(path).map_err(|e| Error::io(path, e))?;
+    let mut head = Vec::new();
+    file.take(HEAD_BYTES)
+        .read_to_end(&mut head)
+        .map_err(|e| Error::io(path, e))?;
+    let scene_at = head
+        .windows(SCENE_KEY.len())
+        .position(|window| window == SCENE_KEY);
+
+    let Some(scene_at) = scene_at else {
+        let is_whole_file = (head.len() as u64) < HEAD_BYTES;
+        if !is_whole_file {
+            return Ok(None);
+        }
+        let fields = parse_fields(path, &head)?;
+        let has_scene = fields.scene.is_some();
+        return Ok(Some((fields, has_scene)));
+    };
+    // A key named "scene" deeper in the file leaves an object open, so this
+    // does not parse and the whole file is read instead.
+    let mut before_scene = head[..scene_at].to_vec();
+    before_scene.push(b'}');
+    let Ok(fields) = serde_json::from_slice::<SummaryFields>(&before_scene) else {
+        return Ok(None);
+    };
+    let has_scene = !head[scene_at + SCENE_KEY.len()..].starts_with(b"null");
+
+    Ok(Some((fields, has_scene)))
+}
+
+fn whole_fields(path: &Path) -> Result<SummaryFields> {
+    let bytes = fs::read(path).map_err(|e| Error::io(path, e))?;
+    parse_fields(path, &bytes)
+}
+
+fn parse_fields(path: &Path, bytes: &[u8]) -> Result<SummaryFields> {
+    serde_json::from_slice(bytes).map_err(|e| Error::Format {
+        path: path.display().to_string(),
+        detail: e.to_string(),
     })
 }
 
@@ -119,9 +185,9 @@ pub(super) fn backup_stamps(folder: &Path) -> Result<Vec<String>> {
 /// `now_rfc3339` writes. A file too broken to read falls back to now, because
 /// it still has to be backed up before it is replaced.
 pub(super) fn saved_modified(path: &Path) -> String {
-    summarize(path)
+    read_modified(path)
         .ok()
-        .and_then(|summary| humantime::parse_rfc3339_weak(&summary.modified).ok())
+        .and_then(|modified| humantime::parse_rfc3339_weak(&modified).ok())
         .map(|time| humantime::format_rfc3339_nanos(time).to_string())
         .unwrap_or_else(now_rfc3339)
 }

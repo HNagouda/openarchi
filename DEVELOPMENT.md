@@ -53,7 +53,7 @@ crates/core/            the library: no window, no async
   src/selection.rs      a sheet's area, opened from a highlight: the scene cut to it
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
-  examples/             fetch_site, render_samples, render_timing and compute_timing, for working on data, looks and speed
+  examples/             fetch_site, render_samples, render_timing, compute_timing and library_timing, for working on data, looks and speed
 crates/mcp/             openarchi-mcp, a stdio MCP server over the core
 app/                    the desktop app
   src-tauri/            Tauri commands, each a thin call into the core
@@ -128,6 +128,8 @@ VIEW=axonometric SELECT_RADIUS=150 DUMP_DIR=.scratch/svgs cargo run --release -p
 
 `compute_timing` times only the layers worked out when drawn (the woods that block, the sky view, the solar radiation and the view from the site centre) on scenes written by `fetch_site`, so a slow one shows up before it reaches the app.
 
+`library_timing` times the project list, the check whether someone else saved a project, and a save the way the app saves after an edit. It saves into the library's backups, so give it a copy: `cargo run --release -p openarchi-core --example library_timing -- <copy of a library folder>`.
+
 ```sh
 cargo run --release -p openarchi-core --example compute_timing -- .scratch/site.json
 ```
@@ -150,6 +152,6 @@ scripts/mcp.sh render_preview '{"id": "<project id>"}'   # prints the path of th
 
 Projects are JSON files with a `format_version`. When the shape changes, bump `PROJECT_FORMAT_VERSION` in `project.rs` and add a step to `library/migrate.rs`, so every older file still opens. Themes have their own `THEME_FORMAT_VERSION` for the same reason, because people share them.
 
-The scene inside a project is stored as zstd-compressed JSON in base64 (`project/packed_scene.rs`), because it is nearly the whole file and its JSON shrinks five- to sixfold as stored text. The rest of the file stays readable JSON, so the project list never unpacks a scene.
+The scene inside a project is stored as zstd-compressed JSON in base64 (`project/packed_scene.rs`), because it is nearly the whole file and its JSON shrinks five- to sixfold as stored text. The rest of the file stays readable JSON, so the project list never unpacks a scene. The scene is written last, so the list and the check before every save read only the first few kB of each file; a file saved before that reads whole and is rewritten in the new order on its next save.
 
 Downloaded data lives in `<library>/cache/`, shared by every project. Each source is fetched in tiles of a fixed 250 m grid over RD New, and each tile is kept for 30 days, so redrawing a site, or drawing the one next door, only downloads the tiles it has not seen. The cache deletes its oldest tiles past 1 GB. It also keeps which edition of RIVM, CBS, the infrared photo and the Rijkswaterstaat bed survey is newest, for a day, and each edition's tiles in a folder of their own, so a new year is downloaded fresh. The `fetch_site` example uses `target/tile-cache` instead, so working on the data layer never touches your library.
