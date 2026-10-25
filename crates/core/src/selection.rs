@@ -1,5 +1,5 @@
-//! A sheet's sub-selection: a smaller area inside the fetched site that the
-//! sheet frames and clips to.
+//! A sheet opened from a highlight: a smaller area inside the fetched site
+//! that the sheet frames and clips to.
 //!
 //! The scene is cut to the smaller area and then drawn, measured and exported
 //! exactly like a whole site, so there is no second renderer to drift, the
@@ -21,7 +21,7 @@ use crate::site::boundary_in_rd;
 use crate::sources::clip::{self, Clipped};
 use crate::{Error, Result};
 
-/// A sub-selection must keep at least this much of the site, in square
+/// A sheet area must keep at least this much of the site, in square
 /// metres: less is a slip of the mouse, not an area worth a sheet.
 const MIN_AREA_M2: f64 = 25.0;
 
@@ -43,7 +43,7 @@ pub fn framed(scene: &Scene, selection: &Area) -> Result<Scene> {
     });
     let boundary = largest_part(&scene.boundary, &drawn).ok_or_else(|| {
         Error::Invalid(
-            "The sub-selection lies outside the fetched site. Draw it inside the site.".to_string(),
+            "The highlight lies outside the fetched site. Draw it inside the site.".to_string(),
         )
     })?;
 

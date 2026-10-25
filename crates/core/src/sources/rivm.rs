@@ -1,4 +1,5 @@
-//! RIVM's national maps of noise and air quality, from the Atlas Leefomgeving WCS.
+//! RIVM's national maps of noise, air quality, tree height, green classes and
+//! the urban heat island, from the Atlas Leefomgeving WCS, with their credits.
 //!
 //! RIVM publishes each map again under a new dated id when a new year is
 //! modelled: alo__rivm_20250101_Geluid_lden_wegverkeer_2022 was published on

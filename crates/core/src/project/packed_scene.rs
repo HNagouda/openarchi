@@ -1,7 +1,8 @@
 //! The scene inside a project file: JSON, compressed with zstd, as base64 text.
 //!
 //! A scene is nearly all of a project file, and its JSON is mostly repeated
-//! coordinate keys, which zstd shrinks about eightfold. The rest of the file
+//! coordinate keys, which zstd shrinks seven- to eightfold, five- to sixfold
+//! once written as base64 text (the three test projects). The rest of the file
 //! stays plain JSON, so the project list can read a name without unpacking the
 //! scene, and an older openarchi still sees `format_version` and says to update.
 
@@ -14,9 +15,11 @@ use serde::{Deserialize, Deserializer, Serializer};
 use crate::scene::Scene;
 use crate::{Error, Result};
 
-/// Every save packs the scene again, so speed counts as much as size. On the
-/// Westermarkt scene level 6 is a quarter smaller than level 3 and still packs
-/// about 240 MB of JSON a second; level 9 is barely smaller and half as fast.
+/// The MCP server packs on every save, and the app on every fetch, so speed
+/// counts as much as size. On the Westermarkt scene level 6 is a quarter
+/// smaller than level 3 and still packs about 240 MB of JSON a second; level 9
+/// is barely smaller and half as fast.
+// #! NOTE[mcp, save] : Should MCP edits that leave the scene alone save with the packed text read from disk, as the app does?
 const COMPRESSION_LEVEL: i32 = 6;
 
 /// The scene as stored text.

@@ -29,7 +29,8 @@ const MARGIN_M: f64 = 30.0;
 /// Water shallower than this is a wet street, not a flood worth a band.
 const FLOOD_MIN_DEPTH_M: f64 = 0.01;
 
-/// Every fetched raster, in one place.
+/// Every raster of this module, in one place. The greenery rasters are
+/// `site::greenery::Greenery`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Raster {
     RoadNoise,
