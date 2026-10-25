@@ -3,6 +3,10 @@
 //!
 //! stdout carries the protocol, so anything for a person goes to stderr.
 
+mod export;
+mod export_inputs;
+mod figure_inputs;
+mod figures;
 mod highlight_inputs;
 mod highlights;
 mod inputs;
@@ -16,8 +20,11 @@ mod series;
 mod server;
 mod sheet_inputs;
 mod sheets;
+mod style_inputs;
+mod styles;
 mod summary;
 mod text;
+mod text_inputs;
 mod user_themes;
 mod view_point;
 

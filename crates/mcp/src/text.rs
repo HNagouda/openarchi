@@ -5,7 +5,7 @@
 
 use openarchi_core::sheet::{Align, Position, Sheet, TextBox, TextStyle, SUBTITLE_ID, TITLE_ID};
 
-use crate::inputs::{AlignInput, EditText, PositionInput, TextStyleInput};
+use crate::text_inputs::{AlignInput, EditText, PositionInput, TextStyleInput};
 
 /// The text id that adds a text box instead of changing one.
 const NEW_TEXT_ID: &str = "new";
