@@ -146,7 +146,7 @@ fn export_dxf_follows_the_sheet_marks_and_its_section_view() {
         json!({ "id": id, "format": "dxf", "path": plan_path }),
     );
     let plan = std::fs::read_to_string(&plan_path).unwrap();
-    assert!(plan.contains("\nOA-HIGHLIGHT-DASHED\n") && plan.contains("\nPlot\n"));
+    assert!(plan.contains("\nOA-HIGHLIGHT-DASHED-ACCENT\n") && plan.contains("\nPlot\n"));
     assert!(plan.contains("\nOA-SECTION-LINE\n") && plan.contains("\nOA-BUILDING\n"));
 
     server.call_ok(
@@ -164,6 +164,37 @@ fn export_dxf_follows_the_sheet_marks_and_its_section_view() {
         !section.contains("\nOA-SITE\n"),
         "a section has no plan in it"
     );
+}
+
+#[test]
+fn export_dxf_holds_the_shown_layers_unless_asked_for_all() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    let out = TempDir::new().unwrap();
+    let declared = |path: &std::path::Path| {
+        std::fs::read_to_string(path)
+            .unwrap()
+            .matches("\n  0\nLAYER\n")
+            .count()
+    };
+
+    let shown_path = out.path().join("shown.dxf");
+    server.call_ok(
+        "export",
+        json!({ "id": id, "format": "dxf", "path": shown_path }),
+    );
+    let all_path = out.path().join("all.dxf");
+    server.call_ok(
+        "export",
+        json!({ "id": id, "format": "dxf", "dxf_layers": "all", "path": all_path }),
+    );
+    assert!(declared(&shown_path) < declared(&all_path));
+
+    let unknown = server.call_err(
+        "export",
+        json!({ "id": id, "format": "dxf", "dxf_layers": "some", "path": out.path().join("x.dxf") }),
+    );
+    assert!(unknown.contains("some"), "{unknown}");
 }
 
 #[test]

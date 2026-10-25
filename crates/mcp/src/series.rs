@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 
 use openarchi_core::catalog;
-use openarchi_core::export::{self, ExportFormat};
+use openarchi_core::export::{self, DxfLayers, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Look;
 use openarchi_core::render::RenderInput;
@@ -18,12 +18,14 @@ use crate::server::text;
 /// Writes every drawing of every diagram for sheet `tab` into `folder`, and
 /// returns the paths. Checks every file name first, so nothing is written
 /// when one would replace a file without `overwrite`.
+#[allow(clippy::too_many_arguments)]
 pub fn export_series(
     library: &Library,
     id: &str,
     tab: usize,
     format: ExportFormat,
     dpi: u32,
+    dxf_layers: DxfLayers,
     folder: &Path,
     overwrite: bool,
 ) -> Result<Value, String> {
@@ -75,7 +77,7 @@ pub fn export_series(
             pins: &project.pins,
             highlights: &project.highlights,
         };
-        export::export(&input, format, dpi, path).map_err(text)?;
+        export::export_with_dxf_layers(&input, format, dpi, dxf_layers, path).map_err(text)?;
         written.push(path.display().to_string());
     }
 

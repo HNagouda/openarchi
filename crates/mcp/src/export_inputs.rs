@@ -1,6 +1,6 @@
 //! What render_preview and export accept.
 
-use openarchi_core::export::ExportFormat;
+use openarchi_core::export::{DxfLayers, ExportFormat};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -31,6 +31,24 @@ pub struct Export {
     pub folder: Option<String>,
     /// Which sheet tab, counting from 1 for the first, which is the default. list_sheets shows them.
     pub tab: Option<usize>,
+    /// Which layers a plan's dxf holds: "shown" only the layers the sheet draws, without those hidden (the default, as in the app), or "all" every fetched layer and the whole neighbourhood. Other formats and a section sheet's dxf ignore it.
+    pub dxf_layers: Option<DxfLayersInput>,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum DxfLayersInput {
+    Shown,
+    All,
+}
+
+impl From<DxfLayersInput> for DxfLayers {
+    fn from(layers: DxfLayersInput) -> Self {
+        match layers {
+            DxfLayersInput::Shown => DxfLayers::Shown,
+            DxfLayersInput::All => DxfLayers::All,
+        }
+    }
 }
 
 /// svg and pdf for print and layout tools, png for slides and the web, dxf for
