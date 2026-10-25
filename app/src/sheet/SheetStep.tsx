@@ -21,6 +21,7 @@ import { Inspector } from "./inspector/Inspector";
 import { useAutosave } from "./useAutosave";
 import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
+import { useDiagramStepping } from "./useDiagramStepping";
 import { useLiveValue } from "./liveValue";
 import { ZoomControl } from "./ZoomControl";
 import { TextOverlay } from "./text/TextOverlay";
@@ -44,7 +45,7 @@ import { useProjectSync } from "./useProjectSync";
 import { ReportsWorkspace } from "../report/ReportsWorkspace";
 import { useLibraryPreviews } from "../report/previews/useLibraryPreviews";
 
-// One empty list while the catalog loads, so the memoized diagram column does not see a new one every render.
+// One empty list while the catalog loads, so the memoized diagram column and the thumbnails do not see a new one every render.
 const NO_DIAGRAMS: Diagram[] = [];
 
 type Props = {
@@ -59,9 +60,7 @@ type Props = {
 export function SheetStep({ project: initial, catalog, catalogError, onRetryCatalog, navigate }: Props) {
   const [project, setProject] = useState(initial);
   const history = useWorkbook(initial);
-  const { book, look, changeLook } = history;
-  const latestLook = useRef(look);
-  latestLook.current = look;
+  const { book, look } = history;
   const [revision, setRevision] = useState(0);
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
   const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
@@ -74,7 +73,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
 
   const isReady = catalog !== null && project.has_scene;
   const preview = usePreview(look, book.pins, book.highlights, revision, isReady);
-  const thumbnails = useThumbnails(look, catalog?.diagrams ?? [], revision, isReady);
+  const thumbnails = useThumbnails(look, catalog?.diagrams ?? NO_DIAGRAMS, revision, isReady);
   // The report library, gathered in the background so it is ready when Reports opens.
   const libraryPreviews = useLibraryPreviews(project, book.sheets[0].theme_id, isReady);
   const reportSaveError = useCallback((message: string) => toast(`Couldn't save. ${message}`, { isError: true }), [toast]);
@@ -117,41 +116,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const viewPointTool = useViewPointTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: hasEye, onRefused: (message) => toast(message) });
   const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool, viewPoint: viewPointTool };
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
-
-  // A new diagram starts on its first variant, and a plan-only one turns a tilted sheet to its plan in the same step.
-  // Both read the look through a ref, so the diagram column's callbacks stay the same while the look changes.
-  const selectDiagram = useCallback(
-    (diagram_id: string) => {
-      const current = latestLook.current;
-      if (diagram_id === current.diagram_id) return;
-      const isPlanOnly = diagrams.find((entry) => entry.id === diagram_id)?.plan_only === true;
-      const isTilted = current.view.mode === "axonometric" || current.view.mode === "explode";
-      const view = isPlanOnly && isTilted ? { ...current.view, mode: "plan" as const } : current.view;
-      changeLook({ ...current, diagram_id, variant: null, view });
-    },
-    [diagrams, changeLook],
-  );
-  const selectVariant = useCallback((variantId: string) => changeLook({ ...latestLook.current, variant: variantId }), [changeLook]);
-
-  const stepDiagram = (direction: 1 | -1) => {
-    const index = diagrams.findIndex((entry) => entry.id === look.diagram_id);
-    const next = diagrams[index + direction];
-    if (next) selectDiagram(next.id);
-  };
-
-  const stepVariant = (direction: 1 | -1) => {
-    if (!diagram || !variant) return;
-    const index = diagram.variants.indexOf(variant);
-    const next = diagram.variants[index + direction];
-    if (next) selectVariant(next.id);
-  };
-
-  const stepTheme = (direction: 1 | -1) => {
-    if (themes.length === 0) return;
-    const index = themes.findIndex((theme) => theme.id === look.theme_id);
-    const next = themes[(index + direction + themes.length) % themes.length];
-    history.changeLook({ ...look, theme_id: next.id });
-  };
+  const { selectDiagram, selectVariant, stepDiagram, stepVariant, stepTheme } = useDiagramStepping(look, diagrams, themes, history.changeLook);
 
   const toggleInspector = () => {
     setInspectorOpen(!isInspectorOpen);
