@@ -12,6 +12,15 @@ pub fn is_hex(value: &str) -> bool {
     value.len() == 7 && value.starts_with('#') && value[1..].chars().all(|c| c.is_ascii_hexdigit())
 }
 
+/// "#1a2b3c" or a palette role the renderer knows, "@accent". Anything else
+/// would save and then fail every render of the sheet.
+pub fn is_colour(value: &str) -> bool {
+    let is_role = value
+        .strip_prefix('@')
+        .is_some_and(|name| ROLES.contains(&name));
+    is_role || is_hex(value)
+}
+
 /// "@muted" -> the palette's muted colour. `None` for a role that does not exist.
 pub fn role(palette: &Palette, name: &str) -> Option<String> {
     let value = match name {

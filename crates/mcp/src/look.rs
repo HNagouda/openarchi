@@ -6,6 +6,7 @@
 use std::collections::BTreeMap;
 
 use openarchi_core::project::Look;
+use openarchi_core::render::is_colour;
 use openarchi_core::scene::Layer;
 use openarchi_core::sheet::Sheet;
 use openarchi_core::theme::LayerOverride;
@@ -179,17 +180,6 @@ fn layer_override(layer: &str, change: OverrideInput) -> Result<LayerOverride, S
     })
 }
 
-/// "#1a2b3c" or "@accent". Which roles exist is the renderer's call.
-fn is_colour(value: &str) -> bool {
-    if let Some(role) = value.strip_prefix('@') {
-        return !role.is_empty();
-    }
-    match value.strip_prefix('#') {
-        Some(hex) => hex.len() == 6 && hex.chars().all(|c| c.is_ascii_hexdigit()),
-        None => false,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use openarchi_core::sheet::{Frame, Paper};
@@ -293,6 +283,21 @@ mod tests {
 
         assert!(layer_override("water", colour).is_err());
         assert!(layer_override("water", opacity).is_err());
+    }
+
+    #[test]
+    fn a_misspelt_palette_role_is_refused_before_it_can_break_the_sheet() {
+        let misspelt = OverrideInput {
+            fill: Some("@accentt".to_string()),
+            ..OverrideInput::default()
+        };
+        let known = OverrideInput {
+            fill: Some("@accent".to_string()),
+            ..OverrideInput::default()
+        };
+
+        assert!(layer_override("water", misspelt).is_err());
+        assert!(layer_override("water", known).is_ok());
     }
 
     #[test]

@@ -69,6 +69,7 @@ use crate::view::ViewMode;
 use crate::Result;
 
 // Shared with the catalog (validating themes) and export (fonts, CAD layer names).
+pub use color::is_colour;
 pub(crate) use color::{is_hex, role, ROLES};
 pub(crate) use drawing::layer_slug;
 pub use fit::fitting_scale;

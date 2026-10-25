@@ -14,7 +14,7 @@ use crate::area::{Area, LonLat};
 use crate::crs::{rd_to_wgs84, wgs84_to_rd};
 use crate::pin::{self, MAX_LABEL_CHARS};
 use crate::ratios::area_text;
-use crate::render::{is_hex, ROLES};
+use crate::render::is_colour;
 use crate::scene::Scene;
 use crate::{Error, Result};
 
@@ -240,11 +240,7 @@ impl Highlight {
                 "it covers {area:.1} m²; draw at least {MIN_AREA_M2} m²"
             ));
         }
-        let is_role = self
-            .colour
-            .strip_prefix('@')
-            .is_some_and(|name| ROLES.contains(&name));
-        if !is_role && !is_hex(&self.colour) {
+        if !is_colour(&self.colour) {
             return invalid(format!(
                 "its colour must look like '#RRGGBB' or a palette role like '@accent', got {:?}",
                 self.colour

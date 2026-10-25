@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::render::{is_hex, FONT_FAMILIES, ROLES};
+use crate::render::{is_colour, FONT_FAMILIES};
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -97,10 +97,7 @@ impl TextStyle {
             }
         }
         if let Some(colour) = &self.colour {
-            let is_role = colour
-                .strip_prefix('@')
-                .is_some_and(|name| ROLES.contains(&name));
-            if !is_role && !is_hex(colour) {
+            if !is_colour(colour) {
                 return Err(Error::Invalid(format!(
                     "colour must look like '#RRGGBB' or a palette role like '@accent', got {colour:?}"
                 )));
