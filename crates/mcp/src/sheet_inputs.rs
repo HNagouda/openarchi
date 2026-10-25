@@ -1,6 +1,6 @@
 //! What the sheet and pin tools accept, with the schema an assistant sees.
 
-use openarchi_core::pin::PinIcon;
+use openarchi_core::pin::{PinIcon, PinSize};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
@@ -31,6 +31,8 @@ pub struct AddPin {
     pub label: Option<String>,
     /// The marker. Defaults to "pin".
     pub icon: Option<PinIconInput>,
+    /// How large the marker and its label draw. Defaults to "medium".
+    pub size: Option<PinSizeInput>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -44,6 +46,7 @@ pub struct EditPin {
     /// A new label; an empty string leaves only the marker.
     pub label: Option<String>,
     pub icon: Option<PinIconInput>,
+    pub size: Option<PinSizeInput>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -73,6 +76,27 @@ impl From<PinIconInput> for PinIcon {
             PinIconInput::Star => PinIcon::Star,
             PinIconInput::Flag => PinIcon::Flag,
             PinIconInput::Dot => PinIcon::Dot,
+        }
+    }
+}
+
+/// The four steps the app's pin bar offers, smallest first.
+#[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum PinSizeInput {
+    Small,
+    Medium,
+    Large,
+    ExtraLarge,
+}
+
+impl From<PinSizeInput> for PinSize {
+    fn from(size: PinSizeInput) -> Self {
+        match size {
+            PinSizeInput::Small => PinSize::Small,
+            PinSizeInput::Medium => PinSize::Medium,
+            PinSizeInput::Large => PinSize::Large,
+            PinSizeInput::ExtraLarge => PinSize::ExtraLarge,
         }
     }
 }

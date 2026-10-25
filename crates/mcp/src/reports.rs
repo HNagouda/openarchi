@@ -127,6 +127,7 @@ pub fn export(library: &Library, input: ExportReport) -> Result<Value, String> {
         scene,
         &project.look,
         &project.pins,
+        &project.highlights,
         &diagrams,
         &theme,
         &cache,

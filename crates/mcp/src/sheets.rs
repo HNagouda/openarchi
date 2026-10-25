@@ -18,7 +18,7 @@ use crate::sheet_inputs::{AddPin, AddSheet, EditPin, PinId};
 #[tool_router(router = sheet_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "List a project's sheet tabs in order. Each has its number (pass it as `tab` to set_look, edit_text, render_preview, get_ratios and export), name, diagram, variant, theme, view, sub-selection (a smaller area inside the site the sheet zooms to, or null for the whole site) and whether it hides the pins, and its section line (null until set_section draws one)."
+        description = "List a project's sheet tabs in order. Each has its number (pass it as `tab` to set_look, edit_text, render_preview, get_ratios and export), name, diagram, variant, theme, view, sub-selection (a smaller area inside the site the sheet zooms to, or null for the whole site) and whether it hides the pins and the highlights, and its section line (null until set_section draws one)."
     )]
     async fn list_sheets(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self
@@ -62,7 +62,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "List a project's pins: landmarks marked on every sheet that does not hide them. Each has its id, icon, label, location (lon, lat), RD New x and y in metres, and for numbered pins the number they show."
+        description = "List a project's pins: landmarks marked on every sheet that does not hide them. Each has its id, icon, size, label, location (lon, lat), RD New x and y in metres, and for numbered pins the number they show."
     )]
     async fn list_pins(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self
@@ -75,7 +75,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Pin a landmark on a project: a marker (pin, star, flag, dot or a numbered disc) with a short label, at a location inside the fetched site. It shows on every sheet that does not hide pins, in plan, axonometric and explode views, and in DXF on its own layer. Returns every pin."
+        description = "Pin a landmark on a project: a marker (pin, star, flag or dot) in one of four sizes (small, medium, large, extra_large) with a short label, at a location inside the fetched site. It shows on every sheet that does not hide pins, in plan, axonometric and explode views, and in DXF on its own layer. Returns every pin."
     )]
     async fn add_pin(&self, Parameters(input): Parameters<AddPin>) -> CallToolResult {
         let result = self
@@ -88,6 +88,7 @@ impl OpenArchi {
                     label: input.label.unwrap_or_default(),
                     x,
                     y,
+                    size: input.size.map(Into::into).unwrap_or_default(),
                 };
                 pin.check().map_err(text)?;
                 project.pins.push(pin);
@@ -99,7 +100,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Move a pin, change its label or change its marker. Pass only what should change. Returns every pin."
+        description = "Move a pin, or change its label, marker or size. Pass only what should change. Returns every pin."
     )]
     async fn move_pin(&self, Parameters(input): Parameters<EditPin>) -> CallToolResult {
         let result = self
@@ -118,6 +119,9 @@ impl OpenArchi {
                 }
                 if let Some(icon) = input.icon {
                     pin.icon = icon.into();
+                }
+                if let Some(size) = input.size {
+                    pin.size = size.into();
                 }
                 pin.check().map_err(text)?;
                 library.save(&mut project).map_err(text)?;
@@ -144,7 +148,7 @@ impl OpenArchi {
     }
 }
 
-fn sheets_of(project: &Project) -> Value {
+pub(crate) fn sheets_of(project: &Project) -> Value {
     let sheets: Vec<Value> = project
         .sheets()
         .iter()
@@ -165,6 +169,7 @@ fn sheets_of(project: &Project) -> Value {
                 "scale": look.sheet.scale,
                 "selection": look.selection,
                 "hide_pins": look.hide_pins,
+                "hide_highlights": look.hide_highlights,
                 "section": crate::sections::section_of(look)["section"],
             })
         })
@@ -181,6 +186,7 @@ fn pins_of(project: &Project) -> Value {
             json!({
                 "id": pin.id,
                 "icon": pin.icon,
+                "size": pin.size,
                 "label": pin.label,
                 "number": number_of(&project.pins, &pin.id),
                 "location": rd_to_wgs84(pin.x, pin.y),
