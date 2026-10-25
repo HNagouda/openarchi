@@ -31,9 +31,6 @@ use super::dxf_marks;
 use super::dxf_write::{cad_name, write_geometry, write_polygon, Drawing};
 use super::DxfLayers;
 
-// The laser files are written from the same R12 pieces.
-pub(super) use super::dxf_write::{coordinate, group, section, write_polyline};
-
 const SITE_LAYER: &str = "OA-SITE";
 /// AutoCAD colour index for every neighbourhood layer: grey, the usual colour of
 /// context. The sheet fades each neighbourhood layer towards the paper, which

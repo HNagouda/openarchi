@@ -7,7 +7,7 @@
 use geo::{Coord, LineString};
 
 use super::Part;
-use crate::export::dxf::{coordinate, group, section, write_polyline};
+use crate::export::dxf_write::{write_polyline, Drawing};
 
 const CUT_LAYER: &str = "CUT";
 const ENGRAVE_LAYER: &str = "ENGRAVE";
@@ -19,48 +19,39 @@ const ENGRAVE_COLOUR: u8 = 5;
 // #! NOTE[laser, dxf] : R12 has no unit setting, so the laser software must be told to import the DXF as millimetres; is that a problem at the workshop?
 /// `sheet` holds (index into `parts`, x, y) for each piece on this bed.
 pub fn write(parts: &[Part], sheet: &[(usize, f64, f64)], bed: (f64, f64)) -> String {
-    let mut out = String::new();
-    section(&mut out, "HEADER");
-    group(&mut out, 9, "$ACADVER");
-    group(&mut out, 1, "AC1009");
-    group(&mut out, 9, "$EXTMIN");
-    coordinate(&mut out, 0.0, 0.0, 0.0);
-    group(&mut out, 9, "$EXTMAX");
-    coordinate(&mut out, bed.0, bed.1, 0.0);
-    group(&mut out, 0, "ENDSEC");
-
-    section(&mut out, "TABLES");
-    group(&mut out, 0, "TABLE");
-    group(&mut out, 2, "LAYER");
-    group(&mut out, 70, "2");
-    for (name, colour) in [(CUT_LAYER, CUT_COLOUR), (ENGRAVE_LAYER, ENGRAVE_COLOUR)] {
-        group(&mut out, 0, "LAYER");
-        group(&mut out, 2, name);
-        group(&mut out, 70, "0");
-        group(&mut out, 62, &colour.to_string());
-        group(&mut out, 6, "CONTINUOUS");
-    }
-    group(&mut out, 0, "ENDTAB");
-    group(&mut out, 0, "ENDSEC");
+    let mut drawing = Drawing::new();
+    drawing.layer(CUT_LAYER, CUT_COLOUR);
+    drawing.layer(ENGRAVE_LAYER, ENGRAVE_COLOUR);
 
     // Score lines first, then cuts, as in the SVG.
-    section(&mut out, "ENTITIES");
     for &(index, x, y) in sheet {
         for line in &parts[index].engrave {
             let placed = on_bed(line, (x, y), bed.1);
-            write_polyline(&mut out, &placed, ENGRAVE_LAYER, 0.0, false, (0.0, 0.0));
+            write_polyline(
+                &mut drawing.entities,
+                &placed,
+                ENGRAVE_LAYER,
+                0.0,
+                false,
+                (0.0, 0.0),
+            );
         }
     }
     for &(index, x, y) in sheet {
         for ring in &parts[index].cut {
             let placed = on_bed(ring, (x, y), bed.1);
-            write_polyline(&mut out, &placed, CUT_LAYER, 0.0, true, (0.0, 0.0));
+            write_polyline(
+                &mut drawing.entities,
+                &placed,
+                CUT_LAYER,
+                0.0,
+                true,
+                (0.0, 0.0),
+            );
         }
     }
-    group(&mut out, 0, "ENDSEC");
-    group(&mut out, 0, "EOF");
 
-    out
+    drawing.finish((0.0, 0.0, bed.0, bed.1), &[])
 }
 
 /// Piece millimetres (y down) to bed millimetres with y up, as CAD expects.
