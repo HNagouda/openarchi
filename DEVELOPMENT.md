@@ -90,6 +90,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new kind of report block | a `Content` variant in `crates/core/src/report.rs`, drawn in `report/draw.rs`, offered in `app/src/report/library.ts` |
 | A new assistant tool | the module for its area in `crates/mcp/src/` (`styles.rs`, `figures.rs`, `export.rs`, `sheets.rs` and so on), with its input in the matching `*_inputs.rs` (or beside the tool when the module has only one) and its router joined in `server.rs`; its protocol test goes in the matching file in `crates/mcp/tests/`, with the shared harness in `tests/common/mod.rs` |
 | A screen or control | `app/src/<screen>/`, with the Tauri command in `app/src-tauri/src/commands/` |
+| The app icon | `app/src-tauri/icons/icon.svg`; `pnpm tauri icon src-tauri/icons/icon.svg` in `app/` makes every size from it, and only the files `tauri.conf.json` lists are kept |
 
 ## Running it
 
