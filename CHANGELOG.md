@@ -325,6 +325,12 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The view draws in plan, axonometric and on an explode plate. It takes a few milliseconds, so it redraws with every change.
 - Assistants set the viewpoint with `set_view_point`, tied to a pin the same way, and `list_sheets` shows it with the pin it stands on.
 
+### Slope on a sheet area and quicker saves
+
+- A sheet opened from a highlight now quotes its own steepest slope after its site is fetched again, as it already did for noise, air, flood and trees. A site fetched before keeps quoting the whole site's slope and says so. The fetch keeps the slope in its 5 m cells for this, which adds about 30 kB to the project file of a 200 m site (1.43 to 1.46 MB).
+- The project list and the check before every save read only the first few kB of each project file instead of all of it, so on a 20 MB project that check takes 0.03 ms instead of 2 ms, and listing four projects 0.3 ms instead of 4.6 ms. A project saved by an earlier version is read whole until its next save.
+- Water levels from Rijkswaterstaat are kept to the centimetre, like the rest of the site.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.
