@@ -30,11 +30,13 @@ mod source_lines;
 mod summary;
 mod utci;
 
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 
 use crate::crs::rd_to_wgs84;
+use crate::memo::{self, PartKey};
 use crate::ratios::{self, Ratios};
 use crate::scene::{Credit, Scene};
 use crate::sources::cache::TileCache;
@@ -154,6 +156,29 @@ pub fn part(
             Ok(vec![sections::rain(&rain, warnings, theme)?])
         }
     }
+}
+
+/// `part` as `part` draws it for the whole site, kept for the next block or
+/// page that asks for it in the same palette (see `memo.rs`). The site part
+/// is drawn afresh each time, since it follows every edit to the scene.
+pub fn kept_part(
+    part: Part,
+    scene: &Scene,
+    theme: &Theme,
+    cache: &TileCache,
+) -> Result<Arc<Vec<Section>>> {
+    if part == Part::Site {
+        return self::part(part, scene, None, theme, cache).map(Arc::new);
+    }
+    let key = PartKey {
+        part,
+        origin: scene.origin,
+        boundary: scene.boundary.clone(),
+        theme: theme.clone(),
+        cache: cache.dir().to_path_buf(),
+        last_year: last_full_year(),
+    };
+    memo::ANALYSIS_PARTS.kept_or_try(key, || self::part(part, scene, None, theme, cache))
 }
 
 /// The numbers and notes of every part. A part whose service fails is left

@@ -1,5 +1,6 @@
 //! The last few grids worked out from a scene, so a sheet redrawn for a new
-//! title, palette or thumbnail does not work them out again.
+//! title, palette or thumbnail does not work them out again, and the last few
+//! analysis parts, so a report's blocks do not each draw their part again.
 //!
 //! Hours of sun, sky view, solar radiation, city blocks and the wind flow are
 //! worked out each time a sheet draws them, never stored, and the app redraws
@@ -11,10 +12,12 @@
 
 // #! NOTE[cache] : Module-level state on purpose. The app's state could only hand a cache to the drawing through a new RenderInput field, built at 63 places, and the MCP server loads the project afresh for every call, so a cache it owned would never be hit. These few Mutexes serve both.
 
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use geo::Polygon;
 
+use crate::analysis::{Part, Section};
 use crate::area::Area;
 use crate::blocks;
 use crate::radiation::{RadiationGrid, SolarYear};
@@ -22,16 +25,21 @@ use crate::scene::{Feature, Layer, Scene};
 use crate::skyview::SkyGrid;
 use crate::sources::raster::Grid;
 use crate::sunlight::SunGrid;
+use crate::theme::Theme;
 use crate::wind::{FlowKey, WindFlow};
 
 /// Enough for every sheet of one site, or of a few sites at once.
 const GRIDS_KEPT: usize = 6;
+/// Three parts in a couple of palettes, for a couple of sites.
+const PARTS_KEPT: usize = 12;
 
 pub static SUN_HOURS: Memo<(SceneKey, u32, u32), SunGrid> = Memo::new(GRIDS_KEPT);
 pub static SKY_VIEWS: Memo<SceneKey, SkyGrid> = Memo::new(GRIDS_KEPT);
 pub static RADIATION: Memo<SceneKey, RadiationGrid> = Memo::new(GRIDS_KEPT);
 pub static BLOCKS: Memo<SceneKey, Vec<Feature>> = Memo::new(GRIDS_KEPT);
 pub static WIND_FLOWS: Memo<FlowKey, WindFlow> = Memo::new(GRIDS_KEPT);
+/// Location, climate and rain of a few sites, each in a few palettes.
+pub static ANALYSIS_PARTS: Memo<PartKey, Vec<Section>> = Memo::new(PARTS_KEPT);
 
 /// A few values, each kept with the key it was worked out from, oldest first.
 pub struct Memo<K, V> {
@@ -61,6 +69,22 @@ impl<K: PartialEq, V> Memo<K, V> {
             kept.remove(0);
         }
         value
+    }
+
+    /// Like `kept_or`, for work that can fail. A failure is not kept, so
+    /// the next call tries again, after a lost connection say.
+    pub fn kept_or_try<E>(&self, key: K, work: impl FnOnce() -> Result<V, E>) -> Result<Arc<V>, E> {
+        let mut kept = self.lock();
+        if let Some((_, value)) = kept.iter().find(|(kept_key, _)| *kept_key == key) {
+            return Ok(value.clone());
+        }
+
+        let value = Arc::new(work()?);
+        kept.push((key, value.clone()));
+        if kept.len() > self.size {
+            kept.remove(0);
+        }
+        Ok(value)
     }
 
     /// A poisoned lock only means an earlier drawing panicked; the kept values are still whole.
@@ -112,6 +136,18 @@ impl PartialEq for SceneKey {
             && is_same_grid(self.canopy.as_ref(), other.canopy.as_ref())
             && self.solar == other.solar
     }
+}
+
+/// What an analysis part other than the site is drawn from: the place, the
+/// palette, the cache its data comes from, and for the rain the last full year.
+#[derive(PartialEq)]
+pub struct PartKey {
+    pub part: Part,
+    pub origin: (f64, f64),
+    pub boundary: Polygon<f64>,
+    pub theme: Theme,
+    pub cache: PathBuf,
+    pub last_year: i32,
 }
 
 /// Grids compared bit for bit, because their missing cells are NaN, which
