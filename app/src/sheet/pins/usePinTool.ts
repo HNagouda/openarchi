@@ -12,15 +12,14 @@ import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
 import { followPointer } from "../pointerDrag";
 import { nextPinId, steppedSize, withChangedPin, withoutPin, withPin } from "./pinEdits";
-import { paperPointAt, paperToRd, pinAt, pinGroup, readPins, type Point } from "./sheetPins";
+import { boxAt, isOutsideSite, paperPointAt, paperToRd, type Point } from "../paper";
+import { pinGroup, readPins } from "./sheetPins";
 
 // Arrow keys nudge by a millimetre of paper, or a centimetre with Shift.
 const NUDGE_MM = 1;
 const NUDGE_LARGE_MM = 10;
 // A selected pin grows with + or =, which share a key, and shrinks with -.
 const SIZE_KEYS: Record<string, 1 | -1> = { "+": 1, "=": 1, "-": -1 };
-// The outline of the area the sheet draws, which the core writes in plan and axonometric views.
-const BOUNDARY_SELECTOR = "#site-boundary";
 
 export type PinDrag = { id: string; dx: number; dy: number };
 
@@ -60,8 +59,7 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
       onRefused("This sheet can't take pins until it has been drawn.");
       return null;
     }
-    const boundary = paper?.querySelector<SVGPathElement>(BOUNDARY_SELECTOR);
-    if (boundary && !boundary.isPointInFill(new DOMPoint(point.x, point.y))) {
+    if (isOutsideSite(paper, point)) {
       onRefused("Pins go inside the outline of the sheet's area.");
       return null;
     }
@@ -101,7 +99,7 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
     drag.set(null);
     const paper = view.getPaper();
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = pinAt(readPins(paper), point.x, point.y);
+    const hit = boxAt(readPins(paper), point.x, point.y);
     if (!hit) {
       setSelectedId(null);
       setEditingId(null);
@@ -130,7 +128,7 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
 
   const onPaperDoubleClick = (event: React.MouseEvent, view: PaperView): boolean => {
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = pinAt(readPins(view.getPaper()), point.x, point.y);
+    const hit = boxAt(readPins(view.getPaper()), point.x, point.y);
     if (!hit) return false;
     setSelectedId(hit.id);
     setEditingId(hit.id);

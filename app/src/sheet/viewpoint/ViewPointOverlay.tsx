@@ -2,7 +2,7 @@
 
 import type { PaperView } from "../Canvas";
 import { useLive, type LiveValue } from "../liveValue";
-import type { Point } from "../pins/sheetPins";
+import type { Point } from "../paper";
 import "./viewpoint.css";
 
 const DRAFT_RADIUS_PX = 7;

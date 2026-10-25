@@ -11,7 +11,8 @@ import type { Look } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
 import { followPointer } from "../pointerDrag";
-import { groupFor, readTexts, textAt } from "./sheetTexts";
+import { boxAt } from "../paper";
+import { groupFor, readTexts } from "./sheetTexts";
 import { isTextBox, withNewBox, withoutBox, withPosition } from "./textEdits";
 
 // Arrow keys nudge by a millimetre, or a centimetre with Shift.
@@ -50,7 +51,7 @@ export function useTextTool(look: Look, history: History, canvas: RefObject<Canv
     drag.set(null);
     const paper = view.getPaper();
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = textAt(readTexts(paper), point.x, point.y);
+    const hit = boxAt(readTexts(paper), point.x, point.y);
     if (!hit) {
       setSelectedId(null);
       setEditingId(null);
@@ -81,7 +82,7 @@ export function useTextTool(look: Look, history: History, canvas: RefObject<Canv
 
   const onPaperDoubleClick = (event: React.MouseEvent, view: PaperView): boolean => {
     const point = view.toMm(event.clientX, event.clientY);
-    const hit = textAt(readTexts(view.getPaper()), point.x, point.y);
+    const hit = boxAt(readTexts(view.getPaper()), point.x, point.y);
     if (!hit) return false;
     setSelectedId(hit.id);
     setEditingId(hit.id);

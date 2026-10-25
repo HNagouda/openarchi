@@ -12,7 +12,7 @@ import type { Look } from "../../lib/types";
 import type { PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
 import { followPointer } from "../pointerDrag";
-import { paperToRd, type Point } from "../pins/sheetPins";
+import { paperToRd, type Point } from "../paper";
 import { readEye, withViewPoint } from "./viewPointEdits";
 
 // How close to the eye, in paper millimetres, a press still picks it up.

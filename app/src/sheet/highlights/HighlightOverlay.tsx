@@ -11,9 +11,8 @@ import { rememberColour } from "../../ui/colour";
 import type { PaperView } from "../Canvas";
 import { useLive, type LiveValue } from "../liveValue";
 import { LabelField } from "../pins/PinOverlay";
-import type { Point } from "../pins/sheetPins";
+import { rdToPaper, type Point } from "../paper";
 import { handlesOf, ringOf, withChangedHighlight, withoutHighlight } from "./highlightEdits";
-import { rdToPaper } from "./sheetHighlights";
 import type { HighlightDraft, HighlightPreview } from "./useHighlightTool";
 import "./highlights.css";
 

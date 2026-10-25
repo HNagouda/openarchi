@@ -3,7 +3,7 @@
 // so each result can go straight onto the undo stack.
 
 import type { Highlight, HighlightKind, HighlightShape } from "../../lib/types";
-import type { Point } from "../pins/sheetPins";
+import type { Point } from "../paper";
 
 // The shapes in the order the bar offers them, in one place; crates/core/src/highlight.rs has the same list.
 export const HIGHLIGHT_KINDS: { kind: HighlightKind; label: string; drawTip: string }[] = [

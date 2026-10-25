@@ -16,7 +16,7 @@ import type { Highlight, HighlightKind, HighlightShape, Look } from "../../lib/t
 import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
 import { followPointer } from "../pointerDrag";
-import { paperToRd, type Point } from "../pins/sheetPins";
+import { isOutsideSite, paperToRd, rdToPaper, type Point } from "../paper";
 import {
   areaOf,
   handlesOf,
@@ -34,7 +34,7 @@ import {
   withHighlight,
   withoutHighlight,
 } from "./highlightEdits";
-import { highlightAt, rdToPaper, svgPoint } from "./sheetHighlights";
+import { highlightAt } from "./sheetHighlights";
 
 export const HIGHLIGHT_KEY = "h";
 // How close to a handle or a polygon's first corner, in paper millimetres, a press still takes it.
@@ -44,8 +44,6 @@ const NUDGE_MM = 1;
 const NUDGE_LARGE_MM = 10;
 const SCALE_STEP = 1.1;
 const SCALE_KEYS: Record<string, number> = { "+": SCALE_STEP, "=": SCALE_STEP, "-": 1 / SCALE_STEP };
-// The outline of the area the sheet draws, which the core writes in plan and axonometric views.
-const BOUNDARY_SELECTOR = "#site-boundary";
 
 /** What the overlay draws while the pointer works: RD New points, closed or still being drawn. */
 export type HighlightDraft = { ring: Point[]; isOpen: boolean };
@@ -106,10 +104,8 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
   /** Why a shape cannot be kept, or null when it can. */
   const problemWith = (shape: HighlightShape, paper: Element | null): string | null => {
     if (areaOf(shape) < MIN_AREA_M2) return `A highlight needs at least ${MIN_AREA_M2} m². Draw it a little larger.`;
-    const toPaper = rdToPaper(paper);
-    const boundary = paper?.querySelector<SVGPathElement>(BOUNDARY_SELECTOR);
-    const middle = toPaper?.(middleOf(shape));
-    if (middle && boundary && !boundary.isPointInFill(svgPoint(boundary, middle))) {
+    const middle = rdToPaper(paper)?.(middleOf(shape));
+    if (middle && isOutsideSite(paper, middle)) {
       return "The middle of a highlight goes inside the outline of the sheet's area.";
     }
     return null;

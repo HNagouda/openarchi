@@ -3,7 +3,7 @@
 // one goes straight onto the undo stack.
 
 import type { Look, SectionLine } from "../../lib/types";
-import type { Point } from "../pins/sheetPins";
+import type { Point } from "../paper";
 
 // The core's defaults and limits, from crates/core/src/section.rs.
 export const DEFAULT_DEPTH_M = 60;
