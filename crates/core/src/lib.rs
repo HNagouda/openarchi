@@ -14,6 +14,7 @@ pub mod environment;
 pub mod error;
 pub mod export;
 pub mod floors;
+pub mod forest;
 pub mod geocode;
 pub mod highlight;
 pub mod library;

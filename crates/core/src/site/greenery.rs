@@ -9,7 +9,7 @@
 
 use std::collections::HashMap;
 
-use geo::{BoundingRect, Polygon, Rect};
+use geo::{BoundingRect, Coord, Polygon, Rect};
 
 use super::download::Dataset;
 use super::editions::Editions;
@@ -21,12 +21,16 @@ use crate::sources::bands::{self, Gaps, Lowest};
 use crate::sources::edition::Edition;
 use crate::sources::raster::{self, Grid};
 use crate::sources::{luchtfoto, rivm, wcs};
-use crate::Result;
+use crate::{forest, skyview, Result};
 
 /// RIVM leaves cells without a tree empty and draws trees from 2.5 m, in
 /// whole metres. The canopy edge is traced at 1 m, between the 0 of no tree
 /// and the lowest tree, so it follows the crowns rather than the rounding.
 const CANOPY_EDGE_M: f64 = 1.0;
+/// Trees around the site hide sky and sun too (see `forest.rs`), so their
+/// heights are fetched and kept this far past the site's box: as far as the
+/// sky view searches the horizon.
+pub const TREE_REACH_M: f64 = skyview::SEARCH_RADIUS_M;
 /// A green class is traced as a mask of ones on zeros; its edge lies halfway.
 const MASK_EDGE: f64 = 0.5;
 const IN_MASK: f32 = 1.0;
@@ -107,11 +111,14 @@ pub fn take_tiles(
 }
 
 /// The bands of one raster from its tiles. Its figures inside `boundary` go
-/// into `measured`, with the raster cut to the boundary's box when they found a value.
+/// into `measured`, with the raster cut to the boundary's box when they found
+/// a value; the tree heights reach `TREE_REACH_M` further. Tree cells under
+/// one of `buildings` are left out.
 pub fn bands(
     kind: Greenery,
     tiles: &[Grid],
     boundary: &Polygon<f64>,
+    buildings: &[&Polygon<f64>],
     measured: &mut Measured,
 ) -> Vec<Feature> {
     let Some(grid) = raster::join(tiles) else {
@@ -120,11 +127,25 @@ pub fn bands(
     if kind == Greenery::GreenClasses {
         return green_class_areas(&grid);
     }
+    // The tree map took some roofs and façades for crowns, such as a 60 m "tree" on the TU/e campus.
+    // #! NOTE[trees, old-sites] : Sites fetched before this keep those roof "trees" in their canopy bands and figures until fetched again; the woods that block (forest.rs) clear them when drawn
+    let grid = match kind {
+        Greenery::TreeHeight => forest::without_buildings(&grid, buildings.iter().copied()),
+        _ => grid,
+    };
 
     let stats = raster::stats_within(&grid, boundary);
     measured.set(kind.layer(), stats);
     if let (Some(_), Some(bbox)) = (stats, boundary.bounding_rect()) {
-        measured.grids.insert(kind.layer(), grid.cropped(bbox));
+        let reach = match kind {
+            Greenery::TreeHeight => TREE_REACH_M,
+            _ => 0.0,
+        };
+        let kept = Rect::new(
+            bbox.min() - Coord { x: reach, y: reach },
+            bbox.max() + Coord { x: reach, y: reach },
+        );
+        measured.grids.insert(kind.layer(), grid.cropped(kept));
     }
     let (lowest, gaps) = match kind {
         // A cell without a tree is ground, not unknown.
@@ -195,7 +216,13 @@ mod tests {
     #[test]
     fn tree_heights_become_canopy_bands_and_a_canopy_share() {
         let mut measured = Measured::default();
-        let features = bands(Greenery::TreeHeight, &[tile(TREES)], &site(), &mut measured);
+        let features = bands(
+            Greenery::TreeHeight,
+            &[tile(TREES)],
+            &site(),
+            &[],
+            &mut measured,
+        );
 
         let values: Vec<f64> = features
             .iter()
@@ -211,12 +238,33 @@ mod tests {
     }
 
     #[test]
+    fn trees_under_a_building_footprint_are_left_out() {
+        let mut measured = Measured::default();
+        let roof = polygon![
+            (x: 120500.0, y: 487500.0),
+            (x: 120750.0, y: 487500.0),
+            (x: 120750.0, y: 487750.0),
+            (x: 120500.0, y: 487750.0),
+        ];
+        let features = bands(
+            Greenery::TreeHeight,
+            &[tile(TREES)],
+            &site(),
+            &[&roof],
+            &mut measured,
+        );
+
+        assert!(features.is_empty());
+    }
+
+    #[test]
     fn green_classes_become_areas_of_their_group() {
         let mut measured = Measured::default();
         let features = bands(
             Greenery::GreenClasses,
             &[tile(GREEN)],
             &site(),
+            &[],
             &mut measured,
         );
 
@@ -232,7 +280,13 @@ mod tests {
     #[test]
     fn the_heat_island_is_measured_in_degrees() {
         let mut measured = Measured::default();
-        let features = bands(Greenery::HeatIsland, &[tile(HEAT)], &site(), &mut measured);
+        let features = bands(
+            Greenery::HeatIsland,
+            &[tile(HEAT)],
+            &site(),
+            &[],
+            &mut measured,
+        );
 
         let stats = measured.get(Layer::HeatIsland).unwrap();
         assert!(stats.mean > 1.9 && stats.mean < 2.7, "{stats:?}");
@@ -244,7 +298,7 @@ mod tests {
     fn no_tiles_draw_nothing_and_measure_nothing() {
         let mut measured = Measured::default();
         for kind in KINDS {
-            assert!(bands(kind, &[], &site(), &mut measured).is_empty());
+            assert!(bands(kind, &[], &site(), &[], &mut measured).is_empty());
         }
         assert_eq!(measured, Measured::default());
     }

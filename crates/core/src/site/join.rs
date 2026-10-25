@@ -135,12 +135,16 @@ pub(super) fn join(
                 joined.features.extend(cbs::to_features(years.into()));
             }
             Source::Green | Source::Vegetation | Source::Heat => {
+                // The site's and the neighbourhood's buildings, joined above, to clear the tree map's roofs.
+                let buildings = footprints(&joined);
+                let buildings: Vec<&Polygon<f64>> = buildings.iter().collect();
                 for kind in greenery::KINDS
                     .iter()
                     .filter(|kind| kind.source() == source)
                 {
                     let tiles = greenery_tiles.get(kind).map(Vec::as_slice).unwrap_or(&[]);
-                    let features = greenery::bands(*kind, tiles, boundary, &mut joined.measured);
+                    let features =
+                        greenery::bands(*kind, tiles, boundary, &buildings, &mut joined.measured);
                     joined.features.extend(features);
                 }
             }
@@ -172,6 +176,21 @@ pub(super) fn unique(records: Vec<Record>) -> Vec<Record> {
         .filter(|record| match &record.id {
             Some(id) => seen.insert(id.clone()),
             None => true,
+        })
+        .collect()
+}
+
+/// Every building footprint joined so far, in the site and around it.
+fn footprints(joined: &Joined) -> Vec<Polygon<f64>> {
+    joined
+        .features
+        .iter()
+        .chain(&joined.context)
+        .filter(|feature| feature.layer == Layer::Building)
+        .flat_map(|feature| match &feature.geometry {
+            Geometry::Polygon(polygon) => vec![polygon.clone()],
+            Geometry::MultiPolygon(multi) => multi.0.clone(),
+            _ => Vec::new(),
         })
         .collect()
 }

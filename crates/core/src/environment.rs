@@ -53,7 +53,9 @@ pub struct Measured {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub heat_island_c: Option<Stats>,
     /// The raster each figure was measured on, cut to the site's box, so a
-    /// sheet area can be measured again: `{"road_noise": grid}`. Only for
+    /// sheet area can be measured again: `{"road_noise": grid}`. The tree
+    /// heights reach further, for the trees around the site that block sight,
+    /// sky and sun (`forest.rs`, `site::greenery::TREE_REACH_M`). Only for
     /// figures that found a value. Slope is never kept, see `site::environment`.
     /// Empty in scenes fetched before sheet areas measured their own figures.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]

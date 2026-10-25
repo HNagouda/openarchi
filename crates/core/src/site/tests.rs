@@ -182,7 +182,8 @@ fn a_fetched_site_keeps_its_rasters_cut_to_its_box_in_its_own_frame() {
 
     let json = serde_json::to_string(&scene).unwrap();
     let back: Scene = serde_json::from_str(&json).unwrap();
-    assert_eq!(back.measured, scene.measured);
+    // Compared as JSON: tree cells under the mock buildings hold no value, and NaN never equals itself.
+    assert_eq!(serde_json::to_string(&back).unwrap(), json);
 }
 
 #[test]

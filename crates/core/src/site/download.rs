@@ -9,7 +9,7 @@ use std::sync::{mpsc, Mutex, PoisonError};
 use std::thread;
 use std::vec;
 
-use geo::{Polygon, Rect};
+use geo::{Coord, Polygon, Rect};
 
 use super::editions::Editions;
 use super::environment::{self, Raster, RIVM_RASTERS};
@@ -150,10 +150,22 @@ pub fn tiles_for(
     rasters.extend(
         greenery::KINDS
             .into_iter()
+            .filter(|kind| *kind != Greenery::TreeHeight)
             .map(|kind| Dataset::Greenery(kind, editions.greenery(kind).clone())),
     );
+    let trees = Dataset::Greenery(
+        Greenery::TreeHeight,
+        editions.greenery(Greenery::TreeHeight).clone(),
+    );
+    let reach = Coord {
+        x: greenery::TREE_REACH_M,
+        y: greenery::TREE_REACH_M,
+    };
 
     let mut jobs = Vec::new();
+    for tile in tiles_covering(Rect::new(bbox.min() - reach, bbox.max() + reach)) {
+        jobs.push((trees.clone(), tile));
+    }
     for tile in tiles_touching(boundary) {
         for dataset in &vector_datasets {
             jobs.push((dataset.clone(), tile));
