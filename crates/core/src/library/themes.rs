@@ -86,12 +86,7 @@ impl Library {
 
     /// "Sea Glass" -> "sea-glass", or "sea-glass-2" when that id is taken by any theme.
     pub fn free_theme_id(&self, name: &str) -> String {
-        let has_letters = name.chars().any(|c| c.is_ascii_alphanumeric());
-        let base = if has_letters {
-            slugify(name)
-        } else {
-            ID_FALLBACK.to_string()
-        };
+        let base = slugify(name, ID_FALLBACK);
         let (themes, _) = all_themes(&self.themes_dir());
         let is_taken = |id: &str| themes.iter().any(|theme| theme.id == id);
         if !is_taken(&base) {

@@ -40,9 +40,6 @@ const TEMP_EXTENSION: &str = "tmp";
 /// Longest name slug inside a project id, so file names stay readable.
 const SLUG_MAX_CHARS: usize = 40;
 
-/// The slug for a name with no ASCII letters or digits in it.
-const SLUG_FALLBACK: &str = "project";
-
 pub(super) fn read_project(path: &Path) -> Result<Project> {
     let format_error = |detail: String| Error::Format {
         path: path.display().to_string(),
@@ -226,8 +223,9 @@ pub(super) fn rfc3339_from_stamp(stamp: &str) -> String {
     }
 }
 
-/// "Westermarkt 20, Amsterdam" -> "westermarkt-20-amsterdam".
-pub(super) fn slugify(name: &str) -> String {
+/// "Westermarkt 20, Amsterdam" -> "westermarkt-20-amsterdam", and `fallback`
+/// for a name with no ASCII letters or digits in it.
+pub(super) fn slugify(name: &str, fallback: &str) -> String {
     let mut slug = String::new();
     for c in name.chars() {
         if slug.len() >= SLUG_MAX_CHARS {
@@ -242,7 +240,7 @@ pub(super) fn slugify(name: &str) -> String {
 
     let slug = slug.trim_end_matches('-');
     if slug.is_empty() {
-        SLUG_FALLBACK.to_string()
+        fallback.to_string()
     } else {
         slug.to_string()
     }

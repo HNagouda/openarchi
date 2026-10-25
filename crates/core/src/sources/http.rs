@@ -4,7 +4,8 @@ use std::sync::OnceLock;
 use std::thread;
 use std::time::Duration;
 
-use ureq::Agent;
+use ureq::http::Response;
+use ureq::{Agent, Body};
 
 use crate::{Error, Result};
 
@@ -21,13 +22,13 @@ const MAX_BODY_BYTES: u64 = 256 * 1024 * 1024;
 /// The response body of `url` with `query` appended. `service` names the
 /// service in error messages: "PDOK BGT".
 pub fn get(service: &str, url: &str, query: &[(&str, &str)]) -> Result<Vec<u8>> {
-    let mut result = get_once(service, url, query);
+    let mut result = get_once_within(service, url, query, REQUEST_TIMEOUT);
     for delay in RETRY_DELAYS {
         if result.is_ok() {
             break;
         }
         thread::sleep(delay);
-        result = get_once(service, url, query);
+        result = get_once_within(service, url, query, REQUEST_TIMEOUT);
     }
 
     result
@@ -51,12 +52,7 @@ pub fn get_once_within(
         .call()
         .map_err(|error| network_error(service, error))?;
 
-    response
-        .body_mut()
-        .with_config()
-        .limit(MAX_BODY_BYTES)
-        .read_to_vec()
-        .map_err(|error| network_error(service, error))
+    read_body(service, &mut response)
 }
 
 /// The response body of a form POST to `url`, retried after each pause in
@@ -79,14 +75,7 @@ pub fn post_form(
             .build()
             .send_form(form.iter().copied());
         let error = match result {
-            Ok(mut response) => {
-                return response
-                    .body_mut()
-                    .with_config()
-                    .limit(MAX_BODY_BYTES)
-                    .read_to_vec()
-                    .map_err(|error| network_error(service, error));
-            }
+            Ok(mut response) => return read_body(service, &mut response),
             Err(error) => error,
         };
         let is_busy = matches!(error, ureq::Error::StatusCode(429 | 502 | 503 | 504));
@@ -104,13 +93,7 @@ fn network_error(service: &str, error: ureq::Error) -> Error {
     }
 }
 
-fn get_once(service: &str, url: &str, query: &[(&str, &str)]) -> Result<Vec<u8>> {
-    let mut response = agent()
-        .get(url)
-        .query_pairs(query.iter().copied())
-        .call()
-        .map_err(|error| network_error(service, error))?;
-
+fn read_body(service: &str, response: &mut Response<Body>) -> Result<Vec<u8>> {
     response
         .body_mut()
         .with_config()

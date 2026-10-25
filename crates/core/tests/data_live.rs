@@ -3,6 +3,7 @@
 //! `cargo test -p openarchi-core --test data_live -- --ignored`.
 
 use openarchi_core::area::{Area, LonLat};
+use openarchi_core::crs::wgs84_to_rd;
 use openarchi_core::geocode;
 use openarchi_core::scene::Layer;
 use openarchi_core::site::build_scene;
@@ -117,7 +118,7 @@ fn the_westermarkt_lies_in_amsterdam_next_to_a_westermarkt_address() {
 #[ignore = "needs the network"]
 fn pvgis_answers_a_full_typical_year() {
     use openarchi_core::sources::pvgis;
-    let cell = pvgis::cell_of_location(WESTERMARKT);
+    let cell = pvgis::cell_of(wgs84_to_rd(WESTERMARKT));
     let tmy = pvgis::parse(&pvgis::fetch(cell).unwrap()).unwrap();
     assert_eq!(tmy.hours.len(), 8760);
 }

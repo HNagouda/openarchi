@@ -67,11 +67,17 @@ pub fn list_coverage_ids(service: &str, url: &str, timeout: Duration) -> Result<
 /// scan rather than an XML parser: the ids are plain names, and RIVM's
 /// document is 11 MB.
 pub fn coverage_ids(capabilities: &str) -> Vec<String> {
-    capabilities
-        .split(COVERAGE_ID_TAG)
+    tag_texts(capabilities, COVERAGE_ID_TAG)
+}
+
+/// The text inside every `tag` in a capabilities document, for plain names
+/// that need no XML parser: `tag_texts(document, "<Name>")`.
+pub fn tag_texts(document: &str, tag: &str) -> Vec<String> {
+    document
+        .split(tag)
         .skip(1)
         .filter_map(|rest| rest.split('<').next())
-        .map(|id| id.trim().to_string())
+        .map(|text| text.trim().to_string())
         .collect()
 }
 

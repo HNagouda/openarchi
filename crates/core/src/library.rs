@@ -57,6 +57,9 @@ const CACHE_FOLDER: &str = "cache";
 /// name on the same day, so running out means something else is wrong.
 const ID_ATTEMPTS: usize = 100;
 
+/// The slug of a project whose name has no ASCII letters or digits in it.
+const SLUG_FALLBACK: &str = "project";
+
 /// The frame that fits the shape the user drew, so a rectangle is not left
 /// floating inside an empty circle.
 fn frame_for(area: &Area) -> Frame {
@@ -333,7 +336,7 @@ impl Library {
     /// so two projects with the same name on the same day do not clash.
     fn new_id(&self, name: &str, now: &str) -> Result<String> {
         let date = &now[..10];
-        let slug = slugify(name);
+        let slug = slugify(name, SLUG_FALLBACK);
         for _ in 0..ID_ATTEMPTS {
             let id = format!("{date}-{slug}-{:04x}", fastrand::u16(..));
             if !self.project_path(&id)?.exists() && !self.trash_path(&id)?.exists() {

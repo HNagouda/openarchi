@@ -21,8 +21,8 @@ use zune_jpeg::JpegDecoder;
 use crate::scene::{Credit, Layer};
 use crate::sources::edition::{Edition, ASK_TIMEOUT};
 use crate::sources::grid::TILE_M;
-use crate::sources::http;
 use crate::sources::raster::Grid;
+use crate::sources::{http, wcs};
 use crate::{Error, Result};
 
 const SERVICE: &str = "PDOK luchtfoto infrarood";
@@ -55,7 +55,8 @@ pub fn list_layers() -> Result<Vec<String>> {
         ("request", "GetCapabilities"),
     ];
     let body = http::get_once_within(SERVICE, WMS_URL, &query, ASK_TIMEOUT)?;
-    let names = layer_names(&String::from_utf8_lossy(&body));
+    // A plain scan: the document is 32 KB and the names are plain.
+    let names = wcs::tag_texts(&String::from_utf8_lossy(&body), NAME_TAG);
     if names.is_empty() {
         return Err(Error::Data {
             service: SERVICE.to_string(),
@@ -64,17 +65,6 @@ pub fn list_layers() -> Result<Vec<String>> {
     }
 
     Ok(names)
-}
-
-/// The text of every `<Name>` in a capabilities document. A plain scan, like
-/// `wcs::coverage_ids`: the document is 32 KB and the names are plain.
-pub fn layer_names(capabilities: &str) -> Vec<String> {
-    capabilities
-        .split(NAME_TAG)
-        .skip(1)
-        .filter_map(|rest| rest.split('<').next())
-        .map(|name| name.trim().to_string())
-        .collect()
 }
 
 /// The newest summer photo among `names`, or `None` when none has its shape.
@@ -240,7 +230,7 @@ mod tests {
 
     #[test]
     fn the_newest_summer_photo_is_picked_and_winter_photos_are_not() {
-        let names = layer_names(CAPABILITIES);
+        let names = wcs::tag_texts(CAPABILITIES, NAME_TAG);
         assert!(names.contains(&"2026_orthoHRIR".to_string()));
         assert_eq!(newest(&names), Some(known()));
     }

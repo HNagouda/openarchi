@@ -47,13 +47,27 @@ pub fn framed(scene: &Scene, selection: &Area) -> Result<Scene> {
         )
     })?;
 
-    let mut framed = scene.clone();
-    framed.area = selection.clone();
-    framed.features = clipped(&scene.features, &boundary);
-    framed.context = surroundings(scene, &boundary);
-    framed.measured = environment::measured_within(&scene.measured, &boundary);
-    framed.boundary = boundary;
-    Ok(framed)
+    // Written out field by field: cloning the scene whole would copy its
+    // features and neighbourhood only to replace them.
+    Ok(Scene {
+        area: selection.clone(),
+        crs: scene.crs.clone(),
+        origin: scene.origin,
+        features: clipped(&scene.features, &boundary),
+        credits: scene.credits.clone(),
+        fetched_at: scene.fetched_at.clone(),
+        warnings: scene.warnings.clone(),
+        measured: environment::measured_within(&scene.measured, &boundary),
+        walk: scene.walk.clone(),
+        editions: scene.editions.clone(),
+        context: surroundings(scene, &boundary),
+        terrain: scene.terrain.clone(),
+        water_bed: scene.water_bed.clone(),
+        water_levels: scene.water_levels.clone(),
+        solar: scene.solar.clone(),
+        wind: scene.wind.clone(),
+        boundary,
+    })
 }
 
 /// The biggest piece where the site and the selection overlap, if it is big enough to draw.

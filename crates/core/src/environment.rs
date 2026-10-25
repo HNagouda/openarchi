@@ -16,7 +16,9 @@ use crate::scene::{Layer, Scene};
 use crate::sources::cbs::CELL_AREA_M2;
 use crate::sources::raster::{self, Grid, Stats};
 
-/// Every layer with a figure in `Measured`, in one place.
+/// Every layer with a figure in `Measured`, in one place. The same ten as
+/// `sources::bands::BANDED` today, so a new one is likely needed in both.
+// #! NOTE[measured, bands] : Is every measured raster banded and every banded raster measured by design, so the two lists could be one?
 const MEASURED_LAYERS: [Layer; 10] = [
     Layer::RoadNoise,
     Layer::AllNoise,
