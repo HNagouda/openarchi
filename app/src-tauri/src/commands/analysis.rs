@@ -35,7 +35,7 @@ pub async fn get_analysis(
             Part::Site => sheet_area(&state, selection.as_ref())?,
             _ => None,
         };
-        analysis::part(part, &scene, area.as_deref(), &theme, &cache).map_err(text)
+        analysis::sheet_part(part, &scene, area.as_deref(), &theme, &cache).map_err(text)
     })
     .await
 }
@@ -131,7 +131,7 @@ fn every_section(
     let mut sections = Vec::new();
     let mut failures = Vec::new();
     for part in PARTS {
-        match analysis::part(part, scene, sheet_area, theme, &cache) {
+        match analysis::sheet_part(part, scene, sheet_area, theme, &cache) {
             Ok(found) => sections.extend(found),
             Err(error) => failures.push((part.title().to_string(), error.to_string())),
         }

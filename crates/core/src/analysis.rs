@@ -181,6 +181,22 @@ pub fn kept_part(
     memo::ANALYSIS_PARTS.kept_or_try(key, || self::part(part, scene, None, theme, cache))
 }
 
+/// `part` as the inspector and the analysis export show it: the site part
+/// for the sheet's own area when it has one, every other part for the whole
+/// site and kept between calls, so the climate files are not read again.
+pub fn sheet_part(
+    part: Part,
+    scene: &Scene,
+    sheet_area: Option<&Scene>,
+    theme: &Theme,
+    cache: &TileCache,
+) -> Result<Vec<Section>> {
+    if part == Part::Site {
+        return self::part(part, scene, sheet_area, theme, cache);
+    }
+    kept_part(part, scene, theme, cache).map(|kept| kept.as_ref().clone())
+}
+
 /// The numbers and notes of every part. A part whose service fails is left
 /// out with a warning; location and site always arrive. The site summary
 /// follows `sheet_area` when there is one, as in `part`.
