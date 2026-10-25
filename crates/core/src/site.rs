@@ -151,14 +151,22 @@ fn build_scene_with(
     );
     report("Heights and contours", total - 2);
 
-    let walk = osm.as_ref().and_then(|osm| walk_around(osm, origin));
-    if let Some(osm) = osm {
-        if walk.is_none() {
+    let walk = match osm.as_ref().map(|osm| walk_around(osm, origin)) {
+        Some(Ok(Some(walk))) => Some(walk),
+        Some(Ok(None)) => {
             warnings.push(
                 "No street or path passes near the site centre, so walk times were left out."
                     .to_string(),
             );
+            None
         }
+        Some(Err(error)) => {
+            warnings.push(format!("Walk times were left out: {error}."));
+            None
+        }
+        None => None,
+    };
+    if let Some(osm) = osm {
         features.extend(osm.places);
         features.extend(osm.stops);
     }
@@ -224,8 +232,10 @@ fn kept_terrain(
 
 /// The walk from the site centre, moved into the scene's frame. Not clipped:
 /// a walk does not stop at the boundary.
-fn walk_around(osm: &Osm, origin: (f64, f64)) -> Option<Walk> {
-    let result = walk::compute(osm, origin)?;
+fn walk_around(osm: &Osm, origin: (f64, f64)) -> Result<Option<Walk>> {
+    let Some(walk) = walk::compute(osm, origin)? else {
+        return Ok(None);
+    };
     let localise = |features: Vec<Feature>| -> Vec<Feature> {
         features
             .into_iter()
@@ -238,11 +248,11 @@ fn walk_around(osm: &Osm, origin: (f64, f64)) -> Option<Walk> {
             .collect()
     };
 
-    Some(Walk {
-        bands: localise(result.bands),
-        paths: localise(result.paths),
-        places: localise(result.places),
-    })
+    Ok(Some(Walk {
+        bands: localise(walk.bands),
+        paths: localise(walk.paths),
+        places: localise(walk.places),
+    }))
 }
 
 // Sources are surveyed to the centimetre; more digits only make project files bigger.

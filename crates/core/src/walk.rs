@@ -18,10 +18,11 @@ use serde::Serialize;
 
 use self::graph::Graph;
 use self::surface::Surface;
-use crate::scene::{Attributes, Feature, Layer, Scene};
+use crate::scene::{Attributes, Feature, Layer, Scene, Walk};
 use crate::sources::osm::{
     self, Osm, BUSINESS_GROUPS, FACILITY_GROUPS, PARKING_GROUPS, TRANSIT_GROUPS,
 };
+use crate::Result;
 
 /// An unhurried adult pace, about 5 km/h.
 pub const SPEED_M_S: f64 = 1.4;
@@ -34,32 +35,25 @@ pub const REACH_M: f64 = LONGEST_BAND_MIN as f64 * 60.0 * SPEED_M_S;
 /// a square, into a front garden, to a door set back from the street.
 pub const OFF_NETWORK_M: f64 = 40.0;
 
-/// The walk around one site, in RD New, before the scene moves it into its frame.
-pub struct WalkResult {
-    /// One area per band in `BAND_MINUTES`, with `walk_min` set to the band.
-    pub bands: Vec<Feature>,
-    /// The drawn streets and paths, as lines.
-    pub paths: Vec<Feature>,
-    /// Places and stops within the longest band, with `walk_min` set.
-    pub places: Vec<Feature>,
-}
-
-/// The walk from `centre` over the ways in `osm`. `None` when no way passes
-/// near enough to the centre to start a walk.
-pub fn compute(osm: &Osm, centre: (f64, f64)) -> Option<WalkResult> {
+/// The walk from `centre` over the ways in `osm`, in RD New, before the
+/// scene moves it into its frame. `None` when no way passes near enough to
+/// the centre to start a walk, and an error when its bands cannot be traced.
+pub fn compute(osm: &Osm, centre: (f64, f64)) -> Result<Option<Walk>> {
     let graph = Graph::build(&osm.ways);
     let distances = graph.distances_from(centre, REACH_M);
     if distances.is_empty() {
-        return None;
+        return Ok(None);
     }
-    let surface = Surface::build(&graph, &distances, REACH_M)?;
+    let Some(surface) = Surface::build(&graph, &distances, REACH_M) else {
+        return Ok(None);
+    };
 
     let limits_m: Vec<f64> = BAND_MINUTES
         .iter()
         .map(|&minutes| metres_for(minutes))
         .collect();
     let bands = surface
-        .areas_within(&limits_m)
+        .areas_within(&limits_m)?
         .into_iter()
         .zip(BAND_MINUTES)
         .map(|(area, minutes)| Feature {
@@ -85,11 +79,11 @@ pub fn compute(osm: &Osm, centre: (f64, f64)) -> Option<WalkResult> {
         }
     }
 
-    Some(WalkResult {
+    Ok(Some(Walk {
         bands,
         paths: drawn_paths(osm, &surface),
         places,
-    })
+    }))
 }
 
 /// The ways worth drawing, kept only where they come within the surface, so
@@ -244,7 +238,7 @@ mod tests {
 
     #[test]
     fn places_get_their_walk_time_and_places_out_of_reach_are_left_out() {
-        let walk = compute(&street_with_places(), (0.0, 0.0)).unwrap();
+        let walk = compute(&street_with_places(), (0.0, 0.0)).unwrap().unwrap();
 
         let minutes: Vec<f64> = walk
             .places
@@ -259,7 +253,7 @@ mod tests {
 
     #[test]
     fn the_neighbourhood_counts_each_band_cumulatively() {
-        let walk = compute(&street_with_places(), (0.0, 0.0)).unwrap();
+        let walk = compute(&street_with_places(), (0.0, 0.0)).unwrap().unwrap();
         let scene = Scene {
             area: Area::Circle {
                 center: LonLat {

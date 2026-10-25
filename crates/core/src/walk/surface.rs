@@ -14,6 +14,7 @@ use geo::{Area, LineString, MultiPolygon, Polygon, Simplify};
 
 use super::graph::{distance, Graph};
 use super::OFF_NETWORK_M;
+use crate::{Error, Result};
 
 /// Fine enough that a band follows a street, coarse enough that a 1.3 km
 /// reach stays under a hundred thousand cells.
@@ -114,7 +115,7 @@ impl Surface {
     }
 
     /// The area within each of `limits_m`, in the same order, in RD New.
-    pub fn areas_within(&self, limits_m: &[f64]) -> Vec<MultiPolygon<f64>> {
+    pub fn areas_within(&self, limits_m: &[f64]) -> Result<Vec<MultiPolygon<f64>>> {
         // Contours enclose values at or above a threshold, so the distances
         // are turned negative: within 420 m is at or above -420.
         let unreached = -1.0e9;
@@ -140,14 +141,14 @@ impl Surface {
             .y_origin(south)
             .x_step(CELL_M)
             .y_step(CELL_M);
-        let Ok(contours) = builder.contours(&values, &thresholds) else {
-            return Vec::new();
-        };
+        let contours = builder.contours(&values, &thresholds).map_err(|error| {
+            Error::Invalid(format!("the walk bands could not be traced: {error}"))
+        })?;
 
-        contours
+        Ok(contours
             .into_iter()
             .map(|contour| without_specks(contour.into_inner().0.simplify(&SIMPLIFY_M)))
-            .collect()
+            .collect())
     }
 
     /// Lowers every cell within `OFF_NETWORK_M` of `point` to the walk there.
@@ -228,7 +229,7 @@ mod tests {
     fn bands_nest_and_follow_the_street() {
         let (graph, distances) = street();
         let surface = Surface::build(&graph, &distances, 2000.0).unwrap();
-        let areas = surface.areas_within(&[300.0, 600.0]);
+        let areas = surface.areas_within(&[300.0, 600.0]).unwrap();
 
         assert_eq!(areas.len(), 2);
         assert!(areas[0].contains(&Point::new(150.0, 0.0)));
