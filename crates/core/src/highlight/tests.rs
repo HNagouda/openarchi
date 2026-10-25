@@ -88,6 +88,8 @@ fn the_caption_adds_the_area_only_when_asked() {
     plot.label.clear();
     assert_eq!(plot.caption(), "412 m²");
     assert_eq!(plot.legend_label(), UNLABELLED);
+    // Written as the ratios and the site summary write it.
+    assert_eq!(area_text(5_000.0), "5,000 m²");
     assert_eq!(area_text(13_000.0), "1.3 ha");
 }
 

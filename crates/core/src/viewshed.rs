@@ -75,14 +75,7 @@ pub fn check_view_point(scene: &Scene, (x, y): (f64, f64)) -> Result<()> {
             "a viewpoint needs a real position, got x {x} and y {y}"
         )));
     }
-    let local = (x - scene.origin.0, y - scene.origin.1);
-    let is_within = section::reach(scene).is_some_and(|reach| {
-        local.0 >= reach.min().x
-            && local.0 <= reach.max().x
-            && local.1 >= reach.min().y
-            && local.1 <= reach.max().y
-    });
-    if !is_within {
+    if !section::holds(scene, (x, y)) {
         return Err(Error::Invalid(
             "the viewpoint must lie inside the area the sheet draws: the fetched site and its neighbourhood"
                 .to_string(),

@@ -13,7 +13,8 @@ use super::utci::NO_STRESS;
 
 mod words;
 
-use words::{capitalised, during, list, month_name};
+use crate::view::month_name;
+use words::{capitalised, during, list};
 
 /// Closed urban blocks have a ground space index of about 0.4 to 0.6, open
 /// row housing and slabs 0.15 to 0.3 (Berghauser Pont and Haupt, "Spacematrix", 2010).

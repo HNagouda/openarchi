@@ -116,7 +116,7 @@ fn highlights_get_a_layer_per_line_and_their_captions_in_rd_new() {
     assert_eq!(
         captions,
         [
-            "Plot \\U+00B7 1600 m\\U+00B2",
+            "Plot \\U+00B7 1,600 m\\U+00B2",
             "New house \\U+00B7 400 m\\U+00B2",
             "Study \\U+00B7 900 m\\U+00B2"
         ]

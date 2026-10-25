@@ -13,7 +13,7 @@ pub mod cut;
 pub mod profile;
 pub mod water;
 
-use geo::{BoundingRect, Rect};
+use geo::{BoundingRect, Intersects, Point, Rect};
 use serde::{Deserialize, Serialize};
 
 use crate::scene::Scene;
@@ -134,14 +134,14 @@ impl SectionLine {
 
 /// True when both ends of `line` lie where the scene has data to draw, see `reach`.
 pub fn lies_within(scene: &Scene, line: &SectionLine) -> bool {
-    let Some(reach) = reach(scene) else {
-        return false;
-    };
-    let (origin_x, origin_y) = scene.origin;
-    [line.start, line.end].iter().all(|&(x, y)| {
-        let (x, y) = (x - origin_x, y - origin_y);
-        x >= reach.min().x && x <= reach.max().x && y >= reach.min().y && y <= reach.max().y
-    })
+    holds(scene, line.start) && holds(scene, line.end)
+}
+
+/// True when a point in RD New metres lies where the scene has data to draw,
+/// edges included, see `reach`. Shared with the viewshed's viewpoint.
+pub fn holds(scene: &Scene, (x, y): (f64, f64)) -> bool {
+    let local = Point::new(x - scene.origin.0, y - scene.origin.1);
+    reach(scene).is_some_and(|reach| reach.intersects(&local))
 }
 
 /// Where the scene has data to draw, in its own frame: the kept terrain,

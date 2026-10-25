@@ -11,8 +11,8 @@
 //! edge closes every block, so a circle and a drawn polygon work alike.
 
 use geo::{
-    Area, BoundingRect, Contains, Euclidean, Geometry, InteriorPoint, Length, LineString, Point,
-    Polygon, Rect,
+    Area, BoundingRect, Contains, Euclidean, Geometry, InteriorPoint, Intersects, Length,
+    LineString, Point, Polygon,
 };
 use i_overlay::core::fill_rule::FillRule;
 use i_overlay::core::overlay_rule::OverlayRule;
@@ -147,7 +147,7 @@ fn block(polygon: Polygon<f64>, buildings: &[Building]) -> Feature {
     let mut footprint_m2 = 0.0;
     let mut floor_area_m2 = 0.0;
     for building in buildings {
-        let is_near = bounds.is_some_and(|rect| contains_point(&rect, building.inside));
+        let is_near = bounds.is_some_and(|rect| rect.intersects(&building.inside));
         if !is_near || !polygon.contains(&building.inside) {
             continue;
         }
@@ -164,11 +164,6 @@ fn block(polygon: Polygon<f64>, buildings: &[Building]) -> Feature {
             ..Attributes::default()
         },
     }
-}
-
-fn contains_point(rect: &Rect<f64>, point: Point<f64>) -> bool {
-    let (min, max) = (rect.min(), rect.max());
-    point.x() >= min.x && point.x() <= max.x && point.y() >= min.y && point.y() <= max.y
 }
 
 #[cfg(test)]

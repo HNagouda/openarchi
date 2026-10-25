@@ -5,7 +5,10 @@
 //! and seen in elevation where it stands beyond the line. The renderer draws
 //! the elevation first and the cut on top.
 
-use geo::{BooleanOps, BoundingRect, Centroid, Contains, Geometry, MultiPolygon, Point, Polygon};
+use geo::{
+    BooleanOps, BoundingRect, Centroid, Contains, Geometry, Intersects, MultiPolygon, Point,
+    Polygon,
+};
 
 use super::Axis;
 use crate::scene::polygons;
@@ -84,12 +87,9 @@ pub fn beyond(geometry: &Geometry<f64>, axis: &Axis, depth_m: f64) -> Option<Bey
     let shapes: Vec<Polygon<f64>> = polygons(geometry)
         .into_iter()
         .filter(|polygon| {
-            polygon.bounding_rect().is_some_and(|rect| {
-                rect.min().x <= band_box.max().x
-                    && rect.max().x >= band_box.min().x
-                    && rect.min().y <= band_box.max().y
-                    && rect.max().y >= band_box.min().y
-            })
+            polygon
+                .bounding_rect()
+                .is_some_and(|rect| rect.intersects(&band_box))
         })
         .cloned()
         .collect();
