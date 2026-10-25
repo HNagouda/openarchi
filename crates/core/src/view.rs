@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 const DEFAULT_ROTATION_DEG: f64 = 0.0;
 const DEFAULT_TILT_DEG: f64 = 35.0;
 /// The tilt is kept off the extremes: at 90 the view is a plan, near 0 the ground vanishes.
+/// The app's Tilt slider uses the same limits (app/src/sheet/inspector/ViewSection.tsx).
 pub const MIN_TILT_DEG: f64 = 15.0;
 pub const MAX_TILT_DEG: f64 = 80.0;
 /// The plates a new explode view stacks, top first. Each one is a built-in diagram id.

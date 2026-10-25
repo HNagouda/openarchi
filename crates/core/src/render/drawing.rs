@@ -187,6 +187,7 @@ fn write_features(
     }
 }
 
+// #! NOTE[export, svg] : Exports keep one compound path per layer too, decided 2026-10-25; one path per feature would need an export-only switch
 /// Every area of `features` as one path and every line as another, and the
 /// points left for the caller. WebKit sets up a fill pattern again for every
 /// element it paints, so a large site drawn one path per feature took over

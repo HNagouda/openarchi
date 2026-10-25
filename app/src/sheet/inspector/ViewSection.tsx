@@ -31,6 +31,10 @@ const MIN_CONTEXT_OPACITY = 0.1;
 const CONTEXT_OPACITY_STEP = 0.05;
 const PERCENT = 100;
 const ROTATION_STEP = 5;
+/** Degrees above the horizon, as MIN_TILT_DEG and MAX_TILT_DEG in crates/core/src/view.rs. */
+const MIN_TILT = 15;
+const MAX_TILT = 80;
+const TILT_STEP = 5;
 /** Sun dates are taken in one year by the core, so the date field only needs a placeholder year. */
 const PLACEHOLDER_YEAR = 2026;
 
@@ -43,7 +47,7 @@ type Props = {
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
-/** Plan, axonometric, explode or section, whether the neighbourhood shows and how strongly, the sun's date and time where it shows, the wind's season, and the section line. */
+/** Plan, axonometric, explode or section, the tilted views' rotation and tilt, whether the neighbourhood shows and how strongly, the sun's date and time where it shows, the wind's season, and the section line. */
 export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const view = look.view;
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
@@ -98,6 +102,21 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
               step={ROTATION_STEP}
               unit="°"
               onChange={(rotation_deg) => onLook(withView(look, { rotation_deg }), "rotation")}
+              onSeal={onSeal}
+            />
+          </div>
+        )}
+        {isTilted && (
+          <div className="field-stack">
+            <span className="field-label">Tilt</span>
+            <NumberField
+              label="Tilt"
+              value={view.tilt_deg}
+              min={MIN_TILT}
+              max={MAX_TILT}
+              step={TILT_STEP}
+              unit="°"
+              onChange={(tilt_deg) => onLook(withView(look, { tilt_deg }), "tilt")}
               onSeal={onSeal}
             />
           </div>
