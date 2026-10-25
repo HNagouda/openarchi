@@ -57,7 +57,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "List a project's pins: landmarks marked on every sheet that does not hide them. Each has its id, icon, size, label, location (lon, lat), RD New x and y in metres, and for numbered pins the number they show."
+        description = "List a project's pins: landmarks marked on every sheet that does not hide them. Each has its id, icon, size, label, location (lon, lat), RD New x and y in metres, and `number` for a numbered pin from an older project (null otherwise)."
     )]
     async fn list_pins(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self
