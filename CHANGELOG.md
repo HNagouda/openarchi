@@ -325,6 +325,11 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The view draws in plan, axonometric and on an explode plate. It takes a few milliseconds, so it redraws with every change.
 - Assistants set the viewpoint with `set_view_point`, tied to a pin the same way, and `list_sheets` shows it with the pin it stands on.
 
+### Sheet and export fixes
+
+- A title or text box in a palette set in capitals keeps µg/m³ as µG/M³ instead of turning it into MG/M³, milligrams, as legend labels already did.
+- A laser DXF now declares the solid line type its layers name, as the site DXF already did.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

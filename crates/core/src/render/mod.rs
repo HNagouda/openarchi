@@ -37,6 +37,7 @@ mod section_draw;
 mod section_legend;
 mod section_levels;
 mod section_marker;
+mod section_pieces;
 mod section_water;
 mod shadow;
 mod simplify;
@@ -84,8 +85,19 @@ pub(crate) use fonts::Face;
 pub(crate) use highlights::shown as shown_highlights;
 // Shared with the DXF export, so each CAD layer takes its colour on the sheet.
 pub(crate) use highlights::colour_of as highlight_colour;
-pub(crate) use section::ground_under as section_ground_under;
-pub(crate) use section_water::lowered as lowered_over_water;
+// Shared with the DXF marks, so they plot with the sheet's own dashes and sizes.
+pub(crate) use highlights::{
+    DASH_MM as HIGHLIGHT_DASH_MM, DOT_GAP_MM as HIGHLIGHT_DOT_GAP_MM, GAP_MM as HIGHLIGHT_GAP_MM,
+    LABEL_GAP_MM as HIGHLIGHT_LABEL_GAP_MM,
+};
+pub(crate) use section_marker::{
+    ARROW_HALF_WIDTH as ARROW_HALF_WIDTH_MM, ARROW_LENGTH as ARROW_LENGTH_MM,
+    DASHES as SECTION_DASHES_MM, LABEL_GAP as SECTION_LABEL_GAP_MM, TICK_LENGTH as SECTION_TICK_MM,
+};
+pub(crate) use section_pieces::{
+    pieces as section_pieces, water_body as section_water_body, Building as SectionBuilding,
+    Tree as SectionTree, AIR_M as SECTION_AIR_M, EARTH_M as SECTION_EARTH_M,
+};
 pub(crate) use solid::tree_size;
 pub use solid::DEFAULT_HEIGHT_M;
 pub(crate) use style::{resolve_layers, ResolvedLayer};
@@ -121,9 +133,6 @@ pub struct RenderInput<'a> {
     pub highlights: &'a [Highlight],
 }
 
-/// The full sheet as an SVG document, sized in millimetres. A diagram with
-/// variants is drawn as the look's variant, and a look with a sub-selection
-/// draws the scene cut to it.
 /// What the sheet asks for that its scene lacks, as the sentences the app
 /// shows over the sheet: an old fetch without a diagram's source, or without
 /// the neighbourhood. Empty when the sheet has all it needs.
@@ -147,7 +156,27 @@ fn planned(diagram: &Diagram, look: &Look) -> Look {
     planned
 }
 
+/// The full sheet as an SVG document, sized in millimetres. A diagram with
+/// variants is drawn as the look's variant, and a look with a sub-selection
+/// draws the scene cut to it.
 pub fn render_svg(input: &RenderInput) -> Result<String> {
+    // Checked before the scene is cut to the selection, which is the slow part.
+    let sheet = &input.look.sheet;
+    if sheet.scale == 0 {
+        return Err(crate::Error::Invalid(
+            "scale must be at least 1, as in 1:2500".to_string(),
+        ));
+    }
+    if !(0.0..=1.0).contains(&sheet.context_opacity) {
+        return Err(crate::Error::Invalid(format!(
+            "context_opacity must be between 0 and 1, got {}",
+            sheet.context_opacity
+        )));
+    }
+    if let Some(problem) = input.look.sun.problem() {
+        return Err(crate::Error::Invalid(format!("sun: {problem}")));
+    }
+
     let drawn = input.diagram.drawn_as(input.look.variant.as_deref());
     let look = &planned(&drawn, input.look);
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
@@ -159,20 +188,6 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
         look,
         ..*input
     };
-    if look.sheet.scale == 0 {
-        return Err(crate::Error::Invalid(
-            "scale must be at least 1, as in 1:2500".to_string(),
-        ));
-    }
-    if !(0.0..=1.0).contains(&look.sheet.context_opacity) {
-        return Err(crate::Error::Invalid(format!(
-            "context_opacity must be between 0 and 1, got {}",
-            look.sheet.context_opacity
-        )));
-    }
-    if let Some(problem) = look.sun.problem() {
-        return Err(crate::Error::Invalid(format!("sun: {problem}")));
-    }
     let palette = &input.theme.palette;
     let layout = Layout::new(&look.sheet);
     let typesetter = Typesetter::new(

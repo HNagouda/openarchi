@@ -20,14 +20,14 @@ use crate::theme::Palette;
 const LINE_MM: f64 = 0.3;
 const HALO_MM: f64 = 0.9;
 /// Long dash, gap, dot, gap: the centre line of a cut.
-const DASHES: [f64; 4] = [6.0, 1.2, 0.8, 1.2];
-const TICK_LENGTH: f64 = 5.0;
+pub const DASHES: [f64; 4] = [6.0, 1.2, 0.8, 1.2];
+pub const TICK_LENGTH: f64 = 5.0;
 const TICK_MM: f64 = 1.0;
-const ARROW_LENGTH: f64 = 4.4;
-const ARROW_HALF_WIDTH: f64 = 1.9;
+pub const ARROW_LENGTH: f64 = 4.4;
+pub const ARROW_HALF_WIDTH: f64 = 1.9;
 /// The paper edge around ticks and arrows, so they read on a dark figure too.
 const MARK_HALO_MM: f64 = 0.7;
-const LABEL_GAP: f64 = 3.2;
+pub const LABEL_GAP: f64 = 3.2;
 const LABEL_HALO_MM: f64 = 0.8;
 /// A ground step long enough that its paper direction is exact to the hundredth.
 const PROBE_M: f64 = 10.0;

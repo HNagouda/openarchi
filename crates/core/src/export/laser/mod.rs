@@ -26,8 +26,6 @@ use crate::scene::{Layer, Scene};
 use crate::selection;
 use crate::{Error, Result};
 
-pub use pieces::layer_count;
-
 /// Space between two pieces on the bed, so the beam never cuts one edge twice.
 const GAP_MM: f64 = 2.0;
 /// Space kept free along the bed's edges, where the material is clamped or warped.
@@ -111,7 +109,7 @@ pub struct LaserExport {
 
 /// One piece to cut, in millimetres, with its bounding box's top-left corner at (0, 0) and y down.
 #[derive(Debug, Clone)]
-pub(crate) struct Part {
+struct Part {
     /// Closed rings, holes and outlines alike, each ending where it starts.
     pub cut: Vec<Vec<(f64, f64)>>,
     /// Open lines to score.
@@ -123,7 +121,7 @@ pub(crate) struct Part {
 
 /// Ground metres to model millimetres: x east, y down from the site's north edge.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Frame {
+struct Frame {
     pub mm_per_m: f64,
     pub west: f64,
     pub north: f64,

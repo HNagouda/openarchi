@@ -5,12 +5,12 @@ use geo::CoordsIter;
 
 use super::context::ContextArea;
 use super::frame::ground_outline;
-use super::geometry::{ground_centre, Projection};
+use super::geometry::{boundary_reach, furthest_from, ground_centre, Projection};
 use super::layout::Layout;
 use super::map::{draw, tallest_building, MapSpec, SheetDrawing};
 use super::typeset::Typesetter;
 use super::RenderInput;
-use crate::scene::{Layer, Scene};
+use crate::scene::Layer;
 use crate::Result;
 
 /// Room around the furthest walk band, so its edge does not touch the frame.
@@ -36,7 +36,7 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
         // The frame takes in the whole site too, but stops at the drawing zone,
         // so a site larger than the walk is cut off rather than run into the legend.
         let zone_reach_m = zone.width.min(zone.height) / 2.0 / projection.mm_per_m;
-        let site_reach_m = site_reach(input.scene, projection.ground_centre);
+        let site_reach_m = boundary_reach(&input.scene.boundary, projection.ground_centre);
         reach_m = Some(walk_reach_m.max(site_reach_m).min(zone_reach_m));
     }
     let spec = MapSpec {
@@ -138,7 +138,13 @@ pub(super) fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
         return sheet_scale;
     }
 
-    NICE_SCALES
+    round_scale(needed, &NICE_SCALES)
+}
+
+/// The first of `scales` at least as large as `needed`, else `needed` rounded
+/// up to the next thousand: 1:830 -> 1:1000 from the nice scales.
+pub(super) fn round_scale(needed: f64, scales: &[u32]) -> u32 {
+    scales
         .iter()
         .copied()
         .find(|&scale| scale as f64 >= needed)
@@ -150,7 +156,7 @@ pub(super) fn fitted_scale(sheet_scale: u32, fitting_mm_per_m: f64) -> u32 {
 fn walk_reach(input: &RenderInput, centre: (f64, f64)) -> Option<f64> {
     let minutes = f64::from(input.diagram.walk_minutes?);
     let walk = input.scene.walk.as_ref()?;
-    let furthest = walk
+    let drawn_points = walk
         .bands
         .iter()
         .filter(|band| {
@@ -159,21 +165,10 @@ fn walk_reach(input: &RenderInput, centre: (f64, f64)) -> Option<f64> {
                 .is_some_and(|band_min| band_min <= minutes)
         })
         .flat_map(|band| band.geometry.coords_iter())
-        .map(|coord| ((coord.x - centre.0).powi(2) + (coord.y - centre.1).powi(2)).sqrt())
-        .fold(0.0, f64::max);
+        .map(|coord| (coord.x, coord.y));
+    let furthest = furthest_from(drawn_points, centre);
 
     (furthest > 0.0).then_some(furthest * WALK_FRAME_MARGIN)
-}
-
-/// The furthest the site boundary reaches from `centre`, so a zoomed-out frame never cuts the site.
-fn site_reach(scene: &Scene, centre: (f64, f64)) -> f64 {
-    scene
-        .boundary
-        .exterior()
-        .0
-        .iter()
-        .map(|coord| ((coord.x - centre.0).powi(2) + (coord.y - centre.1).powi(2)).sqrt())
-        .fold(0.0, f64::max)
 }
 
 /// Paper bounds of a set of points.

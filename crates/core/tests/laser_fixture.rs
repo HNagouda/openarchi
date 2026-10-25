@@ -5,9 +5,7 @@ use std::path::Path;
 
 use openarchi_core::area::Area;
 use openarchi_core::crs::rd_to_wgs84;
-use openarchi_core::export::laser::{
-    export, layer_count, summarize, LaserFormat, LaserSettings, LaserSummary,
-};
+use openarchi_core::export::laser::{export, summarize, LaserFormat, LaserSettings, LaserSummary};
 use openarchi_core::scene::Scene;
 
 const FIXTURE: &str = concat!(
@@ -198,7 +196,6 @@ fn a_thicker_board_needs_fewer_pieces() {
     let thin = summarize(&scene, Some(&block(&scene)), &settings(1000)).unwrap();
     let thick = summarize(&scene, Some(&block(&scene)), &thick).unwrap();
     assert!(thick.piece_count < thin.piece_count);
-    assert_eq!(layer_count(12.0, 1000, 3.0), 4);
 }
 
 #[test]

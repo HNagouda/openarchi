@@ -10,7 +10,12 @@
 
 use crate::highlight::{Highlight, Outline};
 use crate::pin::{is_on_site, number_of, Pin, PinIcon};
-use crate::render::highlight_colour;
+// Paper millimetres, as the sheet draws them.
+use crate::render::{
+    highlight_colour, ARROW_HALF_WIDTH_MM, ARROW_LENGTH_MM, HIGHLIGHT_DASH_MM,
+    HIGHLIGHT_DOT_GAP_MM, HIGHLIGHT_GAP_MM, HIGHLIGHT_LABEL_GAP_MM, SECTION_DASHES_MM,
+    SECTION_LABEL_GAP_MM, SECTION_TICK_MM,
+};
 use crate::scene::Scene;
 use crate::section::SectionLine;
 use crate::theme::Palette;
@@ -38,20 +43,8 @@ pub(super) const DASHED: &str = "DASHED";
 pub(super) const END_LABEL: &str = "A'";
 const DOTTED: &str = "DOTTED";
 const DASHDOT: &str = "DASHDOT";
-// Paper millimetres, as the sheet draws them (render/highlights.rs, render/section_marker.rs).
-const HIGHLIGHT_DASH_MM: f64 = 1.8;
-const HIGHLIGHT_GAP_MM: f64 = 1.1;
-const HIGHLIGHT_DOT_GAP_MM: f64 = 1.5;
-/// Long dash, gap, short dash, gap: the centre line of a cut.
-const SECTION_DASHES_MM: [f64; 4] = [6.0, 1.2, 0.8, 1.2];
-const TICK_MM: f64 = 5.0;
-const ARROW_LENGTH_MM: f64 = 4.4;
-const ARROW_HALF_WIDTH_MM: f64 = 1.9;
-const SECTION_LABEL_GAP_MM: f64 = 3.2;
 /// Labels stand this tall on paper, the size of a pin label at A3.
 const LABEL_MM: f64 = 2.5;
-/// Room between a highlight's top edge and its label's baseline.
-const HIGHLIGHT_LABEL_GAP_MM: f64 = 1.2;
 /// A pin's label starts this far east of it.
 const PIN_LABEL_OFFSET_MM: f64 = 2.5;
 
@@ -150,7 +143,7 @@ pub fn write_section_line(
         false,
     );
 
-    let tick = metres(TICK_MM, scale);
+    let tick = metres(SECTION_TICK_MM, scale);
     let arrow = metres(ARROW_LENGTH_MM, scale);
     let half = metres(ARROW_HALF_WIDTH_MM, scale);
     for (at, inwards) in [(line.start, along), (line.end, (-along.0, -along.1))] {

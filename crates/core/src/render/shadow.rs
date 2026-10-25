@@ -27,7 +27,7 @@ pub fn write(
     features: &[&Feature],
     sun: &SunPosition,
     projection: &Projection,
-    attributes: &str,
+    opacity: f64,
 ) {
     let Some(per_metre) = shadow_per_metre(sun) else {
         return;
@@ -58,7 +58,11 @@ pub fn write(
         return;
     }
 
-    let _ = write!(out, r#"<path d="{data}" fill-rule="nonzero"{attributes}/>"#);
+    let _ = write!(
+        out,
+        r#"<path d="{data}" fill-rule="nonzero" opacity="{}"/>"#,
+        decimal(opacity)
+    );
 }
 
 /// Ground metres a shadow runs per metre of height, east and north, or `None` with the sun down.
@@ -70,11 +74,6 @@ pub fn shadow_per_metre(sun: &SunPosition) -> Option<(f64, f64)> {
     let azimuth = sun.azimuth_deg.to_radians();
     // Shadows fall away from the sun.
     Some((-azimuth.sin() * length, -azimuth.cos() * length))
-}
-
-/// Opacity as an attribute value, shared by callers that build `attributes`.
-pub fn opacity_attribute(opacity: f64) -> String {
-    format!(r#" opacity="{}""#, decimal(opacity))
 }
 
 pub fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {

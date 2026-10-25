@@ -272,7 +272,7 @@ impl Typesetter {
 
 /// `text` in capitals, except the micro sign: a capital µ is a Greek M, which
 /// would turn µg/m³ into "MG/M³", milligrams.
-fn capitals(text: &str) -> String {
+pub(super) fn capitals(text: &str) -> String {
     text.chars()
         .map(|character| {
             if character == MICRO_SIGN {

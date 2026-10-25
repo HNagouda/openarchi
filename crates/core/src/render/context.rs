@@ -54,7 +54,7 @@ impl<'a> Neighbourhood<'a> {
         scope: &str,
     ) -> Option<Neighbourhood<'a>> {
         let area = area?;
-        if !sheet.show_context || sheet.context_opacity <= 0.0 || scene.context.is_empty() {
+        if !sheet.shows_context() || scene.context.is_empty() {
             return None;
         }
 

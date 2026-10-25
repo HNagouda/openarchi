@@ -20,6 +20,10 @@ const TITLE_GAP: f64 = 4.2;
 const NOTE_GAP: f64 = 1.6;
 const MAX_NOTE_LINES: usize = 3;
 const MIN_SWATCH_STROKE_MM: f64 = 0.1;
+/// A line swatch is never drawn thinner than this.
+const MIN_LINE_SWATCH_MM: f64 = 0.15;
+/// A dot's radius, as a share of the swatch height.
+const DOT_RADIUS_SHARE: f64 = 0.4;
 const SWATCH_EDGE_OPACITY: f64 = 0.3;
 /// A symbol's radius as a share of the swatch height, leaving room for its corners.
 const SYMBOL_SHARE: f64 = 0.32;
@@ -171,7 +175,7 @@ fn write_swatch(out: &mut String, swatch: &Swatch, x: f64, top: f64, unit: f64, 
                 mm(x),
                 mm(middle),
                 mm(x + width),
-                mm(stroke_mm.max(0.15)),
+                mm(stroke_mm.max(MIN_LINE_SWATCH_MM)),
                 decimal(*opacity)
             );
         }
@@ -199,7 +203,7 @@ fn write_swatch(out: &mut String, swatch: &Swatch, x: f64, top: f64, unit: f64, 
                 r#"<circle cx="{}" cy="{}" r="{}" fill="{}"{stroke_attributes} opacity="{}"/>"#,
                 mm(x + width / 2.0),
                 mm(top + height / 2.0),
-                mm(height * 0.4),
+                mm(height * DOT_RADIUS_SHARE),
                 fill.as_deref().unwrap_or("none"),
                 decimal(*opacity)
             );

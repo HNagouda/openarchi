@@ -15,6 +15,8 @@
 //! (`dxf_colours.rs`); no styling beyond that and a line type, since CAD users
 //! bring their own.
 
+use std::collections::BTreeMap;
+
 use crate::diagram::Classify;
 use crate::render::{
     class_of, computed_features, layer_slug, resolve_layers, shown_highlights, Classes,
@@ -31,10 +33,10 @@ use super::dxf_marks;
 use super::dxf_write::{cad_name, write_geometry, write_polygon, Drawing};
 use super::DxfLayers;
 
-// The laser files are written from the same R12 pieces.
-pub(super) use super::dxf_write::{coordinate, group, section, write_polyline};
-
 const SITE_LAYER: &str = "OA-SITE";
+/// A scene layer's CAD layer is its name after this: "OA-RAIL-AREA".
+const PLAN_PREFIX: &str = "OA-";
+const CONTEXT_PREFIX: &str = "OA-CONTEXT-";
 /// AutoCAD colour index for every neighbourhood layer: grey, the usual colour of
 /// context. The sheet fades each neighbourhood layer towards the paper, which
 /// in CAD would be white on white.
@@ -54,6 +56,8 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
         DxfLayers::All => Layer::ALL.to_vec(),
     };
 
+    // Named once rather than per feature, since a site has tens of thousands.
+    let names = cad_layers(PLAN_PREFIX);
     let mut drawing = Drawing::new();
     for &layer in &written {
         // A classified layer is split into its classes, declared as they are used.
@@ -63,7 +67,7 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
             Some(resolved) => dxf_colours::shown(resolved, input.diagram),
             None => dxf_colours::unshown(layer, input.theme, look)?,
         };
-        drawing.layer(&cad_layer(layer), colour);
+        drawing.layer(&names[&layer], colour);
     }
 
     let classified = input.diagram.classify.as_ref().and_then(|classify| {
@@ -71,6 +75,7 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
             classify,
             classes,
             colours: class_colours(classes),
+            names: class_names(classes, &names[&classify.layer]),
         })
     });
     let computed = computed_features(scene, input.diagram, look);
@@ -82,18 +87,17 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
             Some(classified) if classified.classify.layer == feature.layer => {
                 class_layer(&mut drawing, feature, classified)
             }
-            _ => cad_layer(feature.layer),
+            _ => &names[&feature.layer],
         };
         write_geometry(
             &mut drawing.entities,
             &feature.geometry,
-            &layer,
+            layer,
             elevation(feature),
             scene.origin,
         );
     }
-    let is_context_shown = look.sheet.show_context && look.sheet.context_opacity > 0.0;
-    if dxf_layers == DxfLayers::All || is_context_shown {
+    if dxf_layers == DxfLayers::All || look.sheet.shows_context() {
         write_context(&mut drawing, scene);
     }
     // The sheet outlines the site in the accent.
@@ -129,14 +133,17 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
     Ok(drawing.finish(extent(scene), &dxf_marks::linetypes(scale)))
 }
 
-/// Layer::RailArea -> "OA-RAIL-AREA".
-fn cad_layer(layer: Layer) -> String {
-    format!("OA-{}", layer_slug(layer).to_uppercase())
-}
-
-/// Layer::Building -> "OA-CONTEXT-BUILDING".
-fn context_cad_layer(layer: Layer) -> String {
-    format!("OA-CONTEXT-{}", layer_slug(layer).to_uppercase())
+/// Every layer's CAD name after `prefix`: Layer::RailArea -> "OA-RAIL-AREA".
+fn cad_layers(prefix: &str) -> BTreeMap<Layer, String> {
+    Layer::ALL
+        .iter()
+        .map(|&layer| {
+            (
+                layer,
+                format!("{prefix}{}", layer_slug(layer).to_uppercase()),
+            )
+        })
+        .collect()
 }
 
 /// The legend classes the sheet colours `layer` by. `None` when the sheet
@@ -154,6 +161,8 @@ struct Classified<'a> {
     classes: &'a Classes,
     /// One per class in legend order, then one for the unknown class.
     colours: Vec<u8>,
+    /// The CAD layer of each class, in the same order.
+    names: Vec<String>,
 }
 
 /// Each class's nearest AutoCAD colour that no earlier class took, in legend
@@ -169,25 +178,32 @@ fn class_colours(classes: &Classes) -> Vec<u8> {
     colours
 }
 
+/// Each class's CAD layer, then the unknown class's: "OA-BUILDING-6-10-M",
+/// "OA-BUILDING-UNKNOWN" for a building without a height.
+fn class_names(classes: &Classes, layer_name: &str) -> Vec<String> {
+    classes
+        .classes
+        .iter()
+        .map(|class| class.label.as_str())
+        .chain([classes.unknown_label.as_str()])
+        .map(|label| cad_name(&format!("{layer_name}-{label}")))
+        .collect()
+}
+
 /// The CAD layer of the legend class `feature` falls in, declared on first use
-/// in the class's colour: "OA-BUILDING-6-10-M", or "OA-BUILDING-UNKNOWN" for a
-/// building without a height.
-fn class_layer(drawing: &mut Drawing, feature: &Feature, classified: &Classified) -> String {
-    let classes = classified.classes;
-    let index =
-        class_of(feature, classified.classify).filter(|&index| index < classes.classes.len());
-    let (label, colour) = match index {
-        Some(index) => (
-            classes.classes[index].label.as_str(),
-            classified.colours[index],
-        ),
-        None => (
-            classes.unknown_label.as_str(),
-            classified.colours[classes.classes.len()],
-        ),
-    };
-    let name = cad_name(&format!("{}-{label}", cad_layer(feature.layer)));
-    drawing.layer(&name, colour);
+/// in the class's colour.
+fn class_layer<'a>(
+    drawing: &mut Drawing,
+    feature: &Feature,
+    classified: &'a Classified,
+) -> &'a str {
+    let count = classified.classes.classes.len();
+    // The unknown class comes after the legend's classes.
+    let index = class_of(feature, classified.classify)
+        .filter(|&index| index < count)
+        .unwrap_or(count);
+    let name = &classified.names[index];
+    drawing.layer(name, classified.colours[index]);
 
     name
 }
@@ -205,13 +221,14 @@ fn elevation(feature: &Feature) -> f64 {
 }
 
 fn write_context(drawing: &mut Drawing, scene: &Scene) {
+    let names = cad_layers(CONTEXT_PREFIX);
     for feature in &scene.context {
-        let layer = context_cad_layer(feature.layer);
-        drawing.layer(&layer, CONTEXT_COLOUR);
+        let layer = &names[&feature.layer];
+        drawing.layer(layer, CONTEXT_COLOUR);
         write_geometry(
             &mut drawing.entities,
             &feature.geometry,
-            &layer,
+            layer,
             0.0,
             scene.origin,
         );

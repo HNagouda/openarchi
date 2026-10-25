@@ -13,27 +13,24 @@ use super::context;
 use super::geometry::{mm, Projection};
 use super::layout::Layout;
 use super::map::SheetDrawing;
+use super::map_sheet::round_scale;
 use super::massing;
-use super::section_draw::{self, Cut, Mass};
+use super::section_draw::{self, Mass};
 use super::section_legend::{self, Drawn};
 use super::section_levels::{self, Frame};
+use super::section_pieces::{self, Building, Cut, AIR_M, EARTH_M};
 use super::section_water;
 use super::solid;
 use super::style::{self, ResolvedLayer};
 use super::typeset::Typesetter;
 use super::RenderInput;
 use crate::scene::{Feature, Layer};
-use crate::section::cut::{self, Stretch};
-use crate::section::profile::{self, Profile};
-use crate::section::water;
-use crate::section::{Axis, SectionLine, SCALES};
+use crate::section::cut::Stretch;
+use crate::section::{SectionLine, SCALES};
 use crate::theme::Theme;
-use crate::{Error, Result};
+use crate::Result;
 
 pub const TITLE: &str = "Section A\u{2013}A\u{2032}";
-/// Earth drawn below the lowest ground, and air above the tallest roof, in metres.
-const EARTH_M: f64 = 4.0;
-const AIR_M: f64 = 3.0;
 /// How far a building of unknown height moves towards the unknown colour, as in the axonometric.
 const ESTIMATED_GREY: f64 = 0.65;
 const CLIP_ID: &str = "section-view";
@@ -45,16 +42,11 @@ pub fn render(
 ) -> Result<SheetDrawing> {
     let scene = input.scene;
     let look = input.look;
-    let line = look.section.as_ref().ok_or_else(|| {
-        Error::Invalid(
-            "This sheet has no section line yet. Draw one on the plan first.".to_string(),
-        )
-    })?;
-    line.check()?;
-    let axis = line.axis(scene.origin);
-    let profile = profile::ground_profile(scene.terrain.as_ref(), scene.water_bed.as_ref(), &axis);
-    let waters = water::crossed(scene, &axis);
-    let profile = section_water::lowered(profile, &waters);
+    let pieces = section_pieces::pieces(scene, look)?;
+    let line = pieces.line;
+    let axis = &pieces.axis;
+    let profile = &pieces.profile;
+    let waters = &pieces.waters;
     let theme = input.theme;
     let mut layers = style::resolve_layers(input.diagram, theme, look)?;
     massing::lighten(&mut layers, look, theme);
@@ -62,27 +54,10 @@ pub fn render(
         .iter()
         .find(|resolved| resolved.layer == Layer::Building);
 
-    let mut site_buildings: Vec<&Feature> = layer_of(&scene.features, Layer::Building);
-    let neighbours = if look.sheet.show_context && look.sheet.context_opacity > 0.0 {
-        layer_of(&scene.context, Layer::Building)
-    } else {
-        Vec::new()
-    };
-    let trees = layer_of(&scene.features, Layer::Tree);
     let mut masses = Vec::new();
-    let mut cuts = Vec::new();
-    for feature in &site_buildings {
-        let fill = building_fill(buildings, feature, input, theme);
-        add_building(
-            feature,
-            fill,
-            &axis,
-            line.depth_m,
-            &profile,
-            scene,
-            &mut masses,
-            &mut cuts,
-        );
+    for building in &pieces.buildings {
+        let fill = building_fill(buildings, building.feature, input, theme);
+        masses.push(mass_of(building, fill));
     }
     // An elevation is opaque, with nothing behind a neighbour to show through,
     // so a fainter neighbourhood moves its fill towards the paper instead.
@@ -91,43 +66,25 @@ pub fn render(
         &theme.palette.paper,
         1.0 - look.sheet.context_opacity,
     );
-    let site_masses = masses.len();
-    for feature in &neighbours {
-        let fill = neighbour_fill.clone();
-        add_building(
-            feature,
-            fill,
-            &axis,
-            line.depth_m,
-            &profile,
-            scene,
-            &mut masses,
-            &mut cuts,
-        );
+    for building in &pieces.neighbours {
+        masses.push(mass_of(building, neighbour_fill.clone()));
     }
-    let has_neighbours = masses.len() > site_masses;
     let tree_fill = tree_fill(&layers, theme);
-    for feature in &trees {
-        if let Some(seen) = cut::beyond(&feature.geometry, &axis, line.depth_m) {
-            let base = ground_under(seen.centre, seen.stretch, &profile, scene, None);
-            masses.push(Mass {
-                stretch: seen.stretch,
-                depth: seen.depth,
-                base,
-                top: base + solid::TREE_HEIGHT_M,
-                fill: tree_fill.clone(),
-                is_tree: true,
-            });
-        }
+    for tree in &pieces.trees {
+        masses.push(Mass {
+            stretch: tree.stretch,
+            depth: tree.depth,
+            base: tree.base,
+            top: tree.base + solid::TREE_HEIGHT_M,
+            fill: tree_fill.clone(),
+            is_tree: true,
+        });
     }
     // Far to near, so what is nearer covers what is behind it.
     masses.sort_by(|a, b| b.depth.total_cmp(&a.depth));
+    let cuts: Vec<&Cut> = pieces.cuts().collect();
 
-    let lowest = waters
-        .iter()
-        .map(|water| water.level_m)
-        .fold(profile.lowest(), f64::min)
-        - EARTH_M;
+    let lowest = pieces.lowest() - EARTH_M;
     let highest = masses
         .iter()
         .map(|mass| mass.top)
@@ -155,31 +112,35 @@ pub fn render(
         .collect();
     let mut body = format!(r#"<g clip-path="url(#{CLIP_ID})">"#);
     section_draw::write_masses(&mut body, &masses, line.depth_m, &frame, theme);
-    section_draw::write_ground(&mut body, &profile, &gaps, &frame, theme, layout.unit);
+    section_draw::write_ground(&mut body, profile, &gaps, &frame, theme, layout.unit);
     section_water::write(
         &mut body,
-        &waters,
-        &profile,
+        waters,
+        profile,
         &frame,
         &theme.palette,
         typesetter,
     );
     section_draw::write_cuts(&mut body, &cuts, &frame, theme);
     body.push_str("</g>\n");
-    section_levels::write(&mut body, &frame, &profile, &cuts, theme, typesetter);
+    section_levels::write(&mut body, &frame, profile, &cuts, theme, typesetter);
 
-    site_buildings.retain(|feature| cut::beyond(&feature.geometry, &axis, line.depth_m).is_some());
+    let seen: Vec<&Feature> = pieces
+        .buildings
+        .iter()
+        .map(|building| building.feature)
+        .collect();
     let legend = section_legend::build(
         input,
         &Drawn {
             buildings,
-            seen: &site_buildings,
-            profile: &profile,
+            seen: &seen,
+            profile,
             line,
-            has_neighbours,
-            has_trees: masses.iter().any(|mass| mass.is_tree),
+            has_neighbours: !pieces.neighbours.is_empty(),
+            has_trees: !pieces.trees.is_empty(),
             tree_fill: &tree_fill,
-            waters: &waters,
+            waters,
         },
     );
     // Pins and the app's ground points need a plan; a section has no ground plane on paper.
@@ -243,83 +204,23 @@ fn frame_on(
     }
 }
 
-/// The largest round scale at which the section fits the drawing zone.
+/// The largest round scale at which the section fits the drawing zone. It
+/// picks from the section's own scales, the ones its scale menu offers, so a
+/// fitted section can always be set back to the scale it shows.
 fn section_scale(fitting_mm_per_m: f64) -> u32 {
-    let needed = 1000.0 / fitting_mm_per_m;
-    SCALES
-        .iter()
-        .copied()
-        .find(|&scale| scale as f64 >= needed)
-        .unwrap_or_else(|| (needed / 1000.0).ceil() as u32 * 1000)
+    round_scale(1000.0 / fitting_mm_per_m, &SCALES)
 }
 
-fn layer_of(features: &[Feature], layer: Layer) -> Vec<&Feature> {
-    features
-        .iter()
-        .filter(|feature| feature.layer == layer)
-        .collect()
-}
-
-/// A building's elevation beyond the line, and its cut where the line passes through it.
-#[allow(clippy::too_many_arguments)]
-fn add_building(
-    feature: &Feature,
-    fill: String,
-    axis: &Axis,
-    depth_m: f64,
-    profile: &Profile,
-    scene: &crate::scene::Scene,
-    masses: &mut Vec<Mass>,
-    cuts: &mut Vec<Cut>,
-) {
-    let (height, is_estimated) = solid::building_height(feature);
-    let measured_ground = feature.attributes.ground_m;
-    let stretches = cut::cut_stretches(&feature.geometry, axis);
-    let Some(seen) = cut::beyond(&feature.geometry, axis, depth_m) else {
-        return;
-    };
-    let base = ground_under(seen.centre, seen.stretch, profile, scene, measured_ground);
-    masses.push(Mass {
-        stretch: seen.stretch,
-        depth: seen.depth,
-        base,
-        top: base + height,
+/// A building as it stands beyond the line, in `fill`.
+fn mass_of(building: &Building, fill: String) -> Mass {
+    Mass {
+        stretch: building.stretch,
+        depth: building.depth,
+        base: building.base,
+        top: building.top,
         fill,
         is_tree: false,
-    });
-    for stretch in stretches {
-        // Down to the ground line at either end, so the poché never floats over a slope.
-        let ground = profile
-            .height_at(stretch.from)
-            .min(profile.height_at(stretch.to));
-        cuts.push(Cut {
-            stretch,
-            bottom: base.min(ground),
-            top: base + height,
-            height_m: (!is_estimated).then_some(height),
-        });
     }
-}
-
-/// The ground a building or tree stands on: the building's own measured
-/// ground, else the terrain under its middle, else the profile. On a scene
-/// without terrain everything stands at 0, on the flat ground drawn.
-pub fn ground_under(
-    centre: (f64, f64),
-    stretch: Stretch,
-    profile: &Profile,
-    scene: &crate::scene::Scene,
-    measured_ground: Option<f64>,
-) -> f64 {
-    if !profile.is_measured {
-        return 0.0;
-    }
-    measured_ground
-        .or_else(|| {
-            let terrain = scene.terrain.as_ref()?;
-            profile::height_at(terrain, centre.0, centre.1)
-        })
-        .unwrap_or_else(|| profile.height_at((stretch.from + stretch.to) / 2.0))
 }
 
 /// The diagram's colour for a building: its class, or the light massing of a

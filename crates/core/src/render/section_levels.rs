@@ -4,7 +4,7 @@
 use std::fmt::Write;
 
 use super::geometry::{decimal, mm};
-use super::section_draw::Cut;
+use super::section_pieces::Cut;
 use super::typeset::{Kind, Typesetter};
 use crate::section::profile::Profile;
 use crate::theme::Theme;
@@ -73,7 +73,7 @@ pub fn write(
     out: &mut String,
     frame: &Frame,
     profile: &Profile,
-    cuts: &[Cut],
+    cuts: &[&Cut],
     theme: &Theme,
     typesetter: &Typesetter,
 ) {
@@ -206,8 +206,12 @@ fn write_ruler(out: &mut String, frame: &Frame, is_measured: bool, typesetter: &
 /// Each cut building's measured height above its ground, over its roof and
 /// any taller cut roof beside it, skipping a label that would run into the
 /// one before it.
-fn write_heights(out: &mut String, frame: &Frame, cuts: &[Cut], typesetter: &Typesetter) {
-    let mut sorted: Vec<&Cut> = cuts.iter().filter(|cut| cut.height_m.is_some()).collect();
+fn write_heights(out: &mut String, frame: &Frame, cuts: &[&Cut], typesetter: &Typesetter) {
+    let mut sorted: Vec<&Cut> = cuts
+        .iter()
+        .copied()
+        .filter(|cut| cut.height_m.is_some())
+        .collect();
     sorted.sort_by(|a, b| a.stretch.from.total_cmp(&b.stretch.from));
     let mut free_from = f64::NEG_INFINITY;
     for cut in sorted {

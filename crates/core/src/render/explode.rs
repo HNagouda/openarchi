@@ -21,7 +21,7 @@ use std::fmt::Write;
 
 use super::context::ContextArea;
 use super::frame::ground_outline;
-use super::geometry::{decimal, ground_centre, mm, Projection};
+use super::geometry::{decimal, furthest_from, ground_centre, mm, Projection};
 use super::layout::Layout;
 use super::map::{draw, MapSpec, SheetDrawing};
 use super::map_sheet::{fitted_scale, Bounds};
@@ -68,10 +68,7 @@ pub fn render(
         .iter()
         .map(|&(x, y)| unit_view.to_paper(x, y))
         .collect();
-    let plate_reach_m = ground
-        .iter()
-        .map(|&(x, y)| ((x - centre.0).powi(2) + (y - centre.1).powi(2)).sqrt())
-        .fold(0.0, f64::max);
+    let plate_reach_m = furthest_from(ground.iter().copied(), centre);
     // Only the bottom plate stands in the neighbourhood; the plates above would only cover it.
     let bottom_context = ContextArea {
         zone: layout.drawing,

@@ -19,7 +19,7 @@ use crate::sources::clip::{self, Clipped};
 use crate::{Error, Result};
 
 // #! NOTE[laser, tiles] : A plate larger than the bed is split into equal tiles along straight lines, which may cross buildings; would students rather be told to pick a smaller scale, or have the seams follow streets?
-// #! NOTE[laser, terrain] : Contours are scored on the plate, not stacked as terrain layers. Stacking needs the terrain grid, which the scene drops after fetching, and a Dutch site rarely rises one board at 1:1000; worth keeping the grid for hilly sites?
+// #! NOTE[laser, terrain] : Contours are scored on the plate, not stacked as terrain layers, since a Dutch site rarely rises one board at 1:1000; stack them from Scene::terrain for hilly sites?
 
 /// The layers scored on the plate as the outline of their merged areas, in one place.
 const SCORED_AREAS: [Layer; 3] = [Layer::Road, Layer::Water, Layer::Green];

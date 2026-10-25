@@ -50,13 +50,7 @@ pub(super) fn write_shadows(
         layer_attributes(&format!("{}shadows", canvas.scope), "Shadows"),
         canvas.clip_id
     );
-    shadow::write(
-        out,
-        casters,
-        sun,
-        &canvas.projection,
-        &shadow::opacity_attribute(opacity),
-    );
+    shadow::write(out, casters, sun, &canvas.projection, opacity);
     out.push_str("</g>\n");
 }
 
