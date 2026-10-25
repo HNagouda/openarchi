@@ -30,6 +30,9 @@ const FORMATS: { value: Choice; label: string; name: string; note: string }[] = 
   { value: "laser", label: "Laser", name: "Laser cutting", note: "Cut and score files for a site model of this sheet's area." },
 ];
 
+// A section sheet writes its section, not the plan, so the DXF note says what its coordinates are.
+const SECTION_DXF_NOTE = "The section in metres along A–A′ and metres NAP, for CAD.";
+
 type Scope = "one" | "series";
 type Settings = { format: Choice; dpi: number; scope: Scope };
 
@@ -123,7 +126,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
         <div className="field-stack">
           <span className="field-label">Format</span>
           <Segmented label="Format" value={settings.format} options={FORMATS} onChange={(value) => update({ format: value })} />
-          <span className="field-note">{format.note}</span>
+          <span className="field-note">{settings.format === "dxf" && look.view.mode === "section" ? SECTION_DXF_NOTE : format.note}</span>
         </div>
         {isLaser && <LaserFields look={look} settings={laser} onChange={updateLaser} />}
         {settings.format === "png" && (
