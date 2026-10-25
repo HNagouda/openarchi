@@ -10,8 +10,8 @@ use std::collections::BTreeMap;
 use std::fmt::Write;
 
 use super::color;
-use super::drawing::{layer_slug, Canvas};
-use super::geometry::{decimal, mm, paper_shapes, PaperShapes, Projection};
+use super::drawing::{layer_slug, write_areas_and_lines, Canvas};
+use super::geometry::{decimal, mm, Projection};
 use super::layout::Rect;
 use super::svg::{layer_attributes, paint_attributes};
 use crate::scene::{Feature, Layer, Scene};
@@ -134,7 +134,8 @@ impl<'a> Neighbourhood<'a> {
                 layer_slug(layer),
                 paint_attributes(&style, style.fill.as_deref())
             );
-            write_shapes(out, features, canvas);
+            // The neighbourhood leaves points out: a muted bus stop says nothing.
+            write_areas_and_lines(out, features, &canvas.projection);
             out.push_str("</g>");
         }
         if self.area.reach_m.is_some() {
@@ -199,19 +200,6 @@ fn fade(colour: &str, paper: &str) -> String {
     });
     let greyed = color::mix(colour, &grey, DESATURATION);
     color::mix(&greyed, paper, FADE)
-}
-
-fn write_shapes(out: &mut String, features: &[&Feature], canvas: &Canvas) {
-    for feature in features {
-        let mut shapes = PaperShapes::default();
-        paper_shapes(&feature.geometry, &canvas.projection, &mut shapes);
-        for area in &shapes.areas {
-            let _ = write!(out, r#"<path d="{area}"/>"#);
-        }
-        for line in &shapes.lines {
-            let _ = write!(out, r#"<path d="{line}" fill="none"/>"#);
-        }
-    }
 }
 
 #[cfg(test)]

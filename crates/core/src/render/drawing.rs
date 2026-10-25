@@ -175,25 +175,43 @@ fn write_features(
     } else {
         DEFAULT_POINT_RADIUS_MM
     };
-    for feature in features {
-        let mut shapes = PaperShapes::default();
-        paper_shapes(&feature.geometry, projection, &mut shapes);
-        for area in &shapes.areas {
-            let _ = write!(out, r#"<path d="{area}"/>"#);
-        }
-        for line in &shapes.lines {
-            let _ = write!(out, r#"<path d="{line}" fill="none"/>"#);
-        }
-        for &(x, y) in &shapes.points {
-            let _ = write!(
-                out,
-                r#"<circle cx="{}" cy="{}" r="{}"/>"#,
-                mm(x),
-                mm(y),
-                mm(radius)
-            );
-        }
+    let shapes = write_areas_and_lines(out, features, projection);
+    for &(x, y) in &shapes.points {
+        let _ = write!(
+            out,
+            r#"<circle cx="{}" cy="{}" r="{}"/>"#,
+            mm(x),
+            mm(y),
+            mm(radius)
+        );
     }
+}
+
+/// Every area of `features` as one path and every line as another, and the
+/// points left for the caller. WebKit sets up a fill pattern again for every
+/// element it paints, so a large site drawn one path per feature took over
+/// half a second to show. Nonzero filling keeps overlapping areas whole,
+/// since their rings all turn the same way (`polygon_path`).
+pub fn write_areas_and_lines(
+    out: &mut String,
+    features: &[&Feature],
+    projection: &Projection,
+) -> PaperShapes {
+    let mut shapes = PaperShapes::default();
+    for feature in features {
+        paper_shapes(&feature.geometry, projection, &mut shapes);
+    }
+    if !shapes.areas.is_empty() {
+        let _ = write!(
+            out,
+            r#"<path d="{}" fill-rule="nonzero"/>"#,
+            shapes.areas.concat()
+        );
+    }
+    if !shapes.lines.is_empty() {
+        let _ = write!(out, r#"<path d="{}" fill="none"/>"#, shapes.lines.concat());
+    }
+    shapes
 }
 
 /// The darker of ink and black, so a translucent shadow reads on every theme.
@@ -226,7 +244,7 @@ fn write_shadow(
 
     let _ = write!(
         out,
-        r#"<path id="{slug}-shadow" d="{}" fill="{shadow}" stroke="none" opacity="{}" transform="translate({offset} {offset})"/>"#,
+        r#"<path id="{slug}-shadow" d="{}" fill="{shadow}" fill-rule="nonzero" stroke="none" opacity="{}" transform="translate({offset} {offset})"/>"#,
         shapes.areas.concat(),
         decimal(SHADOW_OPACITY),
         offset = mm(offset_mm)

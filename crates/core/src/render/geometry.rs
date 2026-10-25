@@ -6,6 +6,7 @@
 
 use std::fmt::Write;
 
+use geo::orient::{Direction, Orient};
 use geo::{BoundingRect, Coord, Geometry, LineString, Polygon};
 
 use super::layout::Rect;
@@ -199,7 +200,8 @@ pub fn decimal(value: f64) -> String {
 /// What a geometry turns into on paper.
 #[derive(Debug, Default)]
 pub struct PaperShapes {
-    /// Path data for filled areas, holes included (draw with evenodd).
+    /// Path data for filled areas, holes included. Outer rings and holes
+    /// turn opposite ways, so areas joined into one path fill as their union.
     pub areas: Vec<String>,
     /// Path data for open lines.
     pub lines: Vec<String>,
@@ -247,9 +249,10 @@ pub fn paper_shapes(geometry: &Geometry<f64>, projection: &Projection, shapes: &
     }
 }
 
-/// Path data for one polygon, every ring closed. Empty when the outer ring
-/// collapses below 0.01 mm.
+/// Path data for one polygon, every ring closed, the outer ring and the holes
+/// turning opposite ways. Empty when the outer ring collapses below 0.01 mm.
 pub fn polygon_path(polygon: &Polygon<f64>, projection: &Projection) -> String {
+    let polygon = polygon.orient(Direction::Default);
     let mut data = String::new();
     if !push_ring(&mut data, polygon.exterior(), projection, true) {
         return String::new();
@@ -335,4 +338,56 @@ fn push_points(data: &mut String, rounded: impl Iterator<Item = (i64, i64)>, clo
     }
 
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use geo::{polygon, Winding};
+
+    use super::*;
+
+    /// The paper turn of every ring in `data`, as written: relative steps after a move.
+    fn ring_turns(data: &str) -> Vec<bool> {
+        data.split('M')
+            .filter(|ring| !ring.is_empty())
+            .map(|ring| {
+                let numbers: Vec<f64> = ring
+                    .trim_end_matches('z')
+                    .replace('l', " ")
+                    .split_whitespace()
+                    .map(|number| number.parse().unwrap())
+                    .collect();
+                let mut point = (numbers[0], numbers[1]);
+                let mut corners = vec![point];
+                for step in numbers[2..].chunks(2) {
+                    point = (point.0 + step[0], point.1 + step[1]);
+                    corners.push(point);
+                }
+                // The path closes with `z`; the winding test needs the ring closed.
+                corners.push(corners[0]);
+                LineString::from(corners).is_ccw()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_hole_turns_the_other_way_from_its_outer_ring_whichever_way_they_came() {
+        // Both rings clockwise, as some sources deliver them.
+        let square = polygon!(
+            exterior: [(x: 0.0, y: 0.0), (x: 0.0, y: 100.0), (x: 100.0, y: 100.0), (x: 100.0, y: 0.0)],
+            interiors: [[(x: 20.0, y: 20.0), (x: 20.0, y: 80.0), (x: 80.0, y: 80.0), (x: 80.0, y: 20.0)]],
+        );
+        let zone = Rect {
+            x: 0.0,
+            y: 0.0,
+            width: 200.0,
+            height: 200.0,
+        };
+        let projection = Projection::new(&square, 1000, &zone);
+
+        let turns = ring_turns(&polygon_path(&square, &projection));
+
+        assert_eq!(turns.len(), 2);
+        assert_ne!(turns[0], turns[1]);
+    }
 }
