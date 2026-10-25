@@ -74,6 +74,7 @@ pub(crate) fn write_scene(scene_path: &Path, out_dir: &Path, only: Option<&Strin
                 look: &look,
                 pins: &[],
                 highlights: &[],
+                model: None,
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             let name = format!("{stem}--{}.png", theme.id);
@@ -108,6 +109,7 @@ pub(crate) fn write_osm(scene: &Scene, name: &str, out_dir: &Path) {
                 look: &look,
                 pins: &[],
                 highlights: &[],
+                model: None,
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             let file = format!("{name}--{}--{}.png", diagram.id, theme.id);
@@ -148,6 +150,7 @@ pub(crate) fn write_context(scene: &Scene, diagram_id: &str, out_dir: &Path) {
                 look: &look,
                 pins: &[],
                 highlights: &[],
+                model: None,
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             let file = format!("{}--{view_name}--{}.png", diagram.id, theme.id);

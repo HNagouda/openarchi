@@ -17,6 +17,7 @@ fn svg_for(diagram_id: &str, theme_id: &str, look: &openarchi_core::project::Loo
         look,
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .expect("render")
 }
@@ -43,6 +44,7 @@ fn every_diagram_renders_in_every_theme_as_valid_svg() {
                 look: &look,
                 pins: &[],
                 highlights: &[],
+                model: None,
             })
             .unwrap_or_else(|error| panic!("{} in {}: {error}", diagram.id, theme.id));
             parse(&svg);
@@ -225,6 +227,7 @@ fn bad_override_colour_is_an_error_not_a_broken_svg() {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     });
 
     assert!(result.is_err());
@@ -324,6 +327,7 @@ fn zero_scale_is_refused() {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .is_err());
 }

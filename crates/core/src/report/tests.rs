@@ -125,8 +125,18 @@ fn render(report: &Report, theme_id: &str) -> Vec<String> {
         .pages
         .iter()
         .flat_map(|page| page.blocks.iter().map(|block| &block.content));
-    let data =
-        ReportData::gather(&scene, &look, &[], &[], &diagrams, &theme, &cache, contents).unwrap();
+    let data = ReportData::gather(
+        &scene,
+        &look,
+        &[],
+        &[],
+        None,
+        &diagrams,
+        &theme,
+        &cache,
+        contents,
+    )
+    .unwrap();
     pages_svg(report, &data).unwrap()
 }
 
@@ -147,6 +157,7 @@ fn a_project_saved_before_reports_opens_with_none() {
         },
         scene: None,
         look: Look::default(),
+        model: None,
         more_sheets: Vec::new(),
         pins: Vec::new(),
         highlights: Vec::new(),

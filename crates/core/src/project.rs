@@ -15,6 +15,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
 use crate::highlight::Highlight;
+use crate::model::Model;
 use crate::pin::Pin;
 use crate::report::Report;
 use crate::scene::{Layer, Scene};
@@ -66,6 +67,10 @@ pub struct Project {
         skip_serializing_if = "Option::is_none"
     )]
     pub scene: Option<Scene>,
+    /// The building model the user imported, placed on the site. After the
+    /// scene, so the project list never reads its mesh. Older projects have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<Model>,
 }
 
 impl Project {

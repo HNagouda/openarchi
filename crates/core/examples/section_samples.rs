@@ -148,6 +148,7 @@ fn main() {
         look: &section,
         pins: &[],
         highlights: &[],
+        model: None,
     };
     export(
         &input,
@@ -242,6 +243,7 @@ fn write(scene: &Scene, look: &Look, theme: &Theme, path: &PathBuf) {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     };
     let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
     std::fs::write(path, png).expect("write the sample");

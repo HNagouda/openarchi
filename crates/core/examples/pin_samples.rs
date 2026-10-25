@@ -129,6 +129,7 @@ fn svg(scene: &Scene, look: &Look, pins: &[Pin]) -> String {
         look,
         pins,
         highlights: &[],
+        model: None,
     })
     .expect("render")
 }
@@ -142,6 +143,7 @@ fn write(scene: &Scene, look: &Look, pins: &[Pin], path: &Path) {
         look,
         pins,
         highlights: &[],
+        model: None,
     };
     let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render");
     std::fs::write(path, png).expect("write the sample");

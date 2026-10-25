@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use super::drawing::{write_layer, Canvas, Drawn};
 use super::legend::{self, Row};
 use super::map::layer_features;
-use super::map_shadows::{write_shadows, DIAGRAM_SHADOW_OPACITY};
+use super::map_shadows::{write_shadows, Casters, DIAGRAM_SHADOW_OPACITY};
 use super::points::{self, PointLayer};
 use super::solid;
 use super::style::ResolvedLayer;
@@ -23,7 +23,7 @@ use crate::theme::Theme;
 pub(super) struct LayerPass<'a, 'f> {
     pub layers: &'a [ResolvedLayer],
     pub features: &'a BTreeMap<Layer, Vec<&'f Feature>>,
-    pub casters: &'a [&'f Feature],
+    pub casters: &'a Casters<'f>,
     pub sun: &'a SunPosition,
     pub canvas: &'a Canvas<'a>,
     pub theme: &'a Theme,

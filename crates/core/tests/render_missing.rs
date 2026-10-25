@@ -15,6 +15,7 @@ fn notes(scene: &Scene, diagram_id: &str, look: &Look) -> Vec<String> {
         look,
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .expect("notes")
 }
@@ -69,6 +70,7 @@ fn the_neighbourhood_toggle_on_a_site_without_one_says_so_and_the_svg_carries_it
         look: &look(),
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .unwrap();
     assert!(svg
@@ -96,6 +98,7 @@ fn the_note_follows_the_variant_of_the_look() {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .unwrap();
     assert_eq!(found.len(), 1);

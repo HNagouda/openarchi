@@ -43,6 +43,7 @@ fn svg_with(look: &Look, pins: &[Pin]) -> String {
         look,
         pins,
         highlights: &[],
+        model: None,
     })
     .expect("render")
 }
@@ -187,6 +188,7 @@ fn a_sub_selection_outside_the_site_fails_with_a_reason() {
         look: &outside,
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .unwrap_err();
 
@@ -220,6 +222,7 @@ fn dxf_puts_pins_on_their_own_layer_with_their_labels() {
         look: &look,
         pins: &pins,
         highlights: &[],
+        model: None,
     };
     let folder = tempfile::tempdir().unwrap();
     let path = folder.path().join("sheet.dxf");

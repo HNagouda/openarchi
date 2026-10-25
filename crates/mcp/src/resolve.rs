@@ -113,6 +113,7 @@ pub fn with_render_input<T>(
         look,
         pins: &project.pins,
         highlights: &project.highlights,
+        model: None,
     };
     work(&input).map_err(text)
 }

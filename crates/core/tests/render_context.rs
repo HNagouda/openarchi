@@ -22,6 +22,7 @@ fn svg_of(scene: &Scene, look: &Look, theme_id: &str) -> String {
         look,
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .expect("render")
 }
@@ -119,6 +120,7 @@ fn an_opacity_past_one_is_refused() {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     });
     assert!(result.is_err());
 }
@@ -203,6 +205,7 @@ fn the_dxf_puts_the_neighbourhood_on_its_own_layers_only_when_shown() {
             look: &look,
             pins: &[],
             highlights: &[],
+            model: None,
         };
         export(&input, ExportFormat::Dxf, 300, &path).unwrap();
         let dxf = std::fs::read_to_string(&path).unwrap();

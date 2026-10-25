@@ -8,6 +8,7 @@
 use crate::analysis::{self, Part, Section};
 use crate::diagram::Diagram;
 use crate::highlight::Highlight;
+use crate::model::Model;
 use crate::pin::Pin;
 use crate::project::Look;
 use crate::ratios::{self, Group, Ratios};
@@ -27,6 +28,8 @@ pub struct ReportData<'a> {
     pub pins: &'a [Pin],
     /// The project's highlights, shown like the pins.
     pub highlights: &'a [Highlight],
+    /// The project's imported model, shown on sheet blocks like on its sheets.
+    pub model: Option<&'a Model>,
     pub diagrams: &'a [Diagram],
     /// The palette the report is drawn in.
     pub theme: &'a Theme,
@@ -45,6 +48,7 @@ impl<'a> ReportData<'a> {
         look: &'a Look,
         pins: &'a [Pin],
         highlights: &'a [Highlight],
+        model: Option<&'a Model>,
         diagrams: &'a [Diagram],
         theme: &'a Theme,
         cache: &TileCache,
@@ -74,6 +78,7 @@ impl<'a> ReportData<'a> {
             look,
             pins,
             highlights,
+            model,
             diagrams,
             theme,
             ratios,

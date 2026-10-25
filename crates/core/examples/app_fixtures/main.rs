@@ -90,6 +90,7 @@ fn main() {
                 look: &look,
                 pins: &[],
                 highlights: &[],
+                model: None,
             };
             let stem = match &variant {
                 Some(variant) => format!("{}-{variant}", diagram.id),

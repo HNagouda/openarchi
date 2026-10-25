@@ -17,6 +17,7 @@ fn render(look: &Look) -> openarchi_core::Result<String> {
         look,
         pins: &[],
         highlights: &[],
+        model: None,
     })
 }
 
@@ -265,6 +266,7 @@ fn italic_and_bold_text_embeds_its_own_faces_in_the_pdf() {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     };
     let folder = tempfile::tempdir().expect("temp folder");
     let path = folder.path().join("sheet.pdf");

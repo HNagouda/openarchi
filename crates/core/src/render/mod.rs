@@ -33,6 +33,7 @@ mod order;
 mod patterns;
 mod pins;
 mod points;
+mod proposal;
 mod section;
 mod section_draw;
 mod section_legend;
@@ -60,6 +61,7 @@ use std::fmt::Write;
 
 use crate::diagram::Diagram;
 use crate::highlight::Highlight;
+use crate::model::Model;
 use crate::pin::Pin;
 use crate::project::Look;
 use crate::scene::{Layer, Scene};
@@ -133,6 +135,9 @@ pub struct RenderInput<'a> {
     pub pins: &'a [Pin],
     /// The project's highlights, in RD New metres. Drawn unless the look hides them.
     pub highlights: &'a [Highlight],
+    /// The project's imported model. Drawn in plan, standing up and casting
+    /// shadows, with the buildings it replaces left out.
+    pub model: Option<&'a Model>,
 }
 
 /// What the sheet asks for that its scene lacks, as the sentences the app

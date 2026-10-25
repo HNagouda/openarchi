@@ -80,6 +80,7 @@ fn main() {
             look: &look,
             pins: &[],
             highlights: &[],
+            model: None,
         };
 
         let started = Instant::now();

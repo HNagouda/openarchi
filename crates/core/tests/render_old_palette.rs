@@ -40,6 +40,7 @@ fn a_palette_saved_before_computed_layers_draws_them_filled() {
             look: &look,
             pins: &[],
             highlights: &[],
+            model: None,
         })
         .expect("render")
     };

@@ -38,6 +38,7 @@ fn input<'a>(
         look,
         pins: &[],
         highlights: &[],
+        model: None,
     }
 }
 

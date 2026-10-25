@@ -140,6 +140,7 @@ pub fn dxf_with(scene: &Scene, sheet: &Sheet, pins: &[Pin], highlights: &[Highli
         look,
         pins,
         highlights,
+        model: None,
     };
     let folder = tempfile::tempdir().expect("temp folder");
     let path = folder.path().join("sheet.dxf");

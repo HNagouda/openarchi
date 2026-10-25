@@ -13,6 +13,7 @@ use geo::{Geometry, LineString, Polygon};
 
 use super::geometry::{decimal, push_paper_points, Projection};
 use super::solid::{building_height, tree_size};
+use crate::model::PlacedModel;
 use crate::scene::{polygons, Feature, Layer};
 use crate::sun::SunPosition;
 
@@ -25,6 +26,7 @@ const TREE_SHADOW_POINTS: usize = 12;
 pub fn write(
     out: &mut String,
     features: &[&Feature],
+    model: Option<&PlacedModel>,
     sun: &SunPosition,
     projection: &Projection,
     opacity: f64,
@@ -53,6 +55,9 @@ pub fn write(
             }
             _ => {}
         }
+    }
+    if let Some(model) = model {
+        push_model_shadow(&mut data, model, per_metre, projection);
     }
     if data.is_empty() {
         return;
@@ -104,6 +109,26 @@ fn push_prism_shadow(
                 (pair[0].0 + offset.0, pair[0].1 + offset.1),
             ];
             push_ground_ring(data, &quad, false, projection);
+        }
+    }
+}
+
+/// Every face of the model moved along the sun onto the ground. Together they
+/// cover the model's shadow, and they merge with the buildings' in the same
+/// nonzero fill. A face's holes count down only inside its own outline.
+fn push_model_shadow(
+    data: &mut String,
+    model: &PlacedModel,
+    per_metre: (f64, f64),
+    projection: &Projection,
+) {
+    for face in &model.faces {
+        for (index, ring) in face.rings.iter().enumerate() {
+            let on_ground: Vec<(f64, f64)> = ring
+                .iter()
+                .map(|&[x, y, z]| (x + per_metre.0 * z, y + per_metre.1 * z))
+                .collect();
+            push_ground_ring(data, &on_ground, index > 0, projection);
         }
     }
 }

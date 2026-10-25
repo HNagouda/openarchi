@@ -52,6 +52,7 @@ fn main() {
             look,
             pins: &project.pins,
             highlights: &project.highlights,
+            model: None,
         };
         let path = out.join(format!("{name}.dxf"));
         let started = Instant::now();

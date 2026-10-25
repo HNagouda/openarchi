@@ -11,6 +11,7 @@ use super::map::layer_features;
 use super::shadow;
 use super::style::ResolvedLayer;
 use super::svg::layer_attributes;
+use crate::model::PlacedModel;
 use crate::scene::{Feature, Layer};
 use crate::sun::SunPosition;
 use crate::theme::Theme;
@@ -23,21 +24,30 @@ pub(super) const AMBIENT_SHADOW_OPACITY: f64 = 0.2;
 const COOL_SHADE: &str = "#4A5878";
 const COOL_SHARE: f64 = 0.35;
 
+/// What casts a map's shadows: the buildings and trees the diagram draws,
+/// and the imported model standing among them.
+pub(super) struct Casters<'a> {
+    pub features: Vec<&'a Feature>,
+    pub model: Option<&'a PlacedModel>,
+}
+
 /// Buildings and trees the diagram draws, which are the ones that cast shadows.
 pub(super) fn shadow_casters<'a>(
     layers: &[ResolvedLayer],
     features: &BTreeMap<Layer, Vec<&'a Feature>>,
-) -> Vec<&'a Feature> {
-    layers
+    model: Option<&'a PlacedModel>,
+) -> Casters<'a> {
+    let features = layers
         .iter()
         .filter(|resolved| matches!(resolved.layer, Layer::Building | Layer::Tree))
         .flat_map(|resolved| layer_features(features, resolved.layer).iter().copied())
-        .collect()
+        .collect();
+    Casters { features, model }
 }
 
 pub(super) fn write_shadows(
     out: &mut String,
-    casters: &[&Feature],
+    casters: &Casters,
     sun: &SunPosition,
     canvas: &Canvas,
     theme: &Theme,
@@ -50,7 +60,14 @@ pub(super) fn write_shadows(
         layer_attributes(&format!("{}shadows", canvas.scope), "Shadows"),
         canvas.clip_id
     );
-    shadow::write(out, casters, sun, &canvas.projection, opacity);
+    shadow::write(
+        out,
+        &casters.features,
+        casters.model,
+        sun,
+        &canvas.projection,
+        opacity,
+    );
     out.push_str("</g>\n");
 }
 

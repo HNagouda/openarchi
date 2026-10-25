@@ -78,6 +78,7 @@ pub(crate) fn write_explode_previews(scene: &Scene, sheet: &Sheet, out_dir: &Pat
             look: &look,
             pins: &[],
             highlights: &[],
+            model: None,
         };
         let svg = render_svg(&input).expect("render the explode preview");
         fs::write(
@@ -124,6 +125,7 @@ pub(crate) fn write_section_previews(scene: &Scene, sheet: &Sheet, out_dir: &Pat
             look: &look,
             pins: &[],
             highlights: &[],
+            model: None,
         };
         let svg = render_svg(&input).expect("render the section preview");
         fs::write(

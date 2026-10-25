@@ -107,6 +107,7 @@ pub(crate) fn write_views(scene: &Scene, out_dir: &Path) {
             look: &look,
             pins: &[],
             highlights: &[],
+            model: None,
         };
         let started = Instant::now();
         let svg = render_svg(&input).expect("render the view");

@@ -86,8 +86,18 @@ pub(crate) fn write_report_blocks(scene: &Scene, cache: &TileCache, out_dir: &Pa
         }
 
         let contents: Vec<&Content> = blocks.iter().map(|(_, content, _)| content).collect();
-        let data = ReportData::gather(scene, &look, &[], &[], &diagrams, &theme, cache, contents)
-            .expect("gather the report data");
+        let data = ReportData::gather(
+            scene,
+            &look,
+            &[],
+            &[],
+            None,
+            &diagrams,
+            &theme,
+            cache,
+            contents,
+        )
+        .expect("gather the report data");
         for (name, content, (width_mm, height_mm)) in &blocks {
             let block = Block {
                 id: "block-1".to_string(),

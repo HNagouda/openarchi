@@ -21,6 +21,7 @@ pub mod highlight;
 pub mod library;
 pub(crate) mod memo;
 pub(crate) mod meteo;
+pub mod model;
 pub mod palette;
 pub mod pin;
 pub mod project;

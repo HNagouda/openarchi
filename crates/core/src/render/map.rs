@@ -20,6 +20,7 @@ use super::map_shadows::{
 };
 use super::massing;
 use super::patterns;
+use super::proposal;
 use super::solid::{self, Neighbours};
 use super::style::{self, ResolvedLayer};
 use super::sunpath::{self, SunPath};
@@ -28,6 +29,7 @@ use super::typeset::Typesetter;
 use super::viewpoint::{self, Seen};
 use super::RenderInput;
 use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER, WIND_PLACEHOLDER};
+use crate::model::Model;
 use crate::scene::{Feature, Layer, Scene};
 use crate::sun::{self, SunPosition};
 use crate::theme::Theme;
@@ -116,7 +118,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     let mut computed = derived::features(scene, diagram, look);
     computed.extend(seen.iter().map(|seen| seen.area.clone()));
     let features = cull::within_frame(
-        features_by_layer(scene, &computed, diagram),
+        features_by_layer(scene, &computed, diagram, input.model),
         frame.ground_bounds(),
         cull::caster_margin(
             tallest_building(scene).max(solid::TREE_HEIGHT_M),
@@ -138,7 +140,8 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     if let Some(neighbourhood) = &neighbourhood {
         neighbourhood.write_ground(&mut body, theme, &canvas, spec.has_volume)?;
     }
-    let casters = shadow_casters(&layers, &features);
+    let model = proposal::placed(input, &layers);
+    let casters = shadow_casters(&layers, &features, model.as_ref());
     let pass = LayerPass {
         layers: &layers,
         features: &features,
@@ -160,6 +163,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
             AMBIENT_SHADOW_OPACITY
         };
         write_shadows(&mut body, &casters, &sun, &canvas, theme, opacity);
+    }
+    if let Some(model) = model.as_ref().filter(|_| !spec.has_volume) {
+        proposal::write_plan(&mut body, model, &canvas, theme);
     }
     write_outlines(&mut body, &frame, spec, theme);
     let highlight_layer = HighlightLayer {
@@ -194,6 +200,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
             solid_layer(Layer::Building),
             solid_layer(Layer::Tree),
             neighbours.as_ref(),
+            model.as_ref(),
             diagram,
             theme,
             &canvas,
@@ -222,6 +229,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         seen.as_ref(),
         &sun,
     );
+    if model.is_some() {
+        legend.rows.push(proposal::legend_row(theme));
+    }
     if diagram.solar == Some(Solar::SunPath) {
         legend.rows.retain(|row| row.label != legend::SITE_LABEL);
         let path = SunPath {
@@ -349,18 +359,22 @@ pub(super) fn layer_features<'a, 'b>(
     features.get(&layer).map(Vec::as_slice).unwrap_or(&[])
 }
 
-/// The scene's features by layer, with the computed ones. A walk diagram
-/// takes its places, paths and bands from the walk instead, which reaches
-/// past the site, keeping only what lies within its minutes.
+/// The scene's features by layer, with the computed ones, less the buildings
+/// the model replaces. A walk diagram takes its places, paths and bands from
+/// the walk instead, which reaches past the site, keeping only what lies within its minutes.
 fn features_by_layer<'a>(
     scene: &'a Scene,
     computed: &'a [Feature],
     diagram: &Diagram,
+    model: Option<&Model>,
 ) -> BTreeMap<Layer, Vec<&'a Feature>> {
     let mut grouped: BTreeMap<Layer, Vec<&Feature>> = BTreeMap::new();
     let walk = diagram.walk_minutes.zip(scene.walk.as_ref());
     for feature in scene.features.iter().chain(computed) {
         if walk.is_some() && legend::is_point_layer(feature.layer) {
+            continue;
+        }
+        if model.is_some_and(|model| model.replaces(feature)) {
             continue;
         }
         grouped.entry(feature.layer).or_default().push(feature);

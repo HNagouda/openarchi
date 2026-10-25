@@ -79,6 +79,7 @@ fn main() {
                 look: &look,
                 pins: &[],
                 highlights: &[],
+                model: None,
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
             std::fs::write(out_dir.join(format!("{stem}.png")), png).expect("write the sample");
@@ -107,6 +108,7 @@ fn main() {
         look: &axo,
         pins: &[],
         highlights: &[],
+        model: None,
     };
     let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the axonometric");
     std::fs::write(out_dir.join("axo--context.png"), png).expect("write the axonometric");

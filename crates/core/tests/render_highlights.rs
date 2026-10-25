@@ -32,6 +32,7 @@ fn svg_with(look: &Look, highlights: &[Highlight]) -> String {
         look,
         pins: &[],
         highlights,
+        model: None,
     })
     .expect("render")
 }

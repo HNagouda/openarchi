@@ -48,6 +48,7 @@ pub(crate) fn write_layouts(scene: &Scene, out_dir: &Path) {
             look: &look,
             pins: &[],
             highlights: &[],
+            model: None,
         };
         let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the layout");
         std::fs::write(out_dir.join(format!("layout--{name}.png")), png).expect("write the layout");
@@ -67,6 +68,7 @@ pub(crate) fn write_layouts(scene: &Scene, out_dir: &Path) {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     };
     for format in [ExportFormat::Svg, ExportFormat::Pdf, ExportFormat::Dxf] {
         let path = out_dir.join(format!("westermarkt.{}", format.extension()));
@@ -140,6 +142,7 @@ pub(crate) fn write_custom_text(scene: &Scene, out_dir: &Path) {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     };
     let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the custom text");
     std::fs::write(out_dir.join("text--custom.png"), png).expect("write the custom text");

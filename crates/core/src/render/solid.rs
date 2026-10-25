@@ -17,11 +17,13 @@ use super::drawing::{Canvas, Drawn};
 use super::geometry::{decimal, mm, Projection};
 use super::lighting::light;
 use super::order::{back_to_front, Footprint};
+use super::proposal;
 use super::solid_draw::{write_building, write_tree};
 use super::style::ResolvedLayer;
 use super::svg::layer_attributes;
 use crate::diagram::Diagram;
 use crate::floors::STOREY_HEIGHT_M;
+use crate::model::PlacedModel;
 use crate::scene::{polygons, Feature};
 use crate::sun::SunPosition;
 use crate::theme::Theme;
@@ -98,6 +100,8 @@ enum Kind<'a> {
     Tree {
         at: (f64, f64),
     },
+    /// The imported model, sorted among the buildings as one solid.
+    Model(&'a PlacedModel),
 }
 
 struct Solid<'a> {
@@ -112,6 +116,7 @@ pub fn write(
     buildings: Option<(&ResolvedLayer, &[&Feature])>,
     trees: Option<(&ResolvedLayer, &[&Feature])>,
     neighbours: Option<&Neighbours>,
+    model: Option<&PlacedModel>,
     diagram: &Diagram,
     theme: &Theme,
     canvas: &Canvas,
@@ -165,6 +170,12 @@ pub fn write(
             }
         }
     }
+    if let Some(model) = model {
+        solids.push(Solid {
+            kind: Kind::Model(model),
+            height: model.height,
+        });
+    }
     if solids.is_empty() {
         return;
     }
@@ -194,7 +205,7 @@ pub fn write(
         let solid = &solids[index];
         let neighbour = match &solid.kind {
             Kind::Building { neighbour, .. } => *neighbour,
-            Kind::Tree { .. } => None,
+            Kind::Tree { .. } | Kind::Model(_) => None,
         };
         match (neighbour, is_clip_open) {
             (Some((clip_id, _)), false) => {
@@ -238,6 +249,9 @@ pub fn write(
                 let opacity = tree_style.map_or(1.0, |style| style.opacity);
                 write_tree(out, *at, &fill, opacity, &light, projection);
             }
+            Kind::Model(model) => {
+                proposal::write_solid(out, model, &theme.palette.accent, &light, projection);
+            }
         }
     }
     if is_clip_open {
@@ -273,6 +287,7 @@ pub(super) fn roof_fill(
 
 fn footprint(solid: &Solid, projection: &Projection) -> Footprint {
     let ring: Vec<(f64, f64)> = match &solid.kind {
+        Kind::Model(model) => return proposal::footprint(model, projection),
         Kind::Building { polygon, .. } => polygon
             .exterior()
             .0

@@ -27,6 +27,7 @@ use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
+use crate::model::Model;
 use crate::project::{Look, Project, PROJECT_FORMAT_VERSION};
 use crate::sheet::Frame;
 use crate::sources::cache::TileCache;
@@ -167,6 +168,7 @@ impl Library {
             area,
             scene: None,
             look: Look::default(),
+            model: None,
             reports: Vec::new(),
             more_sheets: Vec::new(),
             pins: Vec::new(),
@@ -216,13 +218,21 @@ impl Library {
             #[serde(flatten)]
             project: &'a Project,
             scene: &'a str,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            model: Option<&'a Model>,
         }
-        self.write(project, |project| {
+        // The model goes after the scene, as `Project` writes it, so the
+        // project list stops reading before its mesh.
+        let model = project.model.take();
+        let written = self.write(project, |project| {
             serde_json::to_vec(&Stored {
                 project,
                 scene: packed_scene,
+                model: model.as_ref(),
             })
-        })
+        });
+        project.model = model;
+        written
     }
 
     fn write(
@@ -393,6 +403,8 @@ fn no_project(id: &str) -> Error {
 
 #[cfg(test)]
 mod format_tests;
+#[cfg(test)]
+mod model_tests;
 #[cfg(test)]
 mod packed_save_tests;
 #[cfg(test)]

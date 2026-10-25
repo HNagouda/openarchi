@@ -178,8 +178,18 @@ fn a_three_page_report_exports_as_one_pdf_and_a_png_per_page() {
         .pages
         .iter()
         .flat_map(|page| page.blocks.iter().map(|block| &block.content));
-    let data =
-        ReportData::gather(&scene, &look, &[], &[], &diagrams, &theme, &cache, contents).unwrap();
+    let data = ReportData::gather(
+        &scene,
+        &look,
+        &[],
+        &[],
+        None,
+        &diagrams,
+        &theme,
+        &cache,
+        contents,
+    )
+    .unwrap();
     let folder = TempDir::new().unwrap();
 
     let pdf = export(
@@ -235,6 +245,7 @@ fn a_sheet_block_shows_the_projects_pins() {
         &look,
         &pins,
         &[],
+        None,
         &diagrams,
         &theme,
         &cache,

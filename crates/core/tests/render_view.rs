@@ -20,6 +20,7 @@ fn svg_with_pins(look: &Look, pins: &[Pin]) -> String {
         look,
         pins,
         highlights: &[],
+        model: None,
     })
     .expect("render")
 }

@@ -48,6 +48,13 @@ fastrand = "2"
 zstd = "0.13"
 # The compressed scene sits inside the JSON project file as text.
 base64 = "0.22"
+# Imported models. Archicad writes OBJ from Save As without add-ons; SketchUp,
+# Rhino and Blender write GLB. Both read in the core, so the MCP server imports
+# what the app imports. tobj's default ahash only speeds up its vertex map.
+tobj = { version = "4", default-features = false }
+# Only the binary .glb and .gltf with embedded buffers: no image decoding, since
+# a model draws in the sheet's palette rather than its own textures.
+gltf = { version = "1", default-features = false, features = ["utils"] }
 
 [dev-dependencies]
 tempfile = "3"

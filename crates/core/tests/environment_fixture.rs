@@ -44,6 +44,7 @@ fn svg_of(scene: &Scene, diagram_id: &str, theme_id: &str) -> String {
         look: &Look::default(),
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .unwrap_or_else(|error| panic!("{diagram_id} in {theme_id}: {error}"))
 }
@@ -114,6 +115,7 @@ fn the_look_variant_picks_the_measure_air_quality_colours() {
         look: &look,
         pins: &[],
         highlights: &[],
+        model: None,
     })
     .unwrap();
 

@@ -61,6 +61,7 @@ fn main() {
             &look,
             &[],
             &[],
+            None,
             &diagrams,
             &theme,
             &cache,

@@ -52,6 +52,7 @@ pub fn export_series(
             look: &file.look,
             pins: &project.pins,
             highlights: &project.highlights,
+            model: None,
         };
         export::export_with_dxf_layers(&input, format, dpi, dxf_layers, &file.path)
             .map_err(text)?;

@@ -64,16 +64,28 @@ pub fn light(sun: &SunPosition, theme: &Theme) -> Light {
 
 /// Lighter than the roof where the wall catches more sun than the roof does, darker where less.
 pub fn wall_fill(base: &str, normal: (f64, f64), light: &Light) -> String {
+    face_fill(base, [normal.0, normal.1, 0.0], light)
+}
+
+/// `wall_fill` for a face turned any way, such as an imported model's sloped
+/// roof: a face looking straight up keeps its base colour like a flat roof,
+/// a wall is lit as a wall, and a slope falls between the two.
+pub fn face_fill(base: &str, normal: [f64; 3], light: &Light) -> String {
     let strength = light.strength;
+    let steepness = 1.0 - normal[2].max(0.0);
     let Some((east, north, up)) = light.sun else {
-        return color::mix(base, &light.shade, (AMBIENT_SHADE + SHADE_GAIN) * strength);
+        return color::mix(
+            base,
+            &light.shade,
+            (AMBIENT_SHADE + SHADE_GAIN) * steepness * strength,
+        );
     };
-    let wall_light = (normal.0 * east + normal.1 * north).max(0.0);
-    let difference = wall_light - up - ROOF_BIAS;
+    let face_light = (normal[0] * east + normal[1] * north + normal[2] * up).max(0.0);
+    let difference = face_light - up - ROOF_BIAS * steepness;
     if difference > 0.0 {
         color::mix(base, "#FFFFFF", difference * SUNLIT_GAIN * strength)
     } else {
-        let share = AMBIENT_SHADE - difference * SHADE_GAIN;
+        let share = AMBIENT_SHADE * steepness - difference * SHADE_GAIN;
         color::mix(base, &light.shade, share * strength)
     }
 }
@@ -92,5 +104,15 @@ mod tests {
         let south = wall_fill("#808080", (0.0, -1.0), &light);
         let north = wall_fill("#808080", (0.0, 1.0), &light);
         assert!(color::luminance(&south) > color::luminance(&north));
+    }
+
+    #[test]
+    fn a_face_looking_straight_up_keeps_its_roof_colour() {
+        let light = Light {
+            sun: Some((0.0, -0.7, 0.7)),
+            shade: "#000000".to_string(),
+            strength: 1.0,
+        };
+        assert_eq!(face_fill("#808080", [0.0, 0.0, 1.0], &light), "#808080");
     }
 }
