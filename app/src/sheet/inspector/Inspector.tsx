@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { readPreference, writePreference } from "../../lib/storage";
 import type { Catalog, Look, ProjectView } from "../../lib/types";
 import { Segmented } from "../../ui/Segmented";
@@ -22,10 +22,12 @@ type Props = {
   onSeal: () => void;
   onCatalogChanged: () => Promise<unknown> | void;
   viewPoint: ViewPointControls;
+  /** The imported model's section, which edits the model rather than the look. */
+  modelSection: ReactNode;
 };
 
 /** The right-hand panel. Every control edits the look, and every edit can be undone. */
-export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogChanged, viewPoint }: Props) {
+export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogChanged, viewPoint, modelSection }: Props) {
   const [tab, setTab] = useState<Tab>(() => readPreference<Tab>("inspectorTab", "style"));
   const drawn = sheetDiagrams(catalog.diagrams, look);
   const theme = catalog.themes.find((entry) => entry.id === look.theme_id);
@@ -73,6 +75,7 @@ export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogCha
             />
           )}
           {canPlaceEye(drawn, look) && <ViewPointSection look={look} controls={viewPoint} onLook={onLook} />}
+          {modelSection}
           <ViewSection diagrams={catalog.diagrams} look={look} onLook={onLook} onSeal={onSeal} />
           <SheetSection look={look} onLook={onLook} onSeal={onSeal} />
         </>

@@ -283,7 +283,38 @@ export type ProjectView = {
   credits: Credit[];
   layers_present: Layer[];
   reports: Report[];
+  /** The imported model in effect. */
+  model: ModelView | null;
 };
+
+/** The unit a model file was read in, and the file's axis taken as up. */
+export type ModelUnit = "metre" | "centimetre" | "millimetre";
+export type UpAxis = "y" | "z";
+
+/** Where a model stands: RD New metres, a clockwise turn, and its base in metres above NAP or null for "on the terrain". */
+export type Placement = { x: number; y: number; rotation_deg: number; base_m?: number | null };
+
+/** The model in effect, as the sheet's undo history keeps it: which one, where, and the BAG ids it replaces. */
+export type ModelChoice = { key: string; placement: Placement; replaced: string[] };
+
+export type ModelView = {
+  key: string;
+  file_name: string;
+  unit: ModelUnit;
+  up: UpAxis;
+  /** Width, depth and height in metres. */
+  size_m: [number, number, number];
+  triangles: number;
+  placement: Placement;
+  replaced: string[];
+  /** Footprint outlines in the model's own frame, metres around its middle. */
+  footprint: [number, number][][];
+  /** The terrain under it in metres above NAP, when known. */
+  ground_m: number | null;
+};
+
+/** An existing building the model reaches over, and how much of it, 0 to 1. */
+export type CoveredBuilding = { id: string; share: number; year_built: number | null; height_m: number | null };
 
 export type Place = { label: string; kind: string; location: LonLat };
 

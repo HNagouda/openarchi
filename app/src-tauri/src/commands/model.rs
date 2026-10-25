@@ -16,7 +16,7 @@ use tauri::State;
 
 use crate::commands::render::open_scene;
 use crate::guard::{blocking, text};
-use crate::state::{lock, model_key, OpenProject, Shared};
+use crate::state::{lock, model_key, AppState, OpenProject, Shared};
 
 /// What the model panel and the plan need to know about a model.
 #[derive(Serialize)]
@@ -91,15 +91,51 @@ pub async fn import_model(
         let scene = open_scene(&state)?;
         let model =
             model::import(&PathBuf::from(&path), unit, up, &scene, placement).map_err(text)?;
-        let view = |key: String| view_of_model(key, &model, Some(&scene));
-        let mut open = lock(&state.open);
-        let open = open.as_mut().ok_or("No project is open.")?;
-        let key = model_key(open.models.len());
-        let shown = view(key.clone());
-        open.models.push((key, model.clone()));
-        Ok(shown)
+        keep(&state, model, &scene)
     })
     .await
+}
+
+/// The model with `key` read in another unit or with another axis up, kept
+/// under a new key like an import.
+#[tauri::command]
+pub async fn reread_model(
+    state: State<'_, Shared>,
+    key: String,
+    unit: Unit,
+    up: UpAxis,
+) -> Result<ModelView, String> {
+    let state = state.inner().clone();
+    blocking(move || {
+        let scene = open_scene(&state)?;
+        let kept = {
+            let open = lock(&state.open);
+            let open = open.as_ref().ok_or("No project is open.")?;
+            kept(open, &key)?.clone()
+        };
+        keep(&state, kept.reread(unit, up), &scene)
+    })
+    .await
+}
+
+/// Keeps `model` under the next key and describes it. Its faces are worked
+/// out before the lock is taken, so previews keep drawing meanwhile.
+fn keep(state: &AppState, model: Model, scene: &Scene) -> Result<ModelView, String> {
+    model.shape();
+    let mut open = lock(&state.open);
+    let open = open.as_mut().ok_or("No project is open.")?;
+    let key = model_key(open.models.len());
+    let shown = view_of_model(key.clone(), &model, Some(scene));
+    open.models.push((key, model));
+    Ok(shown)
+}
+
+fn kept<'a>(open: &'a OpenProject, key: &str) -> Result<&'a Model, String> {
+    open.models
+        .iter()
+        .find(|(kept_key, _)| kept_key == key)
+        .map(|(_, model)| model)
+        .ok_or_else(|| format!("There is no model “{key}” in this project."))
 }
 
 /// Puts the model with `choice.key` in effect where `choice` places it, or
@@ -143,12 +179,7 @@ pub async fn covered_buildings(
 
 fn chosen(open: &OpenProject, choice: ModelChoice) -> Result<Model, String> {
     choice.placement.check().map_err(text)?;
-    let (_, kept) = open
-        .models
-        .iter()
-        .find(|(key, _)| key == &choice.key)
-        .ok_or_else(|| format!("There is no model “{}” in this project.", choice.key))?;
-    let mut model = kept.clone();
+    let mut model = kept(open, &choice.key)?.clone();
     model.placement = choice.placement;
     model.replaced = choice.replaced;
     Ok(model)

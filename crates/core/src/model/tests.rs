@@ -133,6 +133,25 @@ fn a_unit_chosen_by_the_user_wins_over_the_guess() {
 }
 
 #[test]
+fn a_model_read_again_matches_reading_the_file_that_way() {
+    let path = fixture("l-block-y-up.obj");
+    let scene = site(Vec::new());
+    let as_guessed = import(&path, None, None, &scene, None).unwrap();
+    let (direct, _, _) = read(&path, Some(Unit::Centimetre), Some(UpAxis::Y)).unwrap();
+
+    let reread = as_guessed.reread(Unit::Centimetre, UpAxis::Y);
+
+    assert_eq!(reread.mesh.triangles, direct.triangles);
+    for (a, b) in reread.mesh.positions.iter().zip(&direct.positions) {
+        assert!(
+            (0..3).all(|axis| (a[axis] - b[axis]).abs() < 1e-9),
+            "{a:?} {b:?}"
+        );
+    }
+    assert_eq!(reread.placement, as_guessed.placement);
+}
+
+#[test]
 fn coplanar_triangles_merge_into_one_face_each() {
     let (mesh, _, _) = read(&fixture("gable-house.glb"), None, None).unwrap();
     let shape = faces::shape(&mesh);

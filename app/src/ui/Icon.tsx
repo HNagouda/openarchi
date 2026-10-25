@@ -24,6 +24,9 @@ const PATHS: Record<string, string> = {
   square: "M3 3h10v10H3z",
   area: "M3 5.5 7.5 2.5 13 4.5 12 11.5 6 13.5 2.5 10z",
   section: "M2.5 10h11M2.5 7v6M13.5 7v6M2.5 7l2-2.5M13.5 7l-2-2.5",
+  // The imported model: a box seen from a corner, and the four arrows that move it.
+  cube: "M8 1.5l5.5 3v7L8 14.5l-5.5-3v-7zM2.5 4.5 8 7.5l5.5-3M8 7.5v7",
+  move: "M8 1.5v13M1.5 8h13M6 3.5 8 1.5l2 2M6 12.5l2 2 2-2M3.5 6 1.5 8l2 2M12.5 6l2 2-2 2",
   eye: "M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
   eyeOff: "M2.5 2.5l11 11M6.6 4C7 3.7 7.5 3.5 8 3.5c4 0 6.5 4.5 6.5 4.5a12 12 0 0 1-1.8 2.3M4.3 5.3A12 12 0 0 0 1.5 8S4 12.5 8 12.5c1 0 2-.3 2.8-.8",
   undo: "M5.5 4 2.5 7l3 3M2.5 7H10a3.5 3.5 0 0 1 0 7H8",

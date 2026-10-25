@@ -10,12 +10,18 @@ import type {
   AreaSize,
   Catalog,
   ChartStyle,
+  CoveredBuilding,
   DxfLayers,
   ExportFormat,
   LaserExport,
   LaserSettings,
   LaserSummary,
   Look,
+  ModelChoice,
+  ModelUnit,
+  ModelView,
+  Placement,
+  UpAxis,
   Highlight,
   Pin,
   Place,
@@ -109,6 +115,15 @@ export const analysisFileName = (sectionId: string | null) => invoke<string>("an
 /** SVG or PDF, by the extension of `path`. Without a section id, the whole analysis. */
 export const exportAnalysis = (themeId: string, selection: Area | null, sectionId: string | null, path: string) =>
   invoke<string>("export_analysis", { themeId, selection, sectionId, path });
+
+/** Reads a model file and keeps it under a new key; it takes effect through `setModel`. */
+export const importModel = (path: string, unit: ModelUnit | null, up: UpAxis | null, placement: Placement | null) =>
+  invoke<ModelView>("import_model", { path, unit, up, placement });
+/** The same model read in another unit or with another axis up, kept under a new key. */
+export const rereadModel = (key: string, unit: ModelUnit, up: UpAxis) => invoke<ModelView>("reread_model", { key, unit, up });
+/** Puts a model in effect where the choice places it, or takes it away with null. */
+export const setModel = (choice: ModelChoice | null) => invoke<void>("set_model", { choice });
+export const coveredBuildings = (choice: ModelChoice) => invoke<CoveredBuilding[]>("covered_buildings", { choice });
 
 export const saveReports = (reports: Report[]) => invoke<string>("save_reports", { reports });
 /** One block on its own, `width_mm` by `height_mm`, for the report editor to place. */

@@ -6,17 +6,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorText, fittingScale, saveSheets } from "../../lib/ipc";
 import { useHistory } from "../../lib/history";
-import type { Area, Highlight, Look, Pin, ProjectView } from "../../lib/types";
+import type { Area, Highlight, Look, ModelChoice, Pin, ProjectView } from "../../lib/types";
 import { useToast } from "../../ui/Toasts";
 import { withoutLostViewPins } from "../viewpoint/viewPointEdits";
 import { movedTo, sheetName, withAreaSheet, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
 
-/** The sheets, pins and highlights a project view holds. The core migrates older projects, so all three are always there. */
+/** The sheets, pins, highlights and model a project view holds. The core migrates older projects, so all are always there. */
 export function workbookOf(project: ProjectView): Workbook {
-  return { sheets: project.sheets, pins: project.pins, highlights: project.highlights };
+  const model = project.model && { key: project.model.key, placement: project.model.placement, replaced: project.model.replaced };
+  return { sheets: project.sheets, pins: project.pins, highlights: project.highlights, model };
 }
 
-/** Writes every sheet, pin and highlight of the open project. */
+/** Writes every sheet, pin and highlight of the open project, and the model the app already holds (see useModelSync). */
 export const saveWorkbook = (book: Workbook) => saveSheets(book.sheets, book.pins, book.highlights);
 
 /** The first sheet that differs between two workbooks of the same length, for undo to show it. */
@@ -81,6 +82,11 @@ export function useWorkbook(project: ProjectView) {
     [change],
   );
 
+  const changeModel = useCallback(
+    (model: ModelChoice | null, mergeKey?: string) => change({ ...latest.current.book, model }, mergeKey),
+    [change],
+  );
+
   /** A new tab after the others, in the showing sheet's look, framing `selection` at the scale that fills the paper. */
   const addAreaSheet = async (name: string, selection: Area) => {
     const { book: current, index: from } = latest.current;
@@ -137,6 +143,7 @@ export function useWorkbook(project: ProjectView) {
     changeLook,
     changePins,
     changeHighlights,
+    changeModel,
     addAreaSheet,
     addSheet,
     duplicateSheet,

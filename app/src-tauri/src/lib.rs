@@ -95,6 +95,7 @@ pub fn run() {
             palettes::delete_palette,
             palettes::restore_palette,
             model::import_model,
+            model::reread_model,
             model::set_model,
             model::covered_buildings,
         ])

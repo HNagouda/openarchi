@@ -9,6 +9,7 @@ import { chosenVariant } from "../lib/diagrams";
 import type { Area, Catalog, Highlight, Credit, LaserSettings, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
 import { answerPalette, withPaletteEdits } from "./mockPalettes";
 import { mockHighlightArea, withMockHighlights } from "./mockHighlights";
+import { answerModel, mockModelView, withMockModel } from "./mockModel";
 import { withMockPins } from "./mockPins";
 import { withMockSection } from "./mockSection";
 import { withMockViewPoint } from "./mockViewPoint";
@@ -98,6 +99,7 @@ function view(project: ProjectSummary): ProjectView {
     credits: fixture.credits,
     layers_present: fixture.layers_present,
     reports: openReports,
+    model: mockModelView(),
   };
 }
 
@@ -121,6 +123,8 @@ async function answer(command: string, args: Args) {
   const project = PROJECTS.find((entry) => entry.id === args.id);
   const palette = await answerPalette(command, args, fixture.catalog, (shown) => answer("render_preview", { look: shown }));
   if (palette !== undefined) return palette;
+  const model = answerModel(command, args);
+  if (model !== undefined) return model;
   if (command === "library_path") return "/Users/you/Documents/openarchi";
   if (command === "list_projects") return PROJECTS;
   if (command === "list_trash") return TRASH;
@@ -154,7 +158,7 @@ async function answer(command: string, args: Args) {
     // The explode fixture's ground points belong to its top plate, so the mock draws highlights there only;
     // the core draws them on every plate.
     const highlights = shown.hide_highlights ? [] : ((args.highlights as Highlight[] | undefined) ?? []);
-    const withHighlights = withMockHighlights(withLine, highlights);
+    const withHighlights = withMockHighlights(withMockModel(withLine), highlights);
     return shown.hide_pins ? withHighlights : withMockPins(withHighlights, pins);
   }
   if (command === "render_thumbnail") return picture(args.look as Look);

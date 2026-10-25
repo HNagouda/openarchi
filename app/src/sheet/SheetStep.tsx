@@ -42,6 +42,9 @@ import { SheetTabs } from "./tabs/SheetTabs";
 import { useTabKeys } from "./tabs/useTabKeys";
 import { saveWorkbook, useWorkbook } from "./tabs/useWorkbook";
 import { useProjectSync } from "./useProjectSync";
+import { ModelOverlay } from "./model/ModelOverlay";
+import { ModelSection } from "./model/ModelSection";
+import { useModelTool } from "./model/useModelTool";
 import { ReportsWorkspace } from "../report/ReportsWorkspace";
 import { useLibraryPreviews } from "../report/previews/useLibraryPreviews";
 
@@ -113,6 +116,17 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const sectionTool = useSectionTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: isEditable, onRefused: (message) => toast(message) });
   const hasEye = isEditable && canPlaceEye(sheetDiagrams(diagrams, look), look);
   const viewPointTool = useViewPointTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: hasEye, onRefused: (message) => toast(message) });
+  const drawAgain = useCallback(() => setRevision((value) => value + 1), []);
+  const modelTool = useModelTool({
+    project,
+    choice: book.model,
+    onModel: history.changeModel,
+    onSeal: history.seal,
+    onApplied: drawAgain,
+    isEnabled: isEditable,
+    toast,
+    onUndo: history.undo,
+  });
   const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool, viewPoint: viewPointTool };
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
   const { selectDiagram, selectVariant, stepDiagram, stepVariant, stepTheme } = useDiagramStepping(look, diagrams, themes, history.changeLook);
@@ -199,7 +213,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       ArrowLeft: () => stepVariant(-1),
       ArrowRight: () => stepVariant(1),
     };
-    const isNothingSelected = textTool.selectedId === null && pinTool.selectedId === null && highlights.tool.selectedId === null;
+    const isNothingSelected = textTool.selectedId === null && pinTool.selectedId === null && highlights.tool.selectedId === null && !modelTool.isPlacing;
     if (steps[key] && isNothingSelected) {
       event.preventDefault();
       steps[key]();
@@ -263,6 +277,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
                     <SectionOverlay view={view} svg={preview.svg} draft={sectionTool.draft} isSelected={sectionTool.isSelected} />
                     {highlights.overlay(view)}
                     <ViewPointOverlay view={view} draft={viewPointTool.draft} />
+                    <ModelOverlay view={view} tool={modelTool} />
                     <PinOverlay
                       view={view}
                       svg={preview.svg}
@@ -333,6 +348,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               onSeal={history.seal}
               onCatalogChanged={onRetryCatalog}
               viewPoint={{ pins: book.pins, isPlacing: viewPointTool.isPlacing, onPlace: viewPointTool.toggle }}
+              modelSection={<ModelSection tool={modelTool} />}
             />
           )}
         </div>

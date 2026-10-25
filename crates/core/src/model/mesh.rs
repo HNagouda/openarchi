@@ -133,7 +133,11 @@ pub fn normalised(raw: RawMesh, unit: Unit, up: UpAxis) -> Result<Mesh> {
         ));
     }
 
-    let scale = unit.metres();
+    Ok(normalised_unchecked(raw, unit.metres(), up))
+}
+
+/// `raw` scaled by `scale`, turned so `up` points up, centred and standing on z = 0.
+fn normalised_unchecked(raw: RawMesh, scale: f64, up: UpAxis) -> Mesh {
     // glTF's y up turns into z up with its front (+z) facing south (-y), so a
     // model drawn facing the viewer in its program faces south on the site.
     let turned: Vec<[f64; 3]> = raw
@@ -151,10 +155,31 @@ pub fn normalised(raw: RawMesh, unit: Unit, up: UpAxis) -> Result<Mesh> {
         .map(|p| [p[0] - centre[0], p[1] - centre[1], p[2] - centre[2]])
         .collect();
 
-    Ok(Mesh {
+    Mesh {
         positions,
         triangles: raw.triangles,
-    })
+    }
+}
+
+/// `mesh`, read in `unit` with `up` as up, as if the file were read so again.
+/// Reading undoes the old axis and scale and applies the new ones, and both
+/// are linear, so it gives what reading the file would, without the file.
+pub fn reread(mesh: &Mesh, from: (Unit, UpAxis), to: (Unit, UpAxis)) -> Mesh {
+    let scale = to.0.metres() / from.0.metres();
+    let file_axes: Vec<[f64; 3]> = mesh
+        .positions
+        .iter()
+        .map(|&[x, y, z]| match from.1 {
+            UpAxis::Z => [x, y, z],
+            // The inverse of y up's [x, -z, y].
+            UpAxis::Y => [x, z, -y],
+        })
+        .collect();
+    let raw = RawMesh {
+        positions: file_axes,
+        triangles: mesh.triangles.clone(),
+    };
+    normalised_unchecked(raw, scale, to.1)
 }
 
 /// The lowest and highest value on each axis; zeros for no points.

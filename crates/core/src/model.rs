@@ -133,6 +133,21 @@ impl Model {
                 .is_some_and(|id| self.replaced.contains(id))
     }
 
+    /// The same model read in `unit` with `up` as up, at the same place,
+    /// replacing the same buildings.
+    pub fn reread(&self, unit: Unit, up: UpAxis) -> Model {
+        let mesh = mesh::reread(&self.mesh, (self.unit, self.up), (unit, up));
+        let mut model = Model::new(
+            self.file_name.clone(),
+            unit,
+            up,
+            mesh,
+            self.placement.clone(),
+        );
+        model.replaced = self.replaced.clone();
+        model
+    }
+
     pub fn shape(&self) -> Arc<Shape> {
         self.shape
             .get_or_init(|| Arc::new(faces::shape(&self.mesh)))

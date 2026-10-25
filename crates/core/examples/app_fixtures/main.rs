@@ -8,6 +8,7 @@
 //!
 //! cargo run --release -p openarchi-core --example app_fixtures   # writes app/dev-fixtures/
 
+mod model;
 mod palettes;
 mod previews;
 mod recorded;
@@ -25,6 +26,7 @@ use openarchi_core::scene::{Layer, Scene};
 use openarchi_core::sheet::Sheet;
 use serde_json::json;
 
+use self::model::write_model;
 use self::palettes::{fixture_themes, write_palette};
 use self::previews::{
     write_explode_previews, write_laser_summaries, write_ratios, write_section_previews,
@@ -57,6 +59,7 @@ fn main() {
     write_palette(&out_dir);
     write_analysis(&scene, &cache, &out_dir);
     write_report_blocks(&scene, &cache, &out_dir);
+    write_model(&scene, &out_dir);
 
     let sheet = Sheet {
         title: "Westermarkt".to_string(),

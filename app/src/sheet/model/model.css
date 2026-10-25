@@ -1,0 +1,73 @@
+/* The model's footprint while it is placed on the sheet, and the inspector's model fields. */
+
+.model-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.model-outline {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  pointer-events: all;
+  cursor: move;
+}
+
+.model-handle-arm {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.model-handle {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+  pointer-events: all;
+  cursor: grab;
+}
+
+.model-handle:active {
+  cursor: grabbing;
+}
+
+.model-facts {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.model-hint {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.model-replaced {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.model-replaced label {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.model-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
