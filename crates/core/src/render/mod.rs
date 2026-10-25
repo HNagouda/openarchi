@@ -44,6 +44,7 @@ mod symbols;
 mod text;
 mod tools;
 mod typeset;
+mod viewpoint;
 mod walk_bands;
 
 use std::fmt::Write;

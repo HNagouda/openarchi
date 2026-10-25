@@ -1,0 +1,20 @@
+{
+    "id": "view",
+    "name": "View",
+    "group": "Context and built form",
+    "description": "What a person standing at the viewpoint can see of the ground, past the buildings and the terrain.",
+    "layers": [
+        "viewshed",
+        "water",
+        "building"
+    ],
+    "emphasis": "viewshed",
+    "mute_others": true,
+    "highlight": [
+        "water"
+    ],
+    "as_figure": [],
+    "blank": [
+        "building"
+    ]
+}

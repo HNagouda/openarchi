@@ -96,6 +96,13 @@
       "stroke_mm": 0.0,
       "pattern": null
     },
+    "viewshed": {
+      "fill": "@accent",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "opacity": 0.35,
+      "pattern": null
+    },
     "block": {
       "fill": "@figure",
       "stroke": "@paper",

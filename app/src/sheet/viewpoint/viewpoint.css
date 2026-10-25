@@ -1,0 +1,30 @@
+/* The eye being dragged over the sheet, and the inspector's viewpoint fields. */
+
+.view-point-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.view-point-draft {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+/* While the tool is on, the sheet takes a crosshair instead of the hand that pans it. */
+.canvas-wrap.is-placing-view-point .paper,
+.canvas-wrap.is-placing-view-point .canvas {
+  cursor: crosshair;
+}
+
+.view-point-hint {
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
+}

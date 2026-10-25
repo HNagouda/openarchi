@@ -14,7 +14,7 @@
 //! every shadow. A sun lower than the shadow diagram draws counts as no sun, as
 //! it would only graze the ground.
 
-// Shared with the sky view factor and solar radiation, which work on the same grid.
+// Shared with the sky view factor, solar radiation and viewshed, which work on the same kind of grid.
 pub(crate) mod raster;
 
 use geo::{BooleanOps, Geometry, LineString, MultiPolygon, Polygon};

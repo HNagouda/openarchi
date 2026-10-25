@@ -25,6 +25,7 @@ use super::style::{self, ResolvedLayer};
 use super::sunpath::{self, SunPath};
 use super::svg::layer_attributes;
 use super::typeset::Typesetter;
+use super::viewpoint;
 use super::walk_bands::{self, Bands};
 use super::RenderInput;
 use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER};
@@ -350,7 +351,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     }
     let location = sun::site_location(&scene.area);
     let sun = sun::position_at(location, &look.sun);
-    let computed = derived::features(scene, diagram, &look.sun);
+    let seen = viewpoint::compute(scene, diagram, look, frame.ground_bounds());
+    let mut computed = derived::features(scene, diagram, &look.sun);
+    computed.extend(seen.iter().map(|seen| seen.area.clone()));
     let features = cull::within_frame(
         features_by_layer(scene, &computed, diagram),
         frame.ground_bounds(),
@@ -506,6 +509,16 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     }
 
     highlights::write_over(&mut body, &highlight_layer);
+    if let Some(seen) = &seen {
+        viewpoint::write_eye(
+            &mut body,
+            seen,
+            &canvas,
+            palette,
+            typesetter.unit,
+            !spec.is_plate,
+        );
+    }
 
     let mut legend = legend::build(&layers, &drawn, diagram, &palette.accent);
     // The note names the year of the data, which only the scene knows.
@@ -529,6 +542,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         .extend(highlights::legend_rows(&highlight_layer));
     if is_shadow_diagram {
         legend.rows.push(shadow_row(&sun, look, theme));
+    }
+    if let Some(seen) = &seen {
+        viewpoint::describe(&mut legend, seen, palette);
     }
     if diagram.solar == Some(Solar::SunPath) {
         legend.rows.retain(|row| row.label != legend::SITE_LABEL);

@@ -193,6 +193,7 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::SolarRadiation => 40,
         Layer::TreeCanopy | Layer::GreenCover | Layer::VegetationIndex => 3,
         Layer::HeatIsland => 30,
+        Layer::Viewshed => 50,
         #[allow(unreachable_patterns)]
         _ => PLAIN_COLOUR,
     }

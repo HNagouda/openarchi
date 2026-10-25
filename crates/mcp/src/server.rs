@@ -79,7 +79,8 @@ impl OpenArchi {
                 + Self::sheet_tools()
                 + Self::laser_tools()
                 + Self::section_tools()
-                + Self::highlight_tools(),
+                + Self::highlight_tools()
+                + Self::view_point_tools(),
         }
     }
 

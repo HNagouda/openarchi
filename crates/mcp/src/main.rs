@@ -19,6 +19,7 @@ mod sheets;
 mod summary;
 mod text;
 mod user_themes;
+mod view_point;
 
 use std::process::ExitCode;
 

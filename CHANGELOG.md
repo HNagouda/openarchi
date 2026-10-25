@@ -297,6 +297,14 @@ Sheets can now show the site in three dimensions and the sun over it.
 - Text outside plain ASCII, such as m² or an accented street name, is written as the `\U+00B2` escapes R12 uses for it instead of raw UTF-8, which older readers garbled.
 - Assistants export the whole series with `export` and `series: true` into a `folder`, as the dialog does, and `export_laser` with `check_only` no longer needs a folder.
 
+### View
+
+- A new View diagram tints the ground a person standing at a viewpoint can see, over the site and the whole drawing, with the eye drawn where it stands. The legend names the method, the eye height and how much of the site's open ground is in view.
+- It is worked out by line of sight (the R2 viewshed of Franklin and Ray, 1994) past every building of the site and its neighbourhood at its roof height, standing on the kept terrain where the site has it. The eye stands 1.5 m up, the standing eye level the Landscape Institute's guidance on visual representation fixes. Trees are left out, because a standing eye sees the ground under their crowns.
+- The eye starts on the street or square nearest the site centre. The Viewpoint section of the inspector stands it on one of the project's pins or back at the centre, V or Place on the sheet puts it where you click, and the eye can be dragged on the sheet. Every move undoes. A viewpoint on a roof looks from the roof.
+- The view draws in plan, axonometric and on an explode plate. It takes a few milliseconds, so it redraws with every change.
+- Assistants set the viewpoint with `set_view_point`, and `list_sheets` shows it.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

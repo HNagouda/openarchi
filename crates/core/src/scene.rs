@@ -248,14 +248,18 @@ pub enum Layer {
     VegetationIndex,
     /// How much warmer the air is than in the countryside around, in bands.
     HeatIsland,
+    /// The ground a person standing at the sheet's viewpoint can see.
+    /// Computed from building heights and the terrain when drawn, never stored.
+    Viewshed,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 39] = [
+    pub const ALL: [Layer; 40] = [
         // Measured surfaces lie under the map, as the ground they describe.
         Layer::SolarRadiation,
         Layer::SkyView,
+        Layer::Viewshed,
         Layer::SunHours,
         Layer::HeatIsland,
         Layer::VegetationIndex,
@@ -336,6 +340,7 @@ impl Layer {
             Layer::GreenCover => "Green cover",
             Layer::VegetationIndex => "Vegetation index",
             Layer::HeatIsland => "Heat island",
+            Layer::Viewshed => "Ground in view",
         }
     }
 }
