@@ -17,15 +17,14 @@ use crate::style_inputs::{OverrideInput, SheetInput, SunInput, ViewInput};
 /// `diagram` is the diagram id and variant, already checked.
 pub fn updated_look(
     look: &Look,
-    diagram: Option<(String, Option<String>)>,
+    diagram: (String, Option<String>),
     theme_id: Option<String>,
     sheet: Option<SheetInput>,
     overrides: Option<BTreeMap<String, Option<OverrideInput>>>,
     view: Option<ViewInput>,
     sun: Option<SunInput>,
 ) -> Result<Look, String> {
-    let (diagram_id, variant) =
-        diagram.unwrap_or_else(|| (look.diagram_id.clone(), look.variant.clone()));
+    let (diagram_id, variant) = diagram;
     let view = updated_view(&look.view, view.unwrap_or_default())?;
     // As in the app, where the Section view is greyed out until a line is drawn.
     if view.mode == ViewMode::Section && look.section.is_none() {
@@ -43,7 +42,8 @@ pub fn updated_look(
         overrides: updated_overrides(&look.overrides, overrides.unwrap_or_default())?,
         view,
         sun: updated_sun(&look.sun, sun.unwrap_or_default())?,
-        // The tab's name, sheet area, pin toggle and section line are not set_look's to change.
+        // Everything else on the sheet (name, area, marks, section, viewpoint,
+        // wind) has its own tool.
         ..look.clone()
     })
 }
@@ -207,7 +207,8 @@ mod tests {
             ..SheetInput::default()
         };
 
-        let updated = updated_look(&look, None, None, Some(sheet), None, None, None).unwrap();
+        let diagram = (look.diagram_id.clone(), None);
+        let updated = updated_look(&look, diagram, None, Some(sheet), None, None, None).unwrap();
 
         assert_eq!(updated.sheet.paper, Paper::A1);
         assert_eq!(updated.sheet.title, "Westermarkt");
@@ -221,7 +222,7 @@ mod tests {
         let look = Look::default();
         let updated = updated_look(
             &look,
-            Some(("figure-ground".into(), None)),
+            ("figure-ground".into(), None),
             None,
             None,
             None,
@@ -251,7 +252,8 @@ mod tests {
             ),
         ]);
 
-        let updated = updated_look(&look, None, None, None, Some(changes), None, None).unwrap();
+        let diagram = (look.diagram_id.clone(), None);
+        let updated = updated_look(&look, diagram, None, None, Some(changes), None, None).unwrap();
 
         assert!(!updated.overrides.contains_key(&Layer::Water));
         assert!(updated.overrides.contains_key(&Layer::Tree));
@@ -264,9 +266,10 @@ mod tests {
     #[test]
     fn unknown_layer_names_the_valid_ones() {
         let changes = BTreeMap::from([("buildings".to_string(), None)]);
+        let look = Look::default();
         let error = updated_look(
-            &Look::default(),
-            None,
+            &look,
+            (look.diagram_id.clone(), None),
             None,
             None,
             Some(changes),

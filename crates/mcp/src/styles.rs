@@ -80,7 +80,7 @@ impl OpenArchi {
                 let diagram = chosen_diagram(look, input.diagram_id, input.variant)?;
                 let updated = updated_look(
                     look,
-                    Some(diagram),
+                    diagram,
                     input.theme_id,
                     input.sheet,
                     input.overrides,
