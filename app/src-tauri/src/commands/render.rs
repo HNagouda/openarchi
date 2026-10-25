@@ -7,6 +7,7 @@ use base64::Engine;
 use openarchi_core::area::Area;
 use openarchi_core::catalog;
 use openarchi_core::export::render_png;
+use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
@@ -54,6 +55,7 @@ pub fn with_input<T>(
     scene: &Scene,
     look: &Look,
     pins: &[Pin],
+    highlights: &[Highlight],
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
     let Some(diagram) = catalog
@@ -77,6 +79,7 @@ pub fn with_input<T>(
         theme,
         look,
         pins,
+        highlights,
     };
     work(&input).map_err(text)
 }
@@ -128,6 +131,7 @@ fn render_shown<T>(
     state: &AppState,
     look: &Look,
     pins: &[Pin],
+    highlights: &[Highlight],
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
     let scene = shown_scene(state, look.selection.as_ref())?;
@@ -136,7 +140,7 @@ fn render_shown<T>(
         selection: None,
         ..look.clone()
     };
-    with_input(&catalog, &scene, &whole, pins, work)
+    with_input(&catalog, &scene, &whole, pins, highlights, work)
 }
 
 fn png_data_url(bytes: &[u8]) -> String {
@@ -160,13 +164,14 @@ pub async fn render_preview(
     state: State<'_, Shared>,
     look: Look,
     pins: Vec<Pin>,
+    highlights: Vec<Highlight>,
 ) -> Result<String, String> {
     let state = state.inner().clone();
-    blocking(move || render_shown(&state, &look, &pins, render_svg)).await
+    blocking(move || render_shown(&state, &look, &pins, &highlights, render_svg)).await
 }
 
-/// A PNG of the open project in `look`, for the diagram column. Pins would
-/// be specks at this size, so they are left off.
+/// A PNG of the open project in `look`, for the diagram column. Pins and
+/// highlights would be specks at this size, so they are left off.
 #[tauri::command]
 pub async fn render_thumbnail(
     state: State<'_, Shared>,
@@ -175,7 +180,7 @@ pub async fn render_thumbnail(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let bytes = render_shown(&state, &look, &[], |input| render_png(input, width))?;
+        let bytes = render_shown(&state, &look, &[], &[], |input| render_png(input, width))?;
         Ok(png_data_url(&bytes))
     })
     .await
@@ -201,9 +206,14 @@ pub async fn project_thumbnail(
             return Ok(None);
         };
         let catalog = current_catalog(&state);
-        let bytes = with_input(&catalog, scene, &project.look, &project.pins, |input| {
-            render_png(input, width)
-        })?;
+        let bytes = with_input(
+            &catalog,
+            scene,
+            &project.look,
+            &project.pins,
+            &project.highlights,
+            |input| render_png(input, width),
+        )?;
         let url = png_data_url(&bytes);
         lock(&state.thumbnails).insert(key, url.clone());
         Ok(Some(url))

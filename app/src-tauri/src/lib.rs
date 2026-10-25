@@ -60,6 +60,7 @@ pub fn run() {
             render::project_thumbnail,
             sheets::save_sheets,
             sheets::fitting_scale,
+            sheets::highlight_area,
             site::search_places,
             site::measure_area,
             site::fetch_site,

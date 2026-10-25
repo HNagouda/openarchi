@@ -48,10 +48,10 @@ pub async fn render_palette_preview(
         };
         let catalog = current_catalog(&state);
         let theme = checked(&state, &draft, DRAFT_ID)?.theme;
-        // The editor is modal, so the saved pins are the ones on the sheet.
-        let pins = match lock(&state.open).as_ref() {
-            Some(open) => open.project.pins.clone(),
-            None => Vec::new(),
+        // The editor is modal, so the saved pins and highlights are the ones on the sheet.
+        let (pins, highlights) = match lock(&state.open).as_ref() {
+            Some(open) => (open.project.pins.clone(), open.project.highlights.clone()),
+            None => (Vec::new(), Vec::new()),
         };
         let Some(diagram) = catalog
             .diagrams
@@ -66,6 +66,7 @@ pub async fn render_palette_preview(
             theme: &theme,
             look: &look,
             pins: &pins,
+            highlights: &highlights,
         };
         render_svg(&input).map_err(text)
     })

@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use openarchi_core::catalog;
+use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use openarchi_core::report::{
@@ -125,11 +126,20 @@ fn with_data<'c, T>(
 ) -> Result<T, String> {
     let scene = open_scene(state)?;
     let look = open_look(state)?;
-    let pins = open_pins(state)?;
+    let (pins, highlights) = open_marks(state)?;
     let diagrams = catalog::builtin_diagrams();
     let cache = state.library()?.tile_cache();
-    let data = ReportData::gather(&scene, &look, &pins, &diagrams, theme, &cache, contents)
-        .map_err(text)?;
+    let data = ReportData::gather(
+        &scene,
+        &look,
+        &pins,
+        &highlights,
+        &diagrams,
+        theme,
+        &cache,
+        contents,
+    )
+    .map_err(text)?;
     work(&data).map_err(text)
 }
 
@@ -140,9 +150,10 @@ fn open_look(state: &AppState) -> Result<Look, String> {
         .ok_or_else(|| "No project is open.".to_string())
 }
 
-fn open_pins(state: &AppState) -> Result<Vec<Pin>, String> {
+/// The open project's pins and highlights.
+fn open_marks(state: &AppState) -> Result<(Vec<Pin>, Vec<Highlight>), String> {
     lock(&state.open)
         .as_ref()
-        .map(|open| open.project.pins.clone())
+        .map(|open| (open.project.pins.clone(), open.project.highlights.clone()))
         .ok_or_else(|| "No project is open.".to_string())
 }
