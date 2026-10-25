@@ -8,9 +8,12 @@ use serde_json::json;
 use tempfile::TempDir;
 
 use super::download::{Dataset, Payload, CELLS_PER_TILE};
+use super::environment::Raster;
+use super::source::SOURCES;
 use super::*;
 use crate::area::LonLat;
 use crate::crs::wgs84_to_rd;
+use crate::scene::Layer;
 use crate::sources::cache::MAX_AGE;
 use crate::sources::edition::Edition;
 use crate::sources::grid::{Tile, TILE_M};
