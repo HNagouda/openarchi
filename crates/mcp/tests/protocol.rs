@@ -713,6 +713,53 @@ fn get_environment_gives_noise_flood_and_people_with_their_years() {
 }
 
 #[test]
+fn get_environment_gives_tree_canopy_and_heat_island_and_the_diagrams_are_listed() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+    let library = Library::at(server.library.path()).unwrap();
+    let mut project = library.load(&id).unwrap();
+    let mut scene: Scene =
+        serde_json::from_str(&std::fs::read_to_string(WESTERKERK_ENVIRONMENT).unwrap()).unwrap();
+
+    // Fetched before trees and heat were read: no figure, not zero.
+    project.scene = Some(scene.clone());
+    library.save(&mut project).unwrap();
+    let before = server.call_ok("get_environment", json!({ "id": id }));
+    assert_eq!(before["tree_canopy_share"], json!(null));
+    assert_eq!(before["heat_island_mean_c"], json!(null));
+
+    // The tree map was read and met no tree; the heat island was measured.
+    let mut tree_credit = scene.credits[0].clone();
+    tree_credit.layers = vec![Layer::TreeCanopy, Layer::GreenCover];
+    scene.credits.push(tree_credit);
+    scene.measured.heat_island_c = Some(openarchi_core::sources::raster::Stats {
+        min: 1.8,
+        mean: 2.2,
+        max: 2.6,
+        coverage: 1.0,
+    });
+    scene.editions.insert(Layer::HeatIsland, 2022);
+    project.scene = Some(scene);
+    library.save(&mut project).unwrap();
+    let after = server.call_ok("get_environment", json!({ "id": id }));
+    assert_eq!(after["tree_canopy_share"], json!(0.0));
+    assert_eq!(after["heat_island_mean_c"], json!(2.2));
+    assert_eq!(after["heat_island_year"], json!(2022));
+
+    let diagrams = server.call_ok("list_diagrams", json!({}));
+    let ids: Vec<&str> = diagrams
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|d| d["id"].as_str().unwrap())
+        .collect();
+    assert!(
+        ids.contains(&"greenery") && ids.contains(&"heat-island"),
+        "{ids:?}"
+    );
+}
+
+#[test]
 fn a_report_laid_out_in_the_app_is_listed_and_exports_as_pdf_svg_and_png() {
     let mut server = Server::start();
     let id = server.create_westermarkt();

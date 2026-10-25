@@ -41,7 +41,11 @@ export type Layer =
   | "slope"
   | "population"
   | "block"
-  | "sun_hours";
+  | "sun_hours"
+  | "tree_canopy"
+  | "green_cover"
+  | "vegetation_index"
+  | "heat_island";
 
 export type Paper = "a4" | "a3" | "a2" | "a1" | "a0" | "square";
 export type Frame = "circle" | "square" | "area";

@@ -138,6 +138,13 @@ fn surroundings_facts(summary: &SiteSummary, facts: &mut Vec<Fact>) {
     if let Some(slope) = environment.slope_max_percent {
         facts.push(fact("Steepest slope", format!("{slope:.0} %")));
     }
+    if let Some(canopy) = environment.tree_canopy_share {
+        let label = with_year("Tree canopy", environment.tree_year);
+        facts.push(fact(&label, percent(canopy)));
+    }
+    if let Some(heat) = environment.heat_island_mean_c {
+        facts.push(fact("Heat island", format!("{heat:.1} °C warmer")));
+    }
     if let Some(residents) = environment.residents {
         let label = with_year("Residents", environment.population_year);
         facts.push(fact(&label, grouped(residents)));

@@ -75,6 +75,14 @@ fn is_missing(scene: &Scene, layer: Layer) -> bool {
         | Layer::Slope => RASTERS
             .iter()
             .all(|raster| scene.measured.get(*raster).is_none()),
+        // A site can have no trees, no green or no band of a raster, so only
+        // the credit, which a scene gets for each source it read, tells.
+        Layer::TreeCanopy | Layer::GreenCover | Layer::VegetationIndex | Layer::HeatIsland => {
+            !scene
+                .credits
+                .iter()
+                .any(|credit| credit.layers.contains(&layer))
+        }
         // CBS cells cover the whole country, so none at all means the source was never read.
         Layer::Population => true,
         _ => false,

@@ -110,8 +110,10 @@ pub struct RenderInput<'a> {
 /// the neighbourhood. Empty when the sheet has all it needs.
 pub fn missing_data(input: &RenderInput) -> Result<Vec<String>> {
     let look = input.look;
+    // The look's variant decides which layer the diagram is about.
+    let drawn = input.diagram.drawn_as(look.variant.as_deref());
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
-    Ok(missing::notes(&scene, input.diagram, look))
+    Ok(missing::notes(&scene, &drawn, look))
 }
 
 pub fn render_svg(input: &RenderInput) -> Result<String> {
