@@ -14,8 +14,10 @@
 //! forest, is left out, because sight passes between the trees.
 //!
 //! A forest cell stands solid from the ground up to its canopy height. The
-//! view, the sky view factor and the solar radiation all read it from here,
-//! so the three agree on which trees block.
+//! view, the sky view factor, the solar radiation and the hours of sun all
+//! read it from here, so the four agree on which trees block. The hours of sun
+//! and the shadow diagram also cast every single tree; the other three let
+//! sight and light pass a single tree.
 //!
 //! The canopy is the tree raster the scene keeps, with the cells under a
 //! building footprint left out: the tree map took some roofs for crowns. A
@@ -41,6 +43,11 @@ pub struct Forest {
 }
 
 impl Forest {
+    /// The canopy height of each forest cell, in metres above the ground; no value elsewhere.
+    pub(crate) fn canopy(&self) -> &Grid {
+        &self.canopy
+    }
+
     /// The canopy height above the ground at a point, `None` off the forest.
     pub fn height_at(&self, (x, y): (f64, f64)) -> Option<f64> {
         let grid = &self.canopy;

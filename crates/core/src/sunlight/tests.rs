@@ -1,6 +1,7 @@
 use geo::Point;
 
 use super::*;
+use crate::forest::tests::{canopy, wooded};
 use crate::grid::tests::{building, site, square, value_at};
 use crate::scene::Attributes;
 
@@ -74,6 +75,23 @@ fn a_tree_shades_the_ground_behind_it() {
     let open = sun_hours(&site(Vec::new(), Vec::new()), EQUINOX.0, EQUINOX.1);
 
     assert!(hours_at(&grid, 0.0, 8.0).unwrap() < hours_at(&open, 0.0, 8.0).unwrap());
+}
+
+#[test]
+fn a_wood_shades_the_ground_behind_it_and_under_it() {
+    // 100 m by 60 m of 20 m trees, south of the middle of the site: a wood by the FAO rule.
+    let wood = canopy(&[(-50.0, -70.0, 50.0, -10.0)], 20.0);
+    let grid = sun_hours(
+        &wooded(site(Vec::new(), Vec::new()), wood),
+        EQUINOX.0,
+        EQUINOX.1,
+    );
+    let open = sun_hours(&site(Vec::new(), Vec::new()), EQUINOX.0, EQUINOX.1);
+
+    let behind = hours_at(&grid, 0.0, -5.0).unwrap();
+    let open_behind = hours_at(&open, 0.0, -5.0).unwrap();
+    assert!(behind < open_behind - 2.0, "{behind} against {open_behind}");
+    assert_eq!(hours_at(&grid, 0.0, -40.0), Some(0.0));
 }
 
 #[test]
