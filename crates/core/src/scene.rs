@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use geo::{Geometry, Polygon};
+use geo::{Geometry, LineString, Polygon};
 use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
@@ -52,6 +52,26 @@ pub struct Scene {
     /// it was kept, or when AHN could not be fetched; sections then draw flat ground.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub terrain: Option<Grid>,
+    /// The surveyed bed of the waters around the site, in metres above NAP and
+    /// in cells like `terrain`. `None` where Rijkswaterstaat surveys no water
+    /// nearby, which includes most city canals and ponds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub water_bed: Option<Grid>,
+    /// The published target levels of the waters around the site. Empty where
+    /// no weir or lock holds the water at a set level.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub water_levels: Vec<WaterLevel>,
+}
+
+/// The level a water is held at, published as a line along its fairway.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WaterLevel {
+    /// "Amstellands boezempeil, Kostverlorenvaart".
+    pub name: String,
+    /// Metres above NAP.
+    pub level_m: f64,
+    /// Along the fairway, in the scene's frame.
+    pub line: LineString<f64>,
 }
 
 impl Scene {

@@ -96,7 +96,7 @@ pub fn write_masses(out: &mut String, masses: &[Mass], depth_m: f64, frame: &Fra
             mm(frame.x(mass.stretch.from)),
             mm(frame.y(mass.top)),
             mm((mass.stretch.to - mass.stretch.from) * frame.mm_per_m),
-            mm((mass.top - mass.base) * frame.mm_per_m)
+            mm((mass.top - mass.base) * frame.vertical_mm_per_m)
         );
     }
     out.push_str("</g>\n");
@@ -109,23 +109,33 @@ fn write_tree(out: &mut String, mass: &Mass, fill: &str, frame: &Frame) {
     let crown_centre = mass.base + height - crown;
     let _ = write!(
         out,
-        r#"<path d="M{x} {}V{}" stroke-width="{}" stroke-opacity="1"/><circle cx="{x}" cy="{}" r="{}" fill="{fill}"/>"#,
+        r#"<path d="M{x} {}V{}" stroke-width="{}" stroke-opacity="1"/><ellipse cx="{x}" cy="{}" rx="{}" ry="{}" fill="{fill}"/>"#,
         mm(frame.y(mass.base)),
         mm(frame.y(crown_centre)),
         mm(TRUNK_MM),
         mm(frame.y(crown_centre)),
         mm(crown * frame.mm_per_m),
+        mm(crown * frame.vertical_mm_per_m),
         x = mm(x)
     );
 }
 
-/// The earth below the profile, hatched, and the profile itself as the heaviest line.
-pub fn write_ground(out: &mut String, profile: &Profile, frame: &Frame, theme: &Theme, unit: f64) {
-    let mut line = String::new();
+/// The earth below the profile, hatched, and the profile itself as the
+/// heaviest line, broken over `gaps`: waters whose bed nobody surveyed, where
+/// the profile is only a bridge between the banks.
+pub fn write_ground(
+    out: &mut String,
+    profile: &Profile,
+    gaps: &[Stretch],
+    frame: &Frame,
+    theme: &Theme,
+    unit: f64,
+) {
+    let mut outline = String::new();
     for (index, &(along, height)) in profile.samples.iter().enumerate() {
         let command = if index == 0 { 'M' } else { 'L' };
         let _ = write!(
-            line,
+            outline,
             "{command}{} {}",
             mm(frame.x(along)),
             mm(frame.y(height))
@@ -133,14 +143,56 @@ pub fn write_ground(out: &mut String, profile: &Profile, frame: &Frame, theme: &
     }
     let _ = write!(
         out,
-        r#"<g {}><path d="{line}V{}H{}Z" fill="url(#{HATCH_ID})"/><path d="{line}" fill="none" stroke="{}" stroke-width="{}" stroke-linejoin="round"/></g>"#,
+        r#"<g {}><path d="{outline}V{}H{}Z" fill="url(#{HATCH_ID})"/><path d="{}" fill="none" stroke="{}" stroke-width="{}" stroke-linejoin="round"/></g>"#,
         layer_attributes("section-ground", "Ground"),
         mm(frame.bottom),
-        mm(frame.left),
+        mm(frame.start_x),
+        broken_line(profile, gaps, frame),
         theme.palette.ink,
         mm(PROFILE_STROKE_MM * unit)
     );
     out.push('\n');
+}
+
+/// The profile as path data, lifting the pen from one end of each gap to the other.
+fn broken_line(profile: &Profile, gaps: &[Stretch], frame: &Frame) -> String {
+    let point = |along: f64| {
+        format!(
+            "{} {}",
+            mm(frame.x(along)),
+            mm(frame.y(profile.height_at(along)))
+        )
+    };
+    let gap_at = |along: f64| gaps.iter().find(|gap| along > gap.from && along < gap.to);
+    let mut line = String::new();
+    let mut is_lifted = true;
+    for &(along, _) in &profile.samples {
+        match gap_at(along) {
+            Some(gap) if !is_lifted => {
+                let _ = write!(line, "L{}", point(gap.from));
+                is_lifted = true;
+            }
+            Some(_) => {}
+            None if is_lifted => {
+                let start = gaps
+                    .iter()
+                    .filter(|gap| gap.to <= along)
+                    .map(|gap| gap.to)
+                    .fold(f64::NEG_INFINITY, f64::max)
+                    .max(profile.samples[0].0);
+                let _ = write!(line, "M{}", point(start));
+                if start < along {
+                    let _ = write!(line, "L{}", point(along));
+                }
+                is_lifted = false;
+            }
+            None => {
+                let _ = write!(line, "L{}", point(along));
+            }
+        }
+    }
+
+    line
 }
 
 /// The buildings the line passes through, in solid poché.
@@ -158,7 +210,7 @@ pub fn write_cuts(out: &mut String, cuts: &[Cut], frame: &Frame, theme: &Theme) 
             mm(frame.x(cut.stretch.from)),
             mm(frame.y(cut.top)),
             mm((cut.stretch.to - cut.stretch.from) * frame.mm_per_m),
-            mm((cut.top - cut.bottom) * frame.mm_per_m)
+            mm((cut.top - cut.bottom) * frame.vertical_mm_per_m)
         );
     }
     out.push_str("</g>\n");

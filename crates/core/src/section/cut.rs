@@ -173,6 +173,8 @@ mod tests {
             start: (0.0, 0.0),
             end: (100.0, 0.0),
             depth_m: 50.0,
+            scale: None,
+            exaggeration: 1,
         }
         .axis((0.0, 0.0))
     }

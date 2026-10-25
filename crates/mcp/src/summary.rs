@@ -179,6 +179,8 @@ mod tests {
             editions: Default::default(),
             context: vec![],
             terrain: None,
+            water_bed: None,
+            water_levels: Vec::new(),
         }
     }
 

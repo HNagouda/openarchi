@@ -24,33 +24,43 @@ const LINE_MM: f64 = 0.15;
 const DATUM_OPACITY: f64 = 0.45;
 const DATUM_DASH: (f64, f64) = (1.2, 0.8);
 const HALO_MM: f64 = 0.6;
+/// Rounding on the paper that still counts an end as inside the box.
+const EDGE_SLACK_MM: f64 = 0.01;
 /// Steps between ruler marks, in metres: round numbers to read heights off.
 const STEPS_M: [f64; 8] = [1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0];
 
-/// Where the section lies on the paper: its box, and the height at its top edge.
+/// Where the section lies on the paper: the paper x of its ends, the box of
+/// it that shows, and the height at that box's top edge. At a scale too large
+/// for the sheet the ends lie outside the box, and the drawing is clipped to it.
 pub struct Frame {
+    /// Paper x of A and of A'.
+    pub start_x: f64,
+    pub end_x: f64,
     pub left: f64,
     pub right: f64,
     pub top: f64,
     pub bottom: f64,
     /// The height, in metres, the top edge stands for.
     pub highest: f64,
+    /// Paper per metre along the line.
     pub mm_per_m: f64,
+    /// Paper per metre of height: `mm_per_m` times the exaggeration.
+    pub vertical_mm_per_m: f64,
 }
 
 impl Frame {
     /// Paper x of a point `along` metres from A.
     pub fn x(&self, along: f64) -> f64 {
-        self.left + along * self.mm_per_m
+        self.start_x + along * self.mm_per_m
     }
 
     /// Paper y of a height in metres.
     pub fn y(&self, height: f64) -> f64 {
-        self.top + (self.highest - height) * self.mm_per_m
+        self.top + (self.highest - height) * self.vertical_mm_per_m
     }
 
     fn lowest(&self) -> f64 {
-        self.highest - (self.bottom - self.top) / self.mm_per_m
+        self.highest - (self.bottom - self.top) / self.vertical_mm_per_m
     }
 }
 
@@ -88,15 +98,20 @@ pub fn write(
     write_heights(out, frame, cuts, typesetter);
     let baseline =
         frame.bottom + END_LABEL_GAP * typesetter.unit + typesetter.cap_height(Kind::Heading);
-    typesetter.write(out, frame.left, baseline, "A", Kind::Heading, None);
-    typesetter.write(
-        out,
-        frame.right,
-        baseline,
-        "A\u{2032}",
-        Kind::Heading,
-        Some("end"),
-    );
+    // An end outside the box is off the sheet, and so is its label.
+    if frame.start_x >= frame.left - EDGE_SLACK_MM {
+        typesetter.write(out, frame.start_x, baseline, "A", Kind::Heading, None);
+    }
+    if frame.end_x <= frame.right + EDGE_SLACK_MM {
+        typesetter.write(
+            out,
+            frame.end_x,
+            baseline,
+            "A\u{2032}",
+            Kind::Heading,
+            Some("end"),
+        );
+    }
     out.push_str("</g>\n");
 }
 
@@ -136,7 +151,7 @@ fn write_ruler(out: &mut String, frame: &Frame, is_measured: bool, typesetter: &
     let step = STEPS_M
         .iter()
         .copied()
-        .find(|step| step * frame.mm_per_m >= MIN_TICK_SPACING * unit)
+        .find(|step| step * frame.vertical_mm_per_m >= MIN_TICK_SPACING * unit)
         .unwrap_or(STEPS_M[STEPS_M.len() - 1]);
     let first = (frame.lowest() / step).ceil() as i64;
     let last = (frame.highest / step).floor() as i64;
@@ -202,7 +217,8 @@ fn write_heights(out: &mut String, frame: &Frame, cuts: &[Cut], typesetter: &Typ
         let text = format!("{height:.1} m");
         let width = typesetter.width(&text, Kind::Small);
         let middle = frame.x((cut.stretch.from + cut.stretch.to) / 2.0);
-        if middle - width / 2.0 < free_from {
+        let is_off_the_sheet = middle < frame.left || middle > frame.right;
+        if is_off_the_sheet || middle - width / 2.0 < free_from {
             continue;
         }
         let (left, right) = (middle - width / 2.0, middle + width / 2.0);
@@ -214,6 +230,17 @@ fn write_heights(out: &mut String, frame: &Frame, cuts: &[Cut], typesetter: &Typ
         let baseline = frame.y(roof) - HEIGHT_LABEL_GAP * typesetter.unit;
         typesetter.write(out, middle, baseline, &text, Kind::Small, Some("middle"));
         free_from = middle + width / 2.0 + HEIGHT_LABEL_GAP * typesetter.unit;
+    }
+}
+
+/// "+7.95", "−0.40": a level to the centimetre, as a water level is marked.
+pub fn precise_level(height: f64) -> String {
+    if height > 0.0 {
+        format!("+{height:.2}")
+    } else if height < 0.0 {
+        format!("\u{2212}{:.2}", -height)
+    } else {
+        "0.00".to_string()
     }
 }
 
@@ -242,16 +269,19 @@ mod tests {
     #[test]
     fn heights_map_onto_the_paper_with_the_top_edge_highest() {
         let frame = Frame {
+            start_x: 10.0,
+            end_x: 60.0,
             left: 10.0,
             right: 110.0,
             top: 20.0,
             bottom: 60.0,
             highest: 30.0,
-            mm_per_m: 2.0,
+            mm_per_m: 1.0,
+            vertical_mm_per_m: 2.0,
         };
         assert_eq!(frame.y(30.0), 20.0);
         assert_eq!(frame.y(10.0), 60.0);
         assert_eq!(frame.lowest(), 10.0);
-        assert_eq!(frame.x(50.0), 110.0);
+        assert_eq!(frame.x(50.0), 60.0);
     }
 }

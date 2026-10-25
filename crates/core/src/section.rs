@@ -11,6 +11,7 @@
 
 pub mod cut;
 pub mod profile;
+pub mod water;
 
 use geo::{BoundingRect, Rect};
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,14 @@ pub const DEFAULT_DEPTH_M: f64 = 60.0;
 pub const MAX_DEPTH_M: f64 = 500.0;
 /// A shorter line is a slip of the mouse, not a section worth drawing.
 pub const MIN_LENGTH_M: f64 = 5.0;
+/// Every scale a section can be drawn at, as 1:N, in one place. The app's
+/// scale menu offers the same list.
+pub const SCALES: [u32; 16] = [
+    100, 200, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10_000, 20_000,
+];
+/// How many times heights may be drawn taller than lengths. A flat site reads
+/// as a thin strip at true proportions; a few round factors keep it honest.
+pub const EXAGGERATIONS: [u32; 3] = [1, 2, 5];
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SectionLine {
@@ -35,10 +44,28 @@ pub struct SectionLine {
     /// How far past the line, in metres, the elevation reaches.
     #[serde(default = "default_depth")]
     pub depth_m: f64,
+    /// The scale the section is drawn at, 1:`scale`, one of `SCALES`. `None`
+    /// picks the largest that fits the sheet.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scale: Option<u32>,
+    /// Heights drawn this many times taller than lengths, one of `EXAGGERATIONS`.
+    #[serde(
+        default = "true_proportions",
+        skip_serializing_if = "is_true_proportions"
+    )]
+    pub exaggeration: u32,
 }
 
 fn default_depth() -> f64 {
     DEFAULT_DEPTH_M
+}
+
+fn true_proportions() -> u32 {
+    1
+}
+
+fn is_true_proportions(exaggeration: &u32) -> bool {
+    *exaggeration == 1
 }
 
 impl SectionLine {
@@ -60,6 +87,20 @@ impl SectionLine {
             return Err(Error::Invalid(format!(
                 "a section's depth must be more than 0 and at most {MAX_DEPTH_M} m, got {}",
                 self.depth_m
+            )));
+        }
+
+        if let Some(scale) = self.scale {
+            if !SCALES.contains(&scale) {
+                return Err(Error::Invalid(format!(
+                    "a section's scale must be one of {SCALES:?}, got {scale}"
+                )));
+            }
+        }
+        if !EXAGGERATIONS.contains(&self.exaggeration) {
+            return Err(Error::Invalid(format!(
+                "a section's heights can be exaggerated {EXAGGERATIONS:?} times, got {}",
+                self.exaggeration
             )));
         }
 
@@ -86,7 +127,7 @@ impl SectionLine {
         SectionLine {
             start: self.end,
             end: self.start,
-            depth_m: self.depth_m,
+            ..self.clone()
         }
     }
 }
@@ -162,6 +203,8 @@ mod tests {
             start: (1000.0, 2000.0),
             end: (1100.0, 2000.0),
             depth_m: DEFAULT_DEPTH_M,
+            scale: None,
+            exaggeration: 1,
         }
     }
 
@@ -186,6 +229,8 @@ mod tests {
         let line: SectionLine =
             serde_json::from_str(r#"{"start": [0, 0], "end": [50, 0]}"#).unwrap();
         assert_eq!(line.depth_m, DEFAULT_DEPTH_M);
+        assert_eq!(line.scale, None);
+        assert_eq!(line.exaggeration, 1);
     }
 
     #[test]
@@ -198,8 +243,18 @@ mod tests {
             depth_m: 900.0,
             ..west_to_east()
         };
+        let odd_scale = SectionLine {
+            scale: Some(300),
+            ..west_to_east()
+        };
+        let odd_exaggeration = SectionLine {
+            exaggeration: 3,
+            ..west_to_east()
+        };
         assert!(short.check().is_err());
         assert!(deep.check().is_err());
+        assert!(odd_scale.check().is_err());
+        assert!(odd_exaggeration.check().is_err());
         assert!(west_to_east().check().is_ok());
     }
 }

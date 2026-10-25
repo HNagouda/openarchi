@@ -1,11 +1,12 @@
 mod render_support;
 
+use geo::{polygon, Geometry, LineString};
 use openarchi_core::area::Area;
 use openarchi_core::crs::rd_to_wgs84;
 use openarchi_core::export::{export, ExportFormat};
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
-use openarchi_core::scene::Scene;
+use openarchi_core::scene::{Attributes, Feature, Layer, Scene, WaterLevel};
 use openarchi_core::section::SectionLine;
 use openarchi_core::sources::raster::Grid;
 use openarchi_core::view::ViewMode;
@@ -17,6 +18,8 @@ fn through_the_row() -> SectionLine {
         start: (ORIGIN.0 - 150.0, ORIGIN.1 + 90.0),
         end: (ORIGIN.0 + 150.0, ORIGIN.1 + 90.0),
         depth_m: 60.0,
+        scale: None,
+        exaggeration: 1,
     }
 }
 
@@ -189,4 +192,84 @@ fn a_section_exports_as_pdf_and_png() {
         export(&input, format, 72, &path).expect("export the section");
         assert!(std::fs::metadata(&path).unwrap().len() > 1000, "{name}");
     }
+}
+
+/// The sloping test scene with a canal 15 m wide across the line near A.
+fn scene_with_canal(level_m: Option<f64>) -> Scene {
+    let mut scene = Scene {
+        terrain: Some(sloping_terrain()),
+        ..scene()
+    };
+    scene.features.push(Feature {
+        layer: Layer::Water,
+        geometry: Geometry::Polygon(polygon![
+            (x: -140.0, y: 60.0),
+            (x: -125.0, y: 60.0),
+            (x: -125.0, y: 120.0),
+            (x: -140.0, y: 120.0),
+        ]),
+        attributes: Attributes::default(),
+    });
+    if let Some(level_m) = level_m {
+        scene.water_levels.push(WaterLevel {
+            name: "Test boezem".to_string(),
+            level_m,
+            line: LineString::from(vec![(-132.0, 0.0), (-132.0, 200.0)]),
+        });
+    }
+    scene
+}
+
+#[test]
+fn a_canal_with_a_target_level_is_drawn_at_it_and_says_its_depth_is_unknown() {
+    let svg = svg(
+        &scene_with_canal(Some(-0.4)),
+        &look_in(ViewMode::Section),
+        "paper",
+    );
+    assert!(svg.contains(r#"id="section-water""#));
+    assert!(svg.contains("Water at target level \u{2212}0.40 m NAP"));
+    assert!(svg.contains("Water depth not surveyed"));
+}
+
+#[test]
+fn a_canal_without_a_published_level_is_drawn_at_its_bank() {
+    let svg = svg(
+        &scene_with_canal(None),
+        &look_in(ViewMode::Section),
+        "paper",
+    );
+    assert!(svg.contains("Water at its bank, no published level"));
+    assert!(!svg.contains("Water at target level"));
+}
+
+#[test]
+fn exaggerated_heights_are_drawn_taller_and_the_legend_says_so() {
+    let mut look = look_in(ViewMode::Section);
+    let scene = Scene {
+        terrain: Some(sloping_terrain()),
+        ..scene()
+    };
+    let true_svg = svg(&scene, &look, "paper");
+    look.section = Some(SectionLine {
+        exaggeration: 2,
+        ..through_the_row()
+    });
+    let taller_svg = svg(&scene, &look, "paper");
+    assert!(!true_svg.contains("taller than lengths"));
+    assert!(taller_svg.contains("Heights drawn 2\u{00d7} taller than lengths."));
+}
+
+#[test]
+fn a_chosen_scale_is_used_and_what_does_not_fit_is_clipped() {
+    let mut look = look_in(ViewMode::Section);
+    look.section = Some(SectionLine {
+        scale: Some(200),
+        ..through_the_row()
+    });
+    let svg = svg(&scene(), &look, "paper");
+    assert!(svg.contains("1:200"));
+    assert!(svg.contains(r#"clip-path="url(#section-view)""#));
+    // A 300 m line at 1:200 is 1.5 m of paper, so both ends are off the sheet.
+    assert!(!svg.contains(">A\u{2032}<"));
 }
