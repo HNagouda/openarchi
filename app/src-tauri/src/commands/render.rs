@@ -8,6 +8,7 @@ use openarchi_core::area::Area;
 use openarchi_core::catalog;
 use openarchi_core::export::render_png;
 use openarchi_core::highlight::Highlight;
+use openarchi_core::model::Model;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
@@ -69,6 +70,8 @@ pub fn project_name(state: &AppState) -> String {
 
 /// Resolves the look's diagram and theme ids and hands `work` a render input.
 /// `draft` is a theme to draw in instead of the look's, such as the palette editor's.
+// Each part of the input is named at the call, as `RenderInput` names them.
+#[allow(clippy::too_many_arguments)]
 pub fn with_input<T>(
     catalog: &Catalog,
     scene: &Scene,
@@ -76,6 +79,7 @@ pub fn with_input<T>(
     draft: Option<&Theme>,
     pins: &[Pin],
     highlights: &[Highlight],
+    model: Option<&Model>,
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
     let Some(diagram) = catalog
@@ -101,6 +105,7 @@ pub fn with_input<T>(
         look,
         pins,
         highlights,
+        model,
     };
     work(&input).map_err(text)
 }
@@ -113,6 +118,13 @@ pub fn open_scene(state: &AppState) -> Result<Arc<Scene>, String> {
         },
         None => Err("No project is open.".to_string()),
     }
+}
+
+/// The open project's model in effect. A copy shares its mesh, so it is cheap.
+pub fn open_model(state: &AppState) -> Option<Model> {
+    lock(&state.open)
+        .as_ref()
+        .and_then(|open| open.project.model.clone())
 }
 
 /// Enough for every sheet area of a few tabs at once.
@@ -158,11 +170,21 @@ pub fn render_shown<T>(
 ) -> Result<T, String> {
     let scene = shown_scene(state, look.selection.as_ref())?;
     let catalog = current_catalog(state);
+    let model = open_model(state);
     let whole = Look {
         selection: None,
         ..look.clone()
     };
-    with_input(&catalog, &scene, &whole, draft, pins, highlights, work)
+    with_input(
+        &catalog,
+        &scene,
+        &whole,
+        draft,
+        pins,
+        highlights,
+        model.as_ref(),
+        work,
+    )
 }
 
 fn png_data_url(bytes: &[u8]) -> String {
@@ -247,6 +269,7 @@ pub async fn project_thumbnail(
             None,
             &project.pins,
             &project.highlights,
+            project.model.as_ref(),
             |input| render_png(input, width),
         )?;
         let url = png_data_url(&bytes);

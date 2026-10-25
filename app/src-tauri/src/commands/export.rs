@@ -10,7 +10,7 @@ use openarchi_core::project::Look;
 use tauri::{AppHandle, State};
 use tauri_plugin_opener::OpenerExt;
 
-use crate::commands::render::{current_catalog, open_scene, project_name, with_input};
+use crate::commands::render::{current_catalog, open_model, open_scene, project_name, with_input};
 use crate::guard::blocking;
 use crate::state::Shared;
 
@@ -47,9 +47,17 @@ pub async fn export_sheet(
     blocking(move || {
         let scene = open_scene(&state)?;
         let catalog = current_catalog(&state);
-        with_input(&catalog, &scene, &look, None, &pins, &highlights, |input| {
-            export_with_dxf_layers(input, format, dpi, dxf_layers, Path::new(&path))
-        })?;
+        let model = open_model(&state);
+        with_input(
+            &catalog,
+            &scene,
+            &look,
+            None,
+            &pins,
+            &highlights,
+            model.as_ref(),
+            |input| export_with_dxf_layers(input, format, dpi, dxf_layers, Path::new(&path)),
+        )?;
         Ok(path)
     })
     .await
@@ -75,6 +83,7 @@ pub async fn export_series(
         let scene = open_scene(&state)?;
         let catalog = current_catalog(&state);
         let name = project_name(&state);
+        let model = open_model(&state);
 
         let files = series::files(&catalog.diagrams, &name, &look, format, Path::new(&folder));
 
@@ -87,6 +96,7 @@ pub async fn export_series(
                 None,
                 &pins,
                 &highlights,
+                model.as_ref(),
                 |input| export_with_dxf_layers(input, format, dpi, dxf_layers, &file.path),
             )?;
             written.push(file.path.display().to_string());

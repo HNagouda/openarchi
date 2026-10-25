@@ -13,6 +13,7 @@ use openarchi_core::scene::{Credit, Layer, Scene};
 use serde::Serialize;
 use tauri::State;
 
+use crate::commands::model::{current_model_view, ModelView};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, OpenProject, Shared};
 
@@ -35,6 +36,8 @@ pub struct ProjectView {
     /// Layers that hold at least one feature, so the inspector lists only those.
     pub layers_present: Vec<Layer>,
     pub reports: Vec<Report>,
+    /// The imported model in effect, `None` when the project has none.
+    pub model: Option<ModelView>,
 }
 
 pub fn view_of(open: &OpenProject) -> ProjectView {
@@ -71,6 +74,7 @@ pub fn view_of(open: &OpenProject) -> ProjectView {
         credits: scene.map(|scene| scene.credits.clone()).unwrap_or_default(),
         layers_present,
         reports: project.reports.clone(),
+        model: current_model_view(open),
     }
 }
 

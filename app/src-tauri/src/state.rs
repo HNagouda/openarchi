@@ -12,6 +12,7 @@ use std::time::Instant;
 use openarchi_core::area::Area;
 use openarchi_core::diagram::Diagram;
 use openarchi_core::library::Library;
+use openarchi_core::model::Model;
 use openarchi_core::project::Project;
 use openarchi_core::scene::Scene;
 use openarchi_core::theme::Theme;
@@ -60,6 +61,10 @@ pub struct OpenProject {
     /// The scene as stored text, kept after the first save so later saves
     /// skip packing it again. Cleared whenever `scene` changes.
     pub packed_scene: Option<Arc<String>>,
+    /// Every model opened or imported while the project is open, by key, so
+    /// undoing an import or a removal brings the model back. The one in
+    /// effect is `project.model`; copies share their mesh.
+    pub models: Vec<(String, Model)>,
 }
 
 #[derive(Clone, Serialize)]
@@ -98,12 +103,23 @@ impl AppState {
 impl OpenProject {
     pub fn from_project(mut project: Project) -> OpenProject {
         let scene = project.scene.take().map(Arc::new);
+        let models = project
+            .model
+            .iter()
+            .map(|model| (model_key(0), model.clone()))
+            .collect();
         OpenProject {
             project,
             scene,
             packed_scene: None,
+            models,
         }
     }
+}
+
+/// The key of the model at `index` in `OpenProject::models`.
+pub fn model_key(index: usize) -> String {
+    format!("model-{}", index + 1)
 }
 
 /// A poisoned lock only means an earlier command panicked; the data is still fine.

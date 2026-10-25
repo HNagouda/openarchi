@@ -14,7 +14,7 @@ use openarchi_core::theme::Theme;
 use tauri::State;
 
 use crate::commands::library::save_open_project;
-use crate::commands::render::{current_catalog, find_theme, open_scene};
+use crate::commands::render::{current_catalog, find_theme, open_model, open_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
@@ -125,6 +125,7 @@ fn with_data<'c, T>(
     let scene = open_scene(state)?;
     let look = open_look(state)?;
     let (pins, highlights) = open_marks(state)?;
+    let model = open_model(state);
     let catalog = current_catalog(state);
     let cache = state.library()?.tile_cache();
     let data = ReportData::gather(
@@ -132,6 +133,7 @@ fn with_data<'c, T>(
         &look,
         &pins,
         &highlights,
+        model.as_ref(),
         &catalog.diagrams,
         theme,
         &cache,
