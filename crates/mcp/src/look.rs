@@ -11,7 +11,7 @@ use openarchi_core::sheet::Sheet;
 use openarchi_core::theme::LayerOverride;
 use openarchi_core::view::{SunMoment, View, ViewMode, MAX_TILT_DEG, MIN_TILT_DEG};
 
-use crate::inputs::{OverrideInput, SheetInput, SunInput, ViewInput};
+use crate::style_inputs::{OverrideInput, SheetInput, SunInput, ViewInput};
 
 /// The look with every passed field replaced and the rest kept.
 /// `diagram` is the diagram id and variant, already checked.
@@ -196,7 +196,7 @@ mod tests {
     use openarchi_core::view::ViewMode;
 
     use super::*;
-    use crate::inputs::{FrameInput, PaperInput, ViewModeInput};
+    use crate::style_inputs::{FrameInput, PaperInput, ViewModeInput};
 
     #[test]
     fn only_passed_sheet_fields_change() {
