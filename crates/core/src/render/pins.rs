@@ -36,6 +36,9 @@ const DOT_RADIUS: f64 = 1.4;
 const DISC_RADIUS: f64 = 2.7;
 /// The number in a disc, as a share of the disc's radius.
 const NUMBER_SIZE: f64 = 1.15;
+/// The digits' cap height is about 0.72 of their size, so half of it moves
+/// the baseline down far enough to centre them on the disc.
+const NUMBER_CENTRING: f64 = 0.36;
 /// The paper-coloured edge that keeps a marker apart from what lies under it.
 const HALO_MM: f64 = 0.4;
 const LABEL_HALO_MM: f64 = 0.6;
@@ -243,8 +246,7 @@ fn write_disc(
         mm(radius),
         palette.accent,
         mm(x),
-        // The digits' cap height is about 0.72 of the size; this centres them.
-        mm(y + size * 0.36),
+        mm(y + size * NUMBER_CENTRING),
         mm(size),
         palette.paper
     );

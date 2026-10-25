@@ -22,6 +22,8 @@ const SURFACE_MM: f64 = 0.3;
 /// The level mark, an open triangle standing on the surface, in millimetres at A3.
 const MARK_MM: f64 = 1.6;
 const MARK_LABEL_GAP: f64 = 0.8;
+/// The level's baseline sits this share of the mark's size above the surface.
+const MARK_LABEL_RISE: f64 = 0.15;
 /// Where nobody surveyed the bed the water fades to this opacity at the bottom of the frame.
 const UNKNOWN_DEPTH_END_OPACITY: f64 = 0.0;
 
@@ -169,7 +171,7 @@ fn write_level_mark(
     typesetter.write(
         &mut label,
         x + size / 2.0 + MARK_LABEL_GAP * typesetter.unit,
-        surface_y - size * 0.15,
+        surface_y - size * MARK_LABEL_RISE,
         &section_levels::precise_level(level_m),
         Kind::Small,
         None,

@@ -10,6 +10,8 @@ use crate::sheet::{Paper, Sheet};
 // Sizes at A3, in millimetres; multiplied by the layout unit.
 const ARROW_WIDTH: f64 = 5.2;
 const ARROW_HEIGHT: f64 = 9.5;
+/// How far the notch in the arrow's base reaches up, as a share of its height.
+const ARROW_NOTCH_SHARE: f64 = 0.28;
 const ARROW_LABEL_GAP: f64 = 1.6;
 const ARROW_TO_BAR: f64 = 9.0;
 const BAR_HEIGHT: f64 = 1.1;
@@ -65,7 +67,7 @@ fn write_north_arrow(
     let label_baseline = top + cap_height;
     let tip_y = label_baseline + ARROW_LABEL_GAP * unit;
     let base_y = tip_y + ARROW_HEIGHT * unit;
-    let notch_y = base_y - ARROW_HEIGHT * unit * 0.28;
+    let notch_y = base_y - ARROW_HEIGHT * unit * ARROW_NOTCH_SHARE;
     let middle_y = (tip_y + base_y) / 2.0;
 
     // The "N" swings round the needle's middle with it and stays upright.

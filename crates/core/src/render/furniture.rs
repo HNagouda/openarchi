@@ -31,6 +31,8 @@ const BAND_COLUMN_GAP: f64 = 9.0;
 /// Shares of the band's width for the title column and the tools column.
 const BAND_TITLE_SHARE: f64 = 0.32;
 const BAND_TOOLS_SHARE: f64 = 0.24;
+/// The share of a band's width the credits may run across.
+const BAND_CREDITS_SHARE: f64 = 0.7;
 const CREDITS_GAP: f64 = 2.6;
 const TOOLS_TO_RULE: f64 = 5.0;
 const RULE_TO_CREDITS: f64 = 4.0;
@@ -154,7 +156,7 @@ fn write_band(out: &mut String, furniture: &Furniture, area: &Rect, typesetter: 
         typesetter,
         area.x,
         area.bottom(),
-        area.width * 0.7,
+        area.width * BAND_CREDITS_SHARE,
         area.right(),
     );
 
