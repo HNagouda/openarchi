@@ -78,22 +78,22 @@ pub fn drawn(resolved: &ResolvedLayer, features: &[&Feature], diagram: &Diagram)
     drawn
 }
 
-/// The buildings around the site, in one roof colour, each clipped to the drawing zone.
+/// The buildings around the site, in one roof colour, clipped to the drawing zone.
 pub struct Neighbours<'a> {
     pub features: Vec<&'a Feature>,
     pub roof: String,
     pub clip_id: &'a str,
-    /// ` opacity="…"` for every neighbour, or empty at full opacity.
-    pub opacity: String,
+    /// The sheet's `context_opacity`, 0 to 1: below 1 the neighbours fade toward the paper.
+    pub opacity: f64,
 }
 
 enum Kind<'a> {
     Building {
         polygon: &'a Polygon<f64>,
         roof: String,
-        /// A neighbour is clipped to the drawing zone and may be see-through;
-        /// the site's own buildings stand free: `(clip id, opacity attribute)`.
-        neighbour: Option<(&'a str, &'a str)>,
+        /// A neighbour is clipped to the drawing zone and may be faded;
+        /// the site's own buildings stand free: `(clip id, opacity)`.
+        neighbour: Option<(&'a str, f64)>,
     },
     Tree {
         at: (f64, f64),
@@ -146,7 +146,7 @@ pub fn write(
                     kind: Kind::Building {
                         polygon,
                         roof: neighbours.roof.clone(),
-                        neighbour: Some((neighbours.clip_id, neighbours.opacity.as_str())),
+                        neighbour: Some((neighbours.clip_id, neighbours.opacity)),
                     },
                     height: building_height(feature).0,
                 });
@@ -186,17 +186,39 @@ pub fn write(
         mm(EDGE_MM),
         decimal(EDGE_OPACITY)
     );
+    // Neighbours next to each other in drawing order share one clip group. A
+    // group per neighbour, let alone a see-through one, made a tilted sheet
+    // with a few thousand of them paint twice as slowly.
+    let mut is_clip_open = false;
     for index in order {
         let solid = &solids[index];
+        let neighbour = match &solid.kind {
+            Kind::Building { neighbour, .. } => *neighbour,
+            Kind::Tree { .. } => None,
+        };
+        match (neighbour, is_clip_open) {
+            (Some((clip_id, _)), false) => {
+                let _ = write!(out, r#"<g clip-path="url(#{clip_id})">"#);
+                is_clip_open = true;
+            }
+            (None, true) => {
+                out.push_str("</g>");
+                is_clip_open = false;
+            }
+            _ => {}
+        }
+
         match &solid.kind {
             Kind::Building {
                 polygon,
                 roof,
                 neighbour,
             } => match neighbour {
-                Some((clip_id, opacity)) => {
-                    // Each neighbour fades as one, so its own walls never show through its roof.
-                    let _ = write!(out, r#"<g clip-path="url(#{clip_id})"{opacity}>"#);
+                Some((_, opacity)) => {
+                    // Faded by colour rather than by an opacity group, so a
+                    // neighbour stays solid and its walls never show through its roof.
+                    let fade =
+                        (*opacity < 1.0).then(|| (theme.palette.paper.as_str(), 1.0 - opacity));
                     write_building(
                         out,
                         polygon,
@@ -204,10 +226,10 @@ pub fn write(
                         roof,
                         &neighbour_light,
                         projection,
+                        fade,
                     );
-                    out.push_str("</g>");
                 }
-                None => write_building(out, polygon, solid.height, roof, &light, projection),
+                None => write_building(out, polygon, solid.height, roof, &light, projection, None),
             },
             Kind::Tree { at } => {
                 let fill = tree_style
@@ -217,6 +239,9 @@ pub fn write(
                 write_tree(out, *at, &fill, opacity, &light, projection);
             }
         }
+    }
+    if is_clip_open {
+        out.push_str("</g>");
     }
     out.push_str("</g>\n");
 }

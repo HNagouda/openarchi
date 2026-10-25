@@ -264,7 +264,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
             features: neighbourhood.buildings(),
             roof: context::roof(&massing::theme_fill(theme), theme),
             clip_id: &neighbourhood.clip_id,
-            opacity: neighbourhood.opacity_attribute(),
+            opacity: neighbourhood.opacity,
         });
         solid::write(
             &mut body,

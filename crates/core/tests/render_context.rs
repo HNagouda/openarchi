@@ -89,17 +89,22 @@ fn a_faded_neighbourhood_is_drawn_see_through_and_a_full_one_is_unchanged() {
 }
 
 #[test]
-fn standing_neighbours_fade_with_the_neighbourhood() {
+fn standing_neighbours_fade_toward_the_paper_and_stay_solid() {
+    let full = svg_of(
+        &scene_with_neighbourhood(),
+        &look_in(ViewMode::Axonometric),
+        "paper",
+    );
     let mut look = look_in(ViewMode::Axonometric);
     look.sheet.context_opacity = 0.25;
-    let svg = svg_of(&scene_with_neighbourhood(), &look, "paper");
-    let solids = &svg[svg.find(r#"id="solids""#).expect("a solids group")..];
-    assert_eq!(
-        solids
-            .matches(r#"<g clip-path="url(#context-clip)" opacity="0.25">"#)
-            .count(),
-        3
-    );
+    let faded = svg_of(&scene_with_neighbourhood(), &look, "paper");
+
+    let solids_of =
+        |svg: &str| svg[svg.find(r#"id="solids""#).expect("a solids group")..].to_string();
+    let (full_solids, faded_solids) = (solids_of(&full), solids_of(&faded));
+    // Faded by colour, not by a see-through group, so walls never show through roofs.
+    assert!(!faded_solids.contains(r#"opacity="0.25""#));
+    assert_ne!(full_solids, faded_solids);
 }
 
 #[test]
@@ -133,20 +138,18 @@ fn the_rest_of_the_site_around_a_smaller_area_follows_the_neighbourhood_toggle()
 }
 
 #[test]
-fn standing_neighbours_are_clipped_one_by_one_among_the_site_buildings() {
+fn standing_neighbours_are_clipped_to_the_drawing_zone_a_run_at_a_time() {
     let svg = svg_of(
         &scene_with_neighbourhood(),
         &look_in(ViewMode::Axonometric),
         "paper",
     );
     let solids = &svg[svg.find(r#"id="solids""#).expect("a solids group")..];
-    // Three neighbouring buildings, each in its own clipped group.
-    assert_eq!(
-        solids
-            .matches(r#"<g clip-path="url(#context-clip)">"#)
-            .count(),
-        3
-    );
+    // Three neighbouring buildings; those next to each other in drawing order share a group.
+    let groups = solids
+        .matches(r#"<g clip-path="url(#context-clip)">"#)
+        .count();
+    assert!((1..=3).contains(&groups), "{groups} clip groups");
 }
 
 #[test]

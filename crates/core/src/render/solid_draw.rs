@@ -27,6 +27,7 @@ pub(super) fn write_building(
     roof: &str,
     light: &Light,
     projection: &Projection,
+    fade: Option<(&str, f64)>,
 ) {
     let mut walls = Vec::new();
     collect_walls(polygon.exterior(), false, height, projection, &mut walls);
@@ -51,7 +52,7 @@ pub(super) fn write_building(
             let _ = write!(
                 out,
                 r#"<path d="{data}" fill="{}"/>"#,
-                wall_fill(base, wall.normal, light)
+                faded(wall_fill(base, wall.normal, light), fade)
             );
         }
     }
@@ -66,7 +67,20 @@ pub(super) fn write_building(
         push_paper_points(&mut data, &points, true);
     }
     if !data.is_empty() {
+        let roof = if roof.starts_with('#') {
+            faded(roof.to_string(), fade)
+        } else {
+            roof.to_string()
+        };
         let _ = write!(out, r#"<path d="{data}" fill="{roof}"/>"#);
+    }
+}
+
+/// `colour` moved `share` of the way toward the fade colour, or as it is without one.
+fn faded(colour: String, fade: Option<(&str, f64)>) -> String {
+    match fade {
+        Some((toward, share)) => color::mix(&colour, toward, share),
+        None => colour,
     }
 }
 
