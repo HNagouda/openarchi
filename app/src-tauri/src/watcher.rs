@@ -56,7 +56,7 @@ pub fn watch_projects(app: AppHandle, state: Arc<AppState>) -> Result<Recommende
                 continue;
             }
             // Thumbnails of this project are stale now.
-            lock(&state.thumbnails).retain(|key, _| !key.starts_with(&format!("{id}|")));
+            lock(&state.thumbnails).remove(&id);
             let _ = app.emit(LIBRARY_CHANGED_EVENT, LibraryChanged { id });
         }
     })

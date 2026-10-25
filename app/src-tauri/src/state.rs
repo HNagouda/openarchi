@@ -25,8 +25,9 @@ pub struct AppState {
     pub open: Mutex<Option<OpenProject>>,
     /// Shared, not copied: every preview and thumbnail reads it.
     pub catalog: Mutex<Option<Arc<Catalog>>>,
-    /// Gallery thumbnails as data URLs, keyed by id, modified time and width.
-    pub thumbnails: Mutex<HashMap<String, String>>,
+    /// Gallery thumbnails by project id, one each, so a saved project replaces
+    /// its old picture instead of adding another.
+    pub thumbnails: Mutex<HashMap<String, Thumbnail>>,
     /// When the app itself last wrote each project, so the watcher can tell
     /// our own saves from an assistant's.
     pub own_saves: Mutex<HashMap<String, Instant>>,
@@ -36,6 +37,13 @@ pub struct AppState {
     /// site takes longer than drawing it, and the preview, the thumbnails and
     /// the ratios all ask for the same area over and over.
     pub framed: Mutex<Vec<Framed>>,
+}
+
+/// A gallery card's picture as a data URL, and what it was drawn from.
+pub struct Thumbnail {
+    pub modified: String,
+    pub width: u32,
+    pub url: String,
 }
 
 pub struct Framed {

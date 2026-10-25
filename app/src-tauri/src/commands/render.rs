@@ -17,7 +17,7 @@ use openarchi_core::theme::Theme;
 use tauri::State;
 
 use crate::guard::{blocking, text};
-use crate::state::{lock, AppState, Catalog, Framed, LayerInfo, Shared};
+use crate::state::{lock, AppState, Catalog, Framed, LayerInfo, Shared, Thumbnail};
 
 fn read_catalog(state: &AppState) -> Catalog {
     let diagrams = catalog::builtin_diagrams();
@@ -223,9 +223,10 @@ pub async fn project_thumbnail(
 ) -> Result<Option<String>, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let key = format!("{id}|{modified}|{width}");
-        if let Some(url) = lock(&state.thumbnails).get(&key) {
-            return Ok(Some(url.clone()));
+        if let Some(kept) = lock(&state.thumbnails).get(&id) {
+            if kept.modified == modified && kept.width == width {
+                return Ok(Some(kept.url.clone()));
+            }
         }
 
         let project = state.library()?.load(&id).map_err(text)?;
@@ -242,7 +243,12 @@ pub async fn project_thumbnail(
             |input| render_png(input, width),
         )?;
         let url = png_data_url(&bytes);
-        lock(&state.thumbnails).insert(key, url.clone());
+        let kept = Thumbnail {
+            modified,
+            width,
+            url: url.clone(),
+        };
+        lock(&state.thumbnails).insert(id, kept);
         Ok(Some(url))
     })
     .await
