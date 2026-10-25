@@ -1,14 +1,14 @@
 # Data sources
 
-Which open services can feed the analyses openarchi does not draw yet, checked on 2026-10-24 with real requests from this Mac around two test sites: the Westerkerk in Amsterdam (lon 4.8840, lat 52.3745, roughly RD x 120700, y 487600) and the TU/e campus in Eindhoven (lon 5.4908, lat 51.4483). Every latency below is one measured `curl` call, not an average.
+Which open services feed openarchi's analyses, and which were checked but not used, with the requests that checked them on 2026-10-24 with real requests from this Mac around two test sites: the Westerkerk in Amsterdam (lon 4.8840, lat 52.3745, roughly RD x 120700, y 487600) and the TU/e campus in Eindhoven (lon 5.4908, lat 51.4483). Every latency below is one measured `curl` call, not an average.
 
 The short version: almost everything is available without a key. PDOK, RIVM, LIWO, the Klimaateffectatlas, KNMI and PVGIS are open government services with no rate limits we could hit. OpenStreetMap through Overpass covers points of interest, transit stops and the footpath network, but the main Overpass server is slow and sometimes full. Open-Meteo is fast and convenient but its free tier is non-commercial only. Zoning under the Omgevingswet needs a free API key, though the older zoning plans are open through PDOK.
 
-## What does openarchi already fetch?
+## What does openarchi fetch?
 
 PDOK for the BGT (OGC API features at `https://api.pdok.nl/lv/bgt/ogc/v1`), BAG v2 buildings (`https://api.pdok.nl/kadaster/bag/ogc/v2`, collection `pand`), BRK v1 parcels (`https://api.pdok.nl/kadaster/brk-kadastrale-kaart/ogc/v1`), AHN heights through WCS (`https://service.pdok.nl/rws/ahn/wcs/v1_0`, coverages `dsm_05m` and `dtm_05m`) and the Locatieserver for search. 3D BAG timed out from this machine and is not used.
 
-Everything below is new.
+Since round 2 it also fetches the BAG `verblijfsobject` units (`bag_units.rs`), the administrative boundaries (`boundaries.rs`), the PDOK infrared photo for the vegetation index (`luchtfoto.rs`), RIVM's WCS for noise, air, trees, green and the heat island (`rivm.rs`), LIWO flood depths (`liwo.rs`), the CBS 100 m statistics and area divisions (`cbs.rs`), PVGIS typical-year weather (`pvgis.rs`), KNMI daily data (`knmi.rs`), Rijkswaterstaat's bed survey and target water levels (`rws.rs`) and OpenStreetMap through Overpass (`osm/`). The sections below record how each was checked. Open-Meteo, the Klimaateffectatlas, Sentinel-2, Landsat and the zoning services were checked but are not used.
 
 ## Where do business and facility points come from?
 
@@ -186,7 +186,7 @@ Sentinel-2 is the calibrated option. The Earth Search STAC API (`https://earth-s
 
 For heat, the Klimaateffectatlas WMS (`https://cas.cloud.sogelink.com/public/data/org/gws/YWFMLMWERURF/kea_public/wms`, `Fees NONE`) has `hitteeiland`, the urban heat island effect in °C: 2.58 at the Westerkerk and 1.15 at TU/e (0.24 to 0.51 s). Its `gevoelstemperatuur_2022` (felt temperature) layer only returns a rendered colour (`RED_BAND`), not a value, so it can only be shown as an image. For measured ground surface temperature, Landsat Collection 2 Level-2 on Microsoft Planetary Computer works without an account: STAC search (`https://planetarycomputer.microsoft.com/api/stac/v1/search`, 0.59 s) found `LC09_L2SP_197024_20260802_02_T1` with 8.13 % cloud, and the asset URLs need a free anonymous token from `https://planetarycomputer.microsoft.com/api/sas/v1/token/landsat-c2-l2` that lasts about a day. Band `lwir11` is surface temperature at 30 m (100 m native).
 
-#! NOTE[heat] : Landsat surface temperature needs scene picking (cloud, hottest recent day); start with the Klimaateffectatlas heat island layer and add Landsat later
+#! NOTE[heat] : Landsat surface temperature needs scene picking (cloud, hottest recent day); the heat island comes from RIVM's WCS, Landsat could add measured ground temperature later
 
 ## How did trees, the vegetation index and the heat island get onto the sheet?
 
@@ -234,7 +234,7 @@ OSM storeys are too sparse to rely on: of 1,197 buildings within 300 m of the tw
 
 ## Where do the country and municipality outlines come from?
 
-PDOK's administrative boundaries, CC BY 4.0 with credit "Kadaster". `https://api.pdok.nl/kadaster/bestuurlijkegebieden/ogc/v1/collections/gemeentegebied/items?bbox=5.4900,51.4478,5.4916,51.4488` took 0.13 s and returned Eindhoven (`GM0772`, province `Noord-Brabant`) as a 135,201 byte polygon. `landgebied` (the Netherlands) is 1,439,726 bytes in 0.39 s, which is worth bundling with the app at reduced detail instead of fetching each time. `provinciegebied` is also there.
+PDOK's administrative boundaries, CC BY 4.0 with credit "Kadaster". `https://api.pdok.nl/kadaster/bestuurlijkegebieden/ogc/v1/collections/gemeentegebied/items?bbox=5.4900,51.4478,5.4916,51.4488` took 0.13 s and returned Eindhoven (`GM0772`, province `Noord-Brabant`) as a 135,201 byte polygon. `landgebied` (the Netherlands) is 1,439,726 bytes in 0.39 s, but it is the legal territory, Wadden Sea and IJsselmeer included. The bundled outline on the locator map comes from the CBS regions instead, which follow the coast (`boundaries.rs`, `examples/netherlands_outline.rs`). `provinciegebied` is also there.
 
 ## How cheaply can the neighbourhood around a site get building heights?
 
@@ -274,15 +274,9 @@ AHN `dsm_05m` and `dtm_05m` plus BAG footprints already cover a lot, and computi
 - Floor area ratio and building coverage from BAG footprints, storeys and the site area.
 - Walk isochrones and the 15 minute neighbourhood from the OSM footpath graph described above.
 
-## In which order should round 2 add them?
+## What is still open?
 
-1. Business, facility and transit points from one cached Overpass query per site, with backoff and the OSM credit on the sheet. This unlocks three diagrams and the walk graph at once.
-2. Traffic noise and annual air quality from the RIVM WCS, which reuses the AHN WCS code path.
-3. Population, dwellings and households from the CBS 100 m grid (with `jaarcode`) and wijken en buurten 2025, plus BAG verblijfsobject counts per building.
-4. Locator map from PDOK administrative boundaries, with the national outline bundled.
-5. Climate page from PVGIS TMY and KNMI daily data, with Open-Meteo snowfall behind the licence decision above.
-6. Flood depth from the LIWO WCS.
-7. Walk isochrones and the 15 minute neighbourhood, computed locally from the footpath graph fetched in step 1.
-8. Tree canopy and heat island from the RIVM green WCS and the Klimaateffectatlas WMS.
-9. Zoning from the PDOK plan map, and the DSO API once a key decision is made.
-10. Calibrated NDVI from Sentinel-2 and ground surface temperature from Landsat, which need scene selection and are the most work for the least gain.
+Steps 1 to 8 of the round-2 plan are built, except that the heat island comes from RIVM rather than the Klimaateffectatlas and Open-Meteo snowfall was left out over its non-commercial licence. Two remain:
+
+1. Zoning from the PDOK plan map, and the DSO API once a key decision is made.
+2. Calibrated NDVI from Sentinel-2 and ground surface temperature from Landsat, which need scene selection and are the most work for the least gain.

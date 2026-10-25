@@ -55,12 +55,14 @@ crates/core/            the library: no window, no async
   src/highlight.rs      areas marked inside the site in RD New metres, shown on every sheet
   src/selection.rs      a sheet's area, opened from a highlight: the scene cut to it
   src/library.rs        project files, backups and Recently Deleted
+  src/environment.rs    noise, air, flood, slope and people as numbers, for get_environment
+  src/attribution.rs    the source names under each ratio group and analysis section
   assets/               diagram and theme JSON, and the bundled OFL fonts
   examples/             fetch_site and the *_samples, *_timing and app_fixtures tools, for working on data, looks and speed (see Running it)
 crates/mcp/             openarchi-mcp, a stdio MCP server over the core
 app/                    the desktop app
   src-tauri/            Tauri commands, each a thin call into the core
-  src/                  React front end, one folder per screen: home, site, sheet, report, settings, tour
+  src/                  React front end, one folder per screen: home, site, sheet, report, settings, tour; shared lib/, ui/ and styles/; dev/ holds the browser mock
 scripts/mcp.sh          call any MCP tool from the shell
 ```
 

@@ -111,6 +111,8 @@ Businesses, facilities, transit stops and the footpath network come from [OpenSt
 
 The Analysis tab adds the climate from [PVGIS](https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis_en), the European Commission's Joint Research Centre, as a typical year of hourly weather, and rain from the nearest [KNMI](https://www.knmi.nl/nederland-nu/klimatologie/daggegevens) weather station (CC BY 4.0). The municipality comes from Kadaster's administrative boundaries and the country outline from CBS, both CC BY 4.0 through PDOK. Every analysis page lists the sources it used.
 
+The environment diagrams draw from more government services. [RIVM](https://www.atlasleefomgeving.nl) gives road noise, air quality, trees, green and the urban heat island (Public Domain Mark 1.0). LIWO, the national flood information service, gives flood depths (no access constraints). The [CBS](https://www.cbs.nl) 100 m statistics give population and dwellings (CC BY 4.0). The PDOK infrared aerial photo gives the vegetation index (CC BY 4.0). Rijkswaterstaat's bed survey and target water levels give the water in sections (CC0 1.0).
+
 ## Questions
 
 **Is it really free?** Yes. No subscription, no account, no cap on sites.
