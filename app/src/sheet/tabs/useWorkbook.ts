@@ -8,6 +8,7 @@ import { errorText, fittingScale, saveSheets } from "../../lib/ipc";
 import { useHistory } from "../../lib/history";
 import type { Area, Highlight, Look, Pin, ProjectView } from "../../lib/types";
 import { useToast } from "../../ui/Toasts";
+import { withoutLostViewPins } from "../viewpoint/viewPointEdits";
 import { movedTo, sheetName, withAreaSheet, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
 
 /** The sheets, pins and highlights a project view holds; a view from before tabs has only its look. */
@@ -65,8 +66,12 @@ export function useWorkbook(project: ProjectView) {
     [history],
   );
 
+  // One step with the sheets, so undoing a deleted pin ties the eye back onto it.
   const changePins = useCallback(
-    (pins: Pin[], mergeKey?: string) => history.change({ ...latest.current.book, pins }, mergeKey),
+    (pins: Pin[], mergeKey?: string) => {
+      const current = latest.current.book;
+      history.change({ ...current, pins, sheets: withoutLostViewPins(current.sheets, pins) }, mergeKey);
+    },
     [history],
   );
 

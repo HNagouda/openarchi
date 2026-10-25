@@ -88,7 +88,7 @@ fn a_wall_hides_the_ground_behind_it() {
 
 #[test]
 fn a_wall_below_the_eye_hides_only_a_strip_behind_it() {
-    // A 0.5 m wall seen from 1.5 m up, 50 m off, hides the ground 25 m behind it.
+    // A 0.5 m wall seen from 1.7 m up, 50 m off, hides the ground about 21 m behind it.
     let view = viewshed(&site(vec![wall(0.5)]), Some((-50.0, 0.0)), site_extent());
 
     assert!(!is_seen(&view, 15.0, 0.0));

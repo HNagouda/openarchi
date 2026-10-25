@@ -17,6 +17,7 @@ use super::geometry::mm;
 use super::legend::{Legend, Row, Swatch, SITE_LABEL};
 use super::svg::layer_attributes;
 use crate::diagram::Diagram;
+use crate::pin::Pin;
 use crate::project::Look;
 use crate::scene::{Feature, Layer, Scene};
 use crate::section;
@@ -46,18 +47,22 @@ pub struct Seen {
 }
 
 /// The view, for a diagram that draws the viewshed layer. `extent` is the
-/// ground the map's frame shows, in the scene's frame.
+/// ground the map's frame shows, in the scene's frame. `pins` are the
+/// project's, so an eye standing on a pin follows it.
 pub fn compute(
     scene: &Scene,
     diagram: &Diagram,
     look: &Look,
+    pins: &[Pin],
     extent: Option<Rect<f64>>,
 ) -> Option<Seen> {
     if !diagram.layers.contains(&Layer::Viewshed) {
         return None;
     }
     let (origin_x, origin_y) = scene.origin;
-    let eye = look.view_point.map(|(x, y)| (x - origin_x, y - origin_y));
+    let eye = look
+        .eye_among(pins)
+        .map(|(x, y)| (x - origin_x, y - origin_y));
     let extent = extent
         .or_else(|| section::reach(scene))
         .or_else(|| scene.boundary.bounding_rect())?;

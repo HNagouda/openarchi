@@ -30,11 +30,12 @@ use crate::sunlight::raster::Raster;
 use crate::{Error, Result};
 use surface::Surface;
 
-/// The eye above the ground, in metres. 1.5 m is the camera height the
-/// Landscape Institute's Technical Guidance Note 06/19, "Visual representation
-/// of development proposals" (2019, appendix 3.1.3), takes from NatureScot's
-/// guidance as standing eye level, the one height a published standard fixes.
-pub const EYE_HEIGHT_M: f64 = 1.5;
+/// The eye above the ground, in metres. 1.7 m is Harsh's choice: the eye
+/// level of an average Dutch adult, about 1.80 m tall (CBS), with the eyes
+/// about 10 cm below the top of the head. For comparison, the Landscape
+/// Institute's Technical Guidance Note 06/19, "Visual representation of
+/// development proposals" (2019, appendix 3.1.3), sets its camera at 1.5 m.
+pub const EYE_HEIGHT_M: f64 = 1.7;
 /// The ground counts as seen when a point this far above it is: Franklin and
 /// Ray's target height. The kept terrain is rounded to the decimetre, and on
 /// flat ground a sight line grazes it, so without this the rounding alone

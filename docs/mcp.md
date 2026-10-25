@@ -78,7 +78,7 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `open_highlight_as_sheet` | Adds a sheet tab framing exactly one highlight, so its ratios and figures describe that area; the only way to a sheet of part of the site |
 | `show_on_sheet` | Shows or hides the pins and the highlights on one sheet tab |
 | `set_section` | Draws, moves, flips or clears a sheet's section line, from A to A' in longitude and latitude, and sets how far beyond it the section shows buildings and trees, its scale and how much taller heights are drawn |
-| `set_view_point` | Stands the eye of a sheet's View diagram at a place, on a pin or back at the site centre |
+| `set_view_point` | Stands the eye of a sheet's View diagram at a place, on a pin it then follows, or back at the site centre |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
 | `get_ratios` | Gives the numbers behind the site: land use, transport, building use, floors, height, age and footprint, coverage and floor area ratio per parcel, green and water, as shares that add up to 100 % |
@@ -124,7 +124,7 @@ A section needs a line first, as in the app, where the Section view is greyed ou
 
 ## How does an assistant set the viewpoint?
 
-The View diagram tints the ground a person standing at the sheet's viewpoint can see, worked out by line of sight past the buildings and the terrain. `set_view_point` takes exactly one of `at` (longitude and latitude, inside the site or its neighbourhood), `pin` (a pin id from `list_pins`, copied as the pin stands now) or `centre: true`, which goes back to the default: the street or square nearest the site centre. These are the three choices of the app's Viewpoint menu. Then `set_look` with `diagram_id` `view` shows it, and `list_sheets` shows each tab's viewpoint, `null` at the centre.
+The View diagram tints the ground a person standing at the sheet's viewpoint can see, worked out by line of sight past the buildings and the terrain. `set_view_point` takes exactly one of `at` (longitude and latitude, inside the site or its neighbourhood), `pin` (a pin id from `list_pins`; the eye follows the pin when it moves and goes back to the site centre when it is removed) or `centre: true`, which goes back to the default: the street or square nearest the site centre. These are the three choices of the app's Viewpoint menu. Then `set_look` with `diagram_id` `view` shows it, and `list_sheets` shows each tab's viewpoint, with the `pin` it stands on, `null` at the centre.
 
 ```json
 { "id": "2026-10-24-westermarkt-3f9a", "from": { "lon": 4.8825, "lat": 52.3745 }, "to": { "lon": 4.8855, "lat": 52.3745 }, "depth_m": 80 }

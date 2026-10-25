@@ -133,6 +133,7 @@ impl OpenArchi {
                 let mut project = library.load(&input.id).map_err(text)?;
                 find_pin(&mut project, &input.pin_id)?;
                 project.pins.retain(|pin| pin.id != input.pin_id);
+                project.untie_lost_view_pins();
                 library.save(&mut project).map_err(text)?;
                 Ok(pins_of(&project))
             })
@@ -164,7 +165,7 @@ pub(crate) fn sheets_of(project: &Project) -> Value {
                 "hide_pins": look.hide_pins,
                 "hide_highlights": look.hide_highlights,
                 "section": crate::sections::section_of(look)["section"],
-                "view_point": crate::view_point::view_point_of(look)["view_point"],
+                "view_point": crate::view_point::view_point_of(look, &project.pins)["view_point"],
             })
         })
         .collect();

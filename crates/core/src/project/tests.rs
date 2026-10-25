@@ -110,3 +110,25 @@ fn a_project_keeps_at_least_one_sheet() {
     assert!(project.sheet_mut(2).is_err());
     assert!(project.sheet_mut(1).is_ok());
 }
+
+#[test]
+fn an_eye_on_a_removed_pin_is_untied_and_stands_at_the_centre() {
+    let (_folder, library) = library();
+    let mut project = library.create("Westermarkt", westermarkt()).unwrap();
+    let pin = Pin {
+        id: "pin-1".to_string(),
+        icon: PinIcon::Pin,
+        label: String::new(),
+        x: 120_906.5,
+        y: 487_460.25,
+        size: PinSize::Medium,
+    };
+    project.pins.push(pin.clone());
+    project.look.view_pin = Some("pin-1".to_string());
+    assert_eq!(project.look.eye_among(&project.pins), Some((pin.x, pin.y)));
+
+    project.pins.clear();
+    assert_eq!(project.look.eye_among(&project.pins), None);
+    project.untie_lost_view_pins();
+    assert_eq!(project.look.view_pin, None);
+}

@@ -116,6 +116,33 @@ fn the_view_point_stands_at_a_place_on_a_pin_or_back_at_the_centre() {
 }
 
 #[test]
+fn an_eye_on_a_pin_follows_it_and_goes_back_to_the_centre_when_it_is_removed() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    let pin = server.call_ok(
+        "add_pin",
+        json!({ "id": id, "location": { "lon": 4.8845, "lat": 52.3740 }, "icon": "dot" }),
+    );
+    let pin_id = pin["pins"][0]["id"].as_str().unwrap().to_string();
+    let on_pin = server.call_ok("set_view_point", json!({ "id": id, "pin": pin_id }));
+    assert_eq!(on_pin["view_point"]["pin"], json!(pin_id));
+
+    server.call_ok(
+        "move_pin",
+        json!({ "id": id, "pin_id": pin_id, "location": { "lon": 4.8835, "lat": 52.3742 } }),
+    );
+    let moved = server.call_ok("list_sheets", json!({ "id": id }));
+    let lon = moved["sheets"][0]["view_point"]["at"]["lon"]
+        .as_f64()
+        .unwrap();
+    assert!((lon - 4.8835).abs() < 1e-6, "{moved}");
+
+    server.call_ok("remove_pin", json!({ "id": id, "pin_id": pin_id }));
+    let removed = server.call_ok("list_sheets", json!({ "id": id }));
+    assert_eq!(removed["sheets"][0]["view_point"], json!(null));
+}
+
+#[test]
 fn a_view_point_off_the_site_or_asked_two_ways_is_refused() {
     let mut server = Server::start();
     let id = fetched_westermarkt(&mut server);

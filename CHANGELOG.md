@@ -300,10 +300,10 @@ Sheets can now show the site in three dimensions and the sun over it.
 ### View
 
 - A new View diagram tints the ground a person standing at a viewpoint can see, over the site and the whole drawing, with the eye drawn where it stands. The legend names the method, the eye height and how much of the site's open ground is in view.
-- It is worked out by line of sight (the R2 viewshed of Franklin and Ray, 1994) past every building of the site and its neighbourhood at its roof height, standing on the kept terrain where the site has it. The eye stands 1.5 m up, the standing eye level the Landscape Institute's guidance on visual representation fixes. Trees are left out, because a standing eye sees the ground under their crowns.
-- The eye starts on the street or square nearest the site centre. The Viewpoint section of the inspector stands it on one of the project's pins or back at the centre, V or Place on the sheet puts it where you click, and the eye can be dragged on the sheet. Every move undoes. A viewpoint on a roof looks from the roof.
+- It is worked out by line of sight (the R2 viewshed of Franklin and Ray, 1994) past every building of the site and its neighbourhood at its roof height, standing on the kept terrain where the site has it. The eye stands 1.7 m up, the eye level of an average Dutch adult. Trees are left out, because a standing eye sees the ground under their crowns.
+- The eye starts on the street or square nearest the site centre. The Viewpoint section of the inspector stands it on one of the project's pins, where it follows the pin when the pin moves and goes back to the centre when the pin is deleted, or back at the centre, V or Place on the sheet puts it where you click, and the eye can be dragged on the sheet. Every move undoes. A viewpoint on a roof looks from the roof.
 - The view draws in plan, axonometric and on an explode plate. It takes a few milliseconds, so it redraws with every change.
-- Assistants set the viewpoint with `set_view_point`, and `list_sheets` shows it.
+- Assistants set the viewpoint with `set_view_point`, tied to a pin the same way, and `list_sheets` shows it with the pin it stands on.
 
 ## 0.1.0 (unreleased)
 

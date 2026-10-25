@@ -63,8 +63,10 @@ export function usePreview(look: Look, pins: Pin[], highlights: Highlight[], rev
     }
   };
 
-  // A sheet that hides pins or highlights does not redraw when they change.
-  const key = JSON.stringify([look, look.hide_pins ? null : pins, look.hide_highlights ? null : highlights]);
+  // A sheet that hides pins or highlights does not redraw when they change,
+  // unless its View eye stands on a pin and follows it.
+  const isPinFree = look.hide_pins && !look.view_pin;
+  const key = JSON.stringify([look, isPinFree ? null : pins, look.hide_highlights ? null : highlights]);
   useEffect(() => {
     if (!isEnabled) return;
     currentKey.current = key;

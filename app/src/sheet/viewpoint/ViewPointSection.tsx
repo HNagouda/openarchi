@@ -7,7 +7,7 @@ import type { Look, Pin } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { Section } from "../../ui/Section";
 import { VIEW_POINT_KEY } from "./useViewPointTool";
-import { pinUnderEye, withViewPoint } from "./viewPointEdits";
+import { pinUnderEye, withViewPin, withViewPoint } from "./viewPointEdits";
 import "./viewpoint.css";
 
 // The menu's values besides the pins, since an <option> value is a string.
@@ -31,12 +31,12 @@ type Props = {
 export function ViewPointSection({ look, controls, onLook }: Props) {
   const { pins, isPlacing, onPlace } = controls;
   const pin = pinUnderEye(look, pins);
-  const value = !look.view_point ? CENTRE : pin ? `${PIN_PREFIX}${pin.id}` : PLACED;
+  const value = pin ? `${PIN_PREFIX}${pin.id}` : look.view_point && !look.view_pin ? PLACED : CENTRE;
 
   const choose = (chosen: string) => {
     if (chosen === CENTRE) onLook(withViewPoint(look, null));
     const picked = pins.find((entry) => `${PIN_PREFIX}${entry.id}` === chosen);
-    if (picked) onLook(withViewPoint(look, { x: picked.x, y: picked.y }));
+    if (picked) onLook(withViewPin(look, picked.id));
   };
 
   return (
@@ -62,7 +62,7 @@ export function ViewPointSection({ look, controls, onLook }: Props) {
           {isPlacing ? "Click the sheet…" : "Place on the sheet"}
         </Button>
         <p className="view-point-hint">
-          Or drag the eye on the sheet ({shortcutLabel(VIEW_POINT_KEY).toUpperCase()} places it). The site centre stands it on the street or square nearest the middle.
+          Or drag the eye on the sheet ({shortcutLabel(VIEW_POINT_KEY).toUpperCase()} places it). The site centre stands it on the street or square nearest the middle; on a pin, the eye follows the pin.
         </p>
       </div>
     </Section>
