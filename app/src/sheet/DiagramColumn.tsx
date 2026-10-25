@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { Diagram } from "../lib/types";
 import { Segmented } from "../ui/Segmented";
 import { chosenVariant, groupDiagrams } from "../lib/diagrams";
@@ -12,8 +12,9 @@ type Props = {
   onVariant: (variantId: string) => void;
 };
 
-/** The diagram picker on the left: every diagram of this site in the current palette, under its group. */
-export function DiagramColumn({ diagrams, selectedId, variantId, thumbnails, onSelect, onVariant }: Props) {
+/** The diagram picker on the left: every diagram of this site in the current palette, under its group.
+ * Memoized: it holds every thumbnail, and most edits on the sheet leave all of its props alone. */
+export const DiagramColumn = memo(function DiagramColumn({ diagrams, selectedId, variantId, thumbnails, onSelect, onVariant }: Props) {
   const list = useRef<HTMLDivElement>(null);
   const groups = groupDiagrams(diagrams);
 
@@ -48,7 +49,7 @@ export function DiagramColumn({ diagrams, selectedId, variantId, thumbnails, onS
       </div>
     </nav>
   );
-}
+});
 
 type EntryProps = {
   diagram: Diagram;

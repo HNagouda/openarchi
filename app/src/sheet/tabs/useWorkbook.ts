@@ -29,6 +29,8 @@ function changedSheet(before: Workbook, after: Workbook): number | null {
 
 export function useWorkbook(project: ProjectView) {
   const history = useHistory<Workbook>(workbookOf(project));
+  // Stable for the life of the workspace, so the callbacks below are too.
+  const { change, undo: undoStep, redo: redoStep } = history;
   const [active, setActive] = useState(0);
   const toast = useToast();
   const book = history.present;
@@ -50,34 +52,34 @@ export function useWorkbook(project: ProjectView) {
 
   const undo = useCallback(() => {
     stepFrom.current = latest.current;
-    history.undo();
-  }, [history]);
+    undoStep();
+  }, [undoStep]);
 
   const redo = useCallback(() => {
     stepFrom.current = latest.current;
-    history.redo();
-  }, [history]);
+    redoStep();
+  }, [redoStep]);
 
   const changeLook = useCallback(
     (next: Look, mergeKey?: string) => {
       const current = latest.current;
-      history.change(withSheet(current.book, current.index, next), mergeKey);
+      change(withSheet(current.book, current.index, next), mergeKey);
     },
-    [history],
+    [change],
   );
 
   // One step with the sheets, so undoing a deleted pin ties the eye back onto it.
   const changePins = useCallback(
     (pins: Pin[], mergeKey?: string) => {
       const current = latest.current.book;
-      history.change({ ...current, pins, sheets: withoutLostViewPins(current.sheets, pins) }, mergeKey);
+      change({ ...current, pins, sheets: withoutLostViewPins(current.sheets, pins) }, mergeKey);
     },
-    [history],
+    [change],
   );
 
   const changeHighlights = useCallback(
-    (highlights: Highlight[], mergeKey?: string) => history.change({ ...latest.current.book, highlights }, mergeKey),
-    [history],
+    (highlights: Highlight[], mergeKey?: string) => change({ ...latest.current.book, highlights }, mergeKey),
+    [change],
   );
 
   /** A new tab after the others, in the showing sheet's look, framing `selection` at the scale that fills the paper. */

@@ -6,10 +6,9 @@ import type { Navigate } from "../App";
 import { useCommandHandler } from "../lib/commands";
 import { closeProject, errorText, renameProject } from "../lib/ipc";
 import { usePlainKeys } from "../lib/keys";
-import { shortcutLabel } from "../lib/platform";
 import { readPreference, writePreference } from "../lib/storage";
 import { chosenVariant, drawnDiagram, drawnName } from "../lib/diagrams";
-import type { Catalog, ProjectView } from "../lib/types";
+import type { Catalog, Diagram, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { CanvasMessage } from "./CanvasMessage";
@@ -22,6 +21,8 @@ import { Inspector } from "./inspector/Inspector";
 import { useAutosave } from "./useAutosave";
 import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
+import { useLiveValue } from "./liveValue";
+import { ZoomControl } from "./ZoomControl";
 import { TextOverlay } from "./text/TextOverlay";
 import { useTextTool } from "./text/useTextTool";
 import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
@@ -43,6 +44,9 @@ import { useProjectSync } from "./useProjectSync";
 import { ReportsWorkspace } from "../report/ReportsWorkspace";
 import { useLibraryPreviews } from "../report/previews/useLibraryPreviews";
 
+// One empty list while the catalog loads, so the memoized diagram column does not see a new one every render.
+const NO_DIAGRAMS: Diagram[] = [];
+
 type Props = {
   project: ProjectView;
   catalog: Catalog | null;
@@ -55,14 +59,16 @@ type Props = {
 export function SheetStep({ project: initial, catalog, catalogError, onRetryCatalog, navigate }: Props) {
   const [project, setProject] = useState(initial);
   const history = useWorkbook(initial);
-  const { book, look } = history;
+  const { book, look, changeLook } = history;
+  const latestLook = useRef(look);
+  latestLook.current = look;
   const [revision, setRevision] = useState(0);
   const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
   const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
   const [isExportOpen, setExportOpen] = useState(false);
   // The report editor opens over the sheet; the tabs below hold sheets only.
   const [isReportsOpen, setReportsOpen] = useState(false);
-  const [zoom, setZoom] = useState(1);
+  const zoom = useLiveValue(1);
   const canvas = useRef<CanvasControls>(null);
   const toast = useToast();
 
@@ -74,7 +80,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const reportSaveError = useCallback((message: string) => toast(`Couldn't save. ${message}`, { isError: true }), [toast]);
   const autosave = useAutosave(book, saveWorkbook, reportSaveError);
 
-  const diagrams = catalog?.diagrams ?? [];
+  const diagrams = catalog?.diagrams ?? NO_DIAGRAMS;
   const themes = catalog?.themes ?? [];
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
   const variant = diagram ? chosenVariant(diagram, look.variant) : null;
@@ -113,14 +119,19 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
 
   // A new diagram starts on its first variant, and a plan-only one turns a tilted sheet to its plan in the same step.
-  const selectDiagram = (diagram_id: string) => {
-    if (diagram_id === look.diagram_id) return;
-    const isPlanOnly = diagrams.find((entry) => entry.id === diagram_id)?.plan_only === true;
-    const isTilted = look.view.mode === "axonometric" || look.view.mode === "explode";
-    const view = isPlanOnly && isTilted ? { ...look.view, mode: "plan" as const } : look.view;
-    history.changeLook({ ...look, diagram_id, variant: null, view });
-  };
-  const selectVariant = (variantId: string) => history.changeLook({ ...look, variant: variantId });
+  // Both read the look through a ref, so the diagram column's callbacks stay the same while the look changes.
+  const selectDiagram = useCallback(
+    (diagram_id: string) => {
+      const current = latestLook.current;
+      if (diagram_id === current.diagram_id) return;
+      const isPlanOnly = diagrams.find((entry) => entry.id === diagram_id)?.plan_only === true;
+      const isTilted = current.view.mode === "axonometric" || current.view.mode === "explode";
+      const view = isPlanOnly && isTilted ? { ...current.view, mode: "plan" as const } : current.view;
+      changeLook({ ...current, diagram_id, variant: null, view });
+    },
+    [diagrams, changeLook],
+  );
+  const selectVariant = useCallback((variantId: string) => changeLook({ ...latestLook.current, variant: variantId }), [changeLook]);
 
   const stepDiagram = (direction: 1 | -1) => {
     const index = diagrams.findIndex((entry) => entry.id === look.diagram_id);
@@ -279,7 +290,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             <Canvas
               svg={preview.svg}
               controls={canvas}
-              onZoom={setZoom}
+              onZoom={zoom.set}
               onPaperPointerDown={(event, view) => pressPaper(event, view, paperTools)}
               onPaperDoubleClick={(event, view) => doubleClickPaper(event, view, paperTools)}
               overlay={(view) =>
@@ -326,13 +337,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               </div>
             )}
             {preview.isSlow && <div className="render-hint" aria-label="Rendering" />}
-            <div className="zoom-control">
-              <Button icon="zoomOut" tip="Zoom out" shortcut="mod+-" tipSide="above" onClick={() => canvas.current?.zoomOut()} />
-              <button type="button" className="zoom-value tabular" data-tip="Fit sheet" data-tip-key={shortcutLabel("mod+0")} data-tip-side="above" onClick={() => canvas.current?.fit()}>
-                {Math.round(zoom * 100)}%
-              </button>
-              <Button icon="zoomIn" tip="Zoom in" shortcut="mod+=" tipSide="above" onClick={() => canvas.current?.zoomIn()} />
-            </div>
+            <ZoomControl zoom={zoom} canvas={canvas} />
           </div>
           <SheetTabs
             book={book}

@@ -1,7 +1,7 @@
 // Diagram column pictures: every diagram in the current theme and sheet, rendered
 // one at a time in the background after the preview has had its turn.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { renderThumbnail } from "../lib/ipc";
 import type { Diagram, Look, Sheet } from "../lib/types";
 
@@ -35,10 +35,12 @@ export function useThumbnails(look: Look, diagrams: Diagram[], revision: number,
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
 
   // Everything but the diagram, its variant, the sheet's text, the view mode and the section line: the pictures only change when this changes.
-  const { diagram_id: _diagram, variant: _variant, ...rest } = look;
-  const shared = { ...rest, section: null, sheet: withoutText(look.sheet), view: { ...look.view, mode: "plan" as const } };
+  const shared = useMemo(() => {
+    const { diagram_id: _diagram, variant: _variant, ...rest } = look;
+    return { ...rest, section: null, sheet: withoutText(look.sheet), view: { ...look.view, mode: "plan" as const } };
+  }, [look]);
   // A plan ignores the rest of the view: turning or tilting the sheet leaves the pictures alone.
-  const key = JSON.stringify({ ...shared, view: null });
+  const key = useMemo(() => JSON.stringify({ ...shared, view: null }), [shared]);
 
   useEffect(() => {
     if (!isEnabled || diagrams.length === 0) return;
