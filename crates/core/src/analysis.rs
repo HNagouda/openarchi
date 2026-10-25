@@ -25,6 +25,7 @@ mod page;
 mod radiant;
 mod rain;
 mod roses;
+mod section_parts;
 mod sections;
 mod source_lines;
 mod summary;
@@ -51,9 +52,9 @@ pub use figure::Figure;
 // Shared with report blocks, so they draw in the same colours and type.
 pub(crate) use figure::{text, Paint};
 pub use location::Location;
-pub(crate) use page::paragraph;
 pub use page::{report_svg, section_svg};
 pub use rain::Rain;
+pub(crate) use section_parts::{fact_grid, heading, note_list, small};
 pub use summary::{SiteSummary, Surroundings};
 
 /// The parts of the report, each loaded on its own.

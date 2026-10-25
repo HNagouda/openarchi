@@ -31,7 +31,7 @@ const TITLE_MM: f64 = 11.0;
 const SITE_LINE_MM: f64 = 3.8;
 const TITLE_RULE_MM: f64 = 0.6;
 const HEADER_MM: f64 = 2.5;
-pub(super) const HAIRLINE_MM: f64 = 0.2;
+const HAIRLINE_MM: f64 = 0.2;
 const SECTION_GAP_MM: f64 = 12.0;
 
 /// The pages as SVG documents, 210 × 297 mm each, in order.
