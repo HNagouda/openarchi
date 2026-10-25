@@ -3,8 +3,8 @@
 
 import type { Look, Position, TextBox, TextStyle } from "../../lib/types";
 
-export const TITLE_ID = "title";
-export const SUBTITLE_ID = "subtitle";
+const TITLE_ID = "title";
+const SUBTITLE_ID = "subtitle";
 const NEW_TEXT = "Text";
 
 export function isTextBox(id: string): boolean {

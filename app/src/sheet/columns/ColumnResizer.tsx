@@ -16,7 +16,7 @@ const MAX_WINDOW_SHARE = 0.3;
 // Turns off the slide-open animation while dragging, so the column keeps up with the pointer.
 const RESIZING_CLASS = "is-resizing-columns";
 
-export type Column = {
+type Column = {
   label: string;
   cssVariable: string;
   preference: string;

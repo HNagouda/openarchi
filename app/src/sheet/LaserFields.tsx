@@ -211,7 +211,7 @@ const area = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 2 });
 const count = new Intl.NumberFormat("en-GB");
 
 /** What the files hold, in a few plain sentences. */
-export function summaryText(summary: LaserSummary, settings: LaserSettings): string {
+function summaryText(summary: LaserSummary, settings: LaserSettings): string {
   const sheets = summary.sheet_count === 1 ? "1 sheet" : `${count.format(summary.sheet_count)} sheets`;
   const sentences = [
     `${sheets} of ${settings.bed_width_mm} × ${settings.bed_height_mm} mm, ${count.format(summary.piece_count)} pieces, ${area.format(summary.material_m2)} m² of board.`,
