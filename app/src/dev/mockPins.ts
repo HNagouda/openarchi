@@ -9,6 +9,8 @@ import type { Pin } from "../lib/types";
 const MARKER_RADIUS_MM = 2.4;
 const LABEL_GAP_MM = 1.5;
 const LABEL_SIZE_MM = 2.6;
+// The core's marker scales per size, crates/core/src/pin.rs; the mock scales its circle the same.
+const SIZE_SCALE = { small: 0.7, medium: 1, large: 1.45, extra_large: 2 };
 
 /** RD New metres to paper millimetres, from the ground points on the fixture's paper rectangle. */
 export function rdToPaper(svg: string): ((x: number, y: number) => [number, number]) | null {
@@ -28,10 +30,11 @@ export function withMockPins(svg: string, pins: Pin[]): string {
   let numbered = 0;
   const groups = pins.map((pin) => {
     const [x, y] = toPaper(pin.x, pin.y);
+    const radius = MARKER_RADIUS_MM * SIZE_SCALE[pin.size ?? "medium"];
     if (pin.icon === "number") numbered += 1;
     const mark = pin.icon === "number" ? `<text x="${x}" y="${y + 1}" font-size="${LABEL_SIZE_MM}" text-anchor="middle" fill="#fff">${numbered}</text>` : "";
-    const label = pin.label ? `<text x="${x + MARKER_RADIUS_MM + LABEL_GAP_MM}" y="${y + 1}" font-size="${LABEL_SIZE_MM}" fill="#222">${escape(pin.label)}</text>` : "";
-    return `<g data-pin="${pin.id}" data-icon="${pin.icon}" data-label="${escape(pin.label)}" data-x="${x}" data-y="${y}"><circle cx="${x}" cy="${y}" r="${MARKER_RADIUS_MM}" fill="#c4502a" stroke="#fff" stroke-width="0.4"/>${mark}${label}</g>`;
+    const label = pin.label ? `<text x="${x + radius + LABEL_GAP_MM}" y="${y + 1}" font-size="${LABEL_SIZE_MM}" fill="#222">${escape(pin.label)}</text>` : "";
+    return `<g data-pin="${pin.id}" data-icon="${pin.icon}" data-label="${escape(pin.label)}" data-x="${x}" data-y="${y}"><circle cx="${x}" cy="${y}" r="${radius}" fill="#c4502a" stroke="#fff" stroke-width="0.4"/>${mark}${label}</g>`;
   });
   return svg.replace("</svg>", `<g id="pins">${groups.join("")}</g></svg>`);
 }

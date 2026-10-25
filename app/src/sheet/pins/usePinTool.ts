@@ -9,7 +9,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { usePlainKeys } from "../../lib/keys";
 import type { Pin, PinIcon } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
-import { nextPinId, withChangedPin, withoutPin, withPin } from "./pinEdits";
+import { nextPinId, steppedSize, withChangedPin, withoutPin, withPin } from "./pinEdits";
 import { paperPointAt, paperToRd, pinAt, pinGroup, readPins, type Point } from "./sheetPins";
 
 // A press that moves less than this is a click, not a drag.
@@ -17,6 +17,8 @@ const DRAG_THRESHOLD_PX = 3;
 // Arrow keys nudge by a millimetre of paper, or a centimetre with Shift.
 const NUDGE_MM = 1;
 const NUDGE_LARGE_MM = 10;
+// A selected pin grows with + or =, which share a key, and shrinks with -.
+const SIZE_KEYS: Record<string, 1 | -1> = { "+": 1, "=": 1, "-": -1 };
 // The outline of the area the sheet draws, which the core writes in plan and axonometric views.
 const BOUNDARY_SELECTOR = "#site-boundary";
 
@@ -163,6 +165,12 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
       setEditingId(selectedId);
     }
     if ((key === "Delete" || key === "Backspace") && !event.repeat) remove(selectedId);
+    const sizeStep = SIZE_KEYS[key];
+    const pin = latestPins.current.find((entry) => entry.id === selectedId);
+    if (sizeStep && pin) {
+      event.preventDefault();
+      onPins(withChangedPin(latestPins.current, selectedId, { size: steppedSize(pin.size, sizeStep) }));
+    }
     const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
     const moves: Record<string, [number, number]> = {
       ArrowLeft: [-step, 0],

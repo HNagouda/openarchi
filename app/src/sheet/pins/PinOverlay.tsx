@@ -6,7 +6,7 @@ import type { Pin } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import type { PaperView } from "../Canvas";
 import { PinGlyph } from "./PinGlyph";
-import { PIN_ICONS, withChangedPin, withoutPin } from "./pinEdits";
+import { PIN_ICONS, PIN_SIZES, withChangedPin, withoutPin } from "./pinEdits";
 import { readPins, type SheetPin } from "./sheetPins";
 import type { PinDrag } from "./usePinTool";
 
@@ -91,6 +91,21 @@ export function PinOverlay({ view, svg, pins, selectedId, editingId, drag, onPin
               </button>
             ))}
             <span className="toolbar-divider" />
+            {PIN_SIZES.map(({ size, label, name }) => (
+              <button
+                key={size}
+                type="button"
+                className={size === (pin.size ?? "medium") ? "pin-size-choice is-active" : "pin-size-choice"}
+                aria-label={name}
+                data-tip={name}
+                // The smallest and largest name the keys that step through the sizes.
+                data-tip-key={size === "small" ? "−" : size === "extra_large" ? "+" : undefined}
+                onClick={() => onPins(withChangedPin(pins, pin.id, { size }))}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="toolbar-divider" />
             <Button icon="text" tip="Edit the label" shortcut="enter" onClick={onEdit} />
             <Button
               icon="trash"
@@ -116,7 +131,7 @@ type FieldProps = {
 };
 
 /** The label as a field under the pin. Return applies, Escape cancels, an empty label leaves the marker alone. */
-function LabelField({ initial, style, onCommit, onCancel }: FieldProps) {
+export function LabelField({ initial, style, onCommit, onCancel }: FieldProps) {
   const [draft, setDraft] = useState(initial);
   const field = useRef<HTMLInputElement>(null);
   const isDone = useRef(false);
