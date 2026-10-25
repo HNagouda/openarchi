@@ -275,6 +275,13 @@ Sheets can now show the site in three dimensions and the sun over it.
 - SVG, PDF and PNG export a section like any sheet. DXF still writes the plan, without the section.
 - Assistants draw, change, flip and clear a sheet's line, and set its scale and exaggeration, with `set_section`, and `set_look` shows the section view once a line is there.
 
+### Sky view and solar radiation
+
+- Sky view factor shows how much of the sky each point of the ground sees past the buildings and terrain around it, from 0 at the foot of a shaft to 1 on open land. It is the cosine-weighted factor of Johnson & Watson, found from the horizon in 32 directions within 150 m as Zakšek, Oštir and Kokalj describe, and the legend says so. Buildings in the site and its neighbourhood count as blocks of their roof height, and the terrain counts where the site kept it. Trees are left out. It needs no new data, so it works on projects made before it.
+- Solar radiation shows how much sunlight the ground receives in a typical year, in kWh/m²: the direct sun for every hour the ground lies outside the building shadows, cast as the sunlight hours diagram casts them, plus the light of the sky it sees, weighted by its sky view factor. The light comes from the PVGIS typical year the climate analysis already uses, hour by hour on one average day per month after Klein. Open ground in Amsterdam comes out at about 1,050 kWh/m², the typical year's own total.
+- A fetch now keeps that typical year with the site, about 600 numbers, from the same cache cell as the analysis. A site fetched before this says in a note over the sheet that the solar radiation needs a fresh fetch, and the PVGIS credit is printed only on sheets that draw it.
+- Both draw in bands under a legend like the sunlight hours, in every palette, in plan, axonometric and explode views and on a sheet that shows part of the site, and assistants find them through `list_diagrams`.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.

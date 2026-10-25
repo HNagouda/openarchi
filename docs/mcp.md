@@ -103,7 +103,7 @@ Some diagrams answer one question with a choice of measure. Air quality has the 
 
 `sheet.show_context` turns the neighbourhood around the site on or off: the buildings, roads, water and green outside the boundary, drawn greyed in the palette. New projects start with it on, and projects from before it start with it off and have no neighbourhood until their site is fetched again. It never enters the legend, the ratios or the analysis. `sheet.context_opacity`, from 0 to 1, sets how much of it shows through: 1 is the usual greyed look, 0.3 leaves it as a faint trace, the same as the Neighbourhood opacity slider in the app.
 
-`sun` is a day and a Dutch clock time, summer time included. The sun path and shadow diagrams are drawn for it, the sunlight hours diagram adds up the whole of its day, and the axonometric uses it to light its walls and cast its shadows. It starts at 21 March, 13:00, the equinox near solar noon.
+`sun` is a day and a Dutch clock time, summer time included. The sun path and shadow diagrams are drawn for it, the sunlight hours diagram adds up the whole of its day, and the axonometric uses it to light its walls and cast its shadows. It starts at 21 March, 13:00, the equinox near solar noon. The sky view factor and solar radiation diagrams do not use it: the first depends only on what stands around the ground, the second adds up a whole typical year.
 
 ```json
 {
