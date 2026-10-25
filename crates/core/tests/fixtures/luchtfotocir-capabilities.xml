@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The layer names of https://service.pdok.nl/hwh/luchtfotocir/wms/v1_0 GetCapabilities on 2026-10-25, everything else cut. -->
+<WMS_Capabilities version="1.3.0">
+  <Service><Name>WMS</Name></Service>
+  <Capability>
+    <Layer>
+      <Layer><Name>Actueel_orthoHRIR</Name></Layer>
+      <Layer><Name>Actueel_ortho25IR</Name></Layer>
+      <Layer><Name>2026_orthoHRIR</Name></Layer>
+      <Layer><Name>2025_orthoHRIR</Name></Layer>
+      <Layer><Name>2025_ortho25IR</Name></Layer>
+      <Layer><Name>2024_ortho25IR</Name></Layer>
+      <Layer><Name>2023_ortho25IR</Name></Layer>
+      <Layer><Name>2022_ortho25IR</Name></Layer>
+      <Layer><Name>2020_ortho25IR</Name></Layer>
+      <Layer><Name>2019_ortho25IR</Name></Layer>
+      <Layer><Name>2018_ortho25IR</Name></Layer>
+      <Layer><Name>2017_ortho25IR</Name></Layer>
+      <Layer><Name>2016_ortho25IR</Name></Layer>
+    </Layer>
+  </Capability>
+</WMS_Capabilities>

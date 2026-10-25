@@ -148,7 +148,7 @@ pub fn localised(mut measured: Measured, origin: (f64, f64)) -> Measured {
 }
 
 /// The class breaks of the built-in diagram, or diagram variant, that classifies `layer`.
-fn breaks_for(layer: Layer) -> Vec<f64> {
+pub(super) fn breaks_for(layer: Layer) -> Vec<f64> {
     let classify = catalog::builtin_diagrams()
         .iter()
         .flat_map(|diagram| diagram.drawings())

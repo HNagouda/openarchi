@@ -228,13 +228,25 @@ pub enum Layer {
     /// Hours of direct sun on the ground on one day, in bands. Computed from
     /// building and tree heights when drawn, never stored.
     SunHours,
+    /// Tree canopy, in bands of tree height.
+    TreeCanopy,
+    /// Green areas, by the protection of the land they lie in.
+    GreenCover,
+    /// An approximate vegetation index (NDVI) from the infrared aerial photo, in bands.
+    VegetationIndex,
+    /// How much warmer the air is than in the countryside around, in bands.
+    HeatIsland,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 33] = [
+    pub const ALL: [Layer; 37] = [
         // Measured surfaces lie under the map, as the ground they describe.
         Layer::SunHours,
+        Layer::HeatIsland,
+        Layer::VegetationIndex,
+        Layer::GreenCover,
+        Layer::TreeCanopy,
         Layer::Population,
         Layer::Slope,
         Layer::Flood,
@@ -304,6 +316,10 @@ impl Layer {
             Layer::WalkBand => "Walk times",
             Layer::Block => "City blocks",
             Layer::SunHours => "Hours of sun",
+            Layer::TreeCanopy => "Tree canopy",
+            Layer::GreenCover => "Green cover",
+            Layer::VegetationIndex => "Vegetation index",
+            Layer::HeatIsland => "Heat island",
         }
     }
 }

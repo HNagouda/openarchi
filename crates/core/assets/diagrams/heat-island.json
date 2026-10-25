@@ -1,0 +1,41 @@
+{
+  "id": "heat-island",
+  "name": "Heat island",
+  "group": "Environment",
+  "description": "How much warmer the air over the site is than in the countryside around, on average over a summer, from the RIVM heat island map.",
+  "layers": [
+    "heat_island",
+    "water",
+    "building"
+  ],
+  "emphasis": "heat_island",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "classify": {
+    "layer": "heat_island",
+    "attribute": "value",
+    "title": "Urban heat island",
+    "note": "Air temperature above the countryside around, mean over June to August, in °C. Hot, still nights can be several degrees warmer still. RIVM model (Atlas Natuurlijk Kapitaal), published {year}.",
+    "scheme": {
+      "kind": "sequential",
+      "breaks": [
+        0.5,
+        1,
+        1.5,
+        2,
+        2.5
+      ],
+      "labels": [
+        "Under 0.5 °C",
+        "0.5–1 °C",
+        "1–1.5 °C",
+        "1.5–2 °C",
+        "2–2.5 °C",
+        "2.5 °C and more"
+      ]
+    }
+  }
+}

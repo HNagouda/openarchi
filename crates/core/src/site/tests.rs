@@ -104,7 +104,7 @@ fn fake_pdok(requests: &AtomicUsize, dataset: &Dataset, tile: Tile) -> Result<Pa
         Dataset::AhnTerrain => Ok(Payload::Cells(vec![1.0; CELLS_PER_TILE])),
         Dataset::ContextSurface => Ok(coarse_tile(tile, 11.0)),
         Dataset::ContextTerrain => Ok(coarse_tile(tile, 1.0)),
-        Dataset::Raster(..) => Ok(Payload::Raster(Grid {
+        Dataset::Raster(..) | Dataset::Greenery(..) => Ok(Payload::Raster(Grid {
             west: tile.rect().min().x,
             north: tile.rect().max().y,
             cell_m: 25.0,

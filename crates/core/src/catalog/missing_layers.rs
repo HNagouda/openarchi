@@ -85,6 +85,29 @@ mod tests {
     }
 
     #[test]
+    fn a_theme_saved_before_the_green_and_heat_layers_gets_their_styles() {
+        let mut theme = old_ink();
+        for layer in [
+            Layer::TreeCanopy,
+            Layer::GreenCover,
+            Layer::VegetationIndex,
+            Layer::HeatIsland,
+        ] {
+            theme.layers.remove(&layer);
+        }
+        let filled = filled(theme).unwrap();
+
+        assert_eq!(
+            filled.layers[&Layer::HeatIsland].fill.as_deref(),
+            Some("@muted")
+        );
+        assert_eq!(
+            filled.layers[&Layer::GreenCover].stroke.as_deref(),
+            Some("@ink")
+        );
+    }
+
+    #[test]
     fn styles_the_theme_has_are_kept() {
         let mut theme = old_ink();
         let mut road = theme.layers[&Layer::Road].clone();
