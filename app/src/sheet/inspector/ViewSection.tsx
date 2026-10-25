@@ -3,7 +3,7 @@ import { NumberField } from "../../ui/NumberField";
 import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
 import { Toggle } from "../../ui/Toggle";
-import { plateOptions } from "../../lib/diagrams";
+import { plateOptions, sheetDiagrams } from "../../lib/diagrams";
 import { withSheet, withSun, withView } from "./lookEdits";
 import { PlateList } from "./PlateList";
 import { SectionFields } from "../section/SectionFields";
@@ -47,7 +47,9 @@ const pad = (value: number) => String(value).padStart(2, "0");
 export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   const view = look.view;
   const diagram = diagrams.find((entry) => entry.id === look.diagram_id);
-  const isTilted = view.mode === "axonometric" || view.mode === "explode";
+  const isTilted = TILTED_MODES.includes(view.mode);
+  // In an explode view the plates are drawn, not the sheet's own diagram.
+  const drawn = sheetDiagrams(diagrams, look);
   // The section view needs a line to cut along; until one is drawn it is greyed out.
   // A plan-only diagram, such as the wind, greys out the tilted views for good.
   const modes = MODES.map((mode) => {
@@ -55,10 +57,10 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
     if (diagram?.plan_only && TILTED_MODES.includes(mode.value)) return { ...mode, isDisabled: true, tip: PLAN_ONLY_TIP };
     return mode;
   });
-  const hasWind = diagram?.layers.includes("wind") === true;
-  const hasSun = view.mode === "axonometric" || Boolean(diagram?.solar);
+  const hasWind = drawn.some((entry) => entry.layers.includes("wind"));
+  const hasSun = view.mode === "axonometric" || drawn.some((entry) => Boolean(entry.solar));
   // Hours of sun add up a whole day, so only a tilted view, which is lit at one moment, needs the time.
-  const hasTime = view.mode === "axonometric" || diagram?.solar !== "sun_hours";
+  const hasTime = view.mode === "axonometric" || drawn.some((entry) => entry.solar && entry.solar !== "sun_hours");
   const unused = plateOptions(diagrams).filter((entry) => !view.plates.includes(entry.id));
 
   return (

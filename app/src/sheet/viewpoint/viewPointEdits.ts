@@ -15,6 +15,13 @@ export function drawsView(diagram: Diagram | undefined): boolean {
   return Boolean(diagram?.layers.includes(VIEWSHED_LAYER));
 }
 
+/** Whether the sheet shows an eye the user can place: a View diagram on a
+ * plan or a tilted view, where the drawing's ground is the one the app reads. */
+export function canPlaceEye(drawn: Diagram[], look: Look): boolean {
+  const isPlaceable = look.view.mode === "plan" || look.view.mode === "axonometric";
+  return isPlaceable && drawn.some(drawsView);
+}
+
 /** Where the core drew the eye, in paper millimetres, or null when it drew none. */
 export function readEye(paper: Element | null): Point | null {
   const group = paper?.querySelector<SVGGElement>(EYE_SELECTOR);

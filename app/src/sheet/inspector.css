@@ -28,21 +28,6 @@
   line-height: 1.5;
 }
 
-.text-button {
-  height: 22px;
-  padding: 0 6px;
-  border: 0;
-  border-radius: var(--radius-s);
-  background: transparent;
-  color: var(--text-2);
-  font-size: 12px;
-}
-
-.text-button:hover {
-  background: var(--hover);
-  color: var(--text);
-}
-
 /* * ==== palette picker ==== */
 
 .section-keys {

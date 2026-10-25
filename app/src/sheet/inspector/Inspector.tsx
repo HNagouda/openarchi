@@ -2,14 +2,14 @@ import { useState } from "react";
 import { readPreference, writePreference } from "../../lib/storage";
 import type { Catalog, Look, ProjectView } from "../../lib/types";
 import { Segmented } from "../../ui/Segmented";
-import { drawnDiagram } from "../../lib/diagrams";
+import { sheetDiagrams } from "../../lib/diagrams";
 import { AnalysisPanel } from "./AnalysisPanel";
 import { LayersSection } from "./LayersSection";
 import { RatiosPanel } from "./RatiosPanel";
 import { SheetSection } from "./SheetSection";
 import { ThemeSection } from "./ThemeSection";
 import { ViewSection } from "./ViewSection";
-import { drawsView } from "../viewpoint/viewPointEdits";
+import { canPlaceEye } from "../viewpoint/viewPointEdits";
 import { ViewPointSection, type ViewPointControls } from "../viewpoint/ViewPointSection";
 
 type Tab = "style" | "ratios" | "analysis";
@@ -27,7 +27,7 @@ type Props = {
 /** The right-hand panel. Every control edits the look, and every edit can be undone. */
 export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogChanged, viewPoint }: Props) {
   const [tab, setTab] = useState<Tab>(() => readPreference<Tab>("inspectorTab", "style"));
-  const diagram = catalog.diagrams.find((entry) => entry.id === look.diagram_id);
+  const drawn = sheetDiagrams(catalog.diagrams, look);
   const theme = catalog.themes.find((entry) => entry.id === look.theme_id);
 
   const changeTab = (next: Tab) => {
@@ -60,9 +60,10 @@ export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogCha
             look={look}
             onCatalogChanged={onCatalogChanged}
           />
-          {diagram && theme && (
+          {theme && (
             <LayersSection
-              diagram={drawnDiagram(diagram, look.variant)}
+              diagrams={drawn}
+              isSection={look.view.mode === "section"}
               theme={theme}
               look={look}
               labels={catalog.layers}
@@ -71,7 +72,7 @@ export function Inspector({ catalog, project, look, onLook, onSeal, onCatalogCha
               onSeal={onSeal}
             />
           )}
-          {diagram && drawsView(drawnDiagram(diagram, look.variant)) && <ViewPointSection look={look} controls={viewPoint} onLook={onLook} />}
+          {canPlaceEye(drawn, look) && <ViewPointSection look={look} controls={viewPoint} onLook={onLook} />}
           <ViewSection diagrams={catalog.diagrams} look={look} onLook={onLook} onSeal={onSeal} />
           <SheetSection look={look} onLook={onLook} onSeal={onSeal} />
         </>

@@ -12,9 +12,13 @@ const STROKE_STEP_MM = 0.05;
 const PERCENT = 100;
 /** How far a blank layer's fill leans from paper towards ink, as BLANK_TINT in crates/core/src/render/style.rs. */
 const BLANK_TINT = 0.08;
+/** All a section draws, whatever the diagram: SECTION_LAYERS in crates/core/src/render/mod.rs. */
+const SECTION_LAYERS: Layer[] = ["building", "tree"];
 
 type Props = {
-  diagram: Diagram;
+  /** What the sheet draws: one diagram, or the explode plates top first (`sheetDiagrams`). */
+  diagrams: Diagram[];
+  isSection: boolean;
   theme: Theme;
   look: Look;
   labels: Catalog["layers"];
@@ -23,12 +27,16 @@ type Props = {
   onSeal: () => void;
 };
 
-/** The diagram's layers, top first: visibility, and the user's own fill, stroke and opacity. */
-export function LayersSection({ diagram, theme, look, labels, layersPresent, onLook, onSeal }: Props) {
+/** The drawn layers, top first: visibility, and the user's own fill, stroke and opacity. */
+export function LayersSection({ diagrams, isSection, theme, look, labels, layersPresent, onLook, onSeal }: Props) {
   const [expanded, setExpanded] = useState<Layer | null>(null);
-  const shown = [...diagram.layers]
-    .reverse()
+  const drawn = new Set(diagrams.flatMap((diagram) => [...diagram.layers].reverse()));
+  const shown = [...drawn]
+    .filter((layer) => !isSection || SECTION_LAYERS.includes(layer))
     .filter((layer) => layersPresent.length === 0 || layersPresent.includes(layer));
+  // Blank only where every diagram drawing the layer draws it blank, so the swatch matches the sheet.
+  const isBlankLayer = (layer: Layer) =>
+    diagrams.every((diagram) => !diagram.layers.includes(layer) || (diagram.blank?.includes(layer) ?? false));
   const hasOverrides = Object.keys(look.overrides).length > 0;
   const labelOf = (layer: Layer) => labels.find((entry) => entry.id === layer)?.label ?? layer;
 
@@ -38,9 +46,9 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
       title="Layers"
       aside={
         hasOverrides ? (
-          <button type="button" className="text-button" onClick={() => onLook({ ...look, overrides: {} })}>
+          <Button variant="ghost" onClick={() => onLook({ ...look, overrides: {} })}>
             Reset all
-          </button>
+          </Button>
         ) : undefined
       }
     >
@@ -50,7 +58,7 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
           const style = theme.layers[layer];
           const isHidden = override.hidden === true;
           const isOpen = expanded === layer;
-          const isBlank = diagram.blank?.includes(layer) ?? false;
+          const isBlank = isBlankLayer(layer);
           const { paper, ink } = theme.palette;
           const drawnFill = isBlank ? mixHex(paper, ink, BLANK_TINT) : swatchColour(style?.fill, theme.palette);
           const drawnStroke = isBlank ? ink : swatchColour(style?.stroke, theme.palette);
@@ -66,7 +74,7 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
                   className="layer-main"
                   onClick={() => setExpanded(isOpen ? null : layer)}
                   aria-expanded={isOpen}
-                  data-tip={isOpen ? undefined : "Fill, line and opacity"}
+                  data-tip={isOpen ? undefined : "Fill, stroke and opacity"}
                   data-tip-side="above"
                 >
                   {/* The same disclosure chevron as the section header, always shown, so the row reads as something that opens. */}
@@ -79,7 +87,7 @@ export function LayersSection({ diagram, theme, look, labels, layersPresent, onL
                   />
                   <span className="layer-name">{labelOf(layer)}</span>
                   {isEdited && <span className="layer-edited" data-tip="Changed from the theme" data-tip-side="left" />}
-                  {layer === diagram.emphasis && <span className="layer-badge">Focus</span>}
+                  {diagrams.some((diagram) => diagram.emphasis === layer) && <span className="layer-badge">Focus</span>}
                 </button>
                 <Button
                   icon={isHidden ? "eyeOff" : "eye"}

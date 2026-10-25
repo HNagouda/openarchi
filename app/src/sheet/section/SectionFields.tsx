@@ -28,7 +28,7 @@ const FITTED = "fit";
 
 type Props = {
   look: Look;
-  // The scale and heights only change the section view, so other views leave them out.
+  // The depth, scale and heights only change the section view, so other views leave them out.
   isSectionView: boolean;
   onLook: (next: Look, mergeKey?: string) => void;
   onSeal: () => void;
@@ -47,18 +47,21 @@ export function SectionFields({ look, isSectionView, onLook, onSeal }: Props) {
   return (
     <div className="field-stack">
       <span className="field-label">Section A–A′, {Math.round(lengthOf(line))} m long</span>
-      <NumberField
-        label="Seen beyond the line"
-        value={line.depth_m}
-        min={MIN_DEPTH_M}
-        max={MAX_DEPTH_M}
-        step={DEPTH_STEP_M}
-        unit="m"
-        onChange={(depth_m) => onLook(withSectionDepth(look, depth_m), "section-depth")}
-        onSeal={onSeal}
-      />
       {isSectionView && (
         <>
+          <div className="field-stack">
+            <span className="field-label">Seen beyond the line</span>
+            <NumberField
+              label="Seen beyond the line"
+              value={line.depth_m}
+              min={MIN_DEPTH_M}
+              max={MAX_DEPTH_M}
+              step={DEPTH_STEP_M}
+              unit="m"
+              onChange={(depth_m) => onLook(withSectionDepth(look, depth_m), "section-depth")}
+              onSeal={onSeal}
+            />
+          </div>
           <label className="field-stack">
             <span className="field-label">Scale</span>
             <select
@@ -77,17 +80,19 @@ export function SectionFields({ look, isSectionView, onLook, onSeal }: Props) {
               ))}
             </select>
           </label>
-          <span className="field-label">Heights</span>
-          <Segmented
-            label="Heights"
-            value={line.exaggeration ?? 1}
-            options={EXAGGERATIONS.map((times) => ({
-              value: times,
-              label: `×${times}`,
-              tip: times === 1 ? "Heights at the same scale as lengths" : `Heights drawn ${times} times taller; the legend says so`,
-            }))}
-            onChange={(times) => onLook(withSectionExaggeration(look, times))}
-          />
+          <div className="field-stack">
+            <span className="field-label">Heights</span>
+            <Segmented
+              label="Heights"
+              value={line.exaggeration ?? 1}
+              options={EXAGGERATIONS.map((times) => ({
+                value: times,
+                label: `×${times}`,
+                tip: times === 1 ? "Heights at the same scale as lengths" : `Heights drawn ${times} times taller; the legend says so`,
+              }))}
+              onChange={(times) => onLook(withSectionExaggeration(look, times))}
+            />
+          </div>
         </>
       )}
       <div className="section-actions">

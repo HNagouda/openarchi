@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import type { Look, PinIcon } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { PinPalette } from "../pins/PinPalette";
+import { SECTION_KEY, SECTION_TOOL_VIEWS } from "../section/useSectionTool";
 import { TabBar } from "./TabBar";
 import { sheetName, type Workbook } from "./workbook";
 
@@ -34,7 +35,9 @@ export function SheetTabs(props: Props) {
   const labels = book.sheets.map((sheet, at) => sheetName(sheet, at));
   const arePinsHidden = look.hide_pins ?? false;
   const isSectionView = look.view.mode === "section";
-  const sectionTip = isSectionView ? "Section lines are drawn on the plan" : look.section ? "Draw the section line again" : "Draw a section line";
+  const sectionTip = isSectionView ? SECTION_TOOL_VIEWS : look.section ? "Draw the section line again" : "Draw a section line";
+  // A section draws no pins (crates/core/src/render/mod.rs), so placing or hiding them there would do nothing.
+  const pinTip = isSectionView ? "Pins are placed on a plan or a tilted view" : arePinsHidden ? "Pins are hidden on this sheet" : "Pins need a fetched site";
 
   return (
     <TabBar
@@ -48,8 +51,8 @@ export function SheetTabs(props: Props) {
       onMove={props.onMove}
     >
       <PinPalette
-        isDisabled={!isReady || arePinsHidden}
-        disabledTip={arePinsHidden ? "Pins are hidden on this sheet" : "Pins need a fetched site"}
+        isDisabled={!isReady || arePinsHidden || isSectionView}
+        disabledTip={pinTip}
         onDrop={props.onDropPin}
         onPlace={props.onPlacePin}
       />
@@ -57,7 +60,7 @@ export function SheetTabs(props: Props) {
         icon={arePinsHidden ? "eyeOff" : "eye"}
         tip={arePinsHidden ? "Show pins on this sheet" : "Hide pins on this sheet"}
         tipSide="above"
-        disabled={!isReady}
+        disabled={!isReady || isSectionView}
         onClick={() => props.onLook({ ...look, hide_pins: !arePinsHidden })}
       />
       <span className="topbar-divider" />
@@ -68,7 +71,7 @@ export function SheetTabs(props: Props) {
         className={look.section ? "section-button is-set" : "section-button"}
         tip={sectionTip}
         tipSide="above"
-        shortcut="s"
+        shortcut={SECTION_KEY}
         isActive={props.isDrawingSection}
         disabled={!isReady || isSectionView}
         onClick={props.onSectionTool}

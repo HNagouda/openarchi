@@ -20,6 +20,8 @@ import { distanceToSegment, MIN_LENGTH_M, readEnds, withoutSection, withSection 
 const END_HIT_MM = 3;
 const LINE_HIT_MM = 1.5;
 export const SECTION_KEY = "s";
+/** Where the tool works, for its tip and its refusal. */
+export const SECTION_TOOL_VIEWS = "Section lines are drawn on a plan or a tilted view";
 
 /** The line as it is being drawn or reshaped, in paper millimetres. */
 export type SectionDraft = { start: Point; end: Point };
@@ -75,7 +77,7 @@ export function useSectionTool({ look, onLook, svg, isEnabled, onRefused }: Opti
   /** RD New metres for paper points, or null with the reason told when this view has no ground. */
   const toGround = (paper: Element | null) => {
     const toRd = paperToRd(paper);
-    if (!toRd) onRefused("Section lines are drawn on a plan or a tilted view.");
+    if (!toRd) onRefused(`${SECTION_TOOL_VIEWS}.`);
     return toRd;
   };
 

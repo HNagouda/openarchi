@@ -2,7 +2,7 @@
 // chosen variant, and as explode plates. The core resolves the same ids in
 // crates/core/src/diagram.rs and catalog/lookup.rs.
 
-import type { Diagram, Variant } from "./types";
+import type { Diagram, Look, Variant } from "./types";
 
 /** Splits a plate id that names one variant, as the core does: "air-quality:pm10". */
 const VARIANT_SEPARATOR = ":";
@@ -57,4 +57,18 @@ export function plateName(diagrams: Diagram[], plate: string): string {
   const [diagramId, variantId] = plate.split(VARIANT_SEPARATOR);
   const diagram = diagrams.find((entry) => entry.id === diagramId);
   return diagram ? drawnName(diagram, variantId) : plate;
+}
+
+/** The diagrams a sheet draws, as drawn: the stacked plates in an explode
+ * view, otherwise the sheet's own. Ids the catalog no longer has are left out. */
+export function sheetDiagrams(diagrams: Diagram[], look: Look): Diagram[] {
+  const drawn = (diagramId: string, variantId: string | null | undefined) => {
+    const diagram = diagrams.find((entry) => entry.id === diagramId);
+    return diagram ? [drawnDiagram(diagram, variantId)] : [];
+  };
+  if (look.view.mode !== "explode") return drawn(look.diagram_id, look.variant);
+  return look.view.plates.flatMap((plate) => {
+    const [diagramId, variantId] = plate.split(VARIANT_SEPARATOR);
+    return drawn(diagramId, variantId);
+  });
 }

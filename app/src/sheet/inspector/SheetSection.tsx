@@ -35,6 +35,8 @@ type Props = { look: Look; onLook: (next: Look, mergeKey?: string) => void; onSe
 export function SheetSection({ look, onLook, onSeal }: Props) {
   const sheet = look.sheet;
   const isSquare = sheet.paper === "square";
+  // A section has its own scale (in the View section), no frame and no north, so those fields would do nothing.
+  const isMap = look.view.mode !== "section";
 
   return (
     <Section id="sheet" title="Sheet">
@@ -73,29 +75,35 @@ export function SheetSection({ look, onLook, onSeal }: Props) {
               onChange={(landscape) => onLook(withSheet(look, { landscape }))}
             />
           </div>
-          <div className="field-stack field-narrow">
-            <span className="field-label">Frame</span>
-            <Segmented label="Frame" value={sheet.frame} options={FRAMES} onChange={(frame) => onLook(withSheet(look, { frame }))} />
+          {isMap && (
+            <div className="field-stack field-narrow">
+              <span className="field-label">Frame</span>
+              <Segmented label="Frame" value={sheet.frame} options={FRAMES} onChange={(frame) => onLook(withSheet(look, { frame }))} />
+            </div>
+          )}
+        </div>
+        {isMap && (
+          <div className="field-stack">
+            <span className="field-label">Scale</span>
+            <NumberField
+              label="Scale"
+              value={sheet.scale}
+              min={MIN_SCALE}
+              max={MAX_SCALE}
+              step={SCALE_STEP}
+              isLogarithmic
+              display={(value) => formatScale(value)}
+              onChange={(scale) => onLook(withSheet(look, { scale }), "scale")}
+              onSeal={onSeal}
+            />
           </div>
-        </div>
-        <div className="field-stack">
-          <span className="field-label">Scale</span>
-          <NumberField
-            label="Scale"
-            value={sheet.scale}
-            min={MIN_SCALE}
-            max={MAX_SCALE}
-            step={SCALE_STEP}
-            isLogarithmic
-            display={(value) => formatScale(value)}
-            onChange={(scale) => onLook(withSheet(look, { scale }), "scale")}
-            onSeal={onSeal}
-          />
-        </div>
+        )}
 
         <div className="toggles">
           <Toggle label="Legend" isOn={sheet.show_legend} onChange={(show_legend) => onLook(withSheet(look, { show_legend }))} />
-          <Toggle label="North arrow" isOn={sheet.show_north_arrow} onChange={(show_north_arrow) => onLook(withSheet(look, { show_north_arrow }))} />
+          {isMap && (
+            <Toggle label="North arrow" isOn={sheet.show_north_arrow} onChange={(show_north_arrow) => onLook(withSheet(look, { show_north_arrow }))} />
+          )}
           <Toggle label="Scale bar" isOn={sheet.show_scale_bar} onChange={(show_scale_bar) => onLook(withSheet(look, { show_scale_bar }))} />
           <Toggle label="Credits" isOn={sheet.show_credits} onChange={(show_credits) => onLook(withSheet(look, { show_credits }))} />
         </div>

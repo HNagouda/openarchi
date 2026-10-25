@@ -7,7 +7,7 @@ import { useCommandHandler } from "../lib/commands";
 import { closeProject, errorText, renameProject } from "../lib/ipc";
 import { usePlainKeys } from "../lib/keys";
 import { readPreference, writePreference } from "../lib/storage";
-import { chosenVariant, drawnDiagram, drawnName } from "../lib/diagrams";
+import { chosenVariant, drawnName, sheetDiagrams } from "../lib/diagrams";
 import type { Catalog, Diagram, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
@@ -37,7 +37,7 @@ import { SectionOverlay } from "./section/SectionOverlay";
 import { useSectionTool } from "./section/useSectionTool";
 import { useViewPointTool } from "./viewpoint/useViewPointTool";
 import { ViewPointOverlay } from "./viewpoint/ViewPointOverlay";
-import { drawsView } from "./viewpoint/viewPointEdits";
+import { canPlaceEye } from "./viewpoint/viewPointEdits";
 import { SheetTabs } from "./tabs/SheetTabs";
 import { useTabKeys } from "./tabs/useTabKeys";
 import { saveWorkbook, useWorkbook } from "./tabs/useWorkbook";
@@ -111,8 +111,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     toast,
   });
   const sectionTool = useSectionTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: isEditable, onRefused: (message) => toast(message) });
-  // The eye is placed on a plan or a tilted view, where the drawing's ground is the one the app reads.
-  const hasEye = isEditable && diagram !== undefined && drawsView(drawnDiagram(diagram, look.variant)) && (look.view.mode === "plan" || look.view.mode === "axonometric");
+  const hasEye = isEditable && canPlaceEye(sheetDiagrams(diagrams, look), look);
   const viewPointTool = useViewPointTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: hasEye, onRefused: (message) => toast(message) });
   const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool, viewPoint: viewPointTool };
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
