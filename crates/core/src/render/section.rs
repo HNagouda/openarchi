@@ -4,42 +4,39 @@
 //! and trees from the scene itself, so nothing is drawn that the plan does not
 //! show. Buildings beyond the line stand in elevation, painted far to near and
 //! fading with distance; then the ground, hatched below its profile; then the
-//! buildings the line cuts, in solid poché. Heights and lengths share one
-//! scale: nothing is exaggerated.
+//! buildings the line cuts, in solid poché. Water stands between the ground
+//! and the cuts, from its level down to its bed. Heights share the scale of
+//! lengths unless the user exaggerates them, which the legend then says.
 
 use super::color;
 use super::context;
-use super::geometry::Projection;
+use super::geometry::{mm, Projection};
 use super::layout::Layout;
-use super::legend::{self, Legend, Row, Swatch};
 use super::map::SheetDrawing;
 use super::massing;
 use super::section_draw::{self, Cut, Mass};
+use super::section_legend::{self, Drawn};
 use super::section_levels::{self, Frame};
+use super::section_water;
 use super::solid;
-use super::style::{self, ResolvedLayer, Role};
+use super::style::{self, ResolvedLayer};
 use super::typeset::Typesetter;
 use super::RenderInput;
 use crate::scene::{Feature, Layer};
 use crate::section::cut::{self, Stretch};
 use crate::section::profile::{self, Profile};
-use crate::section::Axis;
+use crate::section::water;
+use crate::section::{Axis, SectionLine, SCALES};
 use crate::theme::Theme;
 use crate::{Error, Result};
 
 pub const TITLE: &str = "Section A\u{2013}A\u{2032}";
-/// Scales a section snaps to, largest first is not needed: the first that fits wins.
-const SCALES: [u32; 16] = [
-    100, 200, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10_000, 20_000,
-];
 /// Earth drawn below the lowest ground, and air above the tallest roof, in metres.
 const EARTH_M: f64 = 4.0;
 const AIR_M: f64 = 3.0;
 /// How far a building of unknown height moves towards the unknown colour, as in the axonometric.
 const ESTIMATED_GREY: f64 = 0.65;
-/// Legend swatches of what stands beyond show it halfway to the far edge.
-const MIDDLE_DEPTH: f64 = 0.5;
-const FLAT_NOTE: &str = "Ground drawn flat: this site was fetched before ground heights were kept. Fetch it again for the terrain.";
+const CLIP_ID: &str = "section-view";
 
 pub fn render(
     input: &RenderInput,
@@ -55,7 +52,9 @@ pub fn render(
     })?;
     line.check()?;
     let axis = line.axis(scene.origin);
-    let profile = profile::ground_profile(scene.terrain.as_ref(), &axis);
+    let profile = profile::ground_profile(scene.terrain.as_ref(), scene.water_bed.as_ref(), &axis);
+    let waters = water::crossed(scene, &axis);
+    let profile = section_water::lowered(profile, &waters);
     let theme = input.theme;
     let mut layers = style::resolve_layers(input.diagram, theme, look)?;
     massing::lighten(&mut layers, look, theme);
@@ -118,46 +117,64 @@ pub fn render(
     // Far to near, so what is nearer covers what is behind it.
     masses.sort_by(|a, b| b.depth.total_cmp(&a.depth));
 
-    let lowest = profile.lowest() - EARTH_M;
+    let lowest = waters
+        .iter()
+        .map(|water| water.level_m)
+        .fold(profile.lowest(), f64::min)
+        - EARTH_M;
     let highest = masses
         .iter()
         .map(|mass| mass.top)
         .chain(cuts.iter().map(|cut| cut.top))
+        .chain(waters.iter().map(|water| water.level_m))
         .fold(profile.highest(), f64::max)
         + AIR_M;
     let room = section_levels::side_room(typesetter);
-    let fitting_mm_per_m = ((layout.drawing.width - 2.0 * room) / axis.length)
-        .min((layout.drawing.height - room) / (highest - lowest));
-    let scale = section_scale(fitting_mm_per_m);
-    let mm_per_m = 1000.0 / scale as f64;
-    let (centre_x, centre_y) = layout.drawing.centre();
-    let frame = Frame {
-        left: centre_x - axis.length * mm_per_m / 2.0,
-        right: centre_x + axis.length * mm_per_m / 2.0,
-        top: centre_y - (highest - lowest) * mm_per_m / 2.0,
-        bottom: centre_y + (highest - lowest) * mm_per_m / 2.0,
-        highest,
-        mm_per_m,
-    };
+    let frame = frame_on(layout, room, line, axis.length, lowest, highest);
+    let scale = (1000.0 / frame.mm_per_m).round() as u32;
 
-    let defs = section_draw::earth_pattern(&theme.palette, layout.unit);
-    let mut body = String::new();
+    let mut defs = section_draw::earth_pattern(&theme.palette, layout.unit);
+    defs.push_str(&section_water::unknown_depth_gradient(&theme.palette));
+    defs.push_str(&format!(
+        r#"<clipPath id="{CLIP_ID}"><rect x="{}" y="{}" width="{}" height="{}"/></clipPath>"#,
+        mm(frame.left),
+        mm(frame.top),
+        mm(frame.right - frame.left),
+        mm(frame.bottom - frame.top)
+    ));
+    let gaps: Vec<Stretch> = waters
+        .iter()
+        .filter(|water| !water.has_bed)
+        .map(|water| water.stretch)
+        .collect();
+    let mut body = format!(r#"<g clip-path="url(#{CLIP_ID})">"#);
     section_draw::write_masses(&mut body, &masses, line.depth_m, &frame, theme);
-    section_draw::write_ground(&mut body, &profile, &frame, theme, layout.unit);
+    section_draw::write_ground(&mut body, &profile, &gaps, &frame, theme, layout.unit);
+    section_water::write(
+        &mut body,
+        &waters,
+        &profile,
+        &frame,
+        &theme.palette,
+        typesetter,
+    );
     section_draw::write_cuts(&mut body, &cuts, &frame, theme);
+    body.push_str("</g>\n");
     section_levels::write(&mut body, &frame, &profile, &cuts, theme, typesetter);
 
-    let has_trees = masses.iter().any(|mass| mass.is_tree);
     site_buildings.retain(|feature| cut::beyond(&feature.geometry, &axis, line.depth_m).is_some());
-    let legend = legend_for(
+    let legend = section_legend::build(
         input,
-        buildings,
-        &site_buildings,
-        &profile,
-        line.depth_m,
-        has_neighbours,
-        has_trees,
-        &tree_fill,
+        &Drawn {
+            buildings,
+            seen: &site_buildings,
+            profile: &profile,
+            line,
+            has_neighbours,
+            has_trees: masses.iter().any(|mass| mass.is_tree),
+            tree_fill: &tree_fill,
+            waters: &waters,
+        },
     );
     // Pins and the app's ground points need a plan; a section has no ground plane on paper.
     let ground = Projection::new(&scene.boundary, scale, &layout.drawing);
@@ -166,7 +183,7 @@ pub fn render(
         defs,
         body,
         legend: look.sheet.show_legend.then_some(legend),
-        mm_per_m,
+        mm_per_m: frame.mm_per_m,
         scale,
         north_deg: 0.0,
         is_foreshortened: false,
@@ -175,8 +192,52 @@ pub fn render(
     })
 }
 
+/// Where the section goes on the paper: centred in the drawing zone at the
+/// line's scale, or the largest round one that fits, with heights drawn
+/// `exaggeration` times taller. A scale too large to fit is cut to the zone.
+fn frame_on(
+    layout: &Layout,
+    room: f64,
+    line: &SectionLine,
+    length: f64,
+    lowest: f64,
+    highest: f64,
+) -> Frame {
+    let zone = &layout.drawing;
+    let times = f64::from(line.exaggeration);
+    let fitting_mm_per_m = ((zone.width - 2.0 * room) / length)
+        .min((zone.height - room) / ((highest - lowest) * times));
+    let scale = line
+        .scale
+        .unwrap_or_else(|| section_scale(fitting_mm_per_m));
+    let mm_per_m = 1000.0 / f64::from(scale);
+    let vertical_mm_per_m = mm_per_m * times;
+
+    let (centre_x, centre_y) = zone.centre();
+    let (start_x, end_x) = (
+        centre_x - length * mm_per_m / 2.0,
+        centre_x + length * mm_per_m / 2.0,
+    );
+    let full_top = centre_y - (highest - lowest) * vertical_mm_per_m / 2.0;
+    let full_bottom = centre_y + (highest - lowest) * vertical_mm_per_m / 2.0;
+    // The ruler and the A and A' labels keep their room outside the box.
+    let top = full_top.max(zone.y);
+    let bottom = full_bottom.min(zone.y + zone.height - room / 2.0);
+
+    Frame {
+        start_x,
+        end_x,
+        left: start_x.max(zone.x + room),
+        right: end_x.min(zone.right() - room),
+        top,
+        bottom,
+        highest: highest - (top - full_top) / vertical_mm_per_m,
+        mm_per_m,
+        vertical_mm_per_m,
+    }
+}
+
 /// The largest round scale at which the section fits the drawing zone.
-// #! NOTE[sections, scale] : A section picks its own scale to fill the sheet rather than the sheet's scale. Should it follow the sheet's scale like a plan?
 fn section_scale(fitting_mm_per_m: f64) -> u32 {
     let needed = 1000.0 / fitting_mm_per_m;
     SCALES
@@ -286,98 +347,4 @@ fn tree_fill(layers: &[ResolvedLayer], theme: &Theme) -> String {
         .and_then(|resolved| resolved.style.fill.clone())
         .or(theme_colour)
         .unwrap_or_else(|| theme.palette.green.clone())
-}
-
-/// The diagram's building classes when it has them, then what a section shows.
-#[allow(clippy::too_many_arguments)]
-fn legend_for(
-    input: &RenderInput,
-    buildings: Option<&ResolvedLayer>,
-    seen: &[&Feature],
-    profile: &Profile,
-    depth_m: f64,
-    has_neighbours: bool,
-    has_trees: bool,
-    tree_fill: &str,
-) -> Legend {
-    let palette = &input.theme.palette;
-    let classified = buildings.filter(|resolved| resolved.role == Role::Classified);
-    let mut legend = match classified {
-        Some(resolved) => {
-            let drawn = solid::drawn(resolved, seen, input.diagram);
-            let mut legend = legend::build(
-                std::slice::from_ref(resolved),
-                &[drawn],
-                input.diagram,
-                &palette.accent,
-            );
-            legend.rows.retain(|row| row.label != legend::SITE_LABEL);
-            // The note names the year of the data, which only the scene knows.
-            if legend.note.is_some() {
-                legend.note = input
-                    .diagram
-                    .classify
-                    .as_ref()
-                    .and_then(|classify| classify.note_for(input.scene));
-            }
-            legend
-        }
-        None => Legend {
-            title: TITLE.to_string(),
-            note: None,
-            rows: vec![area_row(
-                "Buildings beyond",
-                &section_draw::beyond_fill(
-                    &massing::theme_fill(input.theme),
-                    &palette.paper,
-                    MIDDLE_DEPTH,
-                ),
-            )],
-        },
-    };
-    legend
-        .rows
-        .push(area_row("Cut", section_draw::poche(palette)));
-    if has_neighbours {
-        let roof = context::roof(&massing::theme_fill(input.theme), input.theme);
-        let fill = section_draw::beyond_fill(&roof, &palette.paper, MIDDLE_DEPTH);
-        legend.rows.push(area_row("Neighbourhood beyond", &fill));
-    }
-    if has_trees {
-        legend.rows.push(Row {
-            label: "Trees beyond".to_string(),
-            swatch: Swatch::Dot {
-                fill: Some(tree_fill.to_string()),
-                // The crowns have the elevation's ink edge, which a white crown needs to show.
-                stroke: Some(palette.ink.clone()),
-                opacity: 1.0,
-            },
-        });
-    }
-    legend.rows.push(area_row(
-        "Ground",
-        &format!("url(#{})", section_draw::HATCH_ID),
-    ));
-    // The flat ground matters more than a class note: it says the drawing is not the terrain.
-    if !profile.is_measured {
-        legend.note = Some(FLAT_NOTE.to_string());
-    } else if legend.note.is_none() {
-        legend.note = Some(format!(
-            "Heights in metres above NAP. Seen up to {depth_m:.0} m beyond the line."
-        ));
-    }
-
-    legend
-}
-
-fn area_row(label: &str, fill: &str) -> Row {
-    Row {
-        label: label.to_string(),
-        swatch: Swatch::Area {
-            fill: fill.to_string(),
-            stroke: None,
-            stroke_mm: 0.0,
-            opacity: 1.0,
-        },
-    }
 }

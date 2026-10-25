@@ -15,6 +15,9 @@ use serde_json::{json, Value};
 use crate::inputs::LonLatInput;
 use crate::server::{reply, text, OpenArchi};
 
+/// The `scale` an assistant passes to go back to the scale that fits the sheet.
+const FITTED_SCALE: u32 = 0;
+
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct SetSection {
     /// The project id.
@@ -29,6 +32,13 @@ pub struct SetSection {
     /// How far beyond the line buildings and trees are drawn in elevation, in
     /// metres, more than 0 and at most 500. Defaults to 60.
     pub depth_m: Option<f64>,
+    /// The scale the section is drawn at, as N in 1:N: one of 100, 200, 250,
+    /// 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000,
+    /// 20000. 0 goes back to the largest scale that fits the sheet, the default.
+    pub scale: Option<u32>,
+    /// How many times taller than true heights are drawn: 1 (the default), 2 or 5.
+    /// The legend says so when it is not 1.
+    pub exaggeration: Option<u32>,
     /// True swaps A and A', turning the section round to look the other way.
     pub flip: Option<bool>,
     /// True removes the line; a sheet in the section view goes back to its plan.
@@ -38,7 +48,7 @@ pub struct SetSection {
 #[tool_router(router = section_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "Draw, change or clear the section line of a sheet: the line its section view is cut along, shown on its plan as a cut marker with A and A'. Pass from and to (both inside the area the sheet draws: the site and its neighbourhood) to draw or move it, depth_m for how far beyond the line the elevation reaches, flip to look the other way, or clear. Then set_look with view.mode \"section\" shows the section. Returns the sheet's line and view."
+        description = "Draw, change or clear the section line of a sheet: the line its section view is cut along, shown on its plan as a cut marker with A and A'. Pass from and to (both inside the area the sheet draws: the site and its neighbourhood) to draw or move it, depth_m for how far beyond the line the elevation reaches, scale and exaggeration for how large and how tall it is drawn, flip to look the other way, or clear. Then set_look with view.mode \"section\" shows the section. Returns the sheet's line and view."
     )]
     async fn set_section(&self, Parameters(input): Parameters<SetSection>) -> CallToolResult {
         let result = self
@@ -101,6 +111,15 @@ fn updated_line(line: Option<&SectionLine>, input: &SetSection) -> Result<Sectio
             .depth_m
             .or(line.map(|line| line.depth_m))
             .unwrap_or(DEFAULT_DEPTH_M),
+        scale: match input.scale {
+            Some(FITTED_SCALE) => None,
+            Some(scale) => Some(scale),
+            None => line.and_then(|line| line.scale),
+        },
+        exaggeration: input
+            .exaggeration
+            .or(line.map(|line| line.exaggeration))
+            .unwrap_or(1),
     };
 
     if input.flip == Some(true) {
@@ -119,6 +138,8 @@ pub fn section_of(look: &Look) -> Value {
             "start_rd": [line.start.0, line.start.1],
             "end_rd": [line.end.0, line.end.1],
             "depth_m": line.depth_m,
+            "scale": line.scale,
+            "exaggeration": line.exaggeration,
         })
     });
 

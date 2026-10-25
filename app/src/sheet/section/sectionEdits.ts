@@ -9,6 +9,9 @@ import type { Point } from "../pins/sheetPins";
 export const DEFAULT_DEPTH_M = 60;
 export const MAX_DEPTH_M = 500;
 export const MIN_LENGTH_M = 5;
+// Every scale and exaggeration the core accepts, the same lists as SCALES and EXAGGERATIONS there.
+export const SECTION_SCALES = [100, 200, 250, 500, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 20000];
+export const EXAGGERATIONS = [1, 2, 5];
 // The core writes the marker as one group with its ends on paper in data attributes.
 const MARKER_SELECTOR = "#section-line";
 
@@ -24,10 +27,21 @@ export function readEnds(paper: Element | null): PaperEnds | null {
   return { start: { x: values[0], y: values[1] }, end: { x: values[2], y: values[3] } };
 }
 
-/** A new line from A to A', keeping the depth of the one it replaces. */
+/** A new line from A to A', keeping the depth, scale and exaggeration of the one it replaces. */
 export function withSection(look: Look, start: Point, end: Point): Look {
   const depth_m = look.section?.depth_m ?? DEFAULT_DEPTH_M;
-  return { ...look, section: { start: [start.x, start.y], end: [end.x, end.y], depth_m } };
+  return { ...look, section: { ...look.section, start: [start.x, start.y], end: [end.x, end.y], depth_m } };
+}
+
+/** `null` goes back to the largest scale that fits the sheet. */
+export function withSectionScale(look: Look, scale: number | null): Look {
+  if (!look.section) return look;
+  return { ...look, section: { ...look.section, scale } };
+}
+
+export function withSectionExaggeration(look: Look, exaggeration: number): Look {
+  if (!look.section) return look;
+  return { ...look, section: { ...look.section, exaggeration } };
 }
 
 export function withSectionDepth(look: Look, depth_m: number): Look {

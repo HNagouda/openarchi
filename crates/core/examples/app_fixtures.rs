@@ -244,6 +244,8 @@ fn write_section_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
         start: (x - SECTION_HALF_LENGTH_M, y),
         end: (x + SECTION_HALF_LENGTH_M, y),
         depth_m: DEFAULT_DEPTH_M,
+        scale: None,
+        exaggeration: 1,
     };
     for theme in fixture_themes() {
         let look = Look {

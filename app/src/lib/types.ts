@@ -125,7 +125,15 @@ export type Look = {
 
 // crates/core/src/section.rs
 /** A section line in RD New metres, from A to A'; the section looks to the left of A -> A'. */
-export type SectionLine = { start: [number, number]; end: [number, number]; depth_m: number };
+export type SectionLine = {
+  start: [number, number];
+  end: [number, number];
+  depth_m: number;
+  /** 1:scale; absent picks the largest scale that fits the sheet. */
+  scale?: number | null;
+  /** Heights drawn this many times taller: 1, 2 or 5. Absent is 1. */
+  exaggeration?: number;
+};
 
 // crates/core/src/pin.rs
 // "number" is no longer offered in the app, but older projects still hold numbered pins.

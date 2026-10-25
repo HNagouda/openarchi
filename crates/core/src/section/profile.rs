@@ -1,9 +1,11 @@
 //! The ground along a section line, sampled from the terrain kept with the scene.
 //!
 //! The terrain model has no values under buildings and water, and a section
-//! nearly always crosses both. Such gaps are bridged in a straight line from
-//! the ground on either side, which is what the ground under a building is
-//! close to, and what a quay-to-quay canal bed is not; see the note below.
+//! nearly always crosses both. Under water the surveyed bed fills in where
+//! Rijkswaterstaat has one. Other gaps are bridged in a straight line from the
+//! ground on either side, which is what the ground under a building is close
+//! to; a water without a surveyed bed is drawn over its bridge, see
+//! `render/section_water.rs`.
 
 use super::Axis;
 use crate::sources::raster::Grid;
@@ -55,10 +57,10 @@ impl Profile {
     }
 }
 
-/// The ground along `axis` from `terrain`, or flat at 0 when there is none or
-/// it has no value anywhere along the line.
-// #! NOTE[sections, water] : Canals and ponds are bridged at bank height; draw the water level and bed instead?
-pub fn ground_profile(terrain: Option<&Grid>, axis: &Axis) -> Profile {
+/// The ground along `axis` from `terrain`, and from `bed` where the terrain
+/// has no value, or flat at 0 when there is no terrain or it has no value
+/// anywhere along the line.
+pub fn ground_profile(terrain: Option<&Grid>, bed: Option<&Grid>, axis: &Axis) -> Profile {
     let Some(grid) = terrain else {
         return flat(axis.length);
     };
@@ -68,7 +70,8 @@ pub fn ground_profile(terrain: Option<&Grid>, axis: &Axis) -> Profile {
         .map(|index| {
             let along = (index as f64 * step).min(axis.length);
             let (x, y) = axis.point_at(along, 0.0);
-            (along, height_at(grid, x, y))
+            let height = height_at(grid, x, y).or_else(|| bed.and_then(|bed| height_at(bed, x, y)));
+            (along, height)
         })
         .collect();
     if samples.iter().all(|(_, height)| height.is_none()) {
@@ -200,6 +203,8 @@ mod tests {
             start: from,
             end: to,
             depth_m: 50.0,
+            scale: None,
+            exaggeration: 1,
         };
         line.axis((0.0, 0.0))
     }
@@ -214,7 +219,7 @@ mod tests {
 
     #[test]
     fn a_line_up_the_slope_climbs_with_it() {
-        let profile = ground_profile(Some(&slope()), &axis((5.0, 15.0), (95.0, 15.0)));
+        let profile = ground_profile(Some(&slope()), None, &axis((5.0, 15.0), (95.0, 15.0)));
         assert!(profile.is_measured);
         assert!((profile.height_at(0.0) - 0.5).abs() < 1e-9);
         assert!((profile.height_at(45.0) - 5.0).abs() < 1e-9);
@@ -229,14 +234,33 @@ mod tests {
                 grid.values[row * 10 + column] = f32::NAN;
             }
         }
-        let profile = ground_profile(Some(&grid), &axis((5.0, 15.0), (95.0, 15.0)));
+        let profile = ground_profile(Some(&grid), None, &axis((5.0, 15.0), (95.0, 15.0)));
         // The cells either side of the gap hold 2.5 and 7.5, so the middle reads 5.
         assert!((profile.height_at(45.0) - 5.0).abs() < 1e-9);
     }
 
     #[test]
+    fn a_gap_over_water_takes_the_surveyed_bed() {
+        let mut grid = slope();
+        let mut bed = slope();
+        for row in 0..3 {
+            for column in 0..10 {
+                let is_water = (3..7).contains(&column);
+                if is_water {
+                    grid.values[row * 10 + column] = f32::NAN;
+                    bed.values[row * 10 + column] = -4.0;
+                } else {
+                    bed.values[row * 10 + column] = f32::NAN;
+                }
+            }
+        }
+        let profile = ground_profile(Some(&grid), Some(&bed), &axis((5.0, 15.0), (95.0, 15.0)));
+        assert!((profile.height_at(50.0) + 4.0).abs() < 1e-9);
+    }
+
+    #[test]
     fn no_terrain_gives_flat_ground_that_says_so() {
-        let profile = ground_profile(None, &axis((0.0, 0.0), (80.0, 0.0)));
+        let profile = ground_profile(None, None, &axis((0.0, 0.0), (80.0, 0.0)));
         assert!(!profile.is_measured);
         assert_eq!(profile.height_at(40.0), 0.0);
         assert_eq!(profile.samples.last(), Some(&(80.0, 0.0)));

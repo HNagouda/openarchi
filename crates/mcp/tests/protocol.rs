@@ -1106,6 +1106,23 @@ fn a_section_line_is_drawn_flipped_shown_and_cleared_as_in_the_app() {
     );
     assert_eq!(flipped["section"]["from"], drawn["section"]["to"]);
     assert_eq!(flipped["section"]["depth_m"], json!(80.0));
+    assert_eq!(flipped["section"]["scale"], json!(null));
+
+    // Like the scale and height menus beside the depth field.
+    let scaled = server.call_ok(
+        "set_section",
+        json!({ "id": id, "scale": 500, "exaggeration": 2 }),
+    );
+    assert_eq!(scaled["section"]["scale"], json!(500));
+    assert_eq!(scaled["section"]["exaggeration"], json!(2));
+    let odd = server.call_err("set_section", json!({ "id": id, "scale": 300 }));
+    assert!(odd.contains("scale must be one of"), "{odd}");
+    let fitted = server.call_ok(
+        "set_section",
+        json!({ "id": id, "scale": 0, "exaggeration": 1 }),
+    );
+    assert_eq!(fitted["section"]["scale"], json!(null));
+    assert_eq!(fitted["section"]["exaggeration"], json!(1));
 
     let shown = server.call_ok(
         "set_look",

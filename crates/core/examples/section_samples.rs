@@ -7,7 +7,8 @@
 //! target/render-samples/sections/<name>/ go: the section in every theme, the
 //! plan with its cut marker in every theme, the axonometric with the marker,
 //! a section of the building age diagram, a section on a sheet framing a
-//! smaller area, the same scene without its terrain, and a PDF of the section.
+//! smaller area, the same scene without its terrain, the section with heights
+//! drawn five times taller, at a scale too large to fit, and a PDF of it.
 //! Fetch a scene with `fetch_site` first; the checked-in fixture has no terrain.
 
 use std::path::{Path, PathBuf};
@@ -30,6 +31,9 @@ const DEFAULT_LENGTH_M: f64 = 240.0;
 /// The smaller area of the sub-selection sample, around the centre.
 const AREA_RADIUS_M: f64 = 80.0;
 const PDF_DPI: u32 = 150;
+const SAMPLE_EXAGGERATION: u32 = 5;
+/// Large enough that a line of a few hundred metres runs off the sheet.
+const CLIPPED_SCALE: u32 = 500;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -103,6 +107,35 @@ fn main() {
         &out_dir.join("section-flat--paper.png"),
     );
 
+    let taller = with_line(
+        &section,
+        SectionLine {
+            exaggeration: SAMPLE_EXAGGERATION,
+            ..line.clone()
+        },
+    );
+    for theme_id in ["paper", "midnight"] {
+        write(
+            &scene,
+            &taller,
+            &theme(theme_id),
+            &out_dir.join(format!("section-x{SAMPLE_EXAGGERATION}--{theme_id}.png")),
+        );
+    }
+    let clipped = with_line(
+        &section,
+        SectionLine {
+            scale: Some(CLIPPED_SCALE),
+            ..line.clone()
+        },
+    );
+    write(
+        &scene,
+        &clipped,
+        &paper,
+        &out_dir.join(format!("section-1to{CLIPPED_SCALE}--paper.png")),
+    );
+
     let diagrams = builtin_diagrams();
     let diagram = diagrams
         .iter()
@@ -143,6 +176,13 @@ fn main() {
     println!("samples in {}", out_dir.display());
 }
 
+fn with_line(look: &Look, line: SectionLine) -> Look {
+    Look {
+        section: Some(line),
+        ..look.clone()
+    }
+}
+
 /// A line through the scene's centre, in RD New metres.
 fn line_through_centre(scene: &Scene, angle_deg: f64, length_m: f64) -> SectionLine {
     let (x, y) = scene.origin;
@@ -155,6 +195,8 @@ fn line_through_centre(scene: &Scene, angle_deg: f64, length_m: f64) -> SectionL
         start: (x - dx, y - dy),
         end: (x + dx, y + dy),
         depth_m: DEFAULT_DEPTH_M,
+        scale: None,
+        exaggeration: 1,
     }
 }
 
