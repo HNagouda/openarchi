@@ -5,7 +5,9 @@
 
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import { shortcutLabel } from "../lib/platform";
-import { hasModifier, isTyping, useKeyDown } from "../lib/keys";
+import { arrowStep, hasModifier, isTyping, useKeyDown } from "../lib/keys";
+import { clamp } from "../lib/format";
+import { MM_TO_PX } from "../lib/units";
 import type { Catalog, Look, ProjectView, Report, ReportBlock, TextStyle } from "../lib/types";
 import { ColumnResizer, REPORT_INSPECTOR_COLUMN, REPORT_LIBRARY_COLUMN } from "../sheet/columns/ColumnResizer";
 import { useThumbnails } from "../sheet/useThumbnails";
@@ -25,7 +27,6 @@ import { BlockPicturesContext, type BlockPictures } from "./useBlockSvg";
 import { useBlockDrag } from "./useBlockDrag";
 import "./report.css";
 
-const MM_TO_PX = 96 / 25.4;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.25;
@@ -35,9 +36,6 @@ const FIT_PADDING_PX = 80 + RULER_PX;
 // Room above and below a fitted page: the ruler, the stack's top padding, the
 // page's header and the zoom control under it, so one whole page shows on a tall desk.
 const FIT_VERTICAL_PX = 140 + RULER_PX;
-// Arrow keys move a block this far, with Shift ten times as far.
-const NUDGE_MM = 1;
-const NUDGE_SHIFT_MM = 10;
 
 export type ZoomControls = { zoomIn: () => void; zoomOut: () => void; fit: () => void };
 
@@ -173,18 +171,17 @@ export function ReportEditor({ project, sheetLook: look, catalog, report, previe
     const found = selectedId ? findBlock(report, selectedId) : null;
     if (!found) return;
     const size = pageSize(report.pages[found.pageIndex]);
-    const x = Math.min(Math.max(found.block.x_mm + dx, 0), size.width - found.block.width_mm);
-    const y = Math.min(Math.max(found.block.y_mm + dy, 0), size.height - found.block.height_mm);
+    const x = clamp(found.block.x_mm + dx, 0, size.width - found.block.width_mm);
+    const y = clamp(found.block.y_mm + dy, 0, size.height - found.block.height_mm);
     onChange(updateBlock(report, found.block.id, { x_mm: tidy(x), y_mm: tidy(y) }), `nudge:${found.block.id}`);
   };
 
   useKeyDown((event) => {
     if (isTyping(event.target) || document.querySelector("[data-modal-open]")) return;
-    const step = event.shiftKey ? NUDGE_SHIFT_MM : NUDGE_MM;
-    const arrows: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
-    if (selectedId && arrows[event.key] && !hasModifier(event)) {
+    const move = arrowStep(event);
+    if (selectedId && move && !hasModifier(event)) {
       event.preventDefault();
-      nudge(...arrows[event.key]);
+      nudge(...move);
     }
     if (selectedId && (event.key === "Delete" || event.key === "Backspace")) remove();
     // Escape only lets go of the block; leaving the reports is the Sheet button's job, so it never happens by accident.

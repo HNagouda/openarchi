@@ -3,6 +3,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Look } from "../../lib/types";
+import { MM_PER_PT } from "../../lib/units";
 import type { PaperView } from "../Canvas";
 import { useLive, type LiveValue } from "../liveValue";
 import { groupFor, readTexts, type SheetText } from "./sheetTexts";
@@ -10,7 +11,6 @@ import { TextToolbar } from "./TextToolbar";
 import { isTextBox, positionOf, styleOf, textOf, withPosition, withStyle, withText, withoutBox } from "./textEdits";
 import type { TextDrag } from "./useTextTool";
 
-const MM_PER_PT = 25.4 / 72;
 // Room between the text and its outline, and between the outline and the toolbar.
 const OUTLINE_PAD_PX = 4;
 const TOOLBAR_GAP_PX = 8;

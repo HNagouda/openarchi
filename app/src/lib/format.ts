@@ -32,8 +32,9 @@ export function parseTyped(text: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
+/** `value` kept between `min` and `max`; `min` wins when the range is empty, so a block wider than its page sits at its edge. */
 export function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
+  return Math.min(Math.max(value, min), Math.max(min, max));
 }
 
 const MINUTE_MS = 60_000;

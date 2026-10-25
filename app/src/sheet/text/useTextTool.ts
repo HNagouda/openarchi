@@ -6,7 +6,7 @@
 // new SVG replaces it, so the text never jumps back in between.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { usePlainKeys } from "../../lib/keys";
+import { arrowStep, usePlainKeys } from "../../lib/keys";
 import type { Look } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
@@ -15,9 +15,6 @@ import { boxAt } from "../paper";
 import { groupFor, readTexts } from "./sheetTexts";
 import { isTextBox, withNewBox, withoutBox, withPosition } from "./textEdits";
 
-// Arrow keys nudge by a millimetre, or a centimetre with Shift.
-const NUDGE_MM = 1;
-const NUDGE_LARGE_MM = 10;
 // Positions are saved in tenths of a millimetre; finer means nothing on paper.
 const TENTHS_PER_MM = 10;
 
@@ -123,14 +120,7 @@ export function useTextTool(look: Look, history: History, canvas: RefObject<Canv
       history.change(withoutBox(latestLook.current, selectedId));
       setSelectedId(null);
     }
-    const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
-    const moves: Record<string, [number, number]> = {
-      ArrowLeft: [-step, 0],
-      ArrowRight: [step, 0],
-      ArrowUp: [0, -step],
-      ArrowDown: [0, step],
-    };
-    const move = moves[key];
+    const move = arrowStep(event);
     if (move) {
       event.preventDefault();
       nudge(selectedId, move[0], move[1]);

@@ -11,7 +11,7 @@
 // plate but carries the top plate's ground, so they are edited there, as pins are.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { usePlainKeys } from "../../lib/keys";
+import { arrowStep, usePlainKeys } from "../../lib/keys";
 import type { Highlight, HighlightKind, HighlightShape, Look } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
@@ -39,9 +39,7 @@ import { highlightAt } from "./sheetHighlights";
 export const HIGHLIGHT_KEY = "h";
 // How close to a handle or a polygon's first corner, in paper millimetres, a press still takes it.
 const HANDLE_HIT_MM = 2.5;
-// Arrow keys nudge by a millimetre of paper, or a centimetre with Shift; + and - grow and shrink by a tenth.
-const NUDGE_MM = 1;
-const NUDGE_LARGE_MM = 10;
+// + and - grow and shrink a selected highlight by a tenth.
 const SCALE_STEP = 1.1;
 const SCALE_KEYS: Record<string, number> = { "+": SCALE_STEP, "=": SCALE_STEP, "-": 1 / SCALE_STEP };
 
@@ -320,9 +318,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
       event.preventDefault();
       changeSelected((shape) => scaled(shape, scale));
     }
-    const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
-    const moves: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
-    const move = moves[key];
+    const move = arrowStep(event);
     if (move) {
       event.preventDefault();
       changeSelected((shape, toRd) => {

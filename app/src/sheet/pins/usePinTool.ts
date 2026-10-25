@@ -6,7 +6,7 @@
 // lands on the same spot of the ground in every other view.
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { usePlainKeys } from "../../lib/keys";
+import { arrowStep, usePlainKeys } from "../../lib/keys";
 import type { Pin, PinIcon } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
@@ -15,9 +15,6 @@ import { nextPinId, steppedSize, withChangedPin, withoutPin, withPin } from "./p
 import { boxAt, isOutsideSite, paperPointAt, paperToRd, type Point } from "../paper";
 import { pinGroup, readPins } from "./sheetPins";
 
-// Arrow keys nudge by a millimetre of paper, or a centimetre with Shift.
-const NUDGE_MM = 1;
-const NUDGE_LARGE_MM = 10;
 // A selected pin grows with + or =, which share a key, and shrinks with -.
 const SIZE_KEYS: Record<string, 1 | -1> = { "+": 1, "=": 1, "-": -1 };
 
@@ -162,14 +159,7 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
       event.preventDefault();
       onPins(withChangedPin(latestPins.current, selectedId, { size: steppedSize(pin.size, sizeStep) }));
     }
-    const step = event.shiftKey ? NUDGE_LARGE_MM : NUDGE_MM;
-    const moves: Record<string, [number, number]> = {
-      ArrowLeft: [-step, 0],
-      ArrowRight: [step, 0],
-      ArrowUp: [0, -step],
-      ArrowDown: [0, step],
-    };
-    const move = moves[key];
+    const move = arrowStep(event);
     if (move) {
       event.preventDefault();
       nudge(selectedId, move[0], move[1]);

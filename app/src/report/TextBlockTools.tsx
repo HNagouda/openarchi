@@ -6,11 +6,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReportBlock, TextStyle } from "../lib/types";
+import { MM_PER_PT } from "../lib/units";
 import { readTexts, type SheetText } from "../sheet/text/sheetTexts";
 import { TextToolbar } from "../sheet/text/TextToolbar";
 import "../sheet/text/text.css";
 
-const MM_PER_PT = 25.4 / 72;
 // Room between the block and the bar above it.
 const TOOLBAR_GAP_PX = 8;
 const TOOLBAR_HEIGHT_PX = 36;

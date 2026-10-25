@@ -4,8 +4,9 @@
 // Shift keeps a block's proportions while resizing.
 
 import { useState, type PointerEvent as ReactPointerEvent } from "react";
+import { clamp } from "../lib/format";
 import type { Report, ReportBlock } from "../lib/types";
-import { clampTo, pageSize, tidy, updateBlock } from "./edits";
+import { pageSize, tidy, updateBlock } from "./edits";
 import { resize, snapMove, type Handle, type Rect } from "./geometry";
 import type { Live } from "./PageView";
 
@@ -67,5 +68,5 @@ export function useBlockDrag(report: Report, pxPerMm: number, onChange: (report:
 
 /** A moved block stays on its page. */
 function onPage(rect: Rect, page: { width: number; height: number }): Rect {
-  return { ...rect, x: clampTo(rect.x, 0, page.width - rect.width), y: clampTo(rect.y, 0, page.height - rect.height) };
+  return { ...rect, x: clamp(rect.x, 0, page.width - rect.width), y: clamp(rect.y, 0, page.height - rect.height) };
 }

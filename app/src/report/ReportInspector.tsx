@@ -1,13 +1,14 @@
 // The report editor's right column: the report's palette and pages, the
 // current page's paper and blocks, and the selected block's box and options.
 
+import { clamp } from "../lib/format";
 import type { Catalog, Diagram, Paper, Ratios, Report, ReportBlock, RatiosStyle } from "../lib/types";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { Section } from "../ui/Section";
 import { Segmented } from "../ui/Segmented";
 import { Toggle } from "../ui/Toggle";
-import { clampTo, deletePage, findBlock, MIN_BLOCK_MM, pageSize, setPaper, tidy, updateBlock } from "./edits";
+import { deletePage, findBlock, MIN_BLOCK_MM, pageSize, setPaper, tidy, updateBlock } from "./edits";
 import { LayerList } from "./LayerList";
 import { RATIOS_STYLES, ratiosHeight } from "./library";
 import type { TextKind } from "./textBlocks";
@@ -189,7 +190,7 @@ function MillimetreField({ label, value, min, max, onCommit }: { label: string; 
   const commit = (typed: string) => {
     const number = Number(typed.replace(",", "."));
     if (typed.trim() === "" || Number.isNaN(number)) return;
-    const clamped = tidy(clampTo(number, min, max));
+    const clamped = tidy(clamp(number, min, max));
     if (clamped !== value) onCommit(clamped);
   };
 
