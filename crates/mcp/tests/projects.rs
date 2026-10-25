@@ -12,7 +12,7 @@ mod common;
 use common::{Server, PROTOCOL_VERSION};
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 38] = [
+const TOOLS: [&str; 43] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -51,6 +51,11 @@ const TOOLS: [&str; 38] = [
     "remove_highlight",
     "open_highlight_as_sheet",
     "show_on_sheet",
+    "import_model",
+    "place_model",
+    "set_model_units",
+    "set_replaced_buildings",
+    "remove_model",
 ];
 
 #[test]

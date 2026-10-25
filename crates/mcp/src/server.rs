@@ -19,6 +19,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 
 use crate::inputs::{CreateProject, ProjectId, SearchPlaces};
+use crate::model::model_json;
 use crate::summary::summarize;
 
 const DEFAULT_PLACES: u32 = 5;
@@ -69,7 +70,8 @@ impl OpenArchi {
                 + Self::section_tools()
                 + Self::highlight_tools()
                 + Self::view_point_tools()
-                + Self::wind_tools(),
+                + Self::wind_tools()
+                + Self::model_tools(),
         }
     }
 
@@ -237,6 +239,7 @@ fn overview(project: &Project) -> Value {
         "area": project.area,
         "look": project.look,
         "site": project.scene.as_ref().map(summarize),
+        "model": project.model.as_ref().map(|model| model_json(model, project.scene.as_ref())),
     })
 }
 

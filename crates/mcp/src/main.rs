@@ -12,6 +12,8 @@ mod highlights;
 mod inputs;
 mod laser;
 mod look;
+mod model;
+mod model_inputs;
 mod palettes;
 mod reports;
 mod resolve;

@@ -77,6 +77,11 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `list_highlights`, `add_highlight`, `edit_highlight`, `remove_highlight` | Highlights an area inside the site, like the plot or a proposed house, as a circle, rectangle or polygon with a label, a solid, dashed or dotted outline, a colour, and optionally its area and "dim the rest" |
 | `open_highlight_as_sheet` | Adds a sheet tab framing exactly one highlight, so its ratios and figures describe that area; the only way to a sheet of part of the site |
 | `show_on_sheet` | Shows or hides the pins and the highlights on one sheet tab |
+| `import_model` | Imports a building model from an OBJ (Archicad: File > Save As > Wavefront) or a GLB/glTF (SketchUp, Rhino, Blender) into the project, in metres with z up; it stands at the site centre or where the previous model stood, and the buildings it covers more than half of are left out of every sheet |
+| `place_model` | Moves, turns or lifts the model, by longitude and latitude or RD New metres, a clockwise turn, a base above NAP or back on the terrain; like dragging it in the app, it picks the replaced buildings again |
+| `set_model_units` | Reads the model again in metres, centimetres or millimetres, with y or z up, as the Model section's switches do |
+| `set_replaced_buildings` | Chooses which of the buildings under the model it replaces, from those `covered` lists |
+| `remove_model` | Takes the model out of the project, bringing back the buildings it replaced |
 | `set_section` | Draws, moves, flips or clears a sheet's section line, from A to A' in longitude and latitude, and sets how far beyond it the section shows buildings and trees, its scale and how much taller heights are drawn |
 | `set_view_point` | Stands the eye of a sheet's View diagram at a place, on a pin it then follows, or back at the site centre |
 | `set_wind_season` | Chooses whether a sheet's Wind diagram blows the prevailing wind of the whole year or of one season |
@@ -142,6 +147,10 @@ The Wind diagram blows the site's most common wind direction, from its typical y
 ```json
 { "id": "2026-10-24-westermarkt-3f9a", "season": "winter" }
 ```
+
+## How does an assistant put a design on the site?
+
+A project holds one model, as in the app. `import_model` reads it into the core, so the assistant sees the same model the app draws: its footprint in plan, standing up in the axonometric in the palette's accent, and casting shadows in the shadow diagram. OBJ files carry no unit and no up axis: an OBJ's unit is guessed from its size and z is taken as up, and `set_model_units` fixes either when the model comes in a thousand times too large or lying on its side. `get_project` and every model tool answer with the model's size, its placement in RD New metres and in longitude and latitude, the terrain under it, the buildings it replaces and every building it `covered`, with the share of each under it. Only those can be marked replaced, as the app only lists those. The 3D view, with its orbit and the sun through the day, is the app's alone: an assistant has no window to draw it in, and sets the sun's moment for the sheets with `set_look`.
 
 ## Trying it from a terminal
 
