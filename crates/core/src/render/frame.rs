@@ -9,7 +9,7 @@ use std::fmt::Write;
 
 use geo::{BooleanOps, BoundingRect, Polygon, Rect as GroundRect};
 
-use super::geometry::{decimal, mm, polygon_path, push_paper_points, Projection};
+use super::geometry::{boundary_reach, decimal, mm, polygon_path, push_paper_points, Projection};
 use super::layout::Rect;
 use super::svg::layer_attributes;
 use crate::area::Area;
@@ -77,7 +77,7 @@ impl FrameShape {
 
         match frame {
             Frame::Circle => {
-                let site_radius = circle_radius(scene, centre);
+                let site_radius = boundary_reach(&scene.boundary, centre);
                 let radius = site_radius.min(reach_x).min(reach_y);
                 let is_cropped = radius < site_radius - 0.01;
                 let is_circle_site = matches!(scene.area, Area::Circle { .. });
@@ -279,7 +279,7 @@ impl FrameShape {
 pub fn ground_outline(frame: Frame, scene: &Scene, centre: (f64, f64)) -> Vec<(f64, f64)> {
     match frame {
         Frame::Circle => {
-            let radius = circle_radius(scene, centre);
+            let radius = boundary_reach(&scene.boundary, centre);
             (0..CIRCLE_POINTS)
                 .map(|index| {
                     let angle = index as f64 / CIRCLE_POINTS as f64 * TAU;
@@ -302,17 +302,6 @@ pub fn ground_outline(frame: Frame, scene: &Scene, centre: (f64, f64)) -> Vec<(f
             .map(|c| (c.x, c.y))
             .collect(),
     }
-}
-
-/// The furthest boundary point from the centre, in metres.
-fn circle_radius(scene: &Scene, centre: (f64, f64)) -> f64 {
-    scene
-        .boundary
-        .exterior()
-        .0
-        .iter()
-        .map(|c| ((c.x - centre.0).powi(2) + (c.y - centre.1).powi(2)).sqrt())
-        .fold(0.0, f64::max)
 }
 
 /// Half the boundary's width and height, in metres.

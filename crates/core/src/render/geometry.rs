@@ -152,6 +152,19 @@ pub fn ground_centre(boundary: &Polygon<f64>) -> (f64, f64) {
         .unwrap_or((0.0, 0.0))
 }
 
+/// How far the furthest of `points` lies from `centre`, in metres; 0 for no points.
+pub fn furthest_from(points: impl IntoIterator<Item = (f64, f64)>, centre: (f64, f64)) -> f64 {
+    points
+        .into_iter()
+        .map(|(x, y)| ((x - centre.0).powi(2) + (y - centre.1).powi(2)).sqrt())
+        .fold(0.0, f64::max)
+}
+
+/// How far the boundary reaches from `centre`, so a frame around it never cuts the site.
+pub fn boundary_reach(boundary: &Polygon<f64>, centre: (f64, f64)) -> f64 {
+    furthest_from(boundary.exterior().0.iter().map(|c| (c.x, c.y)), centre)
+}
+
 /// 1234 -> "12.34", 1200 -> "12", -5 -> "-0.05".
 pub fn push_hundredths(out: &mut String, value: i64) {
     if value < 0 {

@@ -13,6 +13,7 @@ use super::context;
 use super::geometry::{mm, Projection};
 use super::layout::Layout;
 use super::map::SheetDrawing;
+use super::map_sheet::round_scale;
 use super::massing;
 use super::section_draw::{self, Mass};
 use super::section_legend::{self, Drawn};
@@ -203,14 +204,11 @@ fn frame_on(
     }
 }
 
-/// The largest round scale at which the section fits the drawing zone.
+/// The largest round scale at which the section fits the drawing zone. It
+/// picks from the section's own scales, the ones its scale menu offers, so a
+/// fitted section can always be set back to the scale it shows.
 fn section_scale(fitting_mm_per_m: f64) -> u32 {
-    let needed = 1000.0 / fitting_mm_per_m;
-    SCALES
-        .iter()
-        .copied()
-        .find(|&scale| scale as f64 >= needed)
-        .unwrap_or_else(|| (needed / 1000.0).ceil() as u32 * 1000)
+    round_scale(1000.0 / fitting_mm_per_m, &SCALES)
 }
 
 /// A building as it stands beyond the line, in `fill`.
