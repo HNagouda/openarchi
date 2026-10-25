@@ -237,6 +237,12 @@ Sheets can now show the site in three dimensions and the sun over it.
 - A palette whose text misses its WCAG ratio on the paper can no longer be saved: Save stays grey and says to fix the text contrast. Faint buildings or a faint accent only warn, since a pale figure can be a deliberate look.
 - The Ratios view now shows the source line under every group's title, and the Analysis tab moved its source line up under each section title to match.
 
+### Old sites
+
+- A diagram whose data the site was fetched without, such as transit on a site fetched before openarchi read OpenStreetMap, says so in a note over the sheet with a Fetch again button, instead of drawing only the base map. So does the Neighbourhood toggle on a site fetched before the neighbourhood was kept. A site that truly has no flood risk or no shops is not mistaken for one fetched without the source.
+- `render_preview` returns the same notes as text next to the picture.
+- An assistant fetching the open site again no longer loses its new data when the app saves next: the app takes the newer fetch and keeps your own changes to the sheets.
+
 ### Floors, blocks and sunlight hours
 
 - Three new diagrams worked out from data every site already has, so they need no new download and work on projects made before them.

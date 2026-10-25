@@ -13,6 +13,7 @@ import type { Catalog, ProjectView } from "../lib/types";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { CanvasMessage } from "./CanvasMessage";
+import { MissingData } from "./MissingData";
 import { useToast } from "../ui/Toasts";
 import { Canvas, type CanvasControls } from "./Canvas";
 import { ExportDialog } from "./ExportDialog";
@@ -306,6 +307,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               }
             />
             {!preview.svg && <CanvasMessage catalogError={catalogError} previewError={preview.error} onRetry={onRetryCatalog} hasScene={project.has_scene} />}
+            {preview.svg && <MissingData svg={preview.svg} onFetchAgain={() => navigate.editSite(project)} />}
             {preview.svg && preview.error && (
               <div className="canvas-error" role="alert">
                 {preview.error}

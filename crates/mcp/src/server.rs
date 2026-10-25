@@ -10,7 +10,9 @@ use openarchi_core::area::Area;
 use openarchi_core::export::{self, ExportFormat};
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
-use openarchi_core::{analysis, catalog, environment, geocode, ratios, selection, site, walk};
+use openarchi_core::{
+    analysis, catalog, environment, geocode, ratios, render, selection, site, walk,
+};
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{CallToolResult, ContentBlock, Implementation, ServerCapabilities, ServerConfig};
@@ -257,16 +259,22 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 with_render_input(library, &input.id, input.tab.unwrap_or(1), |render| {
-                    export::render_png(render, width_px)
+                    let missing = render::missing_data(render)?;
+                    Ok((export::render_png(render, width_px)?, missing))
                 })
             })
             .await;
 
         match result {
-            Ok(png) => CallToolResult::success(vec![ContentBlock::image(
-                BASE64_STANDARD.encode(png),
-                "image/png",
-            )]),
+            // The same notes the app shows over the sheet, so an assistant knows why a diagram looks empty.
+            Ok((png, missing)) => {
+                let mut content = vec![ContentBlock::image(
+                    BASE64_STANDARD.encode(png),
+                    "image/png",
+                )];
+                content.extend(missing.into_iter().map(ContentBlock::text));
+                CallToolResult::success(content)
+            }
             Err(message) => CallToolResult::error(vec![ContentBlock::text(message)]),
         }
     }

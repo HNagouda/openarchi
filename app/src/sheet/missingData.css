@@ -1,0 +1,24 @@
+.missing-data {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: min(640px, calc(100% - 32px));
+  padding: 10px 10px 10px 14px;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--float-shadow);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.missing-data p {
+  margin: 0;
+}
+
+.missing-data .button {
+  flex: none;
+}

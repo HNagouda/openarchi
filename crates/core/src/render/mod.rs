@@ -22,6 +22,7 @@ mod legend;
 mod lighting;
 mod map;
 mod massing;
+mod missing;
 mod order;
 mod patterns;
 mod pins;
@@ -98,6 +99,15 @@ pub struct RenderInput<'a> {
 /// The full sheet as an SVG document, sized in millimetres. A diagram with
 /// variants is drawn as the look's variant, and a look with a sub-selection
 /// draws the scene cut to it.
+/// What the sheet asks for that its scene lacks, as the sentences the app
+/// shows over the sheet: an old fetch without a diagram's source, or without
+/// the neighbourhood. Empty when the sheet has all it needs.
+pub fn missing_data(input: &RenderInput) -> Result<Vec<String>> {
+    let look = input.look;
+    let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
+    Ok(missing::notes(&scene, input.diagram, look))
+}
+
 pub fn render_svg(input: &RenderInput) -> Result<String> {
     let look = input.look;
     let drawn = input.diagram.drawn_as(look.variant.as_deref());
@@ -149,11 +159,12 @@ pub fn render_svg(input: &RenderInput) -> Result<String> {
     // The ground's place on the paper, so the app can turn a drop into a pin.
     let _ = writeln!(
         out,
-        r#"<rect id="paper" width="{}" height="{}" fill="{}" data-ground-points="{}"/>"#,
+        r#"<rect id="paper" width="{}" height="{}" fill="{}" data-ground-points="{}" data-missing="{}"/>"#,
         mm(layout.width),
         mm(layout.height),
         palette.paper,
-        ground_points
+        ground_points,
+        svg::escape(&missing::notes(input.scene, input.diagram, look).join("\n"))
     );
     out.push_str(&drawing.body);
     if let Some(line) = look.section.as_ref().filter(|_| !is_section) {
