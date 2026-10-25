@@ -1,54 +1,13 @@
-use geo::{polygon, Contains, Geometry, Point};
+use geo::{Contains, Geometry, Point};
 
 use super::*;
-use crate::area::{Area as SiteArea, LonLat};
+use crate::grid::tests::{building, site as grid_site, square};
 
-fn square(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> Polygon<f64> {
-    polygon![
-        (x: min_x, y: min_y),
-        (x: max_x, y: min_y),
-        (x: max_x, y: max_y),
-        (x: min_x, y: max_y),
-    ]
-}
-
-fn building(footprint: Polygon<f64>, height_m: f64) -> Feature {
-    Feature {
-        layer: Layer::Building,
-        geometry: Geometry::Polygon(footprint),
-        attributes: Attributes {
-            height_m: Some(height_m),
-            ..Attributes::default()
-        },
-    }
-}
-
-/// A 200 m square site in Amsterdam, on flat ground.
+/// A 200 m square site in Amsterdam, on flat ground, at a real RD New origin.
 fn site(features: Vec<Feature>) -> Scene {
     Scene {
-        area: SiteArea::Circle {
-            center: LonLat {
-                lon: 4.9041,
-                lat: 52.3676,
-            },
-            radius_m: 100.0,
-        },
-        crs: "EPSG:28992".to_string(),
         origin: (120_000.0, 487_000.0),
-        boundary: square(-100.0, -100.0, 100.0, 100.0),
-        features,
-        credits: Vec::new(),
-        fetched_at: String::new(),
-        warnings: Vec::new(),
-        measured: Default::default(),
-        walk: None,
-        editions: Default::default(),
-        context: Vec::new(),
-        terrain: None,
-        water_bed: None,
-        water_levels: Vec::new(),
-        solar: None,
-        wind: None,
+        ..grid_site(features, Vec::new())
     }
 }
 

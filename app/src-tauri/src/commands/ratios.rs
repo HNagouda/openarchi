@@ -56,7 +56,9 @@ pub async fn export_ratios(
             .to_lowercase();
         let contents = match extension.as_str() {
             "csv" => ratios::to_csv(&ratios),
-            "svg" => ratios::chart_svg(&ratios, &theme, style, &project_name(&state)),
+            "svg" => {
+                ratios::chart_svg(&ratios, &theme, style, &project_name(&state)).map_err(text)?
+            }
             _ => return Err(format!("Ratios export as .csv or .svg, not “{extension}”.")),
         };
         std::fs::write(&path, contents)

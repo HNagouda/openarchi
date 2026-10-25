@@ -3,6 +3,8 @@
 //! A cell is covered when its centre lies inside the shape, found row by row
 //! where the shape's edges cross the row's centre line.
 
+use geo::Rect;
+
 /// The grid: its south-west corner, cell size and cell counts. Cells are
 /// numbered row by row from the south-west.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -14,6 +16,41 @@ pub struct Raster {
 }
 
 impl Raster {
+    /// A grid of `cell_m` cells from the south-west corner of `rect`, enough to cover it.
+    pub fn over(rect: Rect<f64>, cell_m: f64) -> Raster {
+        Raster {
+            min: (rect.min().x, rect.min().y),
+            cell_m,
+            columns: (rect.width() / cell_m).ceil() as usize,
+            rows: (rect.height() / cell_m).ceil() as usize,
+        }
+    }
+
+    /// The same cells and `margin_m` more on every side, at least, in whole cells,
+    /// so a cell of this grid lies exactly on a cell of the grown one.
+    pub fn grown(&self, margin_m: f64) -> Raster {
+        let margin = (margin_m / self.cell_m).ceil() as usize;
+        Raster {
+            min: (
+                self.min.0 - margin as f64 * self.cell_m,
+                self.min.1 - margin as f64 * self.cell_m,
+            ),
+            cell_m: self.cell_m,
+            columns: self.columns + 2 * margin,
+            rows: self.rows + 2 * margin,
+        }
+    }
+
+    /// The cell holding a point, or `None` past the grid.
+    pub fn index_at(&self, (x, y): (f64, f64)) -> Option<usize> {
+        let column = ((x - self.min.0) / self.cell_m).floor();
+        let row = ((y - self.min.1) / self.cell_m).floor();
+        let is_inside =
+            column >= 0.0 && row >= 0.0 && column < self.columns as f64 && row < self.rows as f64;
+
+        is_inside.then(|| row as usize * self.columns + column as usize)
+    }
+
     pub fn len(&self) -> usize {
         self.columns * self.rows
     }

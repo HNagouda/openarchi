@@ -69,8 +69,10 @@ pub struct Diagram {
     #[serde(default)]
     pub outline: Vec<Layer>,
     pub classify: Option<Classify>,
-    /// A computed sun drawing on top of the layers. Needs no data beyond
-    /// building heights and the site's position.
+    /// A computed sun drawing on top of the layers, which needs no data beyond
+    /// building heights and the site's position. `SunHours` draws nothing
+    /// here: its bands come from the sun hours layer, and the app reads it
+    /// to show the date without the time.
     #[serde(default)]
     pub solar: Option<Solar>,
     /// Zooms a plan out to the walk band of this many minutes, draws the walk
@@ -244,6 +246,13 @@ pub enum Scheme {
     /// values (mixed use) takes the first that matches. Anything unmatched falls
     /// in "Other" with the last category colour.
     Categorical { categories: Vec<Category> },
+}
+
+/// The class of `value` under sequential `breaks`: a value on a break falls in
+/// the class above it, so n breaks make n + 1 classes, 0 below the first.
+/// The map bands, the legend and the ratio bins all split here, so they agree.
+pub fn class_index(value: f64, breaks: &[f64]) -> usize {
+    breaks.iter().filter(|&&limit| value >= limit).count()
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

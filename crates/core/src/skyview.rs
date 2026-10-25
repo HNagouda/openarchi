@@ -12,21 +12,18 @@
 //! method on a height raster that Zakšek, Oštir & Kokalj describe ("Sky-view
 //! factor as a relief visualization technique", Remote Sensing 3, 2011).
 //!
-//! What hides the sky: buildings in the site and its neighbourhood as prisms
-//! of their footprint and roof height, dense trees as solid stands of their
-//! canopy height (`forest.rs`; a single tree is left out, the sky shows
-//! through and around it), and the terrain where the scene kept it. The same
+//! What hides the sky is the height surface of `grid/surface.rs`: buildings
+//! in the site and its neighbourhood as prisms of their footprint and roof
+//! height, dense trees as solid stands of their canopy height (`forest.rs`; a
+//! single tree is left out, the sky shows through and around it), and the
+//! terrain where the scene kept it. The same
 //! factor weights the diffuse light in `radiation.rs`, which also asks it for
 //! roofs, seen from roof height.
 
-mod surface;
-
 use std::thread;
 
+use crate::grid::{banded, cells, raster_over, Cell, Raster, Surface};
 use crate::scene::{Feature, Layer, Scene};
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{banded, cells, raster_over, Cell};
-pub(crate) use surface::{surface, Surface};
 
 /// Directions the horizon is searched in, evenly round the compass.
 pub const DIRECTIONS: usize = 32;
@@ -53,7 +50,9 @@ pub fn sky_view(scene: &Scene) -> SkyGrid {
             _ => cell,
         })
         .collect();
-    let surface = surface(scene, &raster, SEARCH_RADIUS_M);
+    // Reaching as far past the site as the horizon is searched, on the same
+    // cells, so a ground cell of the site never lands on a building cell.
+    let surface = Surface::build(scene, raster.grown(SEARCH_RADIUS_M));
     let factors = factors(&surface, &raster, &cells);
 
     SkyGrid { raster, factors }

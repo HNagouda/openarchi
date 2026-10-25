@@ -186,7 +186,7 @@ fn csv_has_a_line_per_row_and_the_site_totals() {
 fn both_chart_styles_render_parseable_svg_with_a_layer_per_group() {
     let ratios = ratios_in("paper");
     for style in [ChartStyle::Bar, ChartStyle::Pie] {
-        let svg = ratios::chart_svg(&ratios, &theme("paper"), style, "Westermarkt");
+        let svg = ratios::chart_svg(&ratios, &theme("paper"), style, "Westermarkt").unwrap();
         usvg::Tree::from_str(&svg, &usvg::Options::default()).expect("chart is valid SVG");
         for group in &ratios.groups {
             assert!(

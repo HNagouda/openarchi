@@ -1,5 +1,5 @@
 use super::*;
-use crate::skyview::tests::{building, site, square};
+use crate::grid::tests::{building, site, square};
 
 /// The tree raster's cell size, as RIVM serves it.
 const CELL_M: f64 = 5.0;

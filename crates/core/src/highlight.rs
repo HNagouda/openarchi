@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::area::{Area, LonLat};
 use crate::crs::{rd_to_wgs84, wgs84_to_rd};
 use crate::pin::{self, MAX_LABEL_CHARS};
+use crate::ratios::area_text;
 use crate::render::{is_hex, ROLES};
 use crate::scene::Scene;
 use crate::{Error, Result};
@@ -25,8 +26,6 @@ pub const MAX_POINTS: usize = 200;
 const CIRCLE_SEGMENTS: usize = 96;
 /// The legend row of a highlight without a label.
 pub const UNLABELLED: &str = "Highlighted area";
-/// From this size an area reads better in hectares than in square metres.
-const HECTARE_M2: f64 = 10_000.0;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Highlight {
@@ -281,15 +280,6 @@ impl Highlight {
         } else {
             &self.label
         }
-    }
-}
-
-/// "412 m²", or "1.3 ha" from a hectare up.
-pub fn area_text(area_m2: f64) -> String {
-    if area_m2 >= HECTARE_M2 {
-        format!("{:.1} ha", area_m2 / HECTARE_M2)
-    } else {
-        format!("{:.0} m²", area_m2)
     }
 }
 

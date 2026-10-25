@@ -1,23 +1,6 @@
 //! Months and lists written out as words, for the design notes.
 
-const MONTH_NAMES: [&str; 12] = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-];
-
-pub fn month_name(month: u32) -> &'static str {
-    MONTH_NAMES[(month as usize + 11) % 12]
-}
+use crate::view::month_name;
 
 /// [5, 6, 7, 8, 9] -> "May to September", [12, 1, 2] -> "December to
 /// February", [1, 4] -> "January and April".

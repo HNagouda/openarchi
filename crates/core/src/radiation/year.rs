@@ -9,8 +9,9 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::meteo::incomplete_year;
 use crate::sources::pvgis::Tmy;
-use crate::{Error, Result};
+use crate::Result;
 
 const MONTHS: usize = 12;
 const HOURS_PER_DAY: usize = 24;
@@ -47,7 +48,7 @@ impl SolarYear {
             let month = hour.month as usize;
             let hour_of_day = hour.hour as usize;
             if !(1..=MONTHS).contains(&month) || hour_of_day >= HOURS_PER_DAY {
-                return Err(bad_year(format!(
+                return Err(incomplete_year(format!(
                     "an hour on month {} at {}:00",
                     hour.month, hour.hour
                 )));
@@ -59,7 +60,7 @@ impl SolarYear {
             }
         }
         if let Some(empty) = days.iter().position(|&count| count == 0) {
-            return Err(bad_year(format!("no hours in month {}", empty + 1)));
+            return Err(incomplete_year(format!("no hours in month {}", empty + 1)));
         }
 
         let months = (0..MONTHS)
@@ -78,13 +79,6 @@ impl SolarYear {
             irradiance_offset_hours: tmy.irradiance_offset_hours,
             months,
         })
-    }
-}
-
-fn bad_year(detail: String) -> Error {
-    Error::Data {
-        service: "PVGIS".to_string(),
-        detail: format!("expected a full typical year, got {detail}"),
     }
 }
 

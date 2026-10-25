@@ -1,4 +1,5 @@
-//! Where the sun stands in the sky, for the sun path and shadow diagrams.
+//! Where the sun stands in the sky, for the sun path and shadow diagrams,
+//! the hours of sun, the solar radiation and the light of the axonometric.
 //!
 //! Uses the NOAA solar calculator equations (after Meeus, "Astronomical
 //! Algorithms"): good to about 0.01 degree between 1800 and 2100, far finer

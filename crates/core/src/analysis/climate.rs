@@ -9,6 +9,7 @@ use serde::Serialize;
 use super::comfort::{self, month_comfort, MonthComfort};
 use super::utci::STRESS_LABELS;
 use crate::area::LonLat;
+use crate::meteo::{sector_of, CALM_M_S, SEASONS, SECTORS, SECTOR_NAMES};
 use crate::sources::pvgis::{Hour, Tmy};
 use crate::sun::{position_utc, STANDARD_OFFSET_HOURS};
 
@@ -18,28 +19,13 @@ pub const DAY_END_HOUR: u32 = 22;
 
 /// Wind speed band edges in m/s at 10 m: the Beaufort scale (WMO). Below the
 /// first edge is calm (Beaufort 0 and 1), drawn as the rose's centre.
-pub const WIND_EDGES_M_S: [f64; 4] = [1.6, 3.4, 5.5, 8.0];
+pub const WIND_EDGES_M_S: [f64; 4] = [CALM_M_S, 3.4, 5.5, 8.0];
 pub const WIND_LABELS: [&str; 4] = [
     "Light, Bft 2",
     "Gentle, Bft 3",
     "Moderate, Bft 4",
     "Fresh and up, Bft 5+",
 ];
-pub const SECTORS: usize = 16;
-pub const SECTOR_NAMES: [&str; SECTORS] = [
-    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW",
-    "NNW",
-];
-const SECTOR_DEG: f64 = 360.0 / SECTORS as f64;
-
-/// Meteorological seasons: (name, months, first and last month).
-pub const SEASONS: [(&str, &str, [u32; 3]); 4] = [
-    ("Winter", "Dec–Feb", [12, 1, 2]),
-    ("Spring", "Mar–May", [3, 4, 5]),
-    ("Summer", "Jun–Aug", [6, 7, 8]),
-    ("Autumn", "Sep–Nov", [9, 10, 11]),
-];
-
 /// The half of the year with low sun, October to March, for the radiation rose.
 pub const WINTER_HALF: [u32; 6] = [10, 11, 12, 1, 2, 3];
 
@@ -154,15 +140,6 @@ pub fn from_tmy(tmy: &Tmy) -> Climate {
 /// Which band of `edges` a value falls in: n edges make n + 1 bands.
 pub fn band_of(value: f64, edges: &[f64]) -> usize {
     edges.iter().filter(|&&edge| value >= edge).count()
-}
-
-/// 225° -> "SW".
-pub fn sector_name(degrees: f64) -> &'static str {
-    SECTOR_NAMES[sector_of(degrees)]
-}
-
-pub fn sector_of(degrees: f64) -> usize {
-    ((degrees.rem_euclid(360.0) / SECTOR_DEG).round() as usize) % SECTORS
 }
 
 fn hours_in(tmy: &Tmy, months: &[u32]) -> Vec<Hour> {
@@ -306,14 +283,6 @@ mod tests {
         assert_eq!(band_of(1.0, &WIND_EDGES_M_S), 0);
         assert_eq!(band_of(3.4, &WIND_EDGES_M_S), 2);
         assert_eq!(band_of(12.0, &WIND_EDGES_M_S), 4);
-    }
-
-    #[test]
-    fn directions_round_to_the_nearest_of_sixteen() {
-        assert_eq!(sector_name(0.0), "N");
-        assert_eq!(sector_name(350.0), "N");
-        assert_eq!(sector_name(225.0), "SW");
-        assert_eq!(sector_name(-90.0), "W");
     }
 
     #[test]

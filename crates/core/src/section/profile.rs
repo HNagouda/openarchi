@@ -130,6 +130,7 @@ pub fn height_at(grid: &Grid, x: f64, y: f64) -> Option<f64> {
     (weight > 0.0).then(|| sum / weight)
 }
 
+// #! NOTE[ground, sections] : The view, sky view and radiation fill the gaps under buildings and water ring by ring from the measured ground (grid/surface.rs); should the section profile use that filled terrain too, or keep this straight bridge?
 /// Fills each run of missing heights on a straight line between the heights
 /// on either side; a run at either end takes the nearest height.
 fn bridge_gaps(samples: &mut [(f64, Option<f64>)]) {

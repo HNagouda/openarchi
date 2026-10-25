@@ -2,7 +2,7 @@ use std::fs;
 
 use super::*;
 use crate::forest::tests::{canopy, wooded};
-use crate::skyview::tests::{building, site, square, value_at};
+use crate::grid::tests::{building, site, square, value_at};
 use crate::sources::pvgis::{self, Tmy};
 
 /// The PVGIS year recorded for the Westermarkt, the cell this test site lies in.

@@ -2,17 +2,16 @@
 //! small enough to keep in a scene: for each month, the hours the wind came
 //! from each of 16 compass sectors, and the calm hours.
 //!
-//! The sectors and the calm limit are the wind roses' (`analysis/climate.rs`),
-//! so the diagram's prevailing wind is the longest wedge of the matching rose.
+//! The sectors and the calm limit are the wind roses' (`meteo.rs`), so the
+//! diagram's prevailing wind is the longest wedge of the matching rose.
 
 use serde::{Deserialize, Serialize};
 
-use crate::analysis::climate::{sector_of, SECTORS, SECTOR_NAMES, WIND_EDGES_M_S};
+use crate::meteo::{incomplete_year, sector_of, CALM_M_S, SECTORS, SECTOR_DEG, SECTOR_NAMES};
 use crate::sources::pvgis::Tmy;
-use crate::{Error, Result};
+use crate::Result;
 
 const MONTHS: usize = 12;
-const SECTOR_DEG: f64 = 360.0 / SECTORS as f64;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct WindYear {
@@ -55,16 +54,16 @@ impl WindYear {
         ];
         for hour in &tmy.hours {
             let Some(month) = months.get_mut((hour.month as usize).wrapping_sub(1)) else {
-                return Err(bad_year(format!("an hour in month {}", hour.month)));
+                return Err(incomplete_year(format!("an hour in month {}", hour.month)));
             };
-            if hour.wind_m_s < WIND_EDGES_M_S[0] {
+            if hour.wind_m_s < CALM_M_S {
                 month.calm_hours += 1;
             } else {
                 month.hours_from[sector_of(hour.wind_from_deg)] += 1;
             }
         }
         if let Some(empty) = months.iter().position(|month| month.total() == 0) {
-            return Err(bad_year(format!("no hours in month {}", empty + 1)));
+            return Err(incomplete_year(format!("no hours in month {}", empty + 1)));
         }
 
         Ok(WindYear {
@@ -109,10 +108,6 @@ impl WindMonth {
     fn total(&self) -> u32 {
         self.calm_hours + self.hours_from.iter().sum::<u32>()
     }
-}
-
-fn bad_year(detail: String) -> Error {
-    Error::Invalid(format!("the typical year's wind is incomplete: {detail}"))
 }
 
 #[cfg(test)]

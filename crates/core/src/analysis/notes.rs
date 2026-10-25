@@ -4,16 +4,18 @@
 //! for a design. Every threshold is a named constant with where it comes from;
 //! the ones that are rules of thumb say so. Nothing here is generated.
 
-use super::climate::{Climate, SEASONS, WINTER_HALF};
+use super::climate::{Climate, WINTER_HALF};
 use super::comfort::{yearly_hours, Exposure};
 use super::figure::percent;
 use super::rain::Rain;
 use super::summary::{SiteSummary, FACILITY_WALK_MIN, TRANSIT_WALK_MIN};
 use super::utci::NO_STRESS;
+use crate::meteo::SEASONS;
 
 mod words;
 
-use words::{capitalised, during, list, month_name};
+use crate::view::month_name;
+use words::{capitalised, during, list};
 
 /// Closed urban blocks have a ground space index of about 0.4 to 0.6, open
 /// row housing and slabs 0.15 to 0.3 (Berghauser Pont and Haupt, "Spacematrix", 2010).

@@ -11,20 +11,20 @@
 //! edge closes every block, so a circle and a drawn polygon work alike.
 
 use geo::{
-    Area, BoundingRect, Contains, Euclidean, Geometry, InteriorPoint, Length, LineString, Point,
-    Polygon, Rect,
+    Area, BoundingRect, Contains, Euclidean, Geometry, InteriorPoint, Intersects, Length,
+    LineString, Point, Polygon,
 };
 use i_overlay::core::fill_rule::FillRule;
 use i_overlay::core::overlay_rule::OverlayRule;
 use i_overlay::float::single::SingleFloatOverlay;
 
 use crate::floors::gross_floor_area_m2;
-use crate::scene::{Attributes, Feature, Layer, Scene};
+use crate::scene::{polygons, Attributes, Feature, Layer, Scene};
 
 /// The surfaces that separate blocks, in one place. Verges and banks belong to
 /// the street or the canal they line. Paving and yards stay in the block,
 /// because most of them are courtyards and front gardens.
-const STREET_LAYERS: [Layer; 9] = [
+pub(crate) const STREET_LAYERS: [Layer; 9] = [
     Layer::Road,
     Layer::Footpath,
     Layer::Cycleway,
@@ -92,14 +92,6 @@ fn buildings(scene: &Scene) -> Vec<Building> {
         .collect()
 }
 
-fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
-        _ => Vec::new(),
-    }
-}
-
 /// A polygon's rings as overlay contours: open, the outline counterclockwise
 /// and the holes clockwise.
 fn contours(polygon: &Polygon<f64>) -> Vec<Vec<[f64; 2]>> {
@@ -155,7 +147,7 @@ fn block(polygon: Polygon<f64>, buildings: &[Building]) -> Feature {
     let mut footprint_m2 = 0.0;
     let mut floor_area_m2 = 0.0;
     for building in buildings {
-        let is_near = bounds.is_some_and(|rect| contains_point(&rect, building.inside));
+        let is_near = bounds.is_some_and(|rect| rect.intersects(&building.inside));
         if !is_near || !polygon.contains(&building.inside) {
             continue;
         }
@@ -174,17 +166,10 @@ fn block(polygon: Polygon<f64>, buildings: &[Building]) -> Feature {
     }
 }
 
-fn contains_point(rect: &Rect<f64>, point: Point<f64>) -> bool {
-    let (min, max) = (rect.min(), rect.max());
-    point.x() >= min.x && point.x() <= max.x && point.y() >= min.y && point.y() <= max.y
-}
-
 #[cfg(test)]
 mod tests {
-    use geo::polygon;
-
     use super::*;
-    use crate::area::{Area as SiteArea, LonLat};
+    use crate::grid::tests::{site as grid_site, square};
 
     fn feature(layer: Layer, geometry: Polygon<f64>, height_m: Option<f64>) -> Feature {
         Feature {
@@ -197,42 +182,12 @@ mod tests {
         }
     }
 
-    fn square(min_x: f64, min_y: f64, max_x: f64, max_y: f64) -> Polygon<f64> {
-        polygon![
-            (x: min_x, y: min_y),
-            (x: max_x, y: min_y),
-            (x: max_x, y: max_y),
-            (x: min_x, y: max_y),
-        ]
-    }
-
     /// A 100 m square site with a north-south road through the middle and an
     /// east-west road that stops halfway, at the first road.
     fn site(features: Vec<Feature>) -> Scene {
         Scene {
-            area: SiteArea::Circle {
-                center: LonLat {
-                    lon: 4.9,
-                    lat: 52.4,
-                },
-                radius_m: 50.0,
-            },
-            crs: "EPSG:28992".to_string(),
-            origin: (0.0, 0.0),
             boundary: square(-50.0, -50.0, 50.0, 50.0),
-            features,
-            credits: Vec::new(),
-            fetched_at: String::new(),
-            warnings: Vec::new(),
-            measured: Default::default(),
-            walk: None,
-            editions: Default::default(),
-            context: Vec::new(),
-            terrain: None,
-            water_bed: None,
-            water_levels: Vec::new(),
-            solar: None,
-            wind: None,
+            ..grid_site(features, Vec::new())
         }
     }
 

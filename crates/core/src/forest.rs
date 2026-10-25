@@ -14,8 +14,10 @@
 //! forest, is left out, because sight passes between the trees.
 //!
 //! A forest cell stands solid from the ground up to its canopy height. The
-//! view, the sky view factor and the solar radiation all read it from here,
-//! so the three agree on which trees block.
+//! view, the sky view factor, the solar radiation and the hours of sun all
+//! read it from here, so the four agree on which trees block. The hours of sun
+//! and the shadow diagram also cast every single tree; the other three let
+//! sight and light pass a single tree.
 //!
 //! The canopy is the tree raster the scene keeps, with the cells under a
 //! building footprint left out: the tree map took some roofs for crowns. A
@@ -26,10 +28,9 @@ pub(crate) mod tests;
 
 use geo::Polygon;
 
-use crate::scene::{Layer, Scene};
+use crate::grid::{rings, Raster};
+use crate::scene::{polygons, Layer, Scene};
 use crate::sources::raster::Grid;
-use crate::sunlight::raster::Raster;
-use crate::sunlight::{polygons, rings};
 
 /// The FAO's thresholds, see the module comment.
 pub const MIN_TREE_HEIGHT_M: f64 = 5.0;
@@ -42,19 +43,14 @@ pub struct Forest {
 }
 
 impl Forest {
-    /// The canopy height above the ground at a point, `None` off the forest.
-    pub fn height_at(&self, (x, y): (f64, f64)) -> Option<f64> {
-        let grid = &self.canopy;
-        let column = ((x - grid.west) / grid.cell_m).floor();
-        let row = ((grid.north - y) / grid.cell_m).floor();
-        let is_inside =
-            column >= 0.0 && row >= 0.0 && column < grid.width as f64 && row < grid.height as f64;
-        if !is_inside {
-            return None;
-        }
+    /// The canopy height of each forest cell, in metres above the ground; no value elsewhere.
+    pub(crate) fn canopy(&self) -> &Grid {
+        &self.canopy
+    }
 
-        let height = grid.value(column as usize, row as usize);
-        height.is_finite().then_some(f64::from(height))
+    /// The canopy height above the ground at a point, `None` off the forest.
+    pub fn height_at(&self, point: (f64, f64)) -> Option<f64> {
+        self.canopy.value_at(point).map(f64::from)
     }
 }
 

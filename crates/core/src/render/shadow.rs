@@ -13,7 +13,7 @@ use geo::{Geometry, LineString, Polygon};
 
 use super::geometry::{decimal, push_paper_points, Projection};
 use super::solid::{building_height, tree_size};
-use crate::scene::{Feature, Layer};
+use crate::scene::{polygons, Feature, Layer};
 use crate::sun::SunPosition;
 
 /// Below this the sun grazes the ground and shadows run off the sheet.
@@ -74,14 +74,6 @@ pub fn shadow_per_metre(sun: &SunPosition) -> Option<(f64, f64)> {
     let azimuth = sun.azimuth_deg.to_radians();
     // Shadows fall away from the sun.
     Some((-azimuth.sin() * length, -azimuth.cos() * length))
-}
-
-pub fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
-    match geometry {
-        Geometry::Polygon(polygon) => vec![polygon],
-        Geometry::MultiPolygon(multi) => multi.0.iter().collect(),
-        _ => Vec::new(),
-    }
 }
 
 fn push_prism_shadow(

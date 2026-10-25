@@ -9,8 +9,10 @@ use std::fmt::Write;
 use serde::Deserialize;
 
 use super::{Group, Ratios, Row, Unit};
-use crate::render::{escape, layer_attributes, mix, Face};
+use crate::analysis::{text, Paint};
+use crate::render::layer_attributes;
 use crate::theme::Theme;
+use crate::Result;
 
 const PAGE_WIDTH_MM: f64 = 140.0;
 const MARGIN_MM: f64 = 12.0;
@@ -38,9 +40,8 @@ const SLICE_GAP_MM: f64 = 0.35;
 const GROUP_GAP_MM: f64 = 9.0;
 const HEADER_GAP_MM: f64 = 6.0;
 
-/// How far the secondary text and the bar track move from ink towards paper.
-const SECONDARY_SHARE: f64 = 0.45;
-const TRACK_SHARE: f64 = 0.88;
+/// The bar track, this share of the way from paper to ink.
+const TRACK_SHARE: f64 = 0.12;
 
 const HECTARE_M2: f64 = 10_000.0;
 
@@ -51,16 +52,10 @@ pub enum ChartStyle {
     Pie,
 }
 
-/// A page with every group as bars or pies, headed by `title`.
-pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str) -> String {
-    let face = Face::for_family(&theme.typography.family);
-    let paint = Paint {
-        ink: theme.palette.ink.clone(),
-        secondary: mix(&theme.palette.ink, &theme.palette.paper, SECONDARY_SHARE),
-        track: mix(&theme.palette.ink, &theme.palette.paper, TRACK_SHARE),
-        paper: theme.palette.paper.clone(),
-        is_uppercase: theme.typography.uppercase_labels,
-    };
+/// A page with every group as bars or pies, headed by `title`, in the
+/// colours and type the analysis charts and report blocks use.
+pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str) -> Result<String> {
+    let paint = Paint::new(theme)?;
 
     let mut body = String::new();
     let mut y = MARGIN_MM + TITLE_SIZE_MM;
@@ -104,7 +99,7 @@ pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str)
         out,
         r#"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="{PAGE_WIDTH_MM}mm" height="{height:.1}mm" viewBox="0 0 {PAGE_WIDTH_MM} {height:.1}" font-family="{}">"#,
-        face.css_stack()
+        paint.face.css_stack()
     );
     let _ = writeln!(
         out,
@@ -114,16 +109,7 @@ pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str)
     out.push_str(&body);
     out.push_str("</svg>\n");
 
-    out
-}
-
-/// The theme colours every part of the page uses, resolved once.
-struct Paint {
-    ink: String,
-    secondary: String,
-    track: String,
-    paper: String,
-    is_uppercase: bool,
+    Ok(out)
 }
 
 fn write_group_header(out: &mut String, group: &Group, y: f64, paint: &Paint) -> f64 {
@@ -179,7 +165,7 @@ fn write_bars(out: &mut String, group: &Group, mut y: f64, paint: &Paint) -> f64
         let _ = writeln!(
             out,
             r#"<rect x="{MARGIN_MM}" y="{bar_y:.2}" width="{CONTENT_WIDTH_MM}" height="{BAR_HEIGHT_MM}" fill="{}"/>"#,
-            paint.track
+            paint.ink_at(TRACK_SHARE)
         );
         let _ = writeln!(
             out,
@@ -227,7 +213,7 @@ fn write_row_text(out: &mut String, row: &Row, unit: Unit, x: f64, y: f64, paint
         r#"<rect x="{x:.2}" y="{:.2}" width="{SWATCH_MM}" height="{SWATCH_MM}" fill="{}" stroke="{}" stroke-width="0.1"/>"#,
         y - SWATCH_MM + 0.1,
         row.fill,
-        paint.track
+        paint.ink_at(TRACK_SHARE)
     );
     text(
         out,
@@ -281,24 +267,6 @@ pub(crate) fn slice_path((cx, cy): (f64, f64), radius: f64, start: f64, end: f64
     format!(
         "M{cx:.2} {cy:.2}L{start_x:.2} {start_y:.2}A{radius} {radius} 0 {is_large} 1 {end_x:.2} {end_y:.2}Z"
     )
-}
-
-#[allow(clippy::too_many_arguments)]
-fn text(
-    out: &mut String,
-    x: f64,
-    y: f64,
-    size: f64,
-    weight: u16,
-    fill: &str,
-    anchor: &str,
-    content: &str,
-) {
-    let _ = writeln!(
-        out,
-        r#"<text x="{x:.2}" y="{y:.2}" font-size="{size}" font-weight="{weight}" fill="{fill}" text-anchor="{anchor}">{}</text>"#,
-        escape(content)
-    );
 }
 
 fn site_line(ratios: &Ratios) -> String {

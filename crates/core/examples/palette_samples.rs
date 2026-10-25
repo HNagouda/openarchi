@@ -112,7 +112,7 @@ fn main() {
     std::fs::write(out_dir.join("axo--context.png"), png).expect("write the axonometric");
 
     let ratios = compute(&scene, &theme).expect("compute the ratios");
-    let svg = chart_svg(&ratios, &theme, ChartStyle::Bar, "Westermarkt");
+    let svg = chart_svg(&ratios, &theme, ChartStyle::Bar, "Westermarkt").expect("draw the ratios");
     std::fs::write(out_dir.join("ratios.svg"), svg).expect("write the ratios");
     println!("samples in {}", out_dir.display());
 }

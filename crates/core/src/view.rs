@@ -90,6 +90,7 @@ impl Default for SunMoment {
 impl SunMoment {
     /// Plain words for a moment that cannot exist, or `None` when it is valid.
     pub fn problem(&self) -> Option<String> {
+        // The reference year has no 29 February, see `sun::REFERENCE_YEAR`.
         let days_in_month = match self.month {
             2 => 28,
             4 | 6 | 9 | 11 => 30,
@@ -119,23 +120,29 @@ impl SunMoment {
 
     /// "21 March".
     pub fn date_label(&self) -> String {
-        const MONTHS: [&str; 12] = [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ];
-        let month = MONTHS[(self.month.clamp(1, 12) - 1) as usize];
-        format!("{} {month}", self.day)
+        format!("{} {}", self.day, month_name(self.month))
     }
+}
+
+/// The months' names, January first, in one place.
+const MONTH_NAMES: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
+
+/// 1 -> "January", 12 -> "December"; 0 and 13 wrap round to December and January.
+pub(crate) fn month_name(month: u32) -> &'static str {
+    MONTH_NAMES[(month as usize + 11) % 12]
 }
 
 #[cfg(test)]

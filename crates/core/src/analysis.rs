@@ -14,7 +14,7 @@
 mod a4;
 mod a4_blocks;
 mod charts;
-pub(crate) mod climate;
+mod climate;
 mod comfort;
 mod comfort_chart;
 mod figure;
@@ -30,12 +30,14 @@ mod source_lines;
 mod summary;
 mod utci;
 
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 
 use crate::crs::rd_to_wgs84;
-use crate::ratios;
+use crate::memo::{self, PartKey};
+use crate::ratios::{self, Ratios};
 use crate::scene::{Credit, Scene};
 use crate::sources::cache::TileCache;
 use crate::sources::grid::Tile;
@@ -141,15 +143,9 @@ pub fn part(
             Ok(vec![sections::location(&location, theme)?])
         }
         Part::Site => {
-            let site = sheet_area.unwrap_or(scene);
-            let ratios = ratios::compute(site, theme)?;
-            let summary = summary::summarise(site, &ratios, sheet_area.is_some());
-            Ok(vec![sections::site(
-                &summary,
-                &ratios,
-                site.credits.clone(),
-                theme,
-            )?])
+            let (ratios, summary) = site_numbers(scene, sheet_area, theme)?;
+            let credits = sheet_area.unwrap_or(scene).credits.clone();
+            Ok(vec![sections::site(&summary, &ratios, credits, theme)?])
         }
         Part::Climate => {
             let (climate, warnings) = climate(scene, cache)?;
@@ -162,6 +158,29 @@ pub fn part(
     }
 }
 
+/// `part` as `part` draws it for the whole site, kept for the next block or
+/// page that asks for it in the same palette (see `memo.rs`). The site part
+/// is drawn afresh each time, since it follows every edit to the scene.
+pub fn kept_part(
+    part: Part,
+    scene: &Scene,
+    theme: &Theme,
+    cache: &TileCache,
+) -> Result<Arc<Vec<Section>>> {
+    if part == Part::Site {
+        return self::part(part, scene, None, theme, cache).map(Arc::new);
+    }
+    let key = PartKey {
+        part,
+        origin: scene.origin,
+        boundary: scene.boundary.clone(),
+        theme: theme.clone(),
+        cache: cache.dir().to_path_buf(),
+        last_year: last_full_year(),
+    };
+    memo::ANALYSIS_PARTS.kept_or_try(key, || self::part(part, scene, None, theme, cache))
+}
+
 /// The numbers and notes of every part. A part whose service fails is left
 /// out with a warning; location and site always arrive. The site summary
 /// follows `sheet_area` when there is one, as in `part`.
@@ -172,9 +191,7 @@ pub fn report(
     cache: &TileCache,
 ) -> Result<Report> {
     let location = location::locate(scene, cache);
-    let site = sheet_area.unwrap_or(scene);
-    let ratios = ratios::compute(site, theme)?;
-    let summary = summary::summarise(site, &ratios, sheet_area.is_some());
+    let (_, summary) = site_numbers(scene, sheet_area, theme)?;
     let mut warnings = location.warnings.clone();
     let mut credits = location::credits();
     let mut notes = vec![
@@ -228,6 +245,18 @@ pub fn report(
         warnings,
         credits,
     })
+}
+
+/// The ratios and the summary of the site, or of `sheet_area` when a sheet has one.
+fn site_numbers(
+    scene: &Scene,
+    sheet_area: Option<&Scene>,
+    theme: &Theme,
+) -> Result<(Ratios, SiteSummary)> {
+    let site = sheet_area.unwrap_or(scene);
+    let ratios = ratios::compute(site, theme)?;
+    let summary = summary::summarise(site, &ratios, sheet_area.is_some());
+    Ok((ratios, summary))
 }
 
 /// The last year that has ended, from the clock: 2025 during 2026.

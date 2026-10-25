@@ -50,6 +50,11 @@ impl TileCache {
     }
 
     /// The tile's bytes, or `None` when it was never fetched or is older than `MAX_AGE`.
+    /// The folder the tiles are kept in.
+    pub fn dir(&self) -> &Path {
+        &self.dir
+    }
+
     pub fn read(&self, dataset: &str, tile: Tile) -> Result<Option<Vec<u8>>> {
         self.read_within(dataset, tile, MAX_AGE)
     }
