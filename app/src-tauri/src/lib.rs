@@ -13,7 +13,7 @@ use openarchi_core::library::Library;
 use tauri::Manager;
 
 use crate::commands::{
-    analysis, export, laser, library, model, palettes, ratios, render, report, sheets, site,
+    analysis, export, laser, library, model, palettes, ratios, render, report, sheets, site, view3d,
 };
 use crate::guard::{calm, text};
 use crate::state::AppState;
@@ -98,6 +98,9 @@ pub fn run() {
             model::reread_model,
             model::set_model,
             model::covered_buildings,
+            view3d::view_3d,
+            view3d::sun_day,
+            view3d::save_view_png,
         ])
         .run(tauri::generate_context!())
         .expect("openarchi could not start its window");

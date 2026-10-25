@@ -27,8 +27,8 @@ use serde::{Deserialize, Serialize};
 pub use faces::{Face, Shape};
 pub use mesh::{Mesh, Unit, UpAxis};
 pub use place::{
-    buildings_under, covered_buildings, footprint_on_site, ground_m, placed, Covered, PlacedModel,
-    REPLACED_SHARE,
+    buildings_under, covered_buildings, footprint_on_site, ground_m, placed, triangles_on_site,
+    Covered, PlacedModel, REPLACED_SHARE,
 };
 
 use crate::scene::{Feature, Layer, Scene};

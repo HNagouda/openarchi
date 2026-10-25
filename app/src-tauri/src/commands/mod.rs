@@ -9,3 +9,4 @@ pub mod render;
 pub mod report;
 pub mod sheets;
 pub mod site;
+pub mod view3d;

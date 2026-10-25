@@ -55,6 +55,17 @@ pub fn placed(model: &Model, scene: &Scene) -> PlacedModel {
     }
 }
 
+/// Every triangle of the model in the scene's local frame, three corners each,
+/// for the 3D view: the mesh as the file drew it, not the merged faces.
+pub fn triangles_on_site(model: &Model, scene: &Scene) -> Vec<[f64; 3]> {
+    let lift = lift_m(model, scene);
+    let turn = Turn::of(&model.placement, scene);
+    (0..model.mesh.triangles.len())
+        .flat_map(|index| model.mesh.corners(index))
+        .map(|corner| turn.point(corner, lift))
+        .collect()
+}
+
 /// The model's footprint in the scene's local frame.
 pub fn footprint_on_site(model: &Model, scene: &Scene) -> Vec<Polygon<f64>> {
     let turn = Turn::of(&model.placement, scene);

@@ -40,6 +40,7 @@ pub mod sun;
 pub mod sunlight;
 pub mod theme;
 pub mod view;
+pub mod view3d;
 pub mod viewshed;
 pub mod walk;
 pub mod wind;
