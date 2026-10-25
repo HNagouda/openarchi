@@ -1,12 +1,11 @@
-// Undo as a stack of whole snapshots: of one `Look`, of every sheet and pin
-// of a project together, or of a project's reports.
+// Undo as a stack of whole snapshots, used for every undo in the app: the
+// drawn site, a project's sheets and pins, its reports and a palette draft.
 //
 // A slider drag sends many changes with the same merge key; they replace the
 // newest snapshot instead of stacking, so the drag undoes in one step. `seal`
 // ends the merge when the pointer lifts or a field loses focus.
 
 import { useCallback, useRef, useState } from "react";
-import type { Look } from "./types";
 
 // Plenty for a session; old steps fall off the bottom.
 const MAX_STEPS = 200;
@@ -18,10 +17,12 @@ export function useHistory<T>(initial: T) {
   const mergeKey = useRef<string | null>(null);
 
   const change = useCallback((next: T, key?: string) => {
+    // Decided here, not inside the updater: StrictMode runs updaters twice, and
+    // batched map events can run one after the pointer lifted and `seal` ran.
+    const isMerge = key !== undefined && key === mergeKey.current;
+    mergeKey.current = key ?? null;
     setHistory((current) => {
       if (JSON.stringify(next) === JSON.stringify(current.present)) return current;
-      const isMerge = key !== undefined && key === mergeKey.current;
-      mergeKey.current = key ?? null;
       if (isMerge) return { ...current, present: next };
       const past = [...current.past, current.present].slice(-MAX_STEPS);
       return { past, present: next, future: [] };
@@ -35,9 +36,8 @@ export function useHistory<T>(initial: T) {
   const undo = useCallback(() => {
     mergeKey.current = null;
     setHistory((current) => {
+      if (current.past.length === 0) return current;
       const previous = current.past[current.past.length - 1];
-      // Checked against undefined, not falsiness, so any snapshot type works.
-      if (previous === undefined) return current;
       return { past: current.past.slice(0, -1), present: previous, future: [current.present, ...current.future] };
     });
   }, []);
@@ -67,10 +67,4 @@ export function useHistory<T>(initial: T) {
     redo,
     replace,
   };
-}
-
-/** The history of a single look. */
-export function useLookHistory(initial: Look) {
-  const history = useHistory<Look>(initial);
-  return { ...history, look: history.present };
 }
