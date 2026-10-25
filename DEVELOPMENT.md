@@ -32,6 +32,7 @@ crates/core/            the library: no window, no async
   src/floors.rs         floors and gross floor area, estimated from roof height
   src/blocks.rs         city blocks cut from the street surfaces, with their coverage and floor space
   src/sunlight.rs       hours of direct sun on a grid over the site; sunlight/ fills the grid
+  src/viewshed.rs       the ground in view from a sheet's viewpoint, by line of sight over buildings and terrain
   src/render/           scene + diagram + theme + sheet -> SVG, in every view
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
