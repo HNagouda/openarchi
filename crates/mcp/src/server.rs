@@ -54,8 +54,8 @@ site-analysis diagrams (figure-ground, building age, heights, uses, green and wa
 A typical session: search_places to find the site, create_project with an area around \
 it, fetch_site to download the site data, list_diagrams and list_themes, set_look to \
 choose and tune the style, edit_text to style, move or add text on the sheet, \
-add_sheet for more sheet tabs (each with its own look, and optionally a sub-selection \
-of the site), add_pin to mark landmarks on every sheet, render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
+add_sheet for more sheet tabs (each with its own look), add_highlight to mark the plot \
+or another area, open_highlight_as_sheet for a sheet of just that area, add_pin to mark landmarks on every sheet, render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
 numbers behind it (land use, building use, coverage, floor area ratio), get_analysis \
 for the location, climate and design notes, export to \
 write a file, export_laser for laser cutting files of a physical site model, and list_reports and export_report for the multi-page reports the \
@@ -329,7 +329,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Get the site analysis: location (address, municipality, province, coordinates), a site summary (area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use, shares of green, water and paved ground, and facilities, shops and transit stops within a walk when the walk was fetched), the climate from a PVGIS typical year (monthly temperature, humidity, global and direct sun, outdoor comfort as the UTCI (Universal Thermal Climate Index) with daytime hours per stress category for a person in the sun and in the shade, named in `comfort_categories` and explained in `comfort_method`, wind roses by season, direct sun by direction), and 30 years of monthly rain from the nearest KNMI station. Each section comes with design notes: short rule-based advice for the architect. Climate and rain need the network the first time; if one cannot be fetched it is left out and named in `warnings`. With `tab`, a sheet with a sub-selection gives the site summary of that smaller area, with `summary.is_sheet_area` true; location, climate and rain stay on the whole site. The site must have been fetched first."
+        description = "Get the site analysis: location (address, municipality, province, coordinates), a site summary (area, buildings, coverage, floor area ratio, mean and tallest height, median year built, most common use, shares of green, water and paved ground, and facilities, shops and transit stops within a walk when the walk was fetched), the climate from a PVGIS typical year (monthly temperature, humidity, global and direct sun, outdoor comfort as the UTCI (Universal Thermal Climate Index) with daytime hours per stress category for a person in the sun and in the shade, named in `comfort_categories` and explained in `comfort_method`, wind roses by season, direct sun by direction), and 30 years of monthly rain from the nearest KNMI station. Each section comes with design notes: short rule-based advice for the architect. Climate and rain need the network the first time; if one cannot be fetched it is left out and named in `warnings`. With `tab`, a sheet opened from a highlight gives the site summary of that smaller area, with `summary.is_sheet_area` true; location, climate and rain stay on the whole site. The site must have been fetched first."
     )]
     async fn get_analysis(&self, Parameters(input): Parameters<GetAnalysis>) -> CallToolResult {
         let result = self
@@ -355,7 +355,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Get the site's environment in numbers: road traffic noise (mean and highest Lden in dB) and all noise sources together, annual mean NO2, PM10 and PM2.5 in µg/m³, the deepest flood water and the share of the site it reaches in LIWO's extremely-small-chance scenario (under 1 in 30,000 a year), the steepest slope in percent, CBS residents and households (each 100 m square counted by its share inside the site, plus how many squares CBS keeps secret), and BAG dwellings and floor area. Each source's year is included. A figure is null when its source was not reached. With `tab`, a sheet with a sub-selection gives the figures of that smaller area; `whole_site` lists the layers whose figures still describe the whole site there (slope always, and noise, air and flood for sites fetched before sheet areas measured their own). The site must have been fetched first."
+        description = "Get the site's environment in numbers: road traffic noise (mean and highest Lden in dB) and all noise sources together, annual mean NO2, PM10 and PM2.5 in µg/m³, the deepest flood water and the share of the site it reaches in LIWO's extremely-small-chance scenario (under 1 in 30,000 a year), the steepest slope in percent, CBS residents and households (each 100 m square counted by its share inside the site, plus how many squares CBS keeps secret), and BAG dwellings and floor area. Each source's year is included. A figure is null when its source was not reached. With `tab`, a sheet opened from a highlight gives the figures of that smaller area; `whole_site` lists the layers whose figures still describe the whole site there (slope always, and noise, air and flood for sites fetched before sheet areas measured their own). The site must have been fetched first."
     )]
     async fn get_environment(
         &self,

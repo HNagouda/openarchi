@@ -1,11 +1,10 @@
 //! The tools for sheet tabs and pins. They live apart from `server.rs` and
 //! join its router there, so the tool list stays one list for the client.
 
-use openarchi_core::area::{Area, LonLat};
+use openarchi_core::area::LonLat;
 use openarchi_core::crs::{rd_to_wgs84, wgs84_to_rd};
 use openarchi_core::pin::{self, number_of, Pin};
 use openarchi_core::project::{Look, Project};
-use openarchi_core::render::fitting_scale;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use rmcp::{tool, tool_router};
@@ -18,7 +17,7 @@ use crate::sheet_inputs::{AddPin, AddSheet, EditPin, PinId};
 #[tool_router(router = sheet_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "List a project's sheet tabs in order. Each has its number (pass it as `tab` to set_look, edit_text, render_preview, get_ratios and export), name, diagram, variant, theme, view, sub-selection (a smaller area inside the site the sheet zooms to, or null for the whole site) and whether it hides the pins and the highlights, and its section line (null until set_section draws one)."
+        description = "List a project's sheet tabs in order. Each has its number (pass it as `tab` to set_look, edit_text, render_preview, get_ratios and export), name, diagram, variant, theme, view, sheet area (the highlight it was opened from with open_highlight_as_sheet, in longitude and latitude, or null for the whole site) and whether it hides the pins and the highlights, and its section line (null until set_section draws one)."
     )]
     async fn list_sheets(&self, Parameters(input): Parameters<ProjectId>) -> CallToolResult {
         let result = self
@@ -31,7 +30,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Add a sheet tab to a project, copied from an existing tab, optionally framing a smaller area inside the fetched site: the sheet then clips and zooms to that area, picking the largest round scale it fits at. Returns every tab; the new one is last. Style it with set_look and `tab`."
+        description = "Add a sheet tab to a project, copied from an existing tab and showing the whole site. For a sheet of part of the site, highlight that part with add_highlight and use open_highlight_as_sheet, as the app does. Returns every tab; the new one is last. Style it with set_look and `tab`."
     )]
     async fn add_sheet(&self, Parameters(input): Parameters<AddSheet>) -> CallToolResult {
         let result = self
@@ -39,20 +38,14 @@ impl OpenArchi {
                 let mut project = library.load(&input.id).map_err(text)?;
                 let number = project.sheet_count() + 1;
                 let source = project.sheet(input.copy_of.unwrap_or(1)).map_err(text)?;
-                let mut look = Look {
+                // A new tab shows the whole site, as the app's + does.
+                let look = Look {
                     name: input.name.unwrap_or_else(|| format!("Sheet {number}")),
-                    selection: input.selection.map(Area::from),
+                    selection: None,
+                    hide_pins: false,
+                    hide_highlights: false,
                     ..source.clone()
                 };
-                if look.selection.is_some() {
-                    let Some(scene) = &project.scene else {
-                        return Err(format!(
-                            "project '{}' has no site data yet; call fetch_site before drawing a sub-selection",
-                            input.id
-                        ));
-                    };
-                    look.sheet.scale = fitting_scale(scene, &look).map_err(text)?;
-                }
                 project.more_sheets.push(look);
                 library.save(&mut project).map_err(text)?;
                 Ok(sheets_of(&project))

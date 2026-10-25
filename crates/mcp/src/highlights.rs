@@ -20,7 +20,7 @@ use crate::server::{reply, text, OpenArchi};
 #[tool_router(router = highlight_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "List a project's highlights: areas marked inside the site, like the plot or a proposed house, shown on every sheet that does not hide them. Each has its id, label, outline (solid or dashed), whether it dims the rest and shows its area, its area in m², and its shape in longitude and latitude."
+        description = "List a project's highlights: areas marked inside the site, like the plot or a proposed house, shown on every sheet that does not hide them. Each has its id, label, outline (solid, dashed or dotted), colour, whether it dims the rest and shows its area, its area in m², and its shape in longitude and latitude."
     )]
     async fn list_highlights(
         &self,
@@ -36,7 +36,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Highlight an area inside a project's site: a circle, rectangle or polygon in longitude and latitude, drawn in the palette's accent with a light tint, a solid or dashed outline and an optional label, on every sheet that does not hide highlights, in plan, axonometric and on the bottom plate of an explode view, and in the legend. Use it for the plot, a proposed footprint or an area of intervention. Returns every highlight."
+        description = "Highlight an area inside a project's site: a circle, rectangle or polygon in longitude and latitude, drawn in the palette's accent or a colour of its own with a light tint, a solid, dashed or dotted outline and an optional label, on every sheet that does not hide highlights, in plan, axonometric and on every plate of an explode view, and in the legend. Use it for the plot, a proposed footprint or an area of intervention. Returns every highlight."
     )]
     async fn add_highlight(&self, Parameters(input): Parameters<AddHighlight>) -> CallToolResult {
         let result = self
@@ -47,6 +47,9 @@ impl OpenArchi {
                     label: input.label.unwrap_or_default(),
                     shape: HighlightShape::from_area(&Area::from(input.shape)),
                     outline: input.outline.map(Into::into).unwrap_or_default(),
+                    colour: input
+                        .colour
+                        .unwrap_or_else(|| highlight::DEFAULT_COLOUR.to_string()),
                     dims_rest: input.dims_rest.unwrap_or(false),
                     shows_area: input.shows_area.unwrap_or(false),
                 };
@@ -75,6 +78,9 @@ impl OpenArchi {
                 }
                 if let Some(outline) = input.outline {
                     edited.outline = outline.into();
+                }
+                if let Some(colour) = input.colour {
+                    edited.colour = colour;
                 }
                 if let Some(dims_rest) = input.dims_rest {
                     edited.dims_rest = dims_rest;
@@ -114,7 +120,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Open a highlight as a sheet of its own: adds a sheet tab, named after the highlight and copied from an existing tab, whose area is exactly the highlight's shape, at the largest round scale it fits. Its ratios and figures (get_ratios, get_environment with its `tab`) then describe the highlighted area. Returns every tab; the new one is last."
+        description = "Open a highlight as a sheet of its own: adds a sheet tab, named after the highlight and copied from an existing tab, whose area is exactly the highlight's shape, at the largest round scale it fits, down to 1:50. This is the only way to make a sheet of part of the site. Its ratios and figures (get_ratios, get_environment with its `tab`) then describe the highlighted area. Returns every tab; the new one is last."
     )]
     async fn open_highlight_as_sheet(
         &self,
@@ -174,6 +180,7 @@ fn highlights_of(project: &Project) -> Value {
                 "id": highlight.id,
                 "label": highlight.label,
                 "outline": highlight.outline,
+                "colour": highlight.colour,
                 "dims_rest": highlight.dims_rest,
                 "shows_area": highlight.shows_area,
                 "area_m2": highlight.shape.area_m2().round(),

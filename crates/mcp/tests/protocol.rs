@@ -155,6 +155,25 @@ impl Server {
         serde_json::from_str(result["content"][0]["text"].as_str().unwrap()).unwrap()
     }
 
+    /// Highlights a circle around the Westerkerk and opens it as a sheet, the
+    /// only way to a sheet of part of the site. Returns every tab.
+    fn open_circle_as_sheet(&mut self, id: &str, label: &str, radius_m: f64) -> Value {
+        let added = self.call_ok(
+            "add_highlight",
+            json!({
+                "id": id,
+                "label": label,
+                "shape": { "kind": "circle", "center": { "lon": 4.8840, "lat": 52.3745 }, "radius_m": radius_m },
+            }),
+        );
+        let highlights = added["highlights"].as_array().unwrap();
+        let highlight_id = highlights.last().unwrap()["id"].clone();
+        self.call_ok(
+            "open_highlight_as_sheet",
+            json!({ "id": id, "highlight_id": highlight_id }),
+        )
+    }
+
     /// Calls a tool that must fail and returns its message.
     fn call_err(&mut self, tool: &str, arguments: Value) -> String {
         let result = self.call(tool, arguments);
@@ -623,18 +642,7 @@ fn get_analysis_returns_location_climate_and_notes_from_the_cache() {
     assert_eq!(report["summary"]["is_sheet_area"], json!(false));
 
     // On a sheet with a sub-selection only the site summary follows the area.
-    server.call_ok(
-        "add_sheet",
-        json!({
-            "id": id,
-            "name": "Westerkerk",
-            "selection": {
-                "kind": "circle",
-                "center": { "lon": 4.8840, "lat": 52.3745 },
-                "radius_m": 60.0,
-            },
-        }),
-    );
+    server.open_circle_as_sheet(&id, "Westerkerk", 60.0);
     let framed = server.call_ok("get_analysis", json!({ "id": id, "tab": 2 }));
     assert_eq!(framed["summary"]["is_sheet_area"], json!(true));
     assert!(
@@ -693,18 +701,7 @@ fn get_environment_gives_noise_flood_and_people_with_their_years() {
 
     // The fixture was fetched before rasters were kept, so a sheet area keeps
     // the whole site's figures and says which ones they are.
-    server.call_ok(
-        "add_sheet",
-        json!({
-            "id": id,
-            "name": "Westerkerk",
-            "selection": {
-                "kind": "circle",
-                "center": { "lon": 4.8840, "lat": 52.3745 },
-                "radius_m": 40.0,
-            },
-        }),
-    );
+    server.open_circle_as_sheet(&id, "Westerkerk", 40.0);
     let part = server.call_ok("get_environment", json!({ "id": id, "tab": 2 }));
     assert_eq!(
         part["road_noise_mean_db"],
@@ -825,10 +822,7 @@ fn export_laser_checks_then_writes_one_svg_per_bed_for_a_sheet_area() {
     project.scene = Some(scene);
     library.save(&mut project).unwrap();
     // A second tab framing a small block, so the model is quick to make.
-    server.call_ok(
-        "add_sheet",
-        json!({ "id": id, "selection": { "kind": "circle", "center": { "lon": 4.884, "lat": 52.3745 }, "radius_m": 50.0 } }),
-    );
+    server.open_circle_as_sheet(&id, "Block", 50.0);
     let folder = server.library.path().join("laser");
     std::fs::create_dir(&folder).unwrap();
 
@@ -1045,22 +1039,11 @@ fn fetched_westermarkt(server: &mut Server) -> String {
 }
 
 #[test]
-fn add_sheet_with_a_sub_selection_zooms_in_and_its_ratios_describe_that_area() {
+fn a_sheet_opened_from_a_highlight_zooms_in_and_its_ratios_describe_that_area() {
     let mut server = Server::start();
     let id = fetched_westermarkt(&mut server);
 
-    let added = server.call_ok(
-        "add_sheet",
-        json!({
-            "id": id,
-            "name": "Westerkerk",
-            "selection": {
-                "kind": "circle",
-                "center": { "lon": 4.8840, "lat": 52.3745 },
-                "radius_m": 60.0,
-            },
-        }),
-    );
+    let added = server.open_circle_as_sheet(&id, "Westerkerk", 60.0);
 
     let sheets = added["sheets"].as_array().unwrap();
     assert_eq!(sheets.len(), 2);
@@ -1090,23 +1073,22 @@ fn add_sheet_with_a_sub_selection_zooms_in_and_its_ratios_describe_that_area() {
 }
 
 #[test]
-fn a_sub_selection_outside_the_site_is_refused_with_a_reason() {
+fn add_sheet_shows_the_whole_site_and_refuses_an_area_of_its_own() {
     let mut server = Server::start();
     let id = fetched_westermarkt(&mut server);
 
+    let added = server.call_ok("add_sheet", json!({ "id": id, "name": "Context" }));
+    assert_eq!(added["sheets"][1]["selection"], json!(null));
+
+    // Like the app, an assistant gets a sheet of part of the site only from a highlight.
     let message = server.call_err(
         "add_sheet",
         json!({
             "id": id,
-            "selection": {
-                "kind": "circle",
-                "center": { "lon": 4.90, "lat": 52.37 },
-                "radius_m": 50.0,
-            },
+            "selection": { "kind": "circle", "center": { "lon": 4.8840, "lat": 52.3745 }, "radius_m": 50.0 },
         }),
     );
-
-    assert!(message.contains("outside the fetched site"), "{message}");
+    assert!(message.contains("selection"), "{message}");
 }
 
 #[test]
@@ -1356,11 +1338,18 @@ fn highlights_are_added_edited_listed_and_removed() {
     );
     let edited = server.call_ok(
         "edit_highlight",
-        json!({ "id": id, "highlight_id": "highlight-2", "label": "New house", "outline": "dashed", "dims_rest": true }),
+        json!({ "id": id, "highlight_id": "highlight-2", "label": "New house", "outline": "dotted", "colour": "#1F7A8C", "dims_rest": true }),
     );
     let house = &edited["highlights"][1];
     assert_eq!(house["label"], json!("New house"));
-    assert_eq!(house["outline"], json!("dashed"));
+    assert_eq!(house["outline"], json!("dotted"));
+    assert_eq!(house["colour"], json!("#1F7A8C"));
+    assert_eq!(edited["highlights"][0]["colour"], json!("@accent"));
+    let odd = server.call_err(
+        "edit_highlight",
+        json!({ "id": id, "highlight_id": "highlight-2", "colour": "teal" }),
+    );
+    assert!(odd.contains("#RRGGBB"), "{odd}");
     assert_eq!(house["dims_rest"], json!(true));
     assert_eq!(house["shape"]["kind"], json!("circle"));
     assert_eq!(

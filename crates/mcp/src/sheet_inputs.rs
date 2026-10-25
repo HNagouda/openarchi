@@ -4,9 +4,12 @@ use openarchi_core::pin::{PinIcon, PinSize};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::inputs::{AreaInput, LonLatInput};
+use crate::inputs::LonLatInput;
 
+/// Unknown fields are refused, so an assistant passing the `selection` this
+/// tool once took hears that it is gone rather than getting a whole-site tab.
 #[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct AddSheet {
     /// The project id.
     pub id: String,
@@ -15,10 +18,6 @@ pub struct AddSheet {
     /// The tab to copy the look from (diagram, theme, sheet, view), counting
     /// from 1. Defaults to 1. Change the copy afterwards with set_look and its `tab`.
     pub copy_of: Option<usize>,
-    /// A smaller area inside the fetched site that this sheet frames, clips
-    /// and zooms to, in longitude and latitude. Its ratios describe that area.
-    /// Leave out to show the whole site.
-    pub selection: Option<AreaInput>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

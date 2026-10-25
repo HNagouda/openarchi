@@ -21,7 +21,7 @@ pub struct ExportLaser {
     pub id: String,
     /// Absolute path of an existing folder; the files are named "<project>-laser-1.svg" and on.
     pub folder: String,
-    /// Which sheet tab, counting from 1 for the first, which is the default. A tab with a sub-selection makes a model of that area only.
+    /// Which sheet tab, counting from 1 for the first, which is the default. A tab opened from a highlight makes a model of that area only.
     pub tab: Option<usize>,
     /// The model's scale, 1000 for 1:1000. Defaults to the sheet's scale when it is 1:200, 1:500, 1:1000, 1:2000 or 1:2500, else 1:1000.
     pub scale: Option<u32>,
@@ -55,7 +55,7 @@ pub enum LaserFormatInput {
 #[tool_router(router = laser_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "Write laser cutting files for a physical site model of a sheet: one file per laser bed, in real millimetres, cut lines as red (#FF0000) hairlines and score lines as blue (#0000FF) hairlines. The base plate is the site (or the sheet's sub-selection) with roads, water, green and footprints scored on it, cut into tiles when it is larger than the bed; each building is a stack of identical footprint pieces, one per board thickness of its height, each engraved with an id like B12·3/5 that the plate engraves at its footprint. Returns the files and a summary: beds, pieces, board area, buildings left out for being smaller than 2 mm and buildings without a measured height. check_only=true returns the summary without writing. The site must have been fetched first."
+        description = "Write laser cutting files for a physical site model of a sheet: one file per laser bed, in real millimetres, cut lines as red (#FF0000) hairlines and score lines as blue (#0000FF) hairlines. The base plate is the site (or the highlight the sheet was opened from) with roads, water, green and footprints scored on it, cut into tiles when it is larger than the bed; each building is a stack of identical footprint pieces, one per board thickness of its height, each engraved with an id like B12·3/5 that the plate engraves at its footprint. Returns the files and a summary: beds, pieces, board area, buildings left out for being smaller than 2 mm and buildings without a measured height. check_only=true returns the summary without writing. The site must have been fetched first."
     )]
     async fn export_laser(&self, Parameters(input): Parameters<ExportLaser>) -> CallToolResult {
         let result = self

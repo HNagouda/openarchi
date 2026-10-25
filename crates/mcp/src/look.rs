@@ -43,7 +43,7 @@ pub fn updated_look(
         overrides: updated_overrides(&look.overrides, overrides.unwrap_or_default())?,
         view,
         sun: updated_sun(&look.sun, sun.unwrap_or_default())?,
-        // The tab's name, sub-selection, pin toggle and section line are not set_look's to change.
+        // The tab's name, sheet area, pin toggle and section line are not set_look's to change.
         ..look.clone()
     })
 }

@@ -17,8 +17,12 @@ pub struct AddHighlight {
     /// A short name drawn above it and listed in the legend, like "Plot" or
     /// "New house". Up to 80 characters. Without one the legend says "Highlighted area".
     pub label: Option<String>,
-    /// "solid" (the default) for what exists, like the plot; "dashed" for what is proposed.
+    /// "solid" (the default) for what exists, like the plot; "dashed" for what
+    /// is proposed; "dotted" for what is studied or uncertain.
     pub outline: Option<OutlineInput>,
+    /// The colour of the outline and tint: a palette role like "@accent" (the
+    /// default), "@water" or "@green", or "#RRGGBB".
+    pub colour: Option<String>,
     /// True fades everything outside the highlight a little. Defaults to false.
     pub dims_rest: Option<bool>,
     /// True adds the area in m² to the label. Defaults to false.
@@ -36,6 +40,8 @@ pub struct EditHighlight {
     /// A new label; an empty string leaves it unnamed.
     pub label: Option<String>,
     pub outline: Option<OutlineInput>,
+    /// A palette role like "@accent" or "#RRGGBB".
+    pub colour: Option<String>,
     pub dims_rest: Option<bool>,
     pub shows_area: Option<bool>,
 }
@@ -75,6 +81,7 @@ pub struct ShowMarks {
 pub enum OutlineInput {
     Solid,
     Dashed,
+    Dotted,
 }
 
 impl From<OutlineInput> for Outline {
@@ -82,6 +89,7 @@ impl From<OutlineInput> for Outline {
         match outline {
             OutlineInput::Solid => Outline::Solid,
             OutlineInput::Dashed => Outline::Dashed,
+            OutlineInput::Dotted => Outline::Dotted,
         }
     }
 }
