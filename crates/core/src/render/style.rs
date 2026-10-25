@@ -15,6 +15,12 @@ const FIGURE_SEAM_MM: f64 = 0.25;
 /// The ink edge of a blank layer: enough to find a building, too fine to compete with the ground.
 const BLANK_EDGE_MM: f64 = 0.1;
 const BLANK_TINT: f64 = 0.08;
+/// A fine diagonal hatch over a blank layer, so it never reads as the
+/// lightest class of the ground under it.
+const BLANK_HATCH_ANGLE_DEG: f64 = 45.0;
+const BLANK_HATCH_SPACING_MM: f64 = 0.7;
+const BLANK_HATCH_STROKE_MM: f64 = 0.08;
+const BLANK_HATCH_SHARE: f64 = 0.4;
 
 /// Why a layer looks the way it does. The legend groups rows by this.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -132,7 +138,7 @@ fn make_figure(style: &mut LayerStyle) {
 }
 
 /// Paper lifted a little towards ink, so a blank solid still stands out from
-/// the paper in a tilted view, on dark palettes too.
+/// the paper in a tilted view, on dark palettes too, and hatched in plan.
 fn make_blank(style: &mut LayerStyle, theme: &Theme) {
     let palette = &theme.palette;
     style.fill = Some(color::mix(&palette.paper, &palette.ink, BLANK_TINT));
@@ -140,7 +146,12 @@ fn make_blank(style: &mut LayerStyle, theme: &Theme) {
     style.stroke_mm = BLANK_EDGE_MM;
     style.dash_mm.clear();
     style.opacity = 1.0;
-    style.pattern = None;
+    style.pattern = Some(Pattern::Hatch {
+        angle_deg: BLANK_HATCH_ANGLE_DEG,
+        spacing_mm: BLANK_HATCH_SPACING_MM,
+        stroke_mm: BLANK_HATCH_STROKE_MM,
+        color: color::mix(&palette.paper, &palette.ink, BLANK_HATCH_SHARE),
+    });
     style.shadow_mm = 0.0;
 }
 

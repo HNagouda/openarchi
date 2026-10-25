@@ -21,6 +21,7 @@
         "layer": "sun_hours",
         "attribute": "value",
         "title": "Hours of direct sun",
+        "is_brighter_more": true,
         "note": "On {date}, sun stepped every 10 minutes past building and tree shadows (BRE BR 209 sun-on-ground). BR 209 asks 2 hours on 21 March over half of a garden.",
         "scheme": {
             "kind": "sequential",
