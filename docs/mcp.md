@@ -123,12 +123,16 @@ A highlight's middle must lie inside the fetched site, and it must cover at leas
 
 A section needs a line first, as in the app, where the Section view is greyed out until one is drawn. `set_section` takes `from` (A) and `to` (A') as longitude and latitude, both inside the site or its neighbourhood and at least 5 m apart, and `depth_m` for how far beyond the line buildings and trees are drawn (60 m to start, at most 500). The section looks to the left of the line as you walk from A to A'; `flip: true` swaps the ends to look the other way. `scale` picks the scale as N in 1:N from the same list as the app's Scale menu (100 to 20000), and `0` goes back to the largest that fits the sheet; `exaggeration` draws heights 1, 2 or 5 times taller, as the Heights buttons do. Then `set_look` with `view.mode` `section` shows it, and `render_preview` draws it. `clear: true` removes the line and puts a sheet in the section view back on its plan. `list_sheets` shows each tab's line.
 
+```json
+{ "id": "2026-10-24-westermarkt-3f9a", "from": { "lon": 4.8825, "lat": 52.3745 }, "to": { "lon": 4.8855, "lat": 52.3745 }, "depth_m": 80 }
+```
+
 ## How does an assistant set the viewpoint?
 
 The View diagram tints the ground a person standing at the sheet's viewpoint can see, worked out by line of sight past the buildings, the woods and the terrain, from an eye 1.7 m up. `set_view_point` takes exactly one of `at` (longitude and latitude, inside the site or its neighbourhood), `pin` (a pin id from `list_pins`; the eye follows the pin when it moves and goes back to the site centre when it is removed) or `centre: true`, which goes back to the default: the street or square nearest the site centre. These are the three choices of the app's Viewpoint menu. Then `set_look` with `diagram_id` `view` shows it, and `list_sheets` shows each tab's viewpoint, with the `pin` it stands on, `null` at the centre.
 
 ```json
-{ "id": "2026-10-24-westermarkt-3f9a", "from": { "lon": 4.8825, "lat": 52.3745 }, "to": { "lon": 4.8855, "lat": 52.3745 }, "depth_m": 80 }
+{ "id": "2026-10-24-westermarkt-3f9a", "pin": "pin-1" }
 ```
 
 ## How does an assistant choose the wind?
