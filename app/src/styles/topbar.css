@@ -3,7 +3,7 @@
 .topbar {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--toolbar-gap);
   height: var(--topbar-height);
   padding: 0 10px 0 12px;
   border-bottom: 1px solid var(--line);

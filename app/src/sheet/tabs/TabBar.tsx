@@ -6,12 +6,10 @@
 // so every tab opens a sheet.
 
 import { useRef, useState, type ReactNode } from "react";
+import { DRAG_THRESHOLD_PX } from "../../lib/pointerDrag";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import "./tabs.css";
-
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 4;
 
 type Props = {
   /** One name per sheet, in tab order. */

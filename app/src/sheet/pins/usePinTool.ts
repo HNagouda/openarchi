@@ -10,7 +10,7 @@ import { arrowStep, usePlainKeys } from "../../lib/keys";
 import type { Pin, PinIcon } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
 import { useLiveValue } from "../liveValue";
-import { followPointer } from "../pointerDrag";
+import { followPointer } from "../../lib/pointerDrag";
 import { nextPinId, steppedSize, withChangedPin, withoutPin, withPin } from "./pinEdits";
 import { boxAt, isOutsideSite, paperPointAt, paperToRd, type Point } from "../paper";
 import { pinGroup, readPins } from "./sheetPins";

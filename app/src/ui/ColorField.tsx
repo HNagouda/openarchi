@@ -1,7 +1,7 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ColorPicker, PaletteSwatches } from "./ColorPicker";
-import { ColorPopover } from "./ColorPopover";
-import { parseHex, rememberColour } from "./colour";
+import { ColorSwatch } from "./ColorSwatch";
+import { parseHex } from "./colour";
 
 // What the picker starts from when the field has no colour yet.
 const EMPTY_START = "#000000";
@@ -21,8 +21,6 @@ type Props = {
 /** A swatch that opens the colour picker, plus a typeable hex value. */
 export function ColorField({ value, isOverridden, onChange, onReset, onSeal, label }: Props) {
   const [draft, setDraft] = useState(value ?? "");
-  const [isOpen, setOpen] = useState(false);
-  const swatch = useRef<HTMLButtonElement>(null);
   const palette = useContext(PaletteSwatches);
 
   useEffect(() => setDraft(value ?? ""), [value]);
@@ -33,29 +31,12 @@ export function ColorField({ value, isOverridden, onChange, onReset, onSeal, lab
     else setDraft(value ?? "");
   };
 
-  const close = () => {
-    setOpen(false);
-    if (value) rememberColour(value);
-    onSeal?.();
-  };
-
   return (
     <div className="color-field">
       <span className="field-label">{label}</span>
-      <button
-        ref={swatch}
-        type="button"
-        className={value ? "swatch" : "swatch is-empty"}
-        style={{ background: value ?? undefined }}
-        aria-label={`${label} colour`}
-        aria-expanded={isOpen}
-        onClick={() => (isOpen ? close() : setOpen(true))}
-      />
-      {isOpen && (
-        <ColorPopover anchor={swatch.current} label={`${label} colour`} onClose={close}>
-          <ColorPicker value={value ?? EMPTY_START} swatches={palette} selected={value} onChange={onChange} />
-        </ColorPopover>
-      )}
+      <ColorSwatch colour={value} label={`${label} colour`} onSeal={onSeal}>
+        <ColorPicker value={value ?? EMPTY_START} swatches={palette} selected={value} onChange={onChange} />
+      </ColorSwatch>
       <input
         className="hex-input tabular"
         value={draft}

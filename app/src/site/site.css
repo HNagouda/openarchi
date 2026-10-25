@@ -160,25 +160,6 @@
 }
 
 /* MapLibre's own controls, made to match the chrome. */
-/* Zoom and fit, in the same pill as the sheet's zoom control. */
-.map-zoom {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-l);
-  background: var(--surface-raised);
-  box-shadow: var(--float-shadow);
-}
-
-.map-zoom .button-icon {
-  width: 26px;
-  height: 26px;
-}
-
 .maplibregl-ctrl-attrib {
   font-family: var(--font-ui);
   font-size: 10.5px;

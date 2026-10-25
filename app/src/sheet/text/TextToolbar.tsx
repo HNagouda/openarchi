@@ -3,12 +3,13 @@
 // It shows the style as the core resolved it, so "theme" values read as what
 // is actually printed.
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext } from "react";
+import { snapToStep } from "../../lib/format";
 import type { Align, TextStyle } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { ColorPicker, PaletteSwatches } from "../../ui/ColorPicker";
-import { ColorPopover } from "../../ui/ColorPopover";
-import { rememberColour } from "../../ui/colour";
+import { ColorSwatch } from "../../ui/ColorSwatch";
+import { NumberBox } from "../../ui/NumberField";
 import type { SheetText } from "./sheetTexts";
 
 // The bundled families, in one place for the menu. The core refuses any other.
@@ -16,6 +17,10 @@ const FAMILIES = ["Inter", "Source Serif 4", "IBM Plex Mono"];
 // The same limits the core enforces.
 const MIN_SIZE_PT = 2;
 const MAX_SIZE_PT = 400;
+// Sizes are shown and typed to a tenth of a point.
+const SIZE_STEP_PT = 0.1;
+// A nearly clear text still shows its colour on the swatch.
+const MIN_SWATCH_OPACITY = 0.25;
 
 const ALIGNMENTS: { value: Align; icon: "alignLeft" | "alignCentre" | "alignRight"; tip: string }[] = [
   { value: "left", icon: "alignLeft", tip: "Align left" },
@@ -35,15 +40,7 @@ type Props = {
 };
 
 export function TextToolbar({ text, style, isMoved, isBox, onStyle, onSeal, onBackToLayout, onDelete }: Props) {
-  const [isColourOpen, setColourOpen] = useState(false);
-  const swatch = useRef<HTMLButtonElement>(null);
   const palette = useContext(PaletteSwatches);
-
-  const closeColour = () => {
-    setColourOpen(false);
-    rememberColour(text.colour);
-    onSeal();
-  };
 
   return (
     <div className="text-toolbar" role="toolbar" aria-label="Text" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
@@ -60,7 +57,17 @@ export function TextToolbar({ text, style, isMoved, isBox, onStyle, onSeal, onBa
           </option>
         ))}
       </select>
-      <SizeField sizePt={text.sizePt} onCommit={(size_pt) => onStyle({ size_pt })} />
+      <NumberBox
+        className="text-size"
+        value={snapToStep(text.sizePt, SIZE_STEP_PT)}
+        min={MIN_SIZE_PT}
+        max={MAX_SIZE_PT}
+        step={SIZE_STEP_PT}
+        unit="pt"
+        label="Size in points"
+        tip="Size in points"
+        onChange={(size_pt) => onStyle({ size_pt })}
+      />
       <span className="toolbar-divider" />
       <Button className="text-bold" tip="Bold" isActive={text.isBold} aria-pressed={text.isBold} onClick={() => onStyle({ bold: !text.isBold })}>
         B
@@ -80,70 +87,28 @@ export function TextToolbar({ text, style, isMoved, isBox, onStyle, onSeal, onBa
         />
       ))}
       <span className="toolbar-divider" />
-      <button
-        ref={swatch}
-        type="button"
-        className="swatch text-colour"
-        style={{ background: text.colour, opacity: Math.max(text.opacity, 0.25) }}
-        data-tip="Colour"
-        aria-label="Text colour"
-        aria-expanded={isColourOpen}
-        onClick={() => (isColourOpen ? closeColour() : setColourOpen(true))}
-      />
-      {isColourOpen && (
-        <ColorPopover anchor={swatch.current} label="Text colour" onClose={closeColour}>
-          <ColorPicker
-            value={text.colour}
-            acceptsRoles
-            selected={style.colour ?? null}
-            swatches={palette}
-            opacity={text.opacity}
-            onOpacity={(opacity) => onStyle({ opacity }, `opacity:${text.id}`)}
-            onChange={(colour) => onStyle({ colour }, `colour:${text.id}`)}
-          />
-        </ColorPopover>
-      )}
+      <ColorSwatch
+        className="text-colour"
+        colour={text.colour}
+        style={{ opacity: Math.max(text.opacity, MIN_SWATCH_OPACITY) }}
+        label="Text colour"
+        tip="Colour"
+        onSeal={onSeal}
+      >
+        <ColorPicker
+          value={text.colour}
+          acceptsRoles
+          selected={style.colour ?? null}
+          swatches={palette}
+          opacity={text.opacity}
+          onOpacity={(opacity) => onStyle({ opacity }, `opacity:${text.id}`)}
+          onChange={(colour) => onStyle({ colour }, `colour:${text.id}`)}
+        />
+      </ColorSwatch>
       {(isMoved && !isBox) && (
         <Button icon="reset" tip="Back to the automatic layout" onClick={onBackToLayout} />
       )}
       {isBox && <Button icon="trash" tip="Delete" shortcut="delete" onClick={onDelete} />}
     </div>
-  );
-}
-
-/** Points, typed; Return or leaving the field applies them. */
-function SizeField({ sizePt, onCommit }: { sizePt: number; onCommit: (sizePt: number) => void }) {
-  const shown = String(Math.round(sizePt * 10) / 10);
-  const [draft, setDraft] = useState(shown);
-
-  useEffect(() => setDraft(shown), [shown]);
-
-  const commit = () => {
-    const typed = Number(draft.replace(",", "."));
-    if (draft.trim() === "" || Number.isNaN(typed)) {
-      setDraft(shown);
-      return;
-    }
-    const clamped = Math.min(MAX_SIZE_PT, Math.max(MIN_SIZE_PT, typed));
-    if (String(clamped) !== shown) onCommit(clamped);
-    setDraft(String(clamped));
-  };
-
-  return (
-    <label className="text-size number-box" data-tip="Size in points">
-      <input
-        className="number-input tabular"
-        inputMode="decimal"
-        aria-label="Size in points"
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={commit}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") commit();
-          if (event.key === "Escape") setDraft(shown);
-        }}
-      />
-      <span className="number-unit">pt</span>
-    </label>
   );
 }

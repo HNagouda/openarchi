@@ -1,20 +1,13 @@
 // The main workspace: the diagrams on the left, the sheet in the middle with
 // its tabs underneath, and the inspector on the right.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Navigate } from "../App";
-import { useCommandHandler } from "../lib/commands";
 import { closeProject, errorText, renameProject } from "../lib/ipc";
-import { usePlainKeys } from "../lib/keys";
-import { readPreference, writePreference } from "../lib/storage";
-import { chosenVariant, drawnName, sheetDiagrams } from "../lib/diagrams";
+import { chosenVariant, drawnName } from "../lib/diagrams";
 import type { Catalog, Diagram, ProjectView } from "../lib/types";
-import { Button } from "../ui/Button";
-import { EditableText } from "../ui/EditableText";
-import { CanvasMessage } from "./CanvasMessage";
-import { MissingData } from "./MissingData";
 import { useToast } from "../ui/Toasts";
-import { Canvas, type CanvasControls } from "./Canvas";
+import type { CanvasControls } from "./Canvas";
 import { ExportDialog } from "./ExportDialog";
 import { DiagramColumn } from "./DiagramColumn";
 import { Inspector } from "./inspector/Inspector";
@@ -23,21 +16,14 @@ import { usePreview } from "./usePreview";
 import { useThumbnails } from "./useThumbnails";
 import { useDiagramStepping } from "./useDiagramStepping";
 import { useLiveValue } from "./liveValue";
-import { ZoomControl } from "./ZoomControl";
-import { TextOverlay } from "./text/TextOverlay";
-import { useTextTool } from "./text/useTextTool";
+import { SheetCanvas } from "./SheetCanvas";
+import { SheetTopbar } from "./SheetTopbar";
+import { useSheetColumns } from "./useSheetColumns";
+import { useSheetKeys } from "./useSheetKeys";
+import { usePaperTools } from "./usePaperTools";
 import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
 import { PaletteSwatches } from "../ui/ColorPicker";
 import { paletteSwatches } from "./paletteSwatches";
-import { PinOverlay } from "./pins/PinOverlay";
-import { usePinTool } from "./pins/usePinTool";
-import { useSheetHighlights } from "./highlights/useSheetHighlights";
-import { doubleClickPaper, pressPaper } from "./paperPress";
-import { SectionOverlay } from "./section/SectionOverlay";
-import { useSectionTool } from "./section/useSectionTool";
-import { useViewPointTool } from "./viewpoint/useViewPointTool";
-import { ViewPointOverlay } from "./viewpoint/ViewPointOverlay";
-import { canPlaceEye } from "./viewpoint/viewPointEdits";
 import { SheetTabs } from "./tabs/SheetTabs";
 import { useTabKeys } from "./tabs/useTabKeys";
 import { saveWorkbook, useWorkbook } from "./tabs/useWorkbook";
@@ -62,8 +48,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const history = useWorkbook(initial);
   const { book, look } = history;
   const [revision, setRevision] = useState(0);
-  const [isInspectorOpen, setInspectorOpen] = useState(() => readPreference("inspectorOpen", true));
-  const [isDiagramsOpen, setDiagramsOpen] = useState(() => readPreference("diagramsOpen", true));
+  const columns = useSheetColumns();
   const [isExportOpen, setExportOpen] = useState(false);
   // The report editor opens over the sheet; the tabs below hold sheets only.
   const [isReportsOpen, setReportsOpen] = useState(false);
@@ -88,44 +73,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const theme = themes.find((entry) => entry.id === look.theme_id);
   const swatches = theme ? paletteSwatches(theme.palette) : [];
   const isEditable = !isExportOpen && !isReportsOpen && isReady;
-  const textTool = useTextTool(look, { change: history.changeLook, seal: history.seal }, canvas, preview.svg, isEditable);
-  const pinTool = usePinTool({
-    pins: book.pins,
-    onPins: history.changePins,
-    canvas,
-    svg: preview.svg,
-    isEnabled: isEditable,
-    onRefused: (message) => toast(message),
-  });
-  const highlights = useSheetHighlights({
-    look,
-    highlights: book.highlights,
-    onHighlights: history.changeHighlights,
-    onLook: history.changeLook,
-    onSeal: history.seal,
-    addAreaSheet: history.addAreaSheet,
-    canvas,
-    svg: preview.svg,
-    isEditable,
-    isReady,
-    toast,
-  });
-  const sectionTool = useSectionTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: isEditable, onRefused: (message) => toast(message) });
-  const hasEye = isEditable && canPlaceEye(sheetDiagrams(diagrams, look), look);
-  const viewPointTool = useViewPointTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: hasEye, onRefused: (message) => toast(message) });
-  const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool, viewPoint: viewPointTool };
+  const { tools, highlights } = usePaperTools({ history, diagrams, canvas, svg: preview.svg, isEditable, isReady, toast });
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isReportsOpen);
-  const { selectDiagram, selectVariant, stepDiagram, stepVariant, stepTheme } = useDiagramStepping(look, diagrams, themes, history.changeLook);
-
-  const toggleInspector = () => {
-    setInspectorOpen(!isInspectorOpen);
-    writePreference("inspectorOpen", !isInspectorOpen);
-  };
-
-  const toggleDiagrams = () => {
-    setDiagramsOpen(!isDiagramsOpen);
-    writePreference("diagramsOpen", !isDiagramsOpen);
-  };
+  const stepping = useDiagramStepping(look, diagrams, themes, history.changeLook);
 
   const leave = async () => {
     await autosave.flush();
@@ -152,157 +102,76 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     },
   });
 
-  // Toasts sit centred on the sheet, between the two columns. A narrow window
-  // lays the diagram column over the sheet, so the toast does not move for it there.
-  useEffect(() => {
-    const root = document.documentElement.style;
-    root.setProperty("--toast-right", isInspectorOpen ? "var(--inspector-width)" : "0px");
-    root.setProperty("--toast-left", isDiagramsOpen ? "var(--diagram-column-pushes)" : "0px");
-    return () => {
-      root.removeProperty("--toast-right");
-      root.removeProperty("--toast-left");
-    };
-  }, [isInspectorOpen, isDiagramsOpen]);
-
-  useCommandHandler((id) => {
-    if (id === "undo") {
-      history.undo();
-      return true;
-    }
-    if (id === "redo") {
-      history.redo();
-      return true;
-    }
-    if (id === "export") {
-      setExportOpen(true);
-      return true;
-    }
-    if (id === "zoom-in") canvas.current?.zoomIn();
-    if (id === "zoom-out") canvas.current?.zoomOut();
-    if (id === "zoom-fit") canvas.current?.fit();
-    if (id === "inspector") toggleInspector();
-    if (id === "diagrams") toggleDiagrams();
-    if (id === "add-text" && isReady) textTool.addText();
-    if (id === "home") leave();
-    return ["zoom-in", "zoom-out", "zoom-fit", "inspector", "diagrams", "home", "add-text"].includes(id);
+  useSheetKeys({
+    canvas,
+    columns,
+    stepping,
+    isReady,
+    isEnabled: !isExportOpen && !isReportsOpen,
+    isNothingSelected: tools.text.selectedId === null && tools.pin.selectedId === null && tools.highlight.selectedId === null,
+    onUndo: history.undo,
+    onRedo: history.redo,
+    onExport: () => setExportOpen(true),
+    onAddText: tools.text.addText,
+    onLeave: leave,
   });
-
-  usePlainKeys((key, event) => {
-    if (key === "[") stepTheme(-1);
-    if (key === "]") stepTheme(1);
-    if (key.toLowerCase() === "i" && !event.repeat) toggleInspector();
-    if (key.toLowerCase() === "d" && !event.repeat) toggleDiagrams();
-    // With a text box selected the arrows nudge it instead; see useTextTool.
-    const steps: Record<string, () => void> = {
-      ArrowUp: () => stepDiagram(-1),
-      ArrowDown: () => stepDiagram(1),
-      ArrowLeft: () => stepVariant(-1),
-      ArrowRight: () => stepVariant(1),
-    };
-    const isNothingSelected = textTool.selectedId === null && pinTool.selectedId === null && highlights.tool.selectedId === null;
-    if (steps[key] && isNothingSelected) {
-      event.preventDefault();
-      steps[key]();
-    }
-  }, !isExportOpen && !isReportsOpen);
-
-  const saveText = { saved: "Saved", pending: "Edited", saving: "Saving…", failed: "Not saved" }[autosave.status];
 
   return (
     <div className="sheet-step">
-      {/* Under the report editor the sheet is out of reach of Tab and the screen reader. */}
-      <header className="topbar" data-tauri-drag-region inert={isReportsOpen}>
-        <Button icon="back" tip="All projects" shortcut="mod+shift+h" onClick={leave} />
-        <Button icon="sidebarLeft" tip="Diagrams" shortcut="d" isActive={isDiagramsOpen} onClick={toggleDiagrams} />
-        <div className="topbar-title" data-tauri-drag-region>
-          <EditableText className="project-name" value={project.name} onCommit={rename} />
-          {diagram && <span className="topbar-crumb">{diagramName}</span>}
-        </div>
-        <div className="topbar-spacer" data-tauri-drag-region />
-        <span className={autosave.status === "failed" ? "save-status is-failed" : "save-status"}>{saveText}</span>
-        <Button icon="undo" tip="Undo" shortcut="mod+z" disabled={!history.canUndo} onClick={history.undo} />
-        <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
-        <span className="topbar-divider" />
-        <Button icon="text" tip="Add text" shortcut="t" disabled={!isReady} onClick={textTool.addText} />
-        <Button icon="report" tip="Lay out a report of this site" disabled={!catalog} onClick={() => setReportsOpen(true)}>
-          Reports
-        </Button>
-        <Button icon="map" tip="Draw the site again" onClick={() => navigate.editSite(project)}>
-          Edit site
-        </Button>
-        <Button icon="export" variant="secondary" tip="Export" shortcut="mod+e" disabled={!isReady} onClick={() => setExportOpen(true)}>
-          Export
-        </Button>
-        <Button icon="sidebar" tip="Inspector" shortcut="i" isActive={isInspectorOpen} onClick={toggleInspector} />
-      </header>
+      <SheetTopbar
+        projectName={project.name}
+        diagramName={diagram ? diagramName : null}
+        saveStatus={autosave.status}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        isReady={isReady}
+        hasCatalog={catalog !== null}
+        isDiagramsOpen={columns.isDiagramsOpen}
+        isInspectorOpen={columns.isInspectorOpen}
+        isInert={isReportsOpen}
+        onRename={rename}
+        onLeave={leave}
+        onUndo={history.undo}
+        onRedo={history.redo}
+        onAddText={tools.text.addText}
+        onReports={() => setReportsOpen(true)}
+        onEditSite={() => navigate.editSite(project)}
+        onExport={() => setExportOpen(true)}
+        onToggleDiagrams={columns.toggleDiagrams}
+        onToggleInspector={columns.toggleInspector}
+      />
 
       <PaletteSwatches.Provider value={swatches}>
       <div className="sheet-body" inert={isReportsOpen}>
-        <div className={isDiagramsOpen ? "diagram-slot is-open" : "diagram-slot"}>
+        <div className={columns.isDiagramsOpen ? "diagram-slot is-open" : "diagram-slot"}>
           <DiagramColumn
             diagrams={diagrams}
             selectedId={look.diagram_id}
             variantId={look.variant}
             thumbnails={thumbnails}
-            onSelect={selectDiagram}
-            onVariant={selectVariant}
+            onSelect={stepping.selectDiagram}
+            onVariant={stepping.selectVariant}
           />
           <ColumnResizer column={DIAGRAM_COLUMN} />
         </div>
         <div className="sheet-main">
-          <div className={["canvas-wrap", sectionTool.isDrawing ? "is-drawing-section" : "", highlights.tool.isDrawing ? "is-drawing-highlight" : "", viewPointTool.isPlacing ? "is-placing-view-point" : ""].join(" ")}>
-            <Canvas
-              svg={preview.svg}
-              controls={canvas}
-              onZoom={zoom.set}
-              onPaperPointerDown={(event, view) => pressPaper(event, view, paperTools)}
-              onPaperDoubleClick={(event, view) => doubleClickPaper(event, view, paperTools)}
-              overlay={(view) =>
-                preview.svg && (
-                  <>
-                    <SectionOverlay view={view} svg={preview.svg} draft={sectionTool.draft} isSelected={sectionTool.isSelected} />
-                    {highlights.overlay(view)}
-                    <ViewPointOverlay view={view} draft={viewPointTool.draft} />
-                    <PinOverlay
-                      view={view}
-                      svg={preview.svg}
-                      pins={book.pins}
-                      selectedId={pinTool.selectedId}
-                      editingId={pinTool.editingId}
-                      drag={pinTool.drag}
-                      onPins={history.changePins}
-                      onSeal={history.seal}
-                      onEdit={() => pinTool.setEditingId(pinTool.selectedId)}
-                      onEditEnd={() => pinTool.setEditingId(null)}
-                      onDeleted={() => pinTool.setSelectedId(null)}
-                    />
-                    <TextOverlay
-                      view={view}
-                      svg={preview.svg}
-                      look={look}
-                      selectedId={textTool.selectedId}
-                      editingId={textTool.editingId}
-                      drag={textTool.drag}
-                      diagramName={diagramName}
-                      onLook={history.changeLook}
-                      onSeal={history.seal}
-                      onEditEnd={() => textTool.setEditingId(null)}
-                      onDeleted={() => textTool.setSelectedId(null)}
-                    />
-                  </>
-                )
-              }
-            />
-            {!preview.svg && <CanvasMessage catalogError={catalogError} previewError={preview.error} onRetry={onRetryCatalog} hasScene={project.has_scene} />}
-            {preview.svg && <MissingData svg={preview.svg} onFetchAgain={() => navigate.editSite(project)} />}
-            {preview.svg && preview.error && (
-              <div className="canvas-error" role="alert">
-                {preview.error}
-              </div>
-            )}
-            {preview.isSlow && <div className="render-hint" aria-label="Rendering" />}
-            <ZoomControl zoom={zoom} canvas={canvas} />
-          </div>
+          <SheetCanvas
+            preview={preview}
+            canvas={canvas}
+            zoom={zoom}
+            tools={tools}
+            highlightOverlay={highlights.overlay}
+            look={look}
+            pins={book.pins}
+            diagramName={diagramName}
+            onLook={history.changeLook}
+            onPins={history.changePins}
+            onSeal={history.seal}
+            hasScene={project.has_scene}
+            catalogError={catalogError}
+            onRetryCatalog={onRetryCatalog}
+            onFetchAgain={() => navigate.editSite(project)}
+          />
           <SheetTabs
             book={book}
             index={history.index}
@@ -315,14 +184,14 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             onDelete={history.deleteSheet}
             onMove={history.moveSheet}
             onLook={history.changeLook}
-            onDropPin={pinTool.dropAt}
-            onPlacePin={pinTool.placeInView}
-            isDrawingSection={sectionTool.isDrawing}
-            onSectionTool={sectionTool.toggle}
+            onDropPin={tools.pin.dropAt}
+            onPlacePin={tools.pin.placeInView}
+            isDrawingSection={tools.section.isDrawing}
+            onSectionTool={tools.section.toggle}
             highlightTools={highlights.tabTools}
           />
         </div>
-        <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
+        <div className={columns.isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
           <ColumnResizer column={INSPECTOR_COLUMN} />
           {catalog && (
             <Inspector
@@ -332,7 +201,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               onLook={history.changeLook}
               onSeal={history.seal}
               onCatalogChanged={onRetryCatalog}
-              viewPoint={{ pins: book.pins, isPlacing: viewPointTool.isPlacing, onPlace: viewPointTool.toggle }}
+              viewPoint={{ pins: book.pins, isPlacing: tools.viewPoint.isPlacing, onPlace: tools.viewPoint.toggle }}
             />
           )}
         </div>

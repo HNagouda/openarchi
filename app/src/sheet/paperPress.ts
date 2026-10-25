@@ -12,7 +12,7 @@ import type { useSectionTool } from "./section/useSectionTool";
 import type { useTextTool } from "./text/useTextTool";
 import type { useViewPointTool } from "./viewpoint/useViewPointTool";
 
-type Tools = {
+export type PaperTools = {
   section: ReturnType<typeof useSectionTool>;
   highlight: ReturnType<typeof useHighlightTool>;
   pin: ReturnType<typeof usePinTool>;
@@ -20,7 +20,7 @@ type Tools = {
   viewPoint: ReturnType<typeof useViewPointTool>;
 };
 
-export function pressPaper(event: React.PointerEvent, view: PaperView, { section, highlight, pin, text, viewPoint }: Tools): boolean {
+export function pressPaper(event: React.PointerEvent, view: PaperView, { section, highlight, pin, text, viewPoint }: PaperTools): boolean {
   if (section.isDrawing) return section.onPaperPointerDown(event, view);
   if (highlight.isDrawing) return highlight.onPaperPointerDown(event, view);
   // The eye is placed with one click, or picked up where the core drew it, above everything else.
@@ -48,6 +48,6 @@ export function pressPaper(event: React.PointerEvent, view: PaperView, { section
   return highlight.onPaperPointerDown(event, view);
 }
 
-export function doubleClickPaper(event: React.MouseEvent, view: PaperView, { highlight, pin, text }: Tools): boolean {
+export function doubleClickPaper(event: React.MouseEvent, view: PaperView, { highlight, pin, text }: PaperTools): boolean {
   return highlight.onPaperDoubleClick() || pin.onPaperDoubleClick(event, view) || text.onPaperDoubleClick(event, view);
 }

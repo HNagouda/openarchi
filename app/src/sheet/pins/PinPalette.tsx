@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import type { PinIcon } from "../../lib/types";
-import { followPointer } from "../pointerDrag";
+import { followPointer } from "../../lib/pointerDrag";
 import { PinGlyph } from "./PinGlyph";
 import { PIN_ICONS } from "./pinEdits";
 import "./pins.css";

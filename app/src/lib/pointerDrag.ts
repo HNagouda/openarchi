@@ -1,9 +1,9 @@
-// A press on the sheet that may turn into a drag. The pointer has to travel a
-// few pixels first, so a click that wobbles stays a click. Every tool on the
-// sheet uses the same distance, so pins, text, lines and shapes all feel the same.
+// A press that may turn into a drag. The pointer has to travel a few pixels
+// first, so a click that wobbles stays a click. Everything that drags in the
+// app uses the same distance, so pins, text, tabs, rows and blocks all feel the same.
 
 // A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 4;
+export const DRAG_THRESHOLD_PX = 4;
 
 type Handlers = {
   /** Every move once the pointer has travelled past the threshold. */
