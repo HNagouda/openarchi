@@ -36,7 +36,7 @@ const WESTERKERK_ENVIRONMENT: &str = concat!(
 );
 
 /// Every tool the server must offer, in one place.
-const TOOLS: [&str; 36] = [
+const TOOLS: [&str; 37] = [
     "search_places",
     "list_projects",
     "create_project",
@@ -67,6 +67,7 @@ const TOOLS: [&str; 36] = [
     "move_pin",
     "remove_pin",
     "set_section",
+    "set_view_point",
     "list_highlights",
     "add_highlight",
     "edit_highlight",
@@ -1444,4 +1445,50 @@ fn show_on_sheet_hides_and_shows_pins_and_highlights_per_tab() {
     );
     assert_eq!(shown["hide_highlights"], json!(false));
     assert_eq!(shown["hide_pins"], json!(true));
+}
+
+#[test]
+fn the_view_point_stands_at_a_place_on_a_pin_or_back_at_the_centre() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+
+    let placed = server.call_ok(
+        "set_view_point",
+        json!({ "id": id, "at": { "lon": 4.8830, "lat": 52.3745 } }),
+    );
+    let lon = placed["view_point"]["at"]["lon"].as_f64().unwrap();
+    assert!((lon - 4.8830).abs() < 1e-6, "{placed}");
+
+    let pin = server.call_ok(
+        "add_pin",
+        json!({ "id": id, "location": { "lon": 4.8845, "lat": 52.3740 }, "icon": "dot" }),
+    );
+    let pin_id = pin["pins"][0]["id"].as_str().unwrap().to_string();
+    let on_pin = server.call_ok("set_view_point", json!({ "id": id, "pin": pin_id }));
+    let pin_lat = on_pin["view_point"]["at"]["lat"].as_f64().unwrap();
+    assert!((pin_lat - 52.3740).abs() < 1e-6, "{on_pin}");
+    let sheets = server.call_ok("list_sheets", json!({ "id": id }));
+    assert_eq!(sheets["sheets"][0]["view_point"], on_pin["view_point"]);
+
+    let centre = server.call_ok("set_view_point", json!({ "id": id, "centre": true }));
+    assert_eq!(centre["view_point"], json!(null));
+}
+
+#[test]
+fn a_view_point_off_the_site_or_asked_two_ways_is_refused() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+
+    let far = server.call_err(
+        "set_view_point",
+        json!({ "id": id, "at": { "lon": 4.95, "lat": 52.37 } }),
+    );
+    assert!(far.contains("inside the area the sheet draws"), "{far}");
+    let both = server.call_err(
+        "set_view_point",
+        json!({ "id": id, "at": { "lon": 4.8830, "lat": 52.3745 }, "centre": true }),
+    );
+    assert!(both.contains("exactly one"), "{both}");
+    let missing = server.call_err("set_view_point", json!({ "id": id, "pin": "pin-9" }));
+    assert!(missing.contains("no pin"), "{missing}");
 }
