@@ -129,11 +129,12 @@ fn dxf_has_one_cad_layer_per_scene_layer() {
         "OA-ROAD",
         "OA-RAIL-TRACK",
         "OA-TREE",
-        "OA-PARCEL",
         "OA-SITE",
     ] {
         assert!(entity_layers.contains(&layer), "no entities on {layer}");
     }
+    // Parcels are fetched but the context diagram does not draw them.
+    assert!(!entity_layers.contains(&"OA-PARCEL"));
     assert_eq!(pairs.last(), Some(&(0, "EOF".to_string())));
     let sections = pairs.iter().filter(|pair| pair.1 == "SECTION").count();
     let ends = pairs.iter().filter(|pair| pair.1 == "ENDSEC").count();

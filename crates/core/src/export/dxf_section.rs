@@ -34,6 +34,7 @@ const DATUM_LAYER: &str = "OA-SECTION-NAP";
 const TEXT_LAYER: &str = "OA-SECTION-TEXT";
 // AutoCAD colour indexes: the cut white (black on paper), what stands beyond
 // in greys, earth brown, trees green, water blue, the datum red.
+// #! NOTE[dxf, colours] : A section DXF keeps these fixed colours; the plan DXF takes the sheet's colours.
 const GROUND_COLOUR: u8 = 32;
 const CUT_COLOUR: u8 = 7;
 const ELEVATION_COLOUR: u8 = 8;

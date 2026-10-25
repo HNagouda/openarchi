@@ -297,7 +297,7 @@ fn line_attributes(outline: Outline, scale: f64) -> String {
 /// The highlight's own colour on this palette: a role resolved, a hex as it is.
 /// `Highlight::check` refuses anything else, so a bad value only reaches here
 /// from a hand-edited file, which then draws in the accent.
-fn colour_of(highlight: &Highlight, palette: &Palette) -> String {
+pub fn colour_of(highlight: &Highlight, palette: &Palette) -> String {
     resolve_colour(palette, &highlight.colour).unwrap_or_else(|_| palette.accent.clone())
 }
 

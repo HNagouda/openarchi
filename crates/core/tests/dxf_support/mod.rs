@@ -2,7 +2,7 @@
 
 #![allow(dead_code)]
 
-use openarchi_core::export::{export, ExportFormat};
+use openarchi_core::export::{export_with_dxf_layers, DxfLayers, ExportFormat};
 use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
@@ -102,7 +102,8 @@ fn parse(text: &str) -> Dxf {
     Dxf { layers, entities }
 }
 
-/// The DXF export of `look` over `scene` in the paper palette, read back.
+/// The DXF export of `look` over `scene` in the paper palette, read back,
+/// holding the layers the sheet shows.
 pub fn dxf_of(
     scene: &Scene,
     diagram_id: &str,
@@ -110,8 +111,28 @@ pub fn dxf_of(
     pins: &[Pin],
     highlights: &[Highlight],
 ) -> Dxf {
-    let diagram = diagram(diagram_id);
-    let theme = theme("paper");
+    let sheet = Sheet {
+        diagram_id,
+        theme_id: "paper",
+        look,
+        dxf_layers: DxfLayers::Shown,
+    };
+    dxf_with(scene, &sheet, pins, highlights)
+}
+
+/// What a DXF is exported from: a diagram in a palette, and which layers it holds.
+pub struct Sheet<'a> {
+    pub diagram_id: &'a str,
+    pub theme_id: &'a str,
+    pub look: &'a Look,
+    pub dxf_layers: DxfLayers,
+}
+
+/// The DXF export of `sheet` over `scene`, read back.
+pub fn dxf_with(scene: &Scene, sheet: &Sheet, pins: &[Pin], highlights: &[Highlight]) -> Dxf {
+    let look = sheet.look;
+    let diagram = diagram(sheet.diagram_id);
+    let theme = theme(sheet.theme_id);
     let input = RenderInput {
         scene,
         diagram: &diagram,
@@ -122,7 +143,8 @@ pub fn dxf_of(
     };
     let folder = tempfile::tempdir().expect("temp folder");
     let path = folder.path().join("sheet.dxf");
-    export(&input, ExportFormat::Dxf, 0, &path).expect("export the DXF");
+    export_with_dxf_layers(&input, ExportFormat::Dxf, 0, sheet.dxf_layers, &path)
+        .expect("export the DXF");
 
     parse(&std::fs::read_to_string(&path).expect("read the DXF back"))
 }

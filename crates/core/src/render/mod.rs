@@ -82,10 +82,13 @@ pub(crate) use color::{mix, resolve as resolve_colour, rgb, sample_ramp};
 pub(crate) use derived::features as computed_features;
 pub(crate) use fonts::Face;
 pub(crate) use highlights::shown as shown_highlights;
+// Shared with the DXF export, so each CAD layer takes its colour on the sheet.
+pub(crate) use highlights::colour_of as highlight_colour;
 pub(crate) use section::ground_under as section_ground_under;
 pub(crate) use section_water::lowered as lowered_over_water;
 pub(crate) use solid::tree_size;
 pub use solid::DEFAULT_HEIGHT_M;
+pub(crate) use style::{resolve_layers, ResolvedLayer};
 // Shared with the sunlight hours, so they cast exactly the shadows the shadow diagram draws.
 pub(crate) use shadow::{shadow_per_metre, signed_area, tree_shadow_ring};
 pub(crate) use solid::building_height;
