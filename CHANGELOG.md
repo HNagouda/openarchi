@@ -325,6 +325,16 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The view draws in plan, axonometric and on an explode plate. It takes a few milliseconds, so it redraws with every change.
 - Assistants set the viewpoint with `set_view_point`, tied to a pin the same way, and `list_sheets` shows it with the pin it stands on.
 
+### Lighter on its feet
+
+- Dragging a pin, text, a section line, a highlight or the viewpoint redraws only what moves over the sheet, not the diagram column, inspector and tabs with it; in the dev build a move went from about 1.5 ms of React work to about 0.1 ms. A pinch zoom no longer redraws the workspace either.
+- Pins and text start a drag after 4 px, like every other tool on the sheet (they took 3).
+- The report library still gets ready in the background, but a palette you step past with [ and ] is only prepared once it has stayed 30 seconds, and at most four palettes are kept.
+- The palette editor opens over the whole window again; it had been laid out inside the inspector and cut off by it.
+- Pins can be placed and moved on Windows; WebView2 refused the test that keeps them inside the site.
+- The Shortcuts tab lists the highlight, viewpoint and pin-size keys, Esc, and T in a report.
+- Nudging a report block wider than its page keeps it at the page's edge instead of pushing it off.
+
 ## 0.1.0 (unreleased)
 
 The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.
