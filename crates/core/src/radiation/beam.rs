@@ -11,9 +11,8 @@ use std::thread;
 
 use super::{joined, SolarMonth, SolarYear, AVERAGE_DAYS};
 use crate::area::LonLat;
-use crate::grid::{Cell, Raster};
+use crate::grid::{Cell, Raster, Surface};
 use crate::render::shadow_per_metre;
-use crate::skyview::Surface;
 use crate::sun::{self, SunPosition};
 
 /// What a month's direct beam needs to know about the site.

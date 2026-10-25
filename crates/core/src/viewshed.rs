@@ -12,25 +12,24 @@
 //! makes R2 fast enough to redraw with every change, where R3 runs one line
 //! to each cell.
 //!
-//! The surface is the ground, from the kept terrain when the scene has it,
-//! with every building of the site and its neighbourhood standing on it as a
-//! prism of its footprint and roof height, as the shadow diagram casts them,
-//! and every wood as a solid stand of its canopy height (`forest.rs`); single
-//! trees are see-through. The eye stands `EYE_HEIGHT_M` above the ground
+//! The surface is the one of `grid/surface.rs`, which the sky view and the
+//! solar radiation share: the ground, from the kept terrain when the scene
+//! has it, with every building of the site and its neighbourhood standing on
+//! it as a prism of its footprint and roof height, as the shadow diagram casts
+//! them, and every wood as a solid stand of its canopy height (`forest.rs`);
+//! single trees are see-through. The eye stands `EYE_HEIGHT_M` above the ground
 //! where it is, so a viewpoint placed on a building looks from its roof, and
 //! one placed in a wood looks from the floor of the wood.
 
-mod surface;
 #[cfg(test)]
 mod tests;
 
 use geo::{Centroid, Geometry, Rect};
 
-use crate::grid::{area_of_cells, cell_size, Raster, FINEST_CELL_M};
-use crate::scene::{Attributes, Feature, Layer, Scene};
+use crate::grid::{area_of_cells, cell_size, rings, Raster, Surface, FINEST_CELL_M};
+use crate::scene::{polygons, Attributes, Feature, Layer, Scene};
 use crate::section;
 use crate::{Error, Result};
-use surface::Surface;
 
 /// The eye above the ground, in metres. 1.7 m is Harsh's choice: the eye
 /// level of an average Dutch adult, about 1.80 m tall (CBS), with the eyes
@@ -45,11 +44,22 @@ pub const EYE_HEIGHT_M: f64 = 1.7;
 const TARGET_HEIGHT_M: f64 = 0.1;
 /// At most this many cells, so a large drawing coarsens its grid instead of slowing down.
 const MAX_CELLS: f64 = 160_000.0;
+/// The surfaces a passer-by stands on: streets, paths and squares. A
+/// courtyard or a garden is often walled in, so the default eye avoids them.
+const PUBLIC_GROUND: [Layer; 5] = [
+    Layer::Road,
+    Layer::Footpath,
+    Layer::Cycleway,
+    Layer::Paved,
+    Layer::Parking,
+];
 
 /// Which cells of the grid an eye can see.
 pub struct Viewshed {
     raster: Raster,
     surface: Surface,
+    /// Inside the site's boundary.
+    is_site: Vec<bool>,
     is_visible: Vec<bool>,
     /// Where the eye stands, in the scene's frame.
     pub eye: (f64, f64),
@@ -92,10 +102,14 @@ pub fn viewshed(scene: &Scene, eye: Option<(f64, f64)>, extent: Rect<f64>) -> Vi
         .map_or((0.0, 0.0), |point| (point.x(), point.y()));
     let wanted = eye.unwrap_or(centre);
     let raster = raster_over(grown(extent, scene, wanted));
-    let surface = surface::build(scene, &raster);
+    let surface = Surface::build(scene, raster);
+    let is_site = site_cells(scene, &raster);
     let eye_index = match eye {
         Some(eye) => cell_at(&raster, eye),
-        None => nearest_open_ground(&raster, &surface, centre),
+        None => {
+            let is_public = public_cells(scene, &raster);
+            nearest_open_ground(&raster, &surface, &is_site, &is_public, centre)
+        }
     };
     let eye = match eye {
         Some(eye) => eye,
@@ -103,17 +117,18 @@ pub fn viewshed(scene: &Scene, eye: Option<(f64, f64)>, extent: Rect<f64>) -> Vi
     };
     // On a roof the eye looks from the roof; under a canopy, from the ground under it.
     let stands_on_m = if surface.is_roof[eye_index] {
-        surface.height_m[eye_index]
+        surface.heights[eye_index]
     } else {
-        surface.ground_m[eye_index]
+        surface.grounds[eye_index]
     };
     let eye_height_m = stands_on_m + EYE_HEIGHT_M;
-    let is_visible = sight_lines(&raster, &surface.height_m, eye_index, eye_height_m);
+    let is_visible = sight_lines(&raster, &surface.heights, eye_index, eye_height_m);
 
     Viewshed {
         is_on_roof: surface.is_roof[eye_index],
         raster,
         surface,
+        is_site,
         is_visible,
         eye,
     }
@@ -126,7 +141,7 @@ impl Viewshed {
         let mut ground = 0usize;
         let mut seen = 0usize;
         for index in 0..self.raster.len() {
-            if !self.surface.is_site[index] || self.is_covered(index) {
+            if !self.is_site[index] || self.is_covered(index) {
                 continue;
             }
             ground += 1;
@@ -249,14 +264,42 @@ fn cell_at(raster: &Raster, point: (f64, f64)) -> usize {
 /// The cell nearest to `point` on a street or square in the site, or on any
 /// open ground in it when it has neither, or the cell under `point` when the
 /// site has no open ground at all.
-fn nearest_open_ground(raster: &Raster, surface: &Surface, point: (f64, f64)) -> usize {
-    let is_open = |index: usize| {
-        surface.is_site[index] && !surface.is_roof[index] && !surface.is_forest[index]
-    };
-    let is_public = |index: usize| is_open(index) && surface.is_public[index];
-    nearest_where(raster, point, is_public)
+fn nearest_open_ground(
+    raster: &Raster,
+    surface: &Surface,
+    is_site: &[bool],
+    is_public: &[bool],
+    point: (f64, f64),
+) -> usize {
+    let is_open =
+        |index: usize| is_site[index] && !surface.is_roof[index] && !surface.is_forest[index];
+    let is_on_street = |index: usize| is_open(index) && is_public[index];
+    nearest_where(raster, point, is_on_street)
         .or_else(|| nearest_where(raster, point, is_open))
         .unwrap_or_else(|| cell_at(raster, point))
+}
+
+/// Which cells lie inside the site's boundary.
+fn site_cells(scene: &Scene, raster: &Raster) -> Vec<bool> {
+    let mut is_site = vec![false; raster.len()];
+    raster.fill_rings(&rings(&scene.boundary), |index| is_site[index] = true);
+    is_site
+}
+
+/// Which cells lie on a street, path or square, see `PUBLIC_GROUND`.
+fn public_cells(scene: &Scene, raster: &Raster) -> Vec<bool> {
+    let mut is_public = vec![false; raster.len()];
+    let public_ground = scene
+        .features
+        .iter()
+        .filter(|feature| PUBLIC_GROUND.contains(&feature.layer));
+    for ground in public_ground {
+        for polygon in polygons(&ground.geometry) {
+            raster.fill_rings(&rings(polygon), |index| is_public[index] = true);
+        }
+    }
+
+    is_public
 }
 
 fn nearest_where(

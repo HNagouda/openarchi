@@ -29,7 +29,7 @@ mod year;
 
 use std::thread;
 
-use crate::grid::{banded, cells, raster_over, Raster};
+use crate::grid::{banded, cells, raster_over, Raster, Surface};
 use crate::scene::{Credit, Feature, Layer, Scene};
 use crate::skyview;
 use crate::sources::pvgis;
@@ -55,7 +55,7 @@ pub struct RadiationGrid {
 pub fn yearly(scene: &Scene, solar: &SolarYear) -> RadiationGrid {
     let raster = raster_over(&scene.boundary, skyview::MAX_CELLS);
     let cells = cells(scene, &raster);
-    let surface = skyview::surface(scene, &raster, skyview::SEARCH_RADIUS_M);
+    let surface = Surface::build(scene, raster.grown(skyview::SEARCH_RADIUS_M));
     let lit = Lit {
         raster: &raster,
         cells: &cells,

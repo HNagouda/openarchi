@@ -49,18 +49,8 @@ impl Forest {
     }
 
     /// The canopy height above the ground at a point, `None` off the forest.
-    pub fn height_at(&self, (x, y): (f64, f64)) -> Option<f64> {
-        let grid = &self.canopy;
-        let column = ((x - grid.west) / grid.cell_m).floor();
-        let row = ((grid.north - y) / grid.cell_m).floor();
-        let is_inside =
-            column >= 0.0 && row >= 0.0 && column < grid.width as f64 && row < grid.height as f64;
-        if !is_inside {
-            return None;
-        }
-
-        let height = grid.value(column as usize, row as usize);
-        height.is_finite().then_some(f64::from(height))
+    pub fn height_at(&self, point: (f64, f64)) -> Option<f64> {
+        self.canopy.value_at(point).map(f64::from)
     }
 }
 

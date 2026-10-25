@@ -1,9 +1,11 @@
 //! The square grid the computed layers work on: hours of sun, sky view,
 //! solar radiation, the view and the wind all lay one over the site, mark
 //! which cells are ground and which roof, and turn a value per cell back into
-//! bands to draw.
+//! bands to draw. The view, the sky view and the radiation also look over one
+//! height surface on it (`surface.rs`).
 
 mod raster;
+mod surface;
 #[cfg(test)]
 pub(crate) mod tests;
 
@@ -12,6 +14,7 @@ use geo::{BooleanOps, BoundingRect, Geometry, LineString, MultiPolygon, Polygon,
 use crate::diagram::class_index;
 use crate::scene::{polygons, Attributes, Feature, Layer, Scene};
 pub use raster::Raster;
+pub use surface::Surface;
 
 /// The finest grid, in metres: a little over a parking bay is as fine as a site sheet reads.
 pub const FINEST_CELL_M: f64 = 2.0;

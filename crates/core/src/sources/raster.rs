@@ -30,6 +30,36 @@ impl Grid {
         self.values[row * self.width + column]
     }
 
+    /// The value of the cell under a point, `None` past the grid or where nothing was measured.
+    pub fn value_at(&self, (x, y): (f64, f64)) -> Option<f32> {
+        let column = ((x - self.west) / self.cell_m).floor();
+        let row = ((self.north - y) / self.cell_m).floor();
+        let is_inside =
+            column >= 0.0 && row >= 0.0 && column < self.width as f64 && row < self.height as f64;
+        if !is_inside {
+            return None;
+        }
+
+        let value = self.value(column as usize, row as usize);
+        value.is_finite().then_some(value)
+    }
+
+    /// The median of the measured cells, `None` when none was measured.
+    pub fn median(&self) -> Option<f32> {
+        let mut measured: Vec<f32> = self
+            .values
+            .iter()
+            .copied()
+            .filter(|value| value.is_finite())
+            .collect();
+        if measured.is_empty() {
+            return None;
+        }
+        measured.sort_by(f32::total_cmp);
+
+        Some(measured[measured.len() / 2])
+    }
+
     pub fn cell_centre(&self, column: usize, row: usize) -> Coord<f64> {
         Coord {
             x: self.west + (column as f64 + 0.5) * self.cell_m,

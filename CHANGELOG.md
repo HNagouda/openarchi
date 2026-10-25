@@ -328,6 +328,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 ### Computed layers, tidied
 
 - Sunlight hours, sky view, solar radiation and city blocks are worked out once per site and kept, as the wind already was, so typing a title or changing the palette on such a sheet no longer works them out again. Redrawing the sunlight hours of the Westermarkt went from about 130 ms to 17 ms, the solar radiation from 48 ms to 19 ms and the city blocks from 28 ms to 8 ms.
+- The view, the sky view and the solar radiation look over one height surface, so they agree on what stands where. A roof stands at its own measured ground level plus its height, the ground under buildings and water is filled in from the streets around it, and where two footprints overlap the taller one counts. On the test sites this moves under 2 % of the ground from one sky view or radiation class to the next; the view did not change.
 
 ## 0.1.0 (unreleased)
 
