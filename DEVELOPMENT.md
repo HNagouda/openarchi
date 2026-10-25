@@ -54,6 +54,8 @@ crates/core/            the library: no window, no async
   src/pin.rs            landmarks in RD New metres, shown on every sheet
   src/highlight.rs      areas marked inside the site in RD New metres, shown on every sheet
   src/selection.rs      a sheet's area, opened from a highlight: the scene cut to it
+  src/model.rs          the user's imported building model, and model/: reading OBJ and glTF, the packed mesh in the project file, its merged faces and footprint, and placing it on the site with the buildings it replaces
+  src/view3d.rs         the site as triangles for the app's live 3D view, and the sun through a day
   src/library.rs        project files, backups and Recently Deleted
   src/environment.rs    noise, air, flood, slope and people as numbers, for get_environment
   src/attribution.rs    the source names under each ratio group and analysis section
@@ -93,6 +95,8 @@ scripts/mcp.sh          call any MCP tool from the shell
 | Something drawn on the ground of every map, like highlights | a module in `crates/core/src/render/`, called from `map::draw` for maps whose `MapSpec::has_highlights` is set |
 | A new view mode | a `ViewMode` in `view.rs`, drawn by a module in `crates/core/src/render/` that returns a `SheetDrawing`, like `render/section.rs` |
 | A new export format | `crates/core/src/export/` |
+| A new model format | a reader in `crates/core/src/model/` that returns a `RawMesh`, chosen by extension in `model.rs::read`; a small file in `crates/core/tests/fixtures/models/` made by `make_models.py` |
+| Something more in the 3D view | the data in `crates/core/src/view3d.rs`, drawn in `app/src/viewer/scene.ts`; `stage.ts` owns the camera, the sun and when to draw |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs` (a climate section's facts in `sections/climate_facts.rs`), the rule in `notes.rs` |
 | A new kind of report block | a `Content` variant in `crates/core/src/report.rs`, drawn in `report/draw.rs`, offered in `app/src/report/library.ts` |
 | A new assistant tool | the module for its area in `crates/mcp/src/` (`styles.rs`, `figures.rs`, `export.rs`, `sheets.rs` and so on), with its input in the matching `*_inputs.rs` (or beside the tool when the module has only one) and its router joined in `server.rs`; its protocol test goes in the matching file in `crates/mcp/tests/`, with the shared harness in `tests/common/mod.rs` |
@@ -126,6 +130,7 @@ cargo run --release -p openarchi-core --example section_samples -- .scratch/site
 cargo run --release -p openarchi-core --example report_samples   # a sample report in a few palettes, as PDF and PNGs, target/report-samples/
 cargo run --release -p openarchi-core --example highlight_samples # highlights in every theme and view, target/render-samples/highlights/
 cargo run --release -p openarchi-core --example pin_samples       # every kind of pin in every theme and view, target/render-samples/pins/
+cargo run --release -p openarchi-core --example model_samples     # the test model in plan, axonometric and shadows, with SVG sizes and times beside the same sheet without it, target/render-samples/model/
 cargo run --release -p openarchi-core --example netherlands_outline  # rebuilds the outline of the country on the locator map, assets/places/
 ```
 

@@ -4,6 +4,18 @@ What changed in each version of openarchi, newest first.
 
 ## 0.2.0 (unreleased)
 
+### 3D
+
+- Import your building model into a project and see it on the site. openarchi reads OBJ, which Archicad writes from File › Save As › Wavefront without any add-on, and GLB or glTF from SketchUp, Rhino and Blender. The model lives inside the project file, so the project still opens on another computer.
+- OBJ files say neither their unit nor which way is up. openarchi guesses the unit from the model's size and takes z as up, and the Model section in the inspector shows the size it read, with switches for metres, centimetres or millimetres and for y or z up when the guess is wrong.
+- The model stands at the site centre on the terrain. M, or Move on the sheet, shows its footprint over the sheet: drag it to move it, drag the round handle to turn it, or nudge it a metre with the arrow keys (ten with ⇧). The inspector sets the turn exactly and can lift the base to a level above NAP. Every move undoes like any other edit, and so do importing and removing it.
+- Existing buildings the model covers more than half of are left out, on every sheet and in the 3D view. The Model section lists every building under the model, with its year, height and how much of it is covered, and a box to keep or replace each one. Moving the model picks them again.
+- The model draws on the sheets in the palette's accent: its footprint in plan, standing up and lit by the sun among the buildings in the axonometric, and casting its shadow with the buildings in the shadow diagram, with a Proposal row in the legend. It draws its merged faces rather than every triangle, so a model adds little to the sheet's size.
+- The 3D button opens a live view of the site: the ground in the palette's colours, every building at its height, the trees, the neighbourhood and the model. Drag to look round, scroll to come closer, or press Orbit to turn round the site. The sun stands where the shadow diagram puts it, with real shadows; drag the time of day, pick another date, or press play to move the sun from sunrise to sunset.
+- Save picture writes what the 3D view shows as a PNG. Save day writes a picture every quarter hour from sunrise to sunset and Save orbit 72 pictures turning once round the site, numbered so any video tool turns them into a film.
+- The 3D view loads only when it opens and draws only when something changes, so an open view that you are not touching costs nothing.
+- Assistants can import, place, turn, re-read and remove the model and choose the buildings it replaces, with the same rules as the app, and `get_project` describes it.
+
 ### Sites
 
 - Click a drawn site to select it, drag it to move it, and drag its handles to resize it. A polygon's corners move one by one, and pressing the dot between two corners adds a new one.
