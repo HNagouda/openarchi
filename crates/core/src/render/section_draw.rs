@@ -1,7 +1,7 @@
 //! How a section's parts are painted: what stands beyond the line, fading
 //! with distance; the earth below the ground profile, hatched; and the
 //! buildings the line cuts, in solid poché. Where each part goes is worked
-//! out in `section.rs`.
+//! out in `section_pieces.rs`.
 
 use std::fmt::Write;
 
@@ -9,6 +9,7 @@ use super::color;
 use super::geometry::{decimal, mm};
 use super::patterns;
 use super::section_levels::Frame;
+use super::section_pieces::Cut;
 use super::solid;
 use super::svg::layer_attributes;
 use crate::section::cut::Stretch;
@@ -39,15 +40,6 @@ pub(super) struct Mass {
     pub top: f64,
     pub fill: String,
     pub is_tree: bool,
-}
-
-/// A stretch of a building the line passes through.
-pub(super) struct Cut {
-    pub stretch: Stretch,
-    pub bottom: f64,
-    pub top: f64,
-    /// The measured height above the ground, for its label; `None` when guessed.
-    pub height_m: Option<f64>,
 }
 
 /// `fill` as it stands beyond the line, `share` of the way to the far edge (0 to 1).
@@ -196,7 +188,7 @@ fn broken_line(profile: &Profile, gaps: &[Stretch], frame: &Frame) -> String {
 }
 
 /// The buildings the line passes through, in solid poché.
-pub fn write_cuts(out: &mut String, cuts: &[Cut], frame: &Frame, theme: &Theme) {
+pub fn write_cuts(out: &mut String, cuts: &[&Cut], frame: &Frame, theme: &Theme) {
     let _ = write!(
         out,
         r#"<g {} fill="{}">"#,

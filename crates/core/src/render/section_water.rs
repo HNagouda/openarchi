@@ -8,6 +8,7 @@ use std::fmt::Write;
 use super::color;
 use super::geometry::{decimal, mm};
 use super::section_levels::{self, Frame};
+use super::section_pieces;
 use super::svg::layer_attributes;
 use super::typeset::{Kind, Typesetter};
 use crate::section::profile::Profile;
@@ -125,33 +126,20 @@ pub fn lowered(profile: Profile, waters: &[Water]) -> Profile {
     Profile { samples, ..profile }
 }
 
-/// From the surface along A to A', back along the bed below it.
+/// From the surface along A' to A, back along the bed below it.
 fn body_down_to_bed(water: &Water, profile: &Profile, frame: &Frame) -> String {
-    let level = water.level_m;
-    let mut path = format!("M{} {}", mm(frame.x(water.stretch.to)), mm(frame.y(level)));
-    let _ = write!(
-        path,
-        "H{}L{} {}",
-        mm(frame.x(water.stretch.from)),
-        mm(frame.x(water.stretch.from)),
-        mm(frame.y(profile.height_at(water.stretch.from).min(level)))
+    let body = section_pieces::water_body(water, profile);
+    let (start, along_surface) = (body[0], body[1]);
+    let mut path = format!(
+        "M{} {}H{}",
+        mm(frame.x(start.0)),
+        mm(frame.y(start.1)),
+        mm(frame.x(along_surface.0))
     );
-    for &(along, height) in &profile.samples {
-        if along > water.stretch.from && along < water.stretch.to {
-            let _ = write!(
-                path,
-                "L{} {}",
-                mm(frame.x(along)),
-                mm(frame.y(height.min(level)))
-            );
-        }
+    for &(along, height) in &body[2..] {
+        let _ = write!(path, "L{} {}", mm(frame.x(along)), mm(frame.y(height)));
     }
-    let _ = write!(
-        path,
-        "L{} {}Z",
-        mm(frame.x(water.stretch.to)),
-        mm(frame.y(profile.height_at(water.stretch.to).min(level)))
-    );
+    path.push('Z');
 
     path
 }

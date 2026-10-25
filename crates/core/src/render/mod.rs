@@ -37,6 +37,7 @@ mod section_draw;
 mod section_legend;
 mod section_levels;
 mod section_marker;
+mod section_pieces;
 mod section_water;
 mod shadow;
 mod simplify;
@@ -84,8 +85,10 @@ pub(crate) use fonts::Face;
 pub(crate) use highlights::shown as shown_highlights;
 // Shared with the DXF export, so each CAD layer takes its colour on the sheet.
 pub(crate) use highlights::colour_of as highlight_colour;
-pub(crate) use section::ground_under as section_ground_under;
-pub(crate) use section_water::lowered as lowered_over_water;
+pub(crate) use section_pieces::{
+    pieces as section_pieces, water_body as section_water_body, Building as SectionBuilding,
+    Tree as SectionTree, AIR_M as SECTION_AIR_M, EARTH_M as SECTION_EARTH_M,
+};
 pub(crate) use solid::tree_size;
 pub use solid::DEFAULT_HEIGHT_M;
 pub(crate) use style::{resolve_layers, ResolvedLayer};
