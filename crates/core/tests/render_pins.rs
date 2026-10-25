@@ -3,7 +3,7 @@ mod render_support;
 use openarchi_core::area::Area;
 use openarchi_core::crs::rd_to_wgs84;
 use openarchi_core::export::{export, ExportFormat};
-use openarchi_core::pin::{Pin, PinIcon};
+use openarchi_core::pin::{Pin, PinIcon, PinSize};
 use openarchi_core::project::Look;
 use openarchi_core::ratios;
 use openarchi_core::render::{fitting_scale, render_svg, RenderInput};
@@ -19,6 +19,7 @@ fn pin(id: &str, icon: PinIcon, label: &str, x: f64, y: f64) -> Pin {
         label: label.to_string(),
         x: ORIGIN.0 + x,
         y: ORIGIN.1 + y,
+        size: PinSize::Medium,
     }
 }
 
@@ -41,6 +42,7 @@ fn svg_with(look: &Look, pins: &[Pin]) -> String {
         theme: &theme,
         look,
         pins,
+        highlights: &[],
     })
     .expect("render")
 }
@@ -73,6 +75,36 @@ fn numbered_pins_count_from_one_in_project_order() {
     let group = &svg[second..second + svg[second..].find("</g>").unwrap()];
 
     assert!(group.contains(">2</text>"), "{group}");
+}
+
+/// The radius of the first circle in pin `id`'s group, for a dot.
+fn dot_radius(svg: &str, id: &str) -> f64 {
+    let start = svg.find(&format!(r#"data-pin="{id}""#)).unwrap();
+    let at = start + svg[start..].find(r#" r=""#).unwrap() + 4;
+    svg[at..at + svg[at..].find('"').unwrap()].parse().unwrap()
+}
+
+#[test]
+fn a_larger_pin_draws_a_larger_marker_and_scales_its_label_less() {
+    let mut small = pin("pin-1", PinIcon::Dot, "Kiosk", 0.0, 0.0);
+    small.size = PinSize::Small;
+    let mut large = pin("pin-2", PinIcon::Dot, "Hall", 40.0, 0.0);
+    large.size = PinSize::ExtraLarge;
+    let medium = pin("pin-3", PinIcon::Dot, "", -40.0, 0.0);
+
+    let svg = svg_with(&look(), &[small, large, medium]);
+
+    let ratio = dot_radius(&svg, "pin-2") / dot_radius(&svg, "pin-3");
+    assert!(
+        (ratio - PinSize::ExtraLarge.scale()).abs() < 0.01,
+        "{ratio}"
+    );
+    assert!(dot_radius(&svg, "pin-1") < dot_radius(&svg, "pin-3"));
+    // The label grows by the square root of the marker's scale, 1.41 for twice the size.
+    assert!(
+        svg.contains("scale(1.41"),
+        "the label scales less than the marker"
+    );
 }
 
 #[test]
@@ -154,6 +186,7 @@ fn a_sub_selection_outside_the_site_fails_with_a_reason() {
         theme: &theme,
         look: &outside,
         pins: &[],
+        highlights: &[],
     })
     .unwrap_err();
 
@@ -186,6 +219,7 @@ fn dxf_puts_pins_on_their_own_layer_with_their_labels() {
         theme: &theme,
         look: &look,
         pins: &pins,
+        highlights: &[],
     };
     let folder = tempfile::tempdir().unwrap();
     let path = folder.path().join("sheet.dxf");

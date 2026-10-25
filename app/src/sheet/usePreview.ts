@@ -1,4 +1,4 @@
-// The live preview: the core's SVG for the current look and the project's pins.
+// The live preview: the core's SVG for the current look and the project's pins and highlights.
 //
 // Only one render runs at a time. Changes that arrive meanwhile collapse
 // into one follow-up render of the newest look, and the old picture stays
@@ -11,16 +11,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { errorText, renderPreview } from "../lib/ipc";
-import type { Look, Pin } from "../lib/types";
+import type { Highlight, Look, Pin } from "../lib/types";
 
 // Enough for stepping through neighbouring diagrams and a few undos; a large sheet is a few MB.
 const KEPT_PICTURES = 8;
 // Only show the rendering hint when a render is noticeably slow.
 const SLOW_RENDER_MS = 350;
 
-type Wanted = { key: string; look: Look; pins: Pin[] };
+type Wanted = { key: string; look: Look; pins: Pin[]; highlights: Highlight[] };
 
-export function usePreview(look: Look, pins: Pin[], revision: number, isEnabled: boolean) {
+export function usePreview(look: Look, pins: Pin[], highlights: Highlight[], revision: number, isEnabled: boolean) {
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSlow, setSlow] = useState(false);
@@ -38,7 +38,7 @@ export function usePreview(look: Look, pins: Pin[], revision: number, isEnabled:
     isRunning.current = true;
     const slowTimer = window.setTimeout(() => setSlow(true), SLOW_RENDER_MS);
     try {
-      const drawn = await renderPreview(target.look, target.pins);
+      const drawn = await renderPreview(target.look, target.pins, target.highlights);
       keep(target.key, drawn);
       // A render overtaken by a newer one still shows while that one runs, so a
       // drag stays live; one overtaken by a kept picture would only undo it.
@@ -63,8 +63,8 @@ export function usePreview(look: Look, pins: Pin[], revision: number, isEnabled:
     }
   };
 
-  // A sheet that hides pins does not redraw when they change.
-  const key = JSON.stringify(look.hide_pins ? [look] : [look, pins]);
+  // A sheet that hides pins or highlights does not redraw when they change.
+  const key = JSON.stringify([look, look.hide_pins ? null : pins, look.hide_highlights ? null : highlights]);
   useEffect(() => {
     if (!isEnabled) return;
     currentKey.current = key;
@@ -80,9 +80,9 @@ export function usePreview(look: Look, pins: Pin[], revision: number, isEnabled:
       setSvg(earlier);
       return;
     }
-    wanted.current = { key, look, pins };
+    wanted.current = { key, look, pins, highlights };
     runNext();
-    // `key` stands for `look` and `pins`; runNext only reads refs.
+    // `key` stands for `look`, `pins` and `highlights`; runNext only reads refs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, revision, isEnabled]);
 

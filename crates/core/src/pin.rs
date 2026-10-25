@@ -25,6 +25,39 @@ pub struct Pin {
     /// RD New metres, not the scene's local frame, so a pin stays put when the site is fetched again.
     pub x: f64,
     pub y: f64,
+    /// How large the marker and its label draw. Older projects have none and draw medium.
+    #[serde(default)]
+    pub size: PinSize,
+}
+
+/// The sizes a pin can be, smallest first, in one place; the app's pin bar
+/// offers the same steps in `app/src/sheet/pins/pinEdits.ts`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PinSize {
+    Small,
+    #[default]
+    Medium,
+    Large,
+    ExtraLarge,
+}
+
+impl PinSize {
+    /// How much larger than medium the marker draws.
+    pub fn scale(self) -> f64 {
+        match self {
+            PinSize::Small => 0.7,
+            PinSize::Medium => 1.0,
+            PinSize::Large => 1.45,
+            PinSize::ExtraLarge => 2.0,
+        }
+    }
+
+    /// The label grows more slowly than the marker, so a large pin's name
+    /// stays a label rather than turning into a heading.
+    pub fn label_scale(self) -> f64 {
+        self.scale().sqrt()
+    }
 }
 
 /// The markers a pin can be, in the order the app's palette offers them. The
@@ -100,6 +133,7 @@ mod tests {
             label: String::new(),
             x: 120_000.0,
             y: 487_000.0,
+            size: PinSize::Medium,
         }
     }
 
@@ -119,6 +153,14 @@ mod tests {
         let pins = [pin("pin-2", PinIcon::Pin)];
         assert_eq!(next_pin_id(&pins), "pin-3");
         assert_eq!(next_pin_id(&[]), "pin-1");
+    }
+
+    #[test]
+    fn a_pin_from_before_sizes_opens_medium() {
+        let json = r#"{"id": "pin-1", "icon": "star", "x": 120000, "y": 487000}"#;
+        let opened: Pin = serde_json::from_str(json).unwrap();
+        assert_eq!(opened.size, PinSize::Medium);
+        assert!(PinSize::Small.scale() < 1.0 && PinSize::ExtraLarge.label_scale() < 2.0);
     }
 
     #[test]

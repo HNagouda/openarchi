@@ -13,6 +13,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
+use crate::highlight::Highlight;
 use crate::pin::Pin;
 use crate::report::Report;
 use crate::scene::{Layer, Scene};
@@ -59,6 +60,9 @@ pub struct Project {
     /// Landmarks the user pinned, shown on every sheet that does not hide them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pins: Vec<Pin>,
+    /// Areas the user highlighted inside the site, shown on every sheet that does not hide them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub highlights: Vec<Highlight>,
 }
 
 impl Project {
@@ -138,6 +142,9 @@ pub struct Look {
     /// Leaves the project's pins off this sheet.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub hide_pins: bool,
+    /// Leaves the project's highlights off this sheet.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub hide_highlights: bool,
     /// The line this sheet is cut along in the section view, drawn on its
     /// plan as a cut marker. `None` until the user draws one; older projects have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -157,6 +164,7 @@ impl Default for Look {
             name: String::new(),
             selection: None,
             hide_pins: false,
+            hide_highlights: false,
             section: None,
         }
     }

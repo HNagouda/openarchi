@@ -1,0 +1,55 @@
+/* Highlights over the sheet: the shape being drawn or dragged, the selected one's handles, and the tool in the tab bar. */
+
+.highlight-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.highlight-draft {
+  fill: var(--accent-soft);
+  fill-opacity: 0.5;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 8 4;
+}
+
+polyline.highlight-draft {
+  fill: none;
+}
+
+.highlight-selected {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+.highlight-handle {
+  fill: var(--surface, #fff);
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+/* Highlights on the sheet can be picked up and moved, except where they cannot be edited. */
+.paper path[data-highlight] {
+  cursor: move;
+}
+
+/* While the tool is on, the sheet takes a crosshair instead of the hand that pans it. */
+.canvas-wrap.is-drawing-highlight .paper,
+.canvas-wrap.is-drawing-highlight .canvas {
+  cursor: crosshair;
+}
+
+.highlight-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.highlight-tools .button.is-active {
+  color: var(--accent);
+}

@@ -1,10 +1,10 @@
-// The project's sheets and pins as one value, so one undo stack covers adding,
+// The project's sheets, pins and highlights as one value, so one undo stack covers adding,
 // renaming, reordering and deleting tabs as well as every edit on a sheet.
 // Every function returns a new workbook and leaves the old one alone.
 
-import type { Look, Pin } from "../../lib/types";
+import type { Area, Highlight, Look, Pin } from "../../lib/types";
 
-export type Workbook = { sheets: Look[]; pins: Pin[] };
+export type Workbook = { sheets: Look[]; pins: Pin[]; highlights: Highlight[] };
 
 const COPY_SUFFIX = " copy";
 
@@ -25,8 +25,15 @@ export function withSheet(book: Workbook, index: number, look: Look): Workbook {
 /** A new last sheet in the look of sheet `from`, showing the whole site. */
 export function withNewSheet(book: Workbook, from: number): Workbook {
   const source = book.sheets[from];
-  const fresh: Look = { ...source, name: unusedName(book), selection: null, hide_pins: false };
+  const fresh: Look = { ...source, name: unusedName(book), selection: null, hide_pins: false, hide_highlights: false };
   return { ...book, sheets: [...book.sheets, fresh] };
+}
+
+/** A new last sheet in the look of sheet `from`, framing `selection` at `scale` and named `name`. */
+export function withAreaSheet(book: Workbook, from: number, name: string, selection: Area, scale: number): Workbook {
+  const source = book.sheets[from];
+  const framed: Look = { ...source, name, selection, sheet: { ...source.sheet, scale } };
+  return { ...book, sheets: [...book.sheets, framed] };
 }
 
 /** A copy of sheet `index`, right after it. */

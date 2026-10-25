@@ -6,8 +6,9 @@
 import { emit } from "@tauri-apps/api/event";
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { chosenVariant } from "../lib/diagrams";
-import type { Area, Catalog, Credit, LaserSettings, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
+import type { Area, Catalog, Highlight, Credit, LaserSettings, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
 import { answerPalette, withPaletteEdits } from "./mockPalettes";
+import { mockHighlightArea, withMockHighlights } from "./mockHighlights";
 import { withMockPins } from "./mockPins";
 import { withMockSection } from "./mockSection";
 import { mockBackdrop, mockBlockFixture, mockTextBlock } from "./mockReports";
@@ -72,9 +73,10 @@ function summary(id: string, name: string, modified: string, projectLook: Look):
 
 const fixture: Fixture = await fetch(`${FIXTURES}/fixture.json`).then((response) => response.json());
 let openLook: Look = PROJECTS[0].look!;
-// The open project's sheet tabs and pins, as save_sheets last left them.
+// The open project's sheet tabs, pins and highlights, as save_sheets last left them.
 let openSheets: Look[] = [openLook];
 let openPins: Pin[] = [];
+let openHighlights: Highlight[] = [];
 // The fixtures are drawn at the default scale; a sheet framing part of the site pretends to zoom in.
 const MOCK_SCALE = 2500;
 const MOCK_SELECTION_SCALE = 1000;
@@ -89,6 +91,7 @@ function view(project: ProjectSummary): ProjectView {
     look: project.look ?? look("context", "paper"),
     sheets: openSheets,
     pins: openPins,
+    highlights: openHighlights,
     has_scene: project.has_scene,
     fetched_at: project.has_scene ? project.modified : null,
     warnings: [],
@@ -127,6 +130,7 @@ async function answer(command: string, args: Args) {
     openLook = project.look ?? openLook;
     openSheets = [openLook];
     openPins = [];
+    openHighlights = [];
     return view(project);
   }
   if (command === "current_project") return view({ ...PROJECTS[0], look: openLook });
@@ -137,9 +141,11 @@ async function answer(command: string, args: Args) {
   if (command === "save_sheets") {
     openSheets = args.sheets as Look[];
     openPins = args.pins as Pin[];
+    openHighlights = (args.highlights as Highlight[] | undefined) ?? [];
     openLook = openSheets[0];
     return new Date().toISOString();
   }
+  if (command === "highlight_area") return mockHighlightArea(args.highlight as Highlight);
   if (command === "fitting_scale") return (args.look as Look).selection ? MOCK_SELECTION_SCALE : MOCK_SCALE;
   if (command === "render_preview") {
     const shown = args.look as Look;
@@ -150,7 +156,10 @@ async function answer(command: string, args: Args) {
     const svg = await fetch(`${FIXTURES}/previews/${name}.svg`).then((response) => response.text());
     if (shown.view.mode === "section") return svg;
     const withLine = withMockSection(svg, shown);
-    return shown.hide_pins ? withLine : withMockPins(withLine, (args.pins as Pin[] | undefined) ?? []);
+    // The explode fixture's ground points belong to its top plate, so its highlights are left off, as the app edits none there.
+    const highlights = shown.hide_highlights || shown.view.mode === "explode" ? [] : ((args.highlights as Highlight[] | undefined) ?? []);
+    const withHighlights = withMockHighlights(withLine, highlights);
+    return shown.hide_pins ? withHighlights : withMockPins(withHighlights, (args.pins as Pin[] | undefined) ?? []);
   }
   if (command === "render_thumbnail") return picture(args.look as Look);
   if (command === "search_places") {

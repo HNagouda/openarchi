@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 
 use openarchi_core::export::{export, ExportFormat};
+use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
 use tauri::{AppHandle, State};
@@ -66,6 +67,7 @@ pub async fn export_sheet(
     state: State<'_, Shared>,
     look: Look,
     pins: Vec<Pin>,
+    highlights: Vec<Highlight>,
     format: ExportFormat,
     dpi: u32,
     path: String,
@@ -80,7 +82,7 @@ pub async fn export_sheet(
             None => return Err("Fetch the site before exporting.".to_string()),
         };
         let catalog = current_catalog(&state);
-        with_input(&catalog, &scene, &look, &pins, |input| {
+        with_input(&catalog, &scene, &look, &pins, &highlights, |input| {
             export(input, format, dpi, Path::new(&path))
         })?;
         Ok(path)
@@ -97,6 +99,7 @@ pub async fn export_series(
     state: State<'_, Shared>,
     look: Look,
     pins: Vec<Pin>,
+    highlights: Vec<Highlight>,
     format: ExportFormat,
     dpi: u32,
     folder: String,
@@ -122,9 +125,14 @@ pub async fn export_series(
                     variant,
                     ..look.clone()
                 };
-                with_input(&catalog, &scene, &diagram_look, &pins, |input| {
-                    export(input, format, dpi, &path)
-                })?;
+                with_input(
+                    &catalog,
+                    &scene,
+                    &diagram_look,
+                    &pins,
+                    &highlights,
+                    |input| export(input, format, dpi, &path),
+                )?;
                 written.push(path.display().to_string());
             }
         }

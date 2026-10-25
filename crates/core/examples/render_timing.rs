@@ -78,6 +78,7 @@ fn main() {
             theme,
             look: &look,
             pins: &[],
+            highlights: &[],
         };
 
         let started = Instant::now();

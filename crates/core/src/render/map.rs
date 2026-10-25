@@ -13,6 +13,7 @@ use super::derived;
 use super::drawing::{pattern_id, shadow_colour, write_layer, Canvas, Drawn};
 use super::frame::{ground_outline, FrameShape};
 use super::geometry::{ground_centre, Projection};
+use super::highlights::{self, HighlightLayer};
 use super::layout::{Layout, Rect};
 use super::legend::{self, Legend, Row, Swatch};
 use super::massing;
@@ -83,6 +84,9 @@ pub struct MapSpec<'a> {
     pub reach_m: Option<f64>,
     /// Where the neighbourhood shows, when this map shows one.
     pub context: Option<ContextArea>,
+    /// The project's highlights lie on this map's ground: a plan, an
+    /// axonometric, or the bottom plate of an explode view.
+    pub has_highlights: bool,
 }
 
 pub struct Map {
@@ -120,6 +124,7 @@ pub fn plan(input: &RenderInput, layout: &Layout, typesetter: &Typesetter) -> Re
             zone,
             reach_m: None,
         }),
+        has_highlights: true,
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -180,6 +185,7 @@ pub fn axonometric(
             zone,
             reach_m: None,
         }),
+        has_highlights: true,
     };
     let map = draw(input, &spec, typesetter)?;
 
@@ -455,6 +461,19 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         write_shadows(&mut body, &casters, &sun, &canvas, theme, opacity);
     }
     write_outlines(&mut body, &frame, spec, theme);
+    let highlight_layer = HighlightLayer {
+        highlights: if spec.has_highlights && !look.hide_highlights {
+            highlights::shown(input.highlights, scene)
+        } else {
+            Vec::new()
+        },
+        scene,
+        has_volume: spec.has_volume,
+        canvas: &canvas,
+        palette,
+        typesetter,
+    };
+    highlights::write_shapes(&mut body, &highlight_layer);
     if spec.has_volume {
         let solid_layer = |layer: Layer| {
             layers
@@ -480,6 +499,8 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         );
     }
 
+    highlights::write_over(&mut body, &highlight_layer);
+
     let mut legend = legend::build(&layers, &drawn, diagram, &palette.accent);
     // The note names the year of the data, which only the scene knows.
     if legend.note.is_some() {
@@ -497,6 +518,9 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     for (offset, row) in band_rows.into_iter().enumerate() {
         legend.rows.insert(site_row + offset, row);
     }
+    legend
+        .rows
+        .extend(highlights::legend_rows(&highlight_layer));
     if is_shadow_diagram {
         legend.rows.push(shadow_row(&sun, look, theme));
     }

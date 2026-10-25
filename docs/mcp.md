@@ -73,7 +73,10 @@ On Windows, write the path with double backslashes, like `"C:\\Program Files\\op
 | `list_diagrams`, `list_themes` | Shows the diagrams, with their group and variants, and the themes to choose from |
 | `set_look` | Changes the diagram and its variant, theme, sheet, single layers, the view and the sun's date and time, on the first sheet tab or the one `tab` names |
 | `list_sheets`, `add_sheet` | Lists a project's sheet tabs, and adds one copied from another, optionally framing a smaller area inside the site that it zooms to |
-| `list_pins`, `add_pin`, `move_pin`, `remove_pin` | Marks landmarks with a pin, star, flag or dot and a label, shown on every sheet that does not hide pins |
+| `list_pins`, `add_pin`, `move_pin`, `remove_pin` | Marks landmarks with a pin, star, flag or dot in one of four sizes and a label, shown on every sheet that does not hide pins |
+| `list_highlights`, `add_highlight`, `edit_highlight`, `remove_highlight` | Highlights an area inside the site, like the plot or a proposed house, as a circle, rectangle or polygon with a label, a solid or dashed outline, and optionally its area and "dim the rest" |
+| `open_highlight_as_sheet` | Adds a sheet tab framing exactly one highlight, so its ratios and figures describe that area |
+| `show_on_sheet` | Shows or hides the pins and the highlights on one sheet tab |
 | `set_section` | Draws, moves, flips or clears a sheet's section line, from A to A' in longitude and latitude, and sets how far beyond it the section shows buildings and trees, its scale and how much taller heights are drawn |
 | `edit_text` | Adds, restyles, moves or deletes text on the sheet: the title, the subtitle and text boxes |
 | `render_preview` | Renders the sheet as an image the assistant can see |
@@ -111,6 +114,8 @@ Some diagrams answer one question with a choice of measure. Air quality has the 
 ```
 
 ## How does an assistant cut a section?
+
+A highlight's middle must lie inside the fetched site, and it must cover at least 4 m², the same rules the app's highlight tool follows. `add_highlight` takes its `shape` as a circle, rectangle or polygon in longitude and latitude, like `create_project`'s area; it is kept in RD New metres, so a rectangle stays square to the RD grid. Highlights draw in the palette's accent on every sheet that does not hide them: on the ground in a plan and an axonometric, on the bottom plate of an explode view, and not on a section. `open_highlight_as_sheet` adds a tab whose area is exactly the highlight, named after its label.
 
 A section needs a line first, as in the app, where the Section view is greyed out until one is drawn. `set_section` takes `from` (A) and `to` (A') as longitude and latitude, both inside the site or its neighbourhood and at least 5 m apart, and `depth_m` for how far beyond the line buildings and trees are drawn (60 m to start, at most 500). The section looks to the left of the line as you walk from A to A'; `flip: true` swaps the ends to look the other way. `scale` picks the scale as N in 1:N from the same list as the app's Scale menu (100 to 20000), and `0` goes back to the largest that fits the sheet; `exaggeration` draws heights 1, 2 or 5 times taller, as the Heights buttons do. Then `set_look` with `view.mode` `section` shows it, and `render_preview` draws it. `clear: true` removes the line and puts a sheet in the section view back on its plan. `list_sheets` shows each tab's line.
 

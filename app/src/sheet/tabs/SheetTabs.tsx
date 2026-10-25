@@ -1,6 +1,7 @@
 // The bar under the sheet: one tab per sheet, and on the right the tools that
-// belong to the showing sheet, its pins, its section line and the area it frames.
+// belong to the showing sheet, its pins, its highlights, its section line and the area it frames.
 
+import type { ReactNode } from "react";
 import type { Look, PinIcon } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { PinPalette } from "../pins/PinPalette";
@@ -24,6 +25,8 @@ type Props = {
   onEditArea: () => void;
   isDrawingSection: boolean;
   onSectionTool: () => void;
+  /** The highlight tool, which SheetStep wires to its own state. */
+  highlightTools: ReactNode;
 };
 
 export function SheetTabs(props: Props) {
@@ -58,6 +61,8 @@ export function SheetTabs(props: Props) {
         disabled={!isReady}
         onClick={() => props.onLook({ ...look, hide_pins: !arePinsHidden })}
       />
+      <span className="topbar-divider" />
+      {props.highlightTools}
       <span className="topbar-divider" />
       <Button
         icon="section"

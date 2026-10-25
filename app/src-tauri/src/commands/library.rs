@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use openarchi_core::area::Area;
+use openarchi_core::highlight::Highlight;
 use openarchi_core::library::{Library, ProjectSummary};
 use openarchi_core::pin::Pin;
 use openarchi_core::project::{packed_scene, Look, Project};
@@ -26,6 +27,7 @@ pub struct ProjectView {
     /// Every sheet in tab order, the first being `look`.
     pub sheets: Vec<Look>,
     pub pins: Vec<Pin>,
+    pub highlights: Vec<Highlight>,
     pub has_scene: bool,
     pub fetched_at: Option<String>,
     pub warnings: Vec<String>,
@@ -60,6 +62,7 @@ pub fn view_of(open: &OpenProject) -> ProjectView {
         look: project.look.clone(),
         sheets: project.sheets(),
         pins: project.pins.clone(),
+        highlights: project.highlights.clone(),
         has_scene: scene.is_some(),
         fetched_at: scene.map(|scene| scene.fetched_at.clone()),
         warnings: scene

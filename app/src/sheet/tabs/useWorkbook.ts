@@ -1,23 +1,23 @@
-// The open project's sheets and pins, the tab that is showing, and every way
-// they change. Sheets and pins share one undo stack, so deleting a tab undoes
+// The open project's sheets, pins and highlights, the tab that is showing, and
+// every way they change. They share one undo stack, so deleting a tab undoes
 // like any other edit. The look of the showing tab is what the rest of the
 // workspace edits, through `changeLook`, exactly as before there were tabs.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorText, fittingScale, saveSheets } from "../../lib/ipc";
 import { useHistory } from "../../lib/history";
-import type { Area, Look, Pin, ProjectView } from "../../lib/types";
+import type { Area, Highlight, Look, Pin, ProjectView } from "../../lib/types";
 import { useToast } from "../../ui/Toasts";
-import { movedTo, sheetName, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
+import { movedTo, sheetName, withAreaSheet, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
 
-/** The sheets and pins a project view holds; a view from before tabs has only its look. */
+/** The sheets, pins and highlights a project view holds; a view from before tabs has only its look. */
 export function workbookOf(project: ProjectView): Workbook {
   const sheets = project.sheets?.length ? project.sheets : [project.look];
-  return { sheets, pins: project.pins ?? [] };
+  return { sheets, pins: project.pins ?? [], highlights: project.highlights ?? [] };
 }
 
-/** Writes every sheet and pin of the open project. */
-export const saveWorkbook = (book: Workbook) => saveSheets(book.sheets, book.pins);
+/** Writes every sheet, pin and highlight of the open project. */
+export const saveWorkbook = (book: Workbook) => saveSheets(book.sheets, book.pins, book.highlights);
 
 /** The first sheet that differs between two workbooks of the same length, for undo to show it. */
 function changedSheet(before: Workbook, after: Workbook): number | null {
@@ -69,6 +69,25 @@ export function useWorkbook(project: ProjectView) {
     (pins: Pin[], mergeKey?: string) => history.change({ ...latest.current.book, pins }, mergeKey),
     [history],
   );
+
+  const changeHighlights = useCallback(
+    (highlights: Highlight[], mergeKey?: string) => history.change({ ...latest.current.book, highlights }, mergeKey),
+    [history],
+  );
+
+  /** A new tab after the others, in the showing sheet's look, framing `selection` at the scale that fills the paper. */
+  const addAreaSheet = async (name: string, selection: Area) => {
+    const { book: current, index: from } = latest.current;
+    try {
+      const scale = await fittingScale({ ...current.sheets[from], selection });
+      // The tab may have changed while the scale was worked out; add to the newest workbook.
+      const newest = latest.current.book;
+      history.change(withAreaSheet(newest, from, name, selection, scale));
+      setActive(newest.sheets.length);
+    } catch (error) {
+      toast(`Couldn't open that area as a sheet. ${errorText(error)}`, { isError: true });
+    }
+  };
 
   const addSheet = () => {
     history.change(withNewSheet(book, index));
@@ -122,6 +141,8 @@ export function useWorkbook(project: ProjectView) {
     replace: history.replace,
     changeLook,
     changePins,
+    changeHighlights,
+    addAreaSheet,
     addSheet,
     duplicateSheet,
     deleteSheet,

@@ -77,7 +77,8 @@ impl OpenArchi {
             tool_router: Self::tool_router()
                 + Self::sheet_tools()
                 + Self::laser_tools()
-                + Self::section_tools(),
+                + Self::section_tools()
+                + Self::highlight_tools(),
         }
     }
 

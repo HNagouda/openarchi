@@ -13,6 +13,13 @@ const PATHS: Record<string, string> = {
   circle: "M8 13.5A5.5 5.5 0 1 0 8 2.5a5.5 5.5 0 0 0 0 11z",
   rectangle: "M2.5 4h11v8h-11z",
   polygon: "M8 2.5l5.5 4-2 7h-7l-2-7z",
+  // Highlights: a hatched area, the two outlines, "dim the rest", the area in m² and "Open as sheet".
+  highlight: "M3 3h10v10H3zM3 8l5-5M3 13 13 3M8 13l5-5",
+  lineSolid: "M2.5 8h11",
+  lineDashed: "M2.5 8h2.5M6.75 8h2.5M11 8h2.5",
+  dim: "M8 13.5A5.5 5.5 0 1 0 8 2.5a5.5 5.5 0 0 0 0 11zM8 2.5v11M8 5h3.5M8 8h5.5M8 11h3.5",
+  measure: "M2.5 11.5l9-9 2 2-9 9zM5 9l1.5 1.5M7 7l1.5 1.5M9 5l1.5 1.5",
+  openSheet: "M2.5 3.5h11v9h-11zM6 10l4.5-4.5M7.5 5.5h3v3",
   square: "M3 3h10v10H3z",
   area: "M3 5.5 7.5 2.5 13 4.5 12 11.5 6 13.5 2.5 10z",
   section: "M2.5 10h11M2.5 7v6M13.5 7v6M2.5 7l2-2.5M13.5 7l-2-2.5",

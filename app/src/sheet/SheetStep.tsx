@@ -29,6 +29,8 @@ import { PaletteSwatches } from "../ui/ColorPicker";
 import { paletteSwatches } from "./paletteSwatches";
 import { PinOverlay } from "./pins/PinOverlay";
 import { usePinTool } from "./pins/usePinTool";
+import { useSheetHighlights } from "./highlights/useSheetHighlights";
+import { doubleClickPaper, pressPaper } from "./paperPress";
 import { SelectionDialog } from "./selection/SelectionDialog";
 import { SectionOverlay } from "./section/SectionOverlay";
 import { useSectionTool } from "./section/useSectionTool";
@@ -64,7 +66,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const toast = useToast();
 
   const isReady = catalog !== null && project.has_scene;
-  const preview = usePreview(look, book.pins, revision, isReady);
+  const preview = usePreview(look, book.pins, book.highlights, revision, isReady);
   const thumbnails = useThumbnails(look, catalog?.diagrams ?? [], revision, isReady);
   // The report library, gathered in the background so it is ready when Reports opens.
   const libraryPreviews = useLibraryPreviews(project, book.sheets[0].theme_id, isReady);
@@ -89,7 +91,21 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     isEnabled: isEditable,
     onRefused: (message) => toast(message),
   });
+  const highlights = useSheetHighlights({
+    look,
+    highlights: book.highlights,
+    onHighlights: history.changeHighlights,
+    onLook: history.changeLook,
+    onSeal: history.seal,
+    addAreaSheet: history.addAreaSheet,
+    canvas,
+    svg: preview.svg,
+    isEditable,
+    isReady,
+    toast,
+  });
   const sectionTool = useSectionTool({ look, onLook: history.changeLook, svg: preview.svg, isEnabled: isEditable, onRefused: (message) => toast(message) });
+  const paperTools = { section: sectionTool, highlight: highlights.tool, pin: pinTool, text: textTool };
   useTabKeys(book.sheets.length, history.index, history.setActive, !isExportOpen && !isAreaOpen && !isReportsOpen);
 
   // A new diagram starts on its first variant.
@@ -202,7 +218,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
       ArrowLeft: () => stepVariant(-1),
       ArrowRight: () => stepVariant(1),
     };
-    if (steps[key] && textTool.selectedId === null && pinTool.selectedId === null) {
+    const isNothingSelected = textTool.selectedId === null && pinTool.selectedId === null && highlights.tool.selectedId === null;
+    if (steps[key] && isNothingSelected) {
       event.preventDefault();
       steps[key]();
     }
@@ -252,30 +269,18 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           <ColumnResizer column={DIAGRAM_COLUMN} />
         </div>
         <div className="sheet-main">
-          <div className={sectionTool.isDrawing ? "canvas-wrap is-drawing-section" : "canvas-wrap"}>
+          <div className={["canvas-wrap", sectionTool.isDrawing ? "is-drawing-section" : "", highlights.tool.isDrawing ? "is-drawing-highlight" : ""].join(" ")}>
             <Canvas
               svg={preview.svg}
               controls={canvas}
               onZoom={setZoom}
-              onPaperPointerDown={(event, view) => {
-                // A section being drawn takes every press; then pins, which sit on top of the drawing.
-                if (sectionTool.isDrawing) return sectionTool.onPaperPointerDown(event, view);
-                if (pinTool.onPaperPointerDown(event, view)) {
-                  textTool.setSelectedId(null);
-                  sectionTool.setSelected(false);
-                  return true;
-                }
-                if (sectionTool.onPaperPointerDown(event, view)) {
-                  textTool.setSelectedId(null);
-                  return true;
-                }
-                return textTool.onPaperPointerDown(event, view);
-              }}
-              onPaperDoubleClick={(event, view) => pinTool.onPaperDoubleClick(event, view) || textTool.onPaperDoubleClick(event, view)}
+              onPaperPointerDown={(event, view) => pressPaper(event, view, paperTools)}
+              onPaperDoubleClick={(event, view) => doubleClickPaper(event, view, paperTools)}
               overlay={(view) =>
                 preview.svg && (
                   <>
                     <SectionOverlay view={view} svg={preview.svg} draft={sectionTool.draft} isSelected={sectionTool.isSelected} />
+                    {highlights.overlay(view)}
                     <PinOverlay
                       view={view}
                       svg={preview.svg}
@@ -339,6 +344,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
             onEditArea={() => setAreaOpen(true)}
             isDrawingSection={sectionTool.isDrawing}
             onSectionTool={sectionTool.toggle}
+            highlightTools={highlights.tabTools}
           />
         </div>
         <div className={isInspectorOpen ? "inspector-slot is-open" : "inspector-slot"}>
@@ -366,6 +372,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         <ExportDialog
           look={look}
           pins={book.pins}
+          highlights={book.highlights}
           diagramName={diagramName}
           variantId={variant?.id ?? null}
           sheetCount={sheetCount}

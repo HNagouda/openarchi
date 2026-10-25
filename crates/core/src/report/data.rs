@@ -7,6 +7,7 @@
 
 use crate::analysis::{self, Part, Section};
 use crate::diagram::Diagram;
+use crate::highlight::Highlight;
 use crate::pin::Pin;
 use crate::project::Look;
 use crate::ratios::{self, Group, Ratios};
@@ -24,6 +25,8 @@ pub struct ReportData<'a> {
     /// The project's pins. Sheet blocks show them, as every sheet does unless
     /// its look hides them.
     pub pins: &'a [Pin],
+    /// The project's highlights, shown like the pins.
+    pub highlights: &'a [Highlight],
     pub diagrams: &'a [Diagram],
     /// The palette the report is drawn in.
     pub theme: &'a Theme,
@@ -36,10 +39,12 @@ pub struct ReportData<'a> {
 impl<'a> ReportData<'a> {
     /// Computes what `contents` need. Climate and rain read the tile cache,
     /// and on first use wait on PVGIS and KNMI.
+    #[allow(clippy::too_many_arguments)]
     pub fn gather<'c>(
         scene: &'a Scene,
         look: &'a Look,
         pins: &'a [Pin],
+        highlights: &'a [Highlight],
         diagrams: &'a [Diagram],
         theme: &'a Theme,
         cache: &TileCache,
@@ -68,6 +73,7 @@ impl<'a> ReportData<'a> {
             scene,
             look,
             pins,
+            highlights,
             diagrams,
             theme,
             ratios,

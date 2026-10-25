@@ -92,6 +92,7 @@ pub fn with_render_input<T>(
         theme: &theme,
         look,
         pins: &project.pins,
+        highlights: &project.highlights,
     };
     work(&input).map_err(|e| e.to_string())
 }

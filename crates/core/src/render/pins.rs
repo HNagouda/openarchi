@@ -84,7 +84,8 @@ pub fn write(out: &mut String, layer: &PinLayer) {
 }
 
 fn write_pin(out: &mut String, layer: &PinLayer, pin: &Pin, (x, y): (f64, f64)) {
-    let unit = layer.typesetter.unit;
+    // Every marker measure goes through `unit`, so the pin's size scales the whole marker.
+    let unit = layer.typesetter.unit * pin.size.scale();
     let palette = layer.palette;
     let icon = match pin.icon {
         PinIcon::Pin => "pin",
@@ -154,7 +155,8 @@ fn write_pin(out: &mut String, layer: &PinLayer, pin: &Pin, (x, y): (f64, f64)) 
         }
     };
     if !pin.label.is_empty() {
-        write_label(out, layer, &pin.label, x + reach + LABEL_GAP * unit, middle);
+        let at = (x + reach + LABEL_GAP * unit, middle);
+        write_label(out, layer, &pin.label, at, pin.size.label_scale());
     }
     out.push_str("</g>");
 }
@@ -248,13 +250,32 @@ fn write_disc(
     );
 }
 
-/// The label in ink on a paper halo, so it reads over any fill.
-fn write_label(out: &mut String, layer: &PinLayer, label: &str, x: f64, middle: f64) {
+/// The label in ink on a paper halo, so it reads over any fill. A pin larger
+/// or smaller than medium scales its label about the label's start.
+fn write_label(
+    out: &mut String,
+    layer: &PinLayer,
+    label: &str,
+    (x, middle): (f64, f64),
+    scale: f64,
+) {
     let typesetter = layer.typesetter;
     let baseline = middle + typesetter.cap_height(Kind::PinLabel) / 2.0;
+    let transform = if scale == 1.0 {
+        String::new()
+    } else {
+        format!(
+            r#" transform="translate({} {}) scale({}) translate({} {})""#,
+            mm(x),
+            mm(middle),
+            decimal(scale),
+            mm(-x),
+            mm(-middle)
+        )
+    };
     let _ = write!(
         out,
-        r#"<g stroke="{}" stroke-width="{}" stroke-linejoin="round" paint-order="stroke">"#,
+        r#"<g stroke="{}" stroke-width="{}" stroke-linejoin="round" paint-order="stroke"{transform}>"#,
         layer.palette.paper,
         mm(LABEL_HALO_MM * typesetter.unit)
     );

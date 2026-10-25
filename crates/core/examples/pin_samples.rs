@@ -10,7 +10,7 @@ use openarchi_core::area::Area;
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
 use openarchi_core::crs::rd_to_wgs84;
 use openarchi_core::export::render_png;
-use openarchi_core::pin::{Pin, PinIcon};
+use openarchi_core::pin::{Pin, PinIcon, PinSize};
 use openarchi_core::project::Look;
 use openarchi_core::render::{fitting_scale, render_svg, RenderInput};
 use openarchi_core::scene::Scene;
@@ -22,14 +22,27 @@ const SAMPLE_WIDTH_PX: u32 = 1800;
 const SELECTION_OFFSET_M: (f64, f64) = (-60.0, -10.0);
 const SELECTION_RADIUS_M: f64 = 70.0;
 
-/// One pin of each kind, in metres from the site centre, with its label.
-const PINS: [(PinIcon, &str, f64, f64); 6] = [
-    (PinIcon::Pin, "Westerkerk", -60.0, -10.0),
-    (PinIcon::Star, "Anne Frank House", -40.0, 60.0),
-    (PinIcon::Flag, "Tram stop", 70.0, -30.0),
-    (PinIcon::Dot, "", 120.0, 120.0),
-    (PinIcon::Number, "Entrance", -20.0, -110.0),
-    (PinIcon::Number, "", 150.0, -60.0),
+/// One pin of each kind and size, in metres from the site centre, with its label.
+const PINS: [(PinIcon, PinSize, &str, f64, f64); 7] = [
+    (
+        PinIcon::Pin,
+        PinSize::ExtraLarge,
+        "Westerkerk",
+        -60.0,
+        -10.0,
+    ),
+    (
+        PinIcon::Star,
+        PinSize::Large,
+        "Anne Frank House",
+        -40.0,
+        60.0,
+    ),
+    (PinIcon::Flag, PinSize::Medium, "Tram stop", 70.0, -30.0),
+    (PinIcon::Dot, PinSize::Small, "", 120.0, 120.0),
+    (PinIcon::Number, PinSize::Medium, "Entrance", -20.0, -110.0),
+    (PinIcon::Number, PinSize::Medium, "", 150.0, -60.0),
+    (PinIcon::Star, PinSize::Small, "Kiosk", 20.0, 100.0),
 ];
 
 fn main() {
@@ -96,12 +109,13 @@ fn main() {
 fn pins(scene: &Scene) -> Vec<Pin> {
     PINS.iter()
         .enumerate()
-        .map(|(index, &(icon, label, east, north))| Pin {
+        .map(|(index, &(icon, size, label, east, north))| Pin {
             id: format!("pin-{}", index + 1),
             icon,
             label: label.to_string(),
             x: scene.origin.0 + east,
             y: scene.origin.1 + north,
+            size,
         })
         .collect()
 }
@@ -114,6 +128,7 @@ fn svg(scene: &Scene, look: &Look, pins: &[Pin]) -> String {
         theme: &theme,
         look,
         pins,
+        highlights: &[],
     })
     .expect("render")
 }
@@ -126,6 +141,7 @@ fn write(scene: &Scene, look: &Look, pins: &[Pin], path: &Path) {
         theme: &theme,
         look,
         pins,
+        highlights: &[],
     };
     let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render");
     std::fs::write(path, png).expect("write the sample");

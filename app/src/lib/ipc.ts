@@ -15,6 +15,7 @@ import type {
   LaserSettings,
   LaserSummary,
   Look,
+  Highlight,
   Pin,
   Place,
   Progress,
@@ -35,8 +36,11 @@ export const openProject = (id: string) => invoke<ProjectView>("open_project", {
 export const reloadProject = () => invoke<ProjectView>("reload_project");
 export const closeProject = () => invoke<void>("close_project");
 export const saveLook = (look: Look) => invoke<string>("save_look", { look });
-/** Every sheet in tab order, and the project's pins. Returns the new modified time. */
-export const saveSheets = (sheets: Look[], pins: Pin[]) => invoke<string>("save_sheets", { sheets, pins });
+/** Every sheet in tab order, and the project's pins and highlights. Returns the new modified time. */
+export const saveSheets = (sheets: Look[], pins: Pin[], highlights: Highlight[]) =>
+  invoke<string>("save_sheets", { sheets, pins, highlights });
+/** The sheet area a highlight becomes when it opens as a sheet, in longitude and latitude. */
+export const highlightArea = (highlight: Highlight) => invoke<Area>("highlight_area", { highlight });
 /** The largest round scale at which the look's area, or its sub-selection, fills the sheet. */
 export const fittingScale = (look: Look) => invoke<number>("fitting_scale", { look });
 export const renameProject = (id: string, name: string) =>
@@ -45,7 +49,8 @@ export const deleteProject = (id: string) => invoke<void>("delete_project", { id
 export const restoreProject = (id: string) => invoke<void>("restore_project", { id });
 
 export const getCatalog = () => invoke<Catalog>("get_catalog");
-export const renderPreview = (look: Look, pins: Pin[]) => invoke<string>("render_preview", { look, pins });
+export const renderPreview = (look: Look, pins: Pin[], highlights: Highlight[]) =>
+  invoke<string>("render_preview", { look, pins, highlights });
 export const renderThumbnail = (look: Look, width: number) =>
   invoke<string>("render_thumbnail", { look, width });
 export const projectThumbnail = (id: string, modified: string, width: number) =>
@@ -57,10 +62,10 @@ export const fetchSite = (area: Area) => invoke<number>("fetch_site", { area });
 export const cancelFetch = () => invoke<void>("cancel_fetch");
 export const currentProject = () => invoke<ProjectView>("current_project");
 
-export const exportSheet = (look: Look, pins: Pin[], format: ExportFormat, dpi: number, path: string) =>
-  invoke<string>("export_sheet", { look, pins, format, dpi, path });
-export const exportSeries = (look: Look, pins: Pin[], format: ExportFormat, dpi: number, folder: string) =>
-  invoke<string[]>("export_series", { look, pins, format, dpi, folder });
+export const exportSheet = (look: Look, pins: Pin[], highlights: Highlight[], format: ExportFormat, dpi: number, path: string) =>
+  invoke<string>("export_sheet", { look, pins, highlights, format, dpi, path });
+export const exportSeries = (look: Look, pins: Pin[], highlights: Highlight[], format: ExportFormat, dpi: number, folder: string) =>
+  invoke<string[]>("export_series", { look, pins, highlights, format, dpi, folder });
 export const laserSummary = (look: Look, settings: LaserSettings) => invoke<LaserSummary>("laser_summary", { look, settings });
 export const exportLaser = (look: Look, settings: LaserSettings, folder: string) =>
   invoke<LaserExport>("export_laser", { look, settings, folder });

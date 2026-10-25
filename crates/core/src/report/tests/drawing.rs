@@ -178,7 +178,8 @@ fn a_three_page_report_exports_as_one_pdf_and_a_png_per_page() {
         .pages
         .iter()
         .flat_map(|page| page.blocks.iter().map(|block| &block.content));
-    let data = ReportData::gather(&scene, &look, &[], &diagrams, &theme, &cache, contents).unwrap();
+    let data =
+        ReportData::gather(&scene, &look, &[], &[], &diagrams, &theme, &cache, contents).unwrap();
     let folder = TempDir::new().unwrap();
 
     let pdf = export(
@@ -221,6 +222,7 @@ fn a_sheet_block_shows_the_projects_pins() {
         label: "Entrance".to_string(),
         x: scene.origin.0,
         y: scene.origin.1,
+        size: crate::pin::PinSize::Medium,
     }];
     let report = report(vec![page(
         "page-1",
@@ -228,8 +230,17 @@ fn a_sheet_block_shows_the_projects_pins() {
     )]);
     let contents = [&report.pages[0].blocks[0].content];
 
-    let data =
-        ReportData::gather(&scene, &look, &pins, &diagrams, &theme, &cache, contents).unwrap();
+    let data = ReportData::gather(
+        &scene,
+        &look,
+        &pins,
+        &[],
+        &diagrams,
+        &theme,
+        &cache,
+        contents,
+    )
+    .unwrap();
     let svg = page_svg(&report, 0, &data).unwrap();
 
     assert!(svg.contains(r#"data-pin="pin-1""#));

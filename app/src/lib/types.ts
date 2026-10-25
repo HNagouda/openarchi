@@ -123,6 +123,8 @@ export type Look = {
   selection?: Area | null;
   /** Leaves the project's pins off this sheet. */
   hide_pins?: boolean;
+  /** Leaves the project's highlights off this sheet. */
+  hide_highlights?: boolean;
   /** The line the section view cuts along; missing until one is drawn. */
   section?: SectionLine | null;
 };
@@ -142,8 +144,27 @@ export type SectionLine = {
 // crates/core/src/pin.rs
 // "number" is no longer offered in the app, but older projects still hold numbered pins.
 export type PinIcon = "pin" | "star" | "flag" | "dot" | "number";
-/** A landmark in RD New metres, shown on every sheet that does not hide pins. */
-export type Pin = { id: string; icon: PinIcon; label: string; x: number; y: number };
+export type PinSize = "small" | "medium" | "large" | "extra_large";
+/** A landmark in RD New metres, shown on every sheet that does not hide pins. Older pins have no size and draw medium. */
+export type Pin = { id: string; icon: PinIcon; label: string; x: number; y: number; size?: PinSize };
+
+// crates/core/src/highlight.rs
+/** A shape in RD New metres; a rectangle is square to the RD grid. */
+export type HighlightShape =
+  | { kind: "circle"; center: [number, number]; radius_m: number }
+  | { kind: "rectangle"; min: [number, number]; max: [number, number] }
+  | { kind: "polygon"; points: [number, number][] };
+export type HighlightKind = HighlightShape["kind"];
+export type Outline = "solid" | "dashed";
+/** An area marked inside the site, shown on every sheet that does not hide highlights. */
+export type Highlight = {
+  id: string;
+  label: string;
+  shape: HighlightShape;
+  outline: Outline;
+  dims_rest: boolean;
+  shows_area: boolean;
+};
 
 export type Palette = {
   paper: string;
@@ -233,6 +254,7 @@ export type ProjectView = {
   /** Every sheet in tab order, the first being `look`. */
   sheets: Look[];
   pins: Pin[];
+  highlights: Highlight[];
   has_scene: boolean;
   fetched_at: string | null;
   warnings: string[];
