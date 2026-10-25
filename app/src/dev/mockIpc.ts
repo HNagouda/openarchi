@@ -73,9 +73,8 @@ function summary(id: string, name: string, modified: string, projectLook: Look):
 }
 
 const fixture: Fixture = await fetch(`${FIXTURES}/fixture.json`).then((response) => response.json());
-let openLook: Look = PROJECTS[0].look!;
 // The open project's sheet tabs, pins and highlights, as save_sheets last left them.
-let openSheets: Look[] = [openLook];
+let openSheets: Look[] = [PROJECTS[0].look!];
 let openPins: Pin[] = [];
 let openHighlights: Highlight[] = [];
 // The fixtures are drawn at the default scale; a sheet framing part of the site pretends to zoom in.
@@ -128,22 +127,16 @@ async function answer(command: string, args: Args) {
   if (command === "get_catalog") return withPaletteEdits(fixture.catalog);
   if (command === "project_thumbnail") return project?.has_scene && project.look ? picture(project.look) : null;
   if (command === "open_project" && project) {
-    openLook = project.look ?? openLook;
-    openSheets = [openLook];
+    openSheets = [project.look ?? openSheets[0]];
     openPins = [];
     openHighlights = [];
     return view(project);
   }
-  if (command === "current_project") return view({ ...PROJECTS[0], look: openLook });
-  if (command === "save_look") {
-    openLook = args.look as Look;
-    return new Date().toISOString();
-  }
+  if (command === "current_project") return view({ ...PROJECTS[0], look: openSheets[0] });
   if (command === "save_sheets") {
     openSheets = args.sheets as Look[];
     openPins = args.pins as Pin[];
     openHighlights = (args.highlights as Highlight[] | undefined) ?? [];
-    openLook = openSheets[0];
     return new Date().toISOString();
   }
   if (command === "highlight_area") return mockHighlightArea(args.highlight as Highlight);
@@ -187,7 +180,7 @@ async function answer(command: string, args: Args) {
   if (command === "render_report_block") return reportBlock(args.themeId as string, args.block as ReportBlock);
   if (command === "render_report_backdrop") {
     const report = args.report as Report;
-    const theme = fixture.catalog.themes.find((entry) => entry.id === (report.theme_id ?? openLook.theme_id));
+    const theme = fixture.catalog.themes.find((entry) => entry.id === (report.theme_id ?? openSheets[0].theme_id));
     return theme ? mockBackdrop(report, args.index as number, theme) : null;
   }
   if (command === "laser_summary") return mockLaserSummary(args.settings as LaserSettings);
@@ -214,7 +207,7 @@ async function reportBlock(themeId: string, block: ReportBlock): Promise<string>
   const theme = fixture.catalog.themes.find((entry) => entry.id === themeId);
   if (content.kind === "text") return theme ? mockTextBlock(block, theme) : "";
   if (content.kind === "sheet") {
-    const shown = { ...openLook, diagram_id: content.diagram_id, variant: content.variant ?? null, theme_id: themeId };
+    const shown = { ...openSheets[0], diagram_id: content.diagram_id, variant: content.variant ?? null, theme_id: themeId };
     return fetch(`${FIXTURES}/previews/${fixtureName(shown)}.svg`).then((response) => response.text());
   }
   return fetch(`${FIXTURES}/report-blocks/${mockBlockFixture(content)}--${themeId}.svg`).then((response) => response.text());

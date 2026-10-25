@@ -36,7 +36,6 @@ export const createProject = (name: string, area: Area) =>
 export const openProject = (id: string) => invoke<ProjectView>("open_project", { id });
 export const reloadProject = () => invoke<ProjectView>("reload_project");
 export const closeProject = () => invoke<void>("close_project");
-export const saveLook = (look: Look) => invoke<string>("save_look", { look });
 /** Every sheet in tab order, and the project's pins and highlights. Returns the new modified time. */
 export const saveSheets = (sheets: Look[], pins: Pin[], highlights: Highlight[]) =>
   invoke<string>("save_sheets", { sheets, pins, highlights });
