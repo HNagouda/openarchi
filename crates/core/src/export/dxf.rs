@@ -1,75 +1,109 @@
-//! The scene as a DXF drawing: one CAD layer per scene layer, in real RD New metres.
-//! The neighbourhood around the site goes on layers of its own, "OA-CONTEXT-BUILDING"
-//! and so on, in one grey, so it can be switched off or locked as a whole.
+//! A plan sheet as a DXF drawing: one CAD layer per scene layer, in real RD
+//! New metres. The neighbourhood around the site goes on layers of its own,
+//! "OA-CONTEXT-BUILDING" and so on, in one grey, so it can be switched off or
+//! locked as a whole.
 //!
-//! Written as DXF R12 (AC1009), the oldest flavour every CAD and GIS program
-//! still opens, and the only one that needs no object handles. No styling
-//! beyond a layer colour: CAD users bring their own.
+//! Every stored layer is written whatever the diagram shows, because a CAD
+//! user switches layers off more easily than they fetch data again. The
+//! diagram adds what exists only when it is drawn: its computed layers (city
+//! blocks, hours of sun, whatever `render/derived.rs` works out) and, for a
+//! diagram that classifies a layer, one CAD layer per legend class, so a
+//! building-height sheet arrives as "OA-BUILDING-6-10-M" and so on. Highlights,
+//! the section line and pins each get layers of their own (`dxf_marks.rs`).
+//! No styling beyond a layer colour and line type: CAD users bring their own.
 
-use std::collections::BTreeSet;
-use std::fmt::Write;
-
-use geo::{Geometry, LineString, Polygon};
-
-use crate::pin::{is_on_site, number_of, Pin, PinIcon};
-use crate::render::layer_slug;
-use crate::scene::{Layer, Scene};
+use crate::diagram::Classify;
+use crate::render::{
+    build_classes, class_of, computed_features, layer_slug, shown_highlights, Classes, RenderInput,
+};
+use crate::scene::{Feature, Layer, Scene};
 use crate::sources::bands::BANDED;
+use crate::view::ViewMode;
+use crate::Result;
 
-/// Trees become circles of this radius on the ground, a symbol rather than a crown.
-const TREE_RADIUS_M: f64 = 1.0;
+use super::dxf_marks;
+use super::dxf_write::{cad_name, write_geometry, write_polygon, Drawing};
+
+// The laser files are written from the same R12 pieces.
+pub(super) use super::dxf_write::{coordinate, group, section, write_polyline};
+
 const SITE_LAYER: &str = "OA-SITE";
 /// AutoCAD colour index for the site outline: red.
 const SITE_COLOUR: u8 = 1;
-/// Pins get their own layer, so a CAD user can switch the landmarks off in one go.
-const PINS_LAYER: &str = "OA-PINS";
-/// AutoCAD colour index for pins: magenta, apart from every data layer.
-const PINS_COLOUR: u8 = 6;
-/// Pin labels stand this tall on the ground, readable at 1:500 to 1:2500.
-const PIN_TEXT_HEIGHT_M: f64 = 2.0;
-/// The label starts this far east of its pin.
-const PIN_TEXT_OFFSET_M: f64 = 2.5;
 /// AutoCAD colour index for every neighbourhood layer: grey, the usual colour of context.
 const CONTEXT_COLOUR: u8 = 8;
+/// AutoCAD colour index for a layer without a colour of its own yet: white, or black on paper.
+const PLAIN_COLOUR: u8 = 7;
+/// AutoCAD colour indexes for a classified layer's classes in legend order,
+/// round the colour wheel so neighbouring classes never look alike. More
+/// classes than this start the wheel again.
+const CLASS_COLOURS: [u8; 9] = [10, 30, 50, 70, 90, 130, 150, 170, 210];
+/// A feature the diagram cannot class, such as a building of unknown age: grey.
+const UNKNOWN_CLASS_COLOUR: u8 = 9;
 
-/// The scene, with its neighbourhood when `has_context`. `pins` are in RD New
-/// metres; those outside the boundary are left out, as on the sheet.
-pub fn write(scene: &Scene, pins: &[Pin], has_context: bool) -> String {
-    let context = if has_context {
-        scene.context.as_slice()
-    } else {
-        &[]
+/// The sheet `input` draws, as a plan in RD New metres. `input.scene` is
+/// already cut to the sheet's area and `input.diagram` drawn as its variant.
+// #! NOTE[dxf, layers] : Every stored layer is written whatever the diagram shows; should a CAD export follow the diagram's visible layers instead?
+pub fn write(input: &RenderInput) -> Result<String> {
+    let scene = input.scene;
+    let look = input.look;
+    let mut drawing = Drawing::new();
+    for &layer in Layer::ALL.iter() {
+        drawing.layer(&cad_layer(layer), colour_index(layer));
+    }
+    let classes = match &input.diagram.classify {
+        Some(classify) => Some((classify, build_classes(classify, input.theme)?)),
+        None => None,
     };
-    let mut out = String::with_capacity(4096 + (scene.features.len() + context.len()) * 400);
-    let shift = scene.origin;
-    let context_layers: BTreeSet<Layer> = context.iter().map(|feature| feature.layer).collect();
-    write_header(&mut out, scene);
-    write_layer_table(&mut out, &context_layers);
 
-    section(&mut out, "ENTITIES");
-    for feature in &scene.features {
-        let layer = cad_layer(feature.layer);
-        // A band sits at the height of its lower edge, as a contour sits at its
-        // level, so a CAD user can read 55 dB or 0.5 m off the outline.
-        let elevation = if feature.layer == Layer::Contour {
-            feature.attributes.ground_m.unwrap_or(0.0)
-        } else if BANDED.contains(&feature.layer) {
-            feature.attributes.value.unwrap_or(0.0)
-        } else {
-            0.0
+    let computed = computed_features(scene, input.diagram, &look.sun);
+    for feature in scene.features.iter().chain(&computed) {
+        let layer = match &classes {
+            Some((classify, classes)) if classify.layer == feature.layer => {
+                class_layer(&mut drawing, feature, classify, classes)
+            }
+            _ => cad_layer(feature.layer),
         };
-        write_geometry(&mut out, &feature.geometry, &layer, elevation, shift);
+        write_geometry(
+            &mut drawing.entities,
+            &feature.geometry,
+            &layer,
+            elevation(feature),
+            scene.origin,
+        );
     }
-    for feature in context {
-        let layer = context_cad_layer(feature.layer);
-        write_geometry(&mut out, &feature.geometry, &layer, 0.0, shift);
+    if look.sheet.show_context {
+        write_context(&mut drawing, scene);
     }
-    write_polygon(&mut out, &scene.boundary, SITE_LAYER, 0.0, shift);
-    write_pins(&mut out, scene, pins);
-    group(&mut out, 0, "ENDSEC");
-    group(&mut out, 0, "EOF");
+    drawing.layer(SITE_LAYER, SITE_COLOUR);
+    write_polygon(
+        &mut drawing.entities,
+        &scene.boundary,
+        SITE_LAYER,
+        0.0,
+        scene.origin,
+    );
 
-    out
+    let scale = look.sheet.scale;
+    if !look.hide_highlights {
+        dxf_marks::write_highlights(
+            &mut drawing,
+            &shown_highlights(input.highlights, scene),
+            scale,
+        );
+    }
+    if let Some(line) = look
+        .section
+        .as_ref()
+        .filter(|_| look.view.mode != ViewMode::Section)
+    {
+        dxf_marks::write_section_line(&mut drawing, line, scale);
+    }
+    if !look.hide_pins {
+        dxf_marks::write_pins(&mut drawing, scene, input.pins, scale);
+    }
+
+    Ok(drawing.finish(extent(scene), &dxf_marks::linetypes(scale)))
 }
 
 /// Layer::RailArea -> "OA-RAIL-AREA".
@@ -82,7 +116,59 @@ fn context_cad_layer(layer: Layer) -> String {
     format!("OA-CONTEXT-{}", layer_slug(layer).to_uppercase())
 }
 
-/// AutoCAD colour index per layer, so the drawing reads before anyone restyles it.
+/// The CAD layer of the legend class `feature` falls in, declared on first use:
+/// "OA-BUILDING-6-10-M", or "OA-BUILDING-UNKNOWN" for a building without a height.
+fn class_layer(
+    drawing: &mut Drawing,
+    feature: &Feature,
+    classify: &Classify,
+    classes: &Classes,
+) -> String {
+    let (label, colour) = match class_of(feature, classify) {
+        Some(index) => (
+            classes
+                .classes
+                .get(index)
+                .map(|class| class.label.as_str())
+                .unwrap_or(classes.unknown_label.as_str()),
+            CLASS_COLOURS[index % CLASS_COLOURS.len()],
+        ),
+        None => (classes.unknown_label.as_str(), UNKNOWN_CLASS_COLOUR),
+    };
+    let name = cad_name(&format!("{}-{label}", cad_layer(feature.layer)));
+    drawing.layer(&name, colour);
+
+    name
+}
+
+/// A band sits at the height of its lower edge, as a contour sits at its
+/// level, so a CAD user can read 55 dB or 0.5 m off the outline.
+fn elevation(feature: &Feature) -> f64 {
+    if feature.layer == Layer::Contour {
+        feature.attributes.ground_m.unwrap_or(0.0)
+    } else if BANDED.contains(&feature.layer) {
+        feature.attributes.value.unwrap_or(0.0)
+    } else {
+        0.0
+    }
+}
+
+fn write_context(drawing: &mut Drawing, scene: &Scene) {
+    for feature in &scene.context {
+        let layer = context_cad_layer(feature.layer);
+        drawing.layer(&layer, CONTEXT_COLOUR);
+        write_geometry(
+            &mut drawing.entities,
+            &feature.geometry,
+            &layer,
+            0.0,
+            scene.origin,
+        );
+    }
+}
+
+/// AutoCAD colour index per layer, so the drawing reads before anyone restyles
+/// it. A layer added later and not listed here comes out plain.
 fn colour_index(layer: Layer) -> u8 {
     match layer {
         Layer::Building => 7,
@@ -103,185 +189,8 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::WalkPath | Layer::WalkBand => 40,
         Layer::Block => 6,
         Layer::SunHours => 50,
-    }
-}
-
-fn write_header(out: &mut String, scene: &Scene) {
-    let (min_x, min_y, max_x, max_y) = extent(scene);
-    section(out, "HEADER");
-    group(out, 9, "$ACADVER");
-    group(out, 1, "AC1009");
-    group(out, 9, "$EXTMIN");
-    coordinate(out, min_x, min_y, 0.0);
-    group(out, 9, "$EXTMAX");
-    coordinate(out, max_x, max_y, 0.0);
-    group(out, 0, "ENDSEC");
-}
-
-fn write_layer_table(out: &mut String, context_layers: &BTreeSet<Layer>) {
-    section(out, "TABLES");
-    group(out, 0, "TABLE");
-    group(out, 2, "LTYPE");
-    group(out, 70, "1");
-    group(out, 0, "LTYPE");
-    group(out, 2, "CONTINUOUS");
-    group(out, 70, "0");
-    group(out, 3, "Solid line");
-    group(out, 72, "65");
-    group(out, 73, "0");
-    group(out, 40, "0.0");
-    group(out, 0, "ENDTAB");
-
-    group(out, 0, "TABLE");
-    group(out, 2, "LAYER");
-    // Every data layer, the neighbourhood layers in use, and the site and pin layers.
-    group(
-        out,
-        70,
-        &(Layer::ALL.len() + context_layers.len() + 2).to_string(),
-    );
-    let layers = Layer::ALL
-        .iter()
-        .map(|&layer| (cad_layer(layer), colour_index(layer)));
-    let context = context_layers
-        .iter()
-        .map(|&layer| (context_cad_layer(layer), CONTEXT_COLOUR));
-    let own_layers = [
-        (SITE_LAYER.to_string(), SITE_COLOUR),
-        (PINS_LAYER.to_string(), PINS_COLOUR),
-    ];
-    for (name, colour) in layers.chain(context).chain(own_layers) {
-        group(out, 0, "LAYER");
-        group(out, 2, &name);
-        group(out, 70, "0");
-        group(out, 62, &colour.to_string());
-        group(out, 6, "CONTINUOUS");
-    }
-    group(out, 0, "ENDTAB");
-    group(out, 0, "ENDSEC");
-}
-
-fn write_geometry(
-    out: &mut String,
-    geometry: &Geometry<f64>,
-    layer: &str,
-    elevation: f64,
-    shift: (f64, f64),
-) {
-    match geometry {
-        Geometry::Polygon(polygon) => write_polygon(out, polygon, layer, elevation, shift),
-        Geometry::MultiPolygon(multi) => {
-            for polygon in &multi.0 {
-                write_polygon(out, polygon, layer, elevation, shift);
-            }
-        }
-        Geometry::Rect(rect) => write_polygon(out, &rect.to_polygon(), layer, elevation, shift),
-        Geometry::Triangle(triangle) => {
-            write_polygon(out, &triangle.to_polygon(), layer, elevation, shift)
-        }
-        Geometry::LineString(line) => write_polyline(out, line, layer, elevation, false, shift),
-        Geometry::MultiLineString(multi) => {
-            for line in &multi.0 {
-                write_polyline(out, line, layer, elevation, false, shift);
-            }
-        }
-        Geometry::Line(line) => write_polyline(
-            out,
-            &LineString::from(vec![line.start, line.end]),
-            layer,
-            elevation,
-            false,
-            shift,
-        ),
-        Geometry::Point(point) => write_circle(out, point.x(), point.y(), layer, shift),
-        Geometry::MultiPoint(multi) => {
-            for point in &multi.0 {
-                write_circle(out, point.x(), point.y(), layer, shift);
-            }
-        }
-        Geometry::GeometryCollection(collection) => {
-            for member in &collection.0 {
-                write_geometry(out, member, layer, elevation, shift);
-            }
-        }
-    }
-}
-
-/// Outer ring and holes as separate closed polylines on the same layer.
-fn write_polygon(
-    out: &mut String,
-    polygon: &Polygon<f64>,
-    layer: &str,
-    elevation: f64,
-    shift: (f64, f64),
-) {
-    write_polyline(out, polygon.exterior(), layer, elevation, true, shift);
-    for interior in polygon.interiors() {
-        write_polyline(out, interior, layer, elevation, true, shift);
-    }
-}
-
-pub(super) fn write_polyline(
-    out: &mut String,
-    line: &LineString<f64>,
-    layer: &str,
-    elevation: f64,
-    is_closed: bool,
-    shift: (f64, f64),
-) {
-    let mut points = line.0.as_slice();
-    // A closed polyline repeats no point; the flag closes it.
-    if is_closed && points.len() > 1 && points.first() == points.last() {
-        points = &points[..points.len() - 1];
-    }
-    if points.len() < 2 {
-        return;
-    }
-
-    group(out, 0, "POLYLINE");
-    group(out, 8, layer);
-    group(out, 66, "1");
-    coordinate(out, 0.0, 0.0, elevation);
-    group(out, 70, if is_closed { "1" } else { "0" });
-    for point in points {
-        group(out, 0, "VERTEX");
-        group(out, 8, layer);
-        coordinate(out, point.x + shift.0, point.y + shift.1, elevation);
-    }
-    group(out, 0, "SEQEND");
-    group(out, 8, layer);
-}
-
-fn write_circle(out: &mut String, x: f64, y: f64, layer: &str, shift: (f64, f64)) {
-    group(out, 0, "CIRCLE");
-    group(out, 8, layer);
-    coordinate(out, x + shift.0, y + shift.1, 0.0);
-    group(out, 40, &format!("{TREE_RADIUS_M:.3}"));
-}
-
-/// Each pin as a point with its label beside it; a numbered pin's label starts with its number.
-fn write_pins(out: &mut String, scene: &Scene, pins: &[Pin]) {
-    for pin in pins {
-        if !is_on_site(scene, pin.x, pin.y) {
-            continue;
-        }
-        group(out, 0, "POINT");
-        group(out, 8, PINS_LAYER);
-        coordinate(out, pin.x, pin.y, 0.0);
-
-        let label = match (pin.icon, number_of(pins, &pin.id)) {
-            (PinIcon::Number, Some(number)) if pin.label.is_empty() => number.to_string(),
-            (PinIcon::Number, Some(number)) => format!("{number} {}", pin.label),
-            _ => pin.label.clone(),
-        };
-        if label.is_empty() {
-            continue;
-        }
-        group(out, 0, "TEXT");
-        group(out, 8, PINS_LAYER);
-        coordinate(out, pin.x + PIN_TEXT_OFFSET_M, pin.y, 0.0);
-        group(out, 40, &format!("{PIN_TEXT_HEIGHT_M:.3}"));
-        group(out, 1, &label);
+        #[allow(unreachable_patterns)]
+        _ => PLAIN_COLOUR,
     }
 }
 
@@ -307,19 +216,4 @@ fn extent(scene: &Scene) -> (f64, f64, f64, f64) {
         bounds.2 + shift_x,
         bounds.3 + shift_y,
     )
-}
-
-pub(super) fn section(out: &mut String, name: &str) {
-    group(out, 0, "SECTION");
-    group(out, 2, name);
-}
-
-/// One group code and its value, the two-line unit DXF is made of.
-pub(super) fn group(out: &mut String, code: u16, value: &str) {
-    let _ = write!(out, "{code:>3}\n{value}\n");
-}
-
-/// Millimetre precision: RD New metres to three decimals.
-pub(super) fn coordinate(out: &mut String, x: f64, y: f64, z: f64) {
-    let _ = write!(out, " 10\n{x:.3}\n 20\n{y:.3}\n 30\n{z:.3}\n");
 }

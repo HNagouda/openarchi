@@ -1,9 +1,13 @@
 //! Files that leave the app. PDF and PNG come from the rendered SVG; DXF is
-//! written from the scene directly so CAD users get real layers. Laser cutting
-//! files are written from the scene too, see `laser`.
+//! written from the scene directly so CAD users get real layers: `dxf.rs` for
+//! a plan, `dxf_section.rs` for a section. Laser cutting files are written
+//! from the scene too, see `laser`.
 
 mod convert;
 mod dxf;
+mod dxf_marks;
+mod dxf_section;
+mod dxf_write;
 pub mod laser;
 
 use std::path::Path;
@@ -12,6 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::render::{render_svg, RenderInput};
 use crate::selection;
+use crate::view::ViewMode;
 use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,13 +51,21 @@ pub fn export(input: &RenderInput, format: ExportFormat, dpi: u32, path: &Path) 
     std::fs::write(path, bytes).map_err(|source| Error::io(path, source))
 }
 
-/// The DXF of what the sheet shows: its sub-selection, its pins unless it
-/// hides them, and the neighbourhood when the sheet shows it.
+/// The DXF of what the sheet shows, cut to its area like the SVG: a section
+/// sheet as its section, any other view as the plan under it.
 fn sheet_dxf(input: &RenderInput) -> Result<String> {
     let look = input.look;
+    let drawn = input.diagram.drawn_as(look.variant.as_deref());
     let scene = selection::framed_or_whole(input.scene, look.selection.as_ref())?;
-    let pins = if look.hide_pins { &[] } else { input.pins };
-    Ok(dxf::write(&scene, pins, look.sheet.show_context))
+    let input = &RenderInput {
+        diagram: &drawn,
+        scene: &scene,
+        ..*input
+    };
+    match look.view.mode {
+        ViewMode::Section => dxf_section::write(input),
+        _ => dxf::write(input),
+    }
 }
 
 /// The sheet as PNG bytes, `width_px` wide. Used for thumbnails and the MCP preview.

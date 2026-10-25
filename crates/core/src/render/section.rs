@@ -304,7 +304,7 @@ fn add_building(
 /// The ground a building or tree stands on: the building's own measured
 /// ground, else the terrain under its middle, else the profile. On a scene
 /// without terrain everything stands at 0, on the flat ground drawn.
-fn ground_under(
+pub fn ground_under(
     centre: (f64, f64),
     stretch: Stretch,
     profile: &Profile,
