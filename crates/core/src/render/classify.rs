@@ -32,7 +32,8 @@ pub struct Classes {
 pub fn build(classify: &Classify, theme: &Theme) -> Result<Classes> {
     let classes = match &classify.scheme {
         Scheme::Sequential { breaks, labels } => {
-            sequential_classes(breaks, labels, ramp_of(theme, classify.ramp), theme)?
+            let ramp = ramp_of(theme, classify.ramp);
+            sequential_classes(breaks, labels, ramp, classify.is_brighter_more, theme)?
         }
         Scheme::Categorical { categories } => {
             let labels: Vec<&str> = categories
@@ -84,11 +85,13 @@ pub fn class_of(feature: &Feature, classify: &Classify) -> Option<usize> {
     }
 }
 
-/// n breaks make n + 1 classes, coloured evenly along the ramp.
+/// n breaks make n + 1 classes, coloured evenly along the ramp, turned to
+/// run from dark to light when `is_brighter_more`.
 fn sequential_classes(
     breaks: &[f64],
     labels: &[String],
     ramp: &[String],
+    is_brighter_more: bool,
     theme: &Theme,
 ) -> Result<Vec<Class>> {
     if labels.len() != breaks.len() + 1 {
@@ -99,7 +102,11 @@ fn sequential_classes(
             labels.len()
         )));
     }
-    let ramp = resolved_list(ramp, theme, "ramp")?;
+    let mut ramp = resolved_list(ramp, theme, "ramp")?;
+    let runs_light_to_dark = color::luminance(&ramp[0]) > color::luminance(&ramp[ramp.len() - 1]);
+    if is_brighter_more && runs_light_to_dark {
+        ramp.reverse();
+    }
     let fills = color::sample_ramp(&ramp, labels.len());
 
     Ok(labels
@@ -181,6 +188,27 @@ fn text_value(feature: &Feature, attribute: Attribute) -> Option<String> {
         | Attribute::Coverage
         | Attribute::FloorSpaceIndex => {
             numeric_value(feature, attribute).map(|value| value.to_string())
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::catalog::{builtin_diagrams, builtin_themes};
+
+    #[test]
+    fn more_sun_reads_brighter_in_every_palette() {
+        let sun = builtin_diagrams()
+            .into_iter()
+            .find(|diagram| diagram.id == "sun-hours")
+            .and_then(|diagram| diagram.classify)
+            .unwrap();
+        for theme in builtin_themes() {
+            let classes = build(&sun, &theme).unwrap().classes;
+            let first = color::luminance(&classes[0].fill);
+            let last = color::luminance(&classes[classes.len() - 1].fill);
+            assert!(first < last, "{}: {first} then {last}", theme.id);
         }
     }
 }

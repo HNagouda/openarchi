@@ -160,6 +160,12 @@ pub struct Classify {
     /// Which theme ramp a sequential scheme takes its colours from.
     #[serde(default)]
     pub ramp: Ramp,
+    /// Run the ramp from dark to light, whichever way the theme runs it, for
+    /// a measure where more should read brighter, such as hours of sun.
+    /// Otherwise more reads stronger against the paper: darker on a light
+    /// theme, lighter on a dark one.
+    #[serde(default)]
+    pub is_brighter_more: bool,
     /// The legend label for features without a value, when "Unknown" would
     /// mislead: CBS keeps some cells secret on purpose.
     #[serde(default)]
