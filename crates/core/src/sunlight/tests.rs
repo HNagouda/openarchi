@@ -48,6 +48,8 @@ fn site(features: Vec<Feature>, context: Vec<Feature>) -> Scene {
         editions: Default::default(),
         context,
         terrain: None,
+        water_bed: None,
+        water_levels: Vec::new(),
     }
 }
 
