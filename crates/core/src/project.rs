@@ -4,6 +4,7 @@
 //! changes under the user because a data service updated. It is stored
 //! compressed, see `packed_scene`.
 
+mod look_check;
 pub mod packed_scene;
 #[cfg(test)]
 mod tests;
@@ -75,8 +76,11 @@ impl Project {
         sheets
     }
 
-    /// Replaces every sheet. A project always keeps at least one.
+    /// Replaces every sheet, each kept to `Look::check`. A project always keeps at least one.
     pub fn set_sheets(&mut self, sheets: Vec<Look>) -> Result<()> {
+        for look in &sheets {
+            look.check()?;
+        }
         let mut sheets = sheets.into_iter();
         let Some(first) = sheets.next() else {
             return Err(Error::Invalid(

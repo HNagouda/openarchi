@@ -161,21 +161,7 @@ fn planned(diagram: &Diagram, look: &Look) -> Look {
 /// draws the scene cut to it.
 pub fn render_svg(input: &RenderInput) -> Result<String> {
     // Checked before the scene is cut to the selection, which is the slow part.
-    let sheet = &input.look.sheet;
-    if sheet.scale == 0 {
-        return Err(crate::Error::Invalid(
-            "scale must be at least 1, as in 1:2500".to_string(),
-        ));
-    }
-    if !(0.0..=1.0).contains(&sheet.context_opacity) {
-        return Err(crate::Error::Invalid(format!(
-            "context_opacity must be between 0 and 1, got {}",
-            sheet.context_opacity
-        )));
-    }
-    if let Some(problem) = input.look.sun.problem() {
-        return Err(crate::Error::Invalid(format!("sun: {problem}")));
-    }
+    input.look.check()?;
 
     let drawn = input.diagram.drawn_as(input.look.variant.as_deref());
     let look = &planned(&drawn, input.look);

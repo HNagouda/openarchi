@@ -1,16 +1,16 @@
 //! Partial updates to a project's look, as set_look applies them.
 //!
 //! Diagram, variant and theme ids are checked against the catalog by the
-//! caller; this module only merges what was passed into what was there.
+//! caller; this module merges what was passed into what was there, and the
+//! merged look is held to the core's `Look::check`, as the app's saves are.
 
 use std::collections::BTreeMap;
 
 use openarchi_core::project::Look;
-use openarchi_core::render::is_colour;
 use openarchi_core::scene::Layer;
 use openarchi_core::sheet::Sheet;
 use openarchi_core::theme::LayerOverride;
-use openarchi_core::view::{SunMoment, View, ViewMode, MAX_TILT_DEG, MIN_TILT_DEG};
+use openarchi_core::view::{SunMoment, View};
 
 use crate::style_inputs::{OverrideInput, SheetInput, SunInput, ViewInput};
 
@@ -26,37 +26,26 @@ pub fn updated_look(
     sun: Option<SunInput>,
 ) -> Result<Look, String> {
     let (diagram_id, variant) = diagram;
-    let view = updated_view(&look.view, view.unwrap_or_default())?;
-    // As in the app, where the Section view is greyed out until a line is drawn.
-    if view.mode == ViewMode::Section && look.section.is_none() {
-        return Err(
-            "this sheet has no section line yet; draw one with set_section before choosing the section view"
-                .to_string(),
-        );
-    }
-
-    Ok(Look {
+    let updated = Look {
         diagram_id,
         variant,
         theme_id: theme_id.unwrap_or_else(|| look.theme_id.clone()),
-        sheet: updated_sheet(&look.sheet, sheet.unwrap_or_default())?,
+        sheet: updated_sheet(&look.sheet, sheet.unwrap_or_default()),
         overrides: updated_overrides(&look.overrides, overrides.unwrap_or_default())?,
-        view,
-        sun: updated_sun(&look.sun, sun.unwrap_or_default())?,
+        view: updated_view(&look.view, view.unwrap_or_default())?,
+        sun: updated_sun(&look.sun, sun.unwrap_or_default()),
         // Everything else on the sheet (name, area, marks, section, viewpoint,
         // wind) has its own tool.
         ..look.clone()
-    })
+    };
+    updated.check().map_err(|error| error.to_string())?;
+
+    Ok(updated)
 }
 
 /// Plate ids are checked against the catalog by the caller.
 fn updated_view(view: &View, changes: ViewInput) -> Result<View, String> {
-    let tilt_deg = changes.tilt_deg.unwrap_or(view.tilt_deg);
-    if !(MIN_TILT_DEG..=MAX_TILT_DEG).contains(&tilt_deg) {
-        return Err(format!(
-            "tilt_deg must be between {MIN_TILT_DEG} and {MAX_TILT_DEG}, got {tilt_deg}"
-        ));
-    }
+    // The app never empties the stack; the renderer would fall back to the sheet's own diagram.
     if changes.plates.as_ref().is_some_and(Vec::is_empty) {
         return Err("plates needs at least one diagram id".to_string());
     }
@@ -66,40 +55,23 @@ fn updated_view(view: &View, changes: ViewInput) -> Result<View, String> {
         rotation_deg: changes
             .rotation_deg
             .map_or(view.rotation_deg, |degrees| degrees.rem_euclid(360.0)),
-        tilt_deg,
+        tilt_deg: changes.tilt_deg.unwrap_or(view.tilt_deg),
         plates: changes.plates.unwrap_or_else(|| view.plates.clone()),
         stacking: changes.stacking.unwrap_or(view.stacking),
     })
 }
 
-fn updated_sun(sun: &SunMoment, changes: SunInput) -> Result<SunMoment, String> {
-    let moment = SunMoment {
+fn updated_sun(sun: &SunMoment, changes: SunInput) -> SunMoment {
+    SunMoment {
         month: changes.month.unwrap_or(sun.month),
         day: changes.day.unwrap_or(sun.day),
         hour: changes.hour.unwrap_or(sun.hour),
         minute: changes.minute.unwrap_or(sun.minute),
-    };
-    match moment.problem() {
-        Some(problem) => Err(format!("sun: {problem}")),
-        None => Ok(moment),
     }
 }
 
-fn updated_sheet(sheet: &Sheet, changes: SheetInput) -> Result<Sheet, String> {
-    if let Some(opacity) = changes.context_opacity {
-        if !(0.0..=1.0).contains(&opacity) {
-            return Err(format!(
-                "context_opacity runs from 0 to 1, like 0.4, got {opacity}"
-            ));
-        }
-    }
-    if changes.scale == Some(0) {
-        return Err(
-            "scale is the denominator, like 2500 for 1:2500, so it cannot be 0".to_string(),
-        );
-    }
-
-    Ok(Sheet {
+fn updated_sheet(sheet: &Sheet, changes: SheetInput) -> Sheet {
+    Sheet {
         paper: changes.paper.map(Into::into).unwrap_or(sheet.paper),
         landscape: changes.landscape.unwrap_or(sheet.landscape),
         scale: changes.scale.unwrap_or(sheet.scale),
@@ -118,7 +90,7 @@ fn updated_sheet(sheet: &Sheet, changes: SheetInput) -> Result<Sheet, String> {
         title_position: sheet.title_position,
         subtitle_position: sheet.subtitle_position,
         texts: sheet.texts.clone(),
-    })
+    }
 }
 
 fn updated_overrides(
@@ -130,7 +102,7 @@ fn updated_overrides(
         let layer = parse_layer(&name)?;
         match change {
             Some(change) => {
-                updated.insert(layer, layer_override(&name, change)?);
+                updated.insert(layer, layer_override(change));
             }
             None => {
                 updated.remove(&layer);
@@ -152,32 +124,14 @@ fn parse_layer(name: &str) -> Result<Layer, String> {
     })
 }
 
-fn layer_override(layer: &str, change: OverrideInput) -> Result<LayerOverride, String> {
-    for colour in [&change.fill, &change.stroke].into_iter().flatten() {
-        if !is_colour(colour) {
-            return Err(format!(
-                "{layer}: colour \"{colour}\" should be \"#RRGGBB\" or a palette role like \"@accent\""
-            ));
-        }
-    }
-    if let Some(opacity) = change.opacity {
-        if !(0.0..=1.0).contains(&opacity) {
-            return Err(format!(
-                "{layer}: opacity must be between 0 and 1, got {opacity}"
-            ));
-        }
-    }
-    if change.stroke_mm.is_some_and(|width| width < 0.0) {
-        return Err(format!("{layer}: stroke_mm cannot be negative"));
-    }
-
-    Ok(LayerOverride {
+fn layer_override(change: OverrideInput) -> LayerOverride {
+    LayerOverride {
         hidden: change.hidden,
         fill: change.fill,
         stroke: change.stroke,
         stroke_mm: change.stroke_mm,
         opacity: change.opacity,
-    })
+    }
 }
 
 #[cfg(test)]
@@ -271,33 +225,37 @@ mod tests {
     }
 
     #[test]
-    fn bad_colour_and_opacity_are_refused() {
-        let colour = OverrideInput {
-            fill: Some("red".to_string()),
+    fn bad_colour_and_opacity_are_refused_by_the_core_check() {
+        let changes =
+            |change: OverrideInput| Some(BTreeMap::from([("water".to_string(), Some(change))]));
+        let misspelt = OverrideInput {
+            fill: Some("@accentt".to_string()),
             ..OverrideInput::default()
         };
         let opacity = OverrideInput {
             opacity: Some(1.5),
             ..OverrideInput::default()
         };
-
-        assert!(layer_override("water", colour).is_err());
-        assert!(layer_override("water", opacity).is_err());
-    }
-
-    #[test]
-    fn a_misspelt_palette_role_is_refused_before_it_can_break_the_sheet() {
-        let misspelt = OverrideInput {
-            fill: Some("@accentt".to_string()),
-            ..OverrideInput::default()
-        };
         let known = OverrideInput {
             fill: Some("@accent".to_string()),
             ..OverrideInput::default()
         };
+        let look = Look::default();
+        let update = |overrides| {
+            updated_look(
+                &look,
+                (look.diagram_id.clone(), None),
+                None,
+                None,
+                overrides,
+                None,
+                None,
+            )
+        };
 
-        assert!(layer_override("water", misspelt).is_err());
-        assert!(layer_override("water", known).is_ok());
+        assert!(update(changes(misspelt)).is_err());
+        assert!(update(changes(opacity)).is_err());
+        assert!(update(changes(known)).is_ok());
     }
 
     #[test]
@@ -317,6 +275,18 @@ mod tests {
 
     #[test]
     fn a_tilt_out_of_range_and_an_empty_stack_are_refused() {
+        let look = Look::default();
+        let update = |view| {
+            updated_look(
+                &look,
+                (look.diagram_id.clone(), None),
+                None,
+                None,
+                None,
+                Some(view),
+                None,
+            )
+        };
         let steep = ViewInput {
             tilt_deg: Some(90.0),
             ..ViewInput::default()
@@ -326,12 +296,24 @@ mod tests {
             ..ViewInput::default()
         };
 
-        assert!(updated_view(&View::default(), steep).is_err());
-        assert!(updated_view(&View::default(), empty).is_err());
+        assert!(update(steep).is_err());
+        assert!(update(empty).is_err());
     }
 
     #[test]
     fn sun_keeps_the_fields_not_passed_and_refuses_31_june() {
+        let look = Look::default();
+        let update = |sun| {
+            updated_look(
+                &look,
+                (look.diagram_id.clone(), None),
+                None,
+                None,
+                None,
+                None,
+                Some(sun),
+            )
+        };
         let afternoon = SunInput {
             hour: Some(16),
             ..SunInput::default()
@@ -342,10 +324,10 @@ mod tests {
             ..SunInput::default()
         };
 
-        let updated = updated_sun(&SunMoment::default(), afternoon).unwrap();
+        let updated = update(afternoon).unwrap().sun;
 
         assert_eq!((updated.month, updated.day, updated.hour), (3, 21, 16));
-        assert!(updated_sun(&SunMoment::default(), impossible).is_err());
+        assert!(update(impossible).is_err());
     }
 
     #[test]
@@ -354,7 +336,7 @@ mod tests {
             frame: Some(FrameInput::Area),
             ..SheetInput::default()
         };
-        let updated = updated_sheet(&Sheet::default(), sheet).unwrap();
+        let updated = updated_sheet(&Sheet::default(), sheet);
         assert_eq!(updated.frame, Frame::Area);
     }
 }

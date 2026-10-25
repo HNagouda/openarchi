@@ -16,7 +16,7 @@ fn a_section_line_is_drawn_flipped_shown_and_cleared_as_in_the_app() {
         "set_look",
         json!({ "id": id, "view": { "mode": "section" } }),
     );
-    assert!(message.contains("set_section"), "{message}");
+    assert!(message.contains("no section line"), "{message}");
 
     let drawn = server.call_ok(
         "set_section",

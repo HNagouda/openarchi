@@ -56,7 +56,7 @@ impl OpenArchi {
     }
 
     #[tool(
-        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id and its variant, theme_id, sheet fields, per-layer overrides, the view (plan, axonometric with buildings standing up, or explode with several diagrams stacked as plates) and the sun's date and time for the sun path and shadow diagrams. A plan-only diagram (Wind) refuses the axonometric view, and choosing it on an axonometric sheet turns the sheet to its plan, as in the app; it may still be an explode plate. Returns the whole new look. Earlier versions stay in the project's backups."
+        description = "Change how a project looks and save it. Pass only what should change: any of diagram_id and its variant, theme_id, sheet fields, per-layer overrides, the view (plan, axonometric with buildings standing up, or explode with several diagrams stacked as plates) and the sun's date and time for the sun path and shadow diagrams. A plan-only diagram (Wind) refuses the axonometric view, and choosing it on an axonometric sheet turns the sheet to its plan, as in the app; it may still be an explode plate. The section view needs a line drawn with set_section first. Returns the whole new look. Earlier versions stay in the project's backups."
     )]
     async fn set_look(&self, Parameters(input): Parameters<SetLook>) -> CallToolResult {
         let result = self
