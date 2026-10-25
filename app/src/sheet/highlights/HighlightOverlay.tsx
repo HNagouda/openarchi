@@ -10,7 +10,7 @@ import { ColorPopover } from "../../ui/ColorPopover";
 import { rememberColour } from "../../ui/colour";
 import type { PaperView } from "../Canvas";
 import { useLive, type LiveValue } from "../liveValue";
-import { LabelField } from "../pins/PinOverlay";
+import { LabelField } from "../overlayBar";
 import { rdToPaper, type Point } from "../paper";
 import { handlesOf, ringOf, withChangedHighlight, withoutHighlight } from "./highlightEdits";
 import type { HighlightDraft, HighlightPreview } from "./useHighlightTool";
@@ -94,7 +94,7 @@ export function HighlightOverlay(props: Props) {
         />
       )}
       {selected && box && editingId !== selected.id && !preview && !draft && (
-        <div className="pin-toolbar-slot" style={{ left: box.left, top: Math.max(0, box.top - TOOLBAR_GAP_PX - TOOLBAR_HEIGHT_PX) }}>
+        <div className="paper-toolbar-slot" style={{ left: box.left, top: Math.max(0, box.top - TOOLBAR_GAP_PX - TOOLBAR_HEIGHT_PX) }}>
           <HighlightBar highlight={selected} {...props} />
         </div>
       )}
@@ -118,7 +118,7 @@ function HighlightBar({ highlight, highlights, onHighlights, onSeal, onEdit, onD
   };
 
   return (
-    <div className="pin-toolbar" role="toolbar" aria-label="Highlight" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
+    <div className="paper-toolbar" role="toolbar" aria-label="Highlight" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
       <Button icon="lineSolid" tip="Solid outline, for what is there" isActive={highlight.outline === "solid"} onClick={() => change({ outline: "solid" })} />
       <Button icon="lineDashed" tip="Dashed outline, for what is proposed" isActive={highlight.outline === "dashed"} onClick={() => change({ outline: "dashed" })} />
       <Button icon="lineDotted" tip="Dotted outline, for what is studied" isActive={highlight.outline === "dotted"} onClick={() => change({ outline: "dotted" })} />

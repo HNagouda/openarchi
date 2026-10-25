@@ -1,0 +1,40 @@
+/* The bar over a selected pin or highlight, and the field for its label. */
+
+.paper-toolbar-slot {
+  position: absolute;
+  white-space: nowrap;
+}
+
+.paper-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 0 4px;
+  border-radius: var(--radius-l);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  animation: fade-in var(--fast) var(--ease);
+  cursor: default;
+}
+
+.paper-toolbar .toolbar-divider {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--line-strong);
+}
+
+.paper-label-field {
+  position: absolute;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--pop-shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: 2px solid var(--focus);
+}

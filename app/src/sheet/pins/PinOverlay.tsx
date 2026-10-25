@@ -1,11 +1,12 @@
 // What sits over the selected pin: an outline, a small bar to change its
 // marker or delete it, and a field for its label while it is being edited.
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import type { Pin } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import type { PaperView } from "../Canvas";
 import { useLive, type LiveValue } from "../liveValue";
+import { LabelField } from "../overlayBar";
 import { PinGlyph } from "./PinGlyph";
 import { PIN_ICONS, PIN_SIZES, withChangedPin, withoutPin } from "./pinEdits";
 import { readPins, type SheetPin } from "./sheetPins";
@@ -16,8 +17,6 @@ const OUTLINE_PAD_PX = 4;
 const TOOLBAR_GAP_PX = 8;
 const TOOLBAR_HEIGHT_PX = 36;
 const LABEL_FIELD_WIDTH_PX = 180;
-// The same limit the core enforces.
-const MAX_LABEL_CHARS = 80;
 
 type Props = {
   view: PaperView;
@@ -79,8 +78,8 @@ export function PinOverlay({ view, svg, pins, selectedId, editingId, drag, onPin
         />
       )}
       {!isEditing && !dragged && (
-        <div className="pin-toolbar-slot" style={{ left: outline.left, top: Math.max(0, outline.top - TOOLBAR_GAP_PX - TOOLBAR_HEIGHT_PX) }}>
-          <div className="pin-toolbar" role="toolbar" aria-label="Pin" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
+        <div className="paper-toolbar-slot" style={{ left: outline.left, top: Math.max(0, outline.top - TOOLBAR_GAP_PX - TOOLBAR_HEIGHT_PX) }}>
+          <div className="paper-toolbar" role="toolbar" aria-label="Pin" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
             {PIN_ICONS.map(({ icon, label }) => (
               <button
                 key={icon}
@@ -123,52 +122,5 @@ export function PinOverlay({ view, svg, pins, selectedId, editingId, drag, onPin
         </div>
       )}
     </>
-  );
-}
-
-type FieldProps = {
-  initial: string;
-  style: React.CSSProperties;
-  onCommit: (label: string) => void;
-  onCancel: () => void;
-};
-
-/** The label as a field under the pin. Return applies, Escape cancels, an empty label leaves the marker alone. */
-export function LabelField({ initial, style, onCommit, onCancel }: FieldProps) {
-  const [draft, setDraft] = useState(initial);
-  const field = useRef<HTMLInputElement>(null);
-  const isDone = useRef(false);
-
-  useLayoutEffect(() => {
-    field.current?.focus();
-    field.current?.select();
-  }, []);
-
-  const finish = (value: string | null) => {
-    if (isDone.current) return;
-    isDone.current = true;
-    if (value === null || value.trim() === initial) onCancel();
-    else onCommit(value.trim());
-  };
-
-  return (
-    <input
-      ref={field}
-      className="pin-label-field"
-      value={draft}
-      placeholder="Label"
-      maxLength={MAX_LABEL_CHARS}
-      spellCheck={false}
-      style={style}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => finish(draft)}
-      onPointerDown={(event) => event.stopPropagation()}
-      onDoubleClick={(event) => event.stopPropagation()}
-      onKeyDown={(event) => {
-        event.stopPropagation();
-        if (event.key === "Enter") finish(draft);
-        if (event.key === "Escape") finish(null);
-      }}
-    />
   );
 }
