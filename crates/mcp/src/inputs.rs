@@ -302,18 +302,23 @@ pub struct Export {
     /// The project id.
     pub id: String,
     pub format: FormatInput,
-    /// Absolute path of the file to write, including the extension. The folder must exist.
-    pub path: String,
+    /// Absolute path of the file to write, including the extension. The folder must exist. Needed unless series is true.
+    pub path: Option<String>,
     /// Resolution for png. Defaults to 300.
     pub dpi: Option<u32>,
-    /// Replace a file that is already at `path`. Defaults to false.
+    /// Replace files that are already there. Defaults to false.
     pub overwrite: Option<bool>,
+    /// Write the whole series instead of this one diagram: one file per diagram and per variant, in this sheet's palette and paper, named "<project>-<diagram>[-<variant>].<format>". Defaults to false.
+    pub series: Option<bool>,
+    /// Absolute path of an existing folder for the series. Needed when series is true.
+    pub folder: Option<String>,
     /// Which sheet tab, counting from 1 for the first, which is the default. list_sheets shows them.
     pub tab: Option<usize>,
 }
 
 /// svg and pdf for print and layout tools, png for slides and the web, dxf for
-/// CAD with real layers in RD New coordinates.
+/// CAD with real layers: a plan in RD New metres, or for a section sheet the
+/// section in metres along the line and metres NAP.
 #[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum FormatInput {

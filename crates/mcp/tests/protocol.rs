@@ -826,9 +826,10 @@ fn export_laser_checks_then_writes_one_svg_per_bed_for_a_sheet_area() {
     let folder = server.library.path().join("laser");
     std::fs::create_dir(&folder).unwrap();
 
+    // Only checking needs no folder, as the app's dialog checks before asking for one.
     let checked = server.call_ok(
         "export_laser",
-        json!({ "id": id, "tab": 2, "folder": folder, "scale": 500, "check_only": true }),
+        json!({ "id": id, "tab": 2, "scale": 500, "check_only": true }),
     );
     let sheets = checked["summary"]["sheet_count"].as_u64().unwrap();
     assert!(sheets >= 1, "{checked}");
@@ -863,6 +864,103 @@ fn export_laser_checks_then_writes_one_svg_per_bed_for_a_sheet_area() {
     assert!(tiny.contains("thick"), "{tiny}");
     let relative = server.call_err("export_laser", json!({ "id": id, "folder": "laser" }));
     assert!(relative.contains("absolute"), "{relative}");
+}
+
+#[test]
+fn export_laser_needs_a_folder_once_it_writes() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    server.open_circle_as_sheet(&id, "Block", 30.0);
+
+    let message = server.call_err("export_laser", json!({ "id": id, "tab": 2, "scale": 500 }));
+    assert!(message.contains("folder is needed"), "{message}");
+}
+
+#[test]
+fn export_dxf_follows_the_sheet_marks_and_its_section_view() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    server.call_ok(
+        "add_highlight",
+        json!({
+            "id": id,
+            "label": "Plot",
+            "outline": "dashed",
+            "shape": { "kind": "circle", "center": { "lon": 4.8840, "lat": 52.3745 }, "radius_m": 20.0 },
+        }),
+    );
+    server.call_ok(
+        "set_section",
+        json!({
+            "id": id,
+            "from": { "lon": 4.8825, "lat": 52.3745 },
+            "to": { "lon": 4.8855, "lat": 52.3745 },
+        }),
+    );
+    let out = TempDir::new().unwrap();
+
+    let plan_path = out.path().join("plan.dxf");
+    server.call_ok(
+        "export",
+        json!({ "id": id, "format": "dxf", "path": plan_path }),
+    );
+    let plan = std::fs::read_to_string(&plan_path).unwrap();
+    assert!(plan.contains("\nOA-HIGHLIGHT-DASHED\n") && plan.contains("\nPlot\n"));
+    assert!(plan.contains("\nOA-SECTION-LINE\n") && plan.contains("\nOA-BUILDING\n"));
+
+    server.call_ok(
+        "set_look",
+        json!({ "id": id, "view": { "mode": "section" } }),
+    );
+    let section_path = out.path().join("section.dxf");
+    server.call_ok(
+        "export",
+        json!({ "id": id, "format": "dxf", "path": section_path }),
+    );
+    let section = std::fs::read_to_string(&section_path).unwrap();
+    assert!(section.contains("\nOA-SECTION-CUT\n") && section.contains("\nOA-SECTION-GROUND\n"));
+    assert!(
+        !section.contains("\nOA-SITE\n"),
+        "a section has no plan in it"
+    );
+}
+
+#[test]
+fn export_writes_the_whole_series_into_a_folder_as_the_app_does() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    let out = TempDir::new().unwrap();
+
+    let written = server.call_ok(
+        "export",
+        json!({ "id": id, "format": "dxf", "series": true, "folder": out.path() }),
+    );
+    let files = written["files"].as_array().unwrap();
+    let drawings: usize = openarchi_core::catalog::builtin_diagrams()
+        .iter()
+        .map(|diagram| diagram.drawings().len())
+        .sum();
+    assert_eq!(files.len(), drawings);
+    assert!(
+        files
+            .iter()
+            .any(|file| file.as_str().unwrap().ends_with("-figure-ground.dxf")),
+        "{written}"
+    );
+    assert_eq!(std::fs::read_dir(out.path()).unwrap().count(), drawings);
+
+    let again = server.call_err(
+        "export",
+        json!({ "id": id, "format": "dxf", "series": true, "folder": out.path() }),
+    );
+    assert!(again.contains("overwrite"), "{again}");
+    let no_folder = server.call_err(
+        "export",
+        json!({ "id": id, "format": "dxf", "series": true }),
+    );
+    assert!(no_folder.contains("folder is needed"), "{no_folder}");
+    let no_path = server.call_err("export", json!({ "id": id, "format": "dxf" }));
+    assert!(no_path.contains("path is needed"), "{no_path}");
 }
 
 #[test]

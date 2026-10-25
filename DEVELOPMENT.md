@@ -38,7 +38,7 @@ crates/core/            the library: no window, no async
   src/ratios.rs         how the site divides up (land use, coverage, floor area ratio), as CSV or an SVG of charts
   src/analysis.rs       location, site summary, climate and rain, with design notes and charts in the theme
   src/report.rs         reports: pages of blocks that point at ratios, analysis, sheets or text, drawn in a theme
-  src/export/           SVG -> PDF and PNG, scene -> DXF, scene -> laser cutting files (laser/)
+  src/export/           SVG -> PDF and PNG, scene -> DXF (a plan, or a section sheet's section), scene -> laser cutting files (laser/)
   src/catalog.rs        built-in diagrams and themes, and the user's own themes
   src/palette.rs        a user's palette: a few swatches turned into a whole theme, with a contrast check
   src/catalog/          finding a diagram by id, and the old ids of diagrams folded into variants
@@ -109,6 +109,7 @@ cargo run --release -p openarchi-core --example fetch_site -- 4.8840 52.3745 300
 cargo run --release -p openarchi-core --example render_samples   # writes target/render-samples/
 cargo run --release -p openarchi-core --example palette_samples  # every diagram in a palette made from swatches, target/render-samples/palette/
 cargo run --release -p openarchi-core --example laser_samples    # laser files and a PNG of each bed, target/laser-samples/
+cargo run --release -p openarchi-core --example dxf_samples -- <library folder> <project id>  # a DXF per diagram, a section and a highlight's sheet, target/dxf-samples/
 cargo run --release -p openarchi-core --example analysis_samples # every analysis section in every theme, and the A4 PDF, target/analysis-samples/
 cargo run --release -p openarchi-core --example section_samples -- .scratch/site.json westermarkt  # a section in every theme, target/render-samples/sections/
 ```

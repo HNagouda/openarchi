@@ -46,7 +46,6 @@ What changed in each version of openarchi, newest first.
 - A sheet fits to round scales down to 1:200, 1:100 and 1:50, so a sheet opened from a single plot fills the paper. The Scale field in the inspector goes down to 1:50 too, and the scale bar takes 1, 2 and 2.5 m steps.
 - Pins come in four sizes, S, M, L and XL, from the pin's bar, or − and + with a pin selected. The label grows more slowly than the marker. Older pins are medium.
 - Assistants can list, add, edit and remove highlights with their colour and line, open one as a sheet, give pins a size, and show or hide pins and highlights per sheet with `show_on_sheet`. `add_sheet` no longer takes a `selection`; an assistant gets a sheet of part of the site from `open_highlight_as_sheet`, as the app does.
-- DXF exports leave highlights out.
 
 ### Diagram column
 
@@ -272,7 +271,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 - A section works on a sheet that shows part of the site: what lies outside the area is drawn as neighbourhood.
 - A fetch now keeps the bare ground of AHN over the site and its neighbourhood in 4 m cells, to the decimetre, for the profile. That makes a project file about 3 % bigger, some 40 kB for a 200 m site. Sites fetched before this draw a flat ground and say so in the legend until they are fetched again.
 - Water the section crosses stands at its target level where Rijkswaterstaat publishes one (−0.4 m NAP for the Amsterdam canals), and otherwise at its lower bank. It reaches down to the bed Rijkswaterstaat surveyed, as on the Waal, or fades out downwards where nobody did, as in the Amsterdam canals. The legend says which. A fetch now asks Rijkswaterstaat for both, only for tiles with water.
-- SVG, PDF and PNG export a section like any sheet. DXF still writes the plan, without the section.
+- SVG, PDF and PNG export a section like any sheet, and so does DXF (see DXF below).
 - Assistants draw, change, flip and clear a sheet's line, and set its scale and exaggeration, with `set_section`, and `set_look` shows the section view once a line is there.
 
 ### Sky view and solar radiation
@@ -281,6 +280,14 @@ Sheets can now show the site in three dimensions and the sun over it.
 - Solar radiation shows how much sunlight the ground receives in a typical year, in kWh/m²: the direct sun for every hour the ground lies outside the building shadows, cast as the sunlight hours diagram casts them, plus the light of the sky it sees, weighted by its sky view factor. The light comes from the PVGIS typical year the climate analysis already uses, hour by hour on one average day per month after Klein. Open ground in Amsterdam comes out at about 1,050 kWh/m², the typical year's own total.
 - A fetch now keeps that typical year with the site, about 600 numbers, from the same cache cell as the analysis. A site fetched before this says in a note over the sheet that the solar radiation needs a fresh fetch, and the PVGIS credit is printed only on sheets that draw it.
 - Both draw in bands under a legend like the sunlight hours, in every palette, in plan, axonometric and explode views and on a sheet that shows part of the site, and assistants find them through `list_diagrams`.
+
+### DXF
+
+- A DXF now holds what the sheet shows, not only the fetched data. A diagram that colours a layer by class writes one CAD layer per legend class, so a building height sheet arrives as `OA-BUILDING-UNDER-6-M`, `OA-BUILDING-6-10-M` and so on, with `OA-BUILDING-UNKNOWN` for buildings without a height. Computed layers the diagram draws, city blocks and hours of sun, come along on `OA-BLOCK` and `OA-SUN-HOURS-...`. Every fetched layer is still written whatever the diagram shows.
+- Highlights are in the DXF on `OA-HIGHLIGHT`, `OA-HIGHLIGHT-DASHED` and `OA-HIGHLIGHT-DOTTED`, each with a matching line type, and their captions on `OA-HIGHLIGHT-LABEL`. The section line is on `OA-SECTION-LINE` as a dash-dot line, with its ticks, arrows and the A and A' labels on `OA-SECTION-MARK`. Dashes, labels and pin labels are sized for the sheet's scale, so the DXF plotted at that scale looks like the sheet.
+- A section sheet exports its section as DXF, in metres along the line from A and metres NAP: the ground, the buildings the line cuts, what stands beyond it, trees, water from its level to its bed, and a dashed NAP line with the target level of each water written beside it. Heights are true, whatever the sheet exaggerates them by.
+- Text outside plain ASCII, such as m² or an accented street name, is written as the `\U+00B2` escapes R12 uses for it instead of raw UTF-8, which older readers garbled.
+- Assistants export the whole series with `export` and `series: true` into a `folder`, as the dialog does, and `export_laser` with `check_only` no longer needs a folder.
 
 ## 0.1.0 (unreleased)
 

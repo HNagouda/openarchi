@@ -67,8 +67,16 @@ pub use fonts::FAMILIES as FONT_FAMILIES;
 pub(crate) use fonts::{is_bundled as is_bundled_font, BUNDLED as BUNDLED_FONTS};
 // Shared with ratios, so its rows take the same classes and colours as the diagrams.
 pub(crate) use classify::{build as build_classes, class_of};
+// Shared with the DXF export, so CAD gets the classes, computed layers,
+// highlights and section the sheet draws, worked out the same way.
+pub(crate) use classify::Classes;
 pub(crate) use color::{mix, resolve as resolve_colour, rgb, sample_ramp};
+pub(crate) use derived::features as computed_features;
 pub(crate) use fonts::Face;
+pub(crate) use highlights::shown as shown_highlights;
+pub(crate) use section::ground_under as section_ground_under;
+pub(crate) use section_water::lowered as lowered_over_water;
+pub(crate) use solid::tree_size;
 pub use solid::DEFAULT_HEIGHT_M;
 // Shared with the sunlight hours, so they cast exactly the shadows the shadow diagram draws.
 pub(crate) use shadow::{shadow_per_metre, signed_area, tree_shadow_ring};
