@@ -43,7 +43,7 @@ crates/core/            the library: no window, no async
   src/project.rs        one site plus its sheets (looks) and pins
   src/pin.rs            landmarks in RD New metres, shown on every sheet
   src/highlight.rs      areas marked inside the site in RD New metres, shown on every sheet
-  src/selection.rs      a sheet's sub-selection: the scene cut to a smaller area
+  src/selection.rs      a sheet's area, opened from a highlight: the scene cut to it
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
   examples/             fetch_site, render_samples and render_timing, for working on data, looks and speed
