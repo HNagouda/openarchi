@@ -1,0 +1,45 @@
+{
+    "id": "sky-view",
+    "name": "Sky view factor",
+    "group": "Sun and shade",
+    "description": "How much of the sky the ground sees past the buildings and terrain around it, from 0 at the foot of a shaft to 1 on open land.",
+    "layers": [
+        "sky_view",
+        "water",
+        "building"
+    ],
+    "emphasis": "sky_view",
+    "mute_others": true,
+    "highlight": [
+        "water"
+    ],
+    "as_figure": [],
+    "blank": [
+        "building"
+    ],
+    "classify": {
+        "layer": "sky_view",
+        "attribute": "value",
+        "title": "Sky view factor",
+        "is_brighter_more": true,
+        "note": "1 − mean sin² of the horizon in 32 directions within 150 m (Johnson & Watson 1984; Zakšek et al. 2011), past buildings and terrain; trees left out.",
+        "scheme": {
+            "kind": "sequential",
+            "breaks": [
+                0.2,
+                0.4,
+                0.6,
+                0.8,
+                0.9
+            ],
+            "labels": [
+                "Under 0.2",
+                "0.2–0.4",
+                "0.4–0.6",
+                "0.6–0.8",
+                "0.8–0.9",
+                "0.9 or more"
+            ]
+        }
+    }
+}

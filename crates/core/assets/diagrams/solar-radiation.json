@@ -1,0 +1,45 @@
+{
+    "id": "solar-radiation",
+    "name": "Solar radiation",
+    "group": "Sun and shade",
+    "description": "How much sunlight the ground receives in a typical year: direct sun past the building shadows, plus the light of the sky it sees.",
+    "layers": [
+        "solar_radiation",
+        "water",
+        "building"
+    ],
+    "emphasis": "solar_radiation",
+    "mute_others": true,
+    "highlight": [
+        "water"
+    ],
+    "as_figure": [],
+    "blank": [
+        "building"
+    ],
+    "classify": {
+        "layer": "solar_radiation",
+        "attribute": "value",
+        "title": "Sunlight per year, kWh/m²",
+        "is_brighter_more": true,
+        "note": "PVGIS typical year: direct sun where lit, hourly on a mean day per month (Klein 1977), plus diffuse × sky view factor (Liu & Jordan 1960). Trees left out.",
+        "scheme": {
+            "kind": "sequential",
+            "breaks": [
+                300,
+                500,
+                700,
+                850,
+                1000
+            ],
+            "labels": [
+                "Under 300",
+                "300–500",
+                "500–700",
+                "700–850",
+                "850–1,000",
+                "1,000 or more"
+            ]
+        }
+    }
+}

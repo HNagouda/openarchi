@@ -19,6 +19,7 @@ use openarchi_core::export::laser::{self, LaserFormat, LaserSettings};
 use openarchi_core::export::render_png;
 use openarchi_core::palette::{self, PaletteCheck, PaletteDraft, RoleChoice};
 use openarchi_core::project::Look;
+use openarchi_core::radiation::{self, SolarYear};
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::report::{block_svg, Block, Content, RatiosStyle, ReportData};
 use openarchi_core::scene::{Layer, Scene};
@@ -26,6 +27,7 @@ use openarchi_core::section::{SectionLine, DEFAULT_DEPTH_M};
 use openarchi_core::sheet::Sheet;
 use openarchi_core::sources::cache::TileCache;
 use openarchi_core::sources::grid::Tile;
+use openarchi_core::sources::pvgis;
 use openarchi_core::theme::Theme;
 use openarchi_core::view::{View, ViewMode};
 use openarchi_core::{ratios, selection};
@@ -71,9 +73,10 @@ fn main() {
         .expect("read the environment fixture");
     let environment: Scene = serde_json::from_str(&text).expect("parse the environment fixture");
     add_environment(&mut scene, environment);
+    let (_cache_dir, cache) = recorded_cache();
+    add_solar_year(&mut scene, &cache);
     write_catalog(&scene, &out_dir);
     write_palette(&out_dir);
-    let (_cache_dir, cache) = recorded_cache();
     write_analysis(&scene, &cache, &out_dir);
     write_report_blocks(&scene, &cache, &out_dir);
 
@@ -304,6 +307,17 @@ fn write_section_previews(scene: &Scene, sheet: &Sheet, out_dir: &Path) {
 
 /// A cache holding the answers recorded in tests/fixtures/analysis-cache, so
 /// no service is asked.
+/// The typical year a fetch keeps today, which the fixture predates, from the recorded PVGIS answer.
+fn add_solar_year(scene: &mut Scene, cache: &TileCache) {
+    let bytes = cache
+        .read(pvgis::CACHE_DATASET, pvgis::cell_of(scene.origin))
+        .expect("read the cache")
+        .expect("the recorded PVGIS year");
+    let tmy = pvgis::parse(&bytes).expect("parse the recorded PVGIS year");
+    scene.solar = Some(SolarYear::from_tmy(&tmy).expect("a full typical year"));
+    scene.credits.push(radiation::credit());
+}
+
 fn recorded_cache() -> (tempfile::TempDir, TileCache) {
     let cache_dir = tempfile::TempDir::new().expect("a temporary cache");
     let cache = TileCache::at(cache_dir.path());

@@ -31,12 +31,15 @@ use geo::{Coord, Geometry, MapCoords, Polygon};
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
 use openarchi_core::export::{export, render_png, ExportFormat};
 use openarchi_core::project::Look;
+use openarchi_core::radiation::{self, SolarYear};
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::scene::Scene;
 use openarchi_core::sheet::{Align, Frame, Paper, Position, Sheet, TextBox, TextStyle};
+use openarchi_core::sources::pvgis;
 use openarchi_core::view::{SunMoment, View, ViewMode};
 
 const FIXTURE: &str = "tests/fixtures/westermarkt.scene.json";
+const RECORDED_SOLAR_YEAR: &str = "tests/fixtures/analysis-cache/tiles-v1/pvgis-tmy-5km/24_97.zst";
 const SAMPLE_WIDTH_PX: u32 = 1800;
 /// Copies of the fixture laid side by side to stand in for a 1 km radius site.
 const BIG_SITE_GRID: i32 = 3;
@@ -167,7 +170,8 @@ fn main() {
     std::fs::create_dir_all(&out_dir).expect("create the samples folder");
     let text =
         std::fs::read_to_string(manifest.join(FIXTURE)).expect("read the Westermarkt fixture");
-    let scene: Scene = serde_json::from_str(&text).expect("parse the Westermarkt fixture");
+    let mut scene: Scene = serde_json::from_str(&text).expect("parse the Westermarkt fixture");
+    add_solar_year(&mut scene, manifest);
 
     let only_diagram = std::env::args().nth(1);
     let only_theme = std::env::args().nth(2);
@@ -262,6 +266,16 @@ fn main() {
 }
 
 /// Every diagram, or just `only`, in every theme, from a fetched scene.
+/// The typical year a fetch keeps today, which the fixture predates, from the recorded PVGIS answer.
+fn add_solar_year(scene: &mut Scene, manifest: &Path) {
+    let packed =
+        std::fs::read(manifest.join(RECORDED_SOLAR_YEAR)).expect("read the recorded PVGIS year");
+    let bytes = zstd::decode_all(packed.as_slice()).expect("unpack the recorded PVGIS year");
+    let tmy = pvgis::parse(&bytes).expect("parse the recorded PVGIS year");
+    scene.solar = Some(SolarYear::from_tmy(&tmy).expect("a full typical year"));
+    scene.credits.push(radiation::credit());
+}
+
 fn write_scene(scene_path: &Path, out_dir: &Path, only: Option<&String>) {
     std::fs::create_dir_all(out_dir).expect("create the folder");
     let text = std::fs::read_to_string(scene_path).expect("read the scene");

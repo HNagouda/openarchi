@@ -21,7 +21,7 @@ const THEME_EXTENSION: &str = "json";
 
 /// Built-in diagrams in picker order, in one place. The picker shows them under
 /// their `group` headings, so the diagrams of one group stay together here.
-const BUILTIN_DIAGRAMS: [(&str, &str); 24] = [
+const BUILTIN_DIAGRAMS: [(&str, &str); 26] = [
     // Context and built form.
     ("context", include_str!("../assets/diagrams/context.json")),
     (
@@ -89,6 +89,11 @@ const BUILTIN_DIAGRAMS: [(&str, &str); 24] = [
     (
         "sun-hours",
         include_str!("../assets/diagrams/sun-hours.json"),
+    ),
+    ("sky-view", include_str!("../assets/diagrams/sky-view.json")),
+    (
+        "solar-radiation",
+        include_str!("../assets/diagrams/solar-radiation.json"),
     ),
 ];
 

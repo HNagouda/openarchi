@@ -1009,6 +1009,36 @@ fn render_preview_returns_a_png_image() {
 }
 
 #[test]
+fn sky_view_draws_on_an_old_site_and_solar_radiation_asks_for_a_fresh_fetch() {
+    let mut server = Server::start();
+    let id = fetched_westermarkt(&mut server);
+    let text_of = |result: &Value| -> Vec<String> {
+        result["content"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|block| block["text"].as_str().map(str::to_string))
+            .collect()
+    };
+
+    server.call_ok("set_look", json!({ "id": id, "diagram_id": "sky-view" }));
+    let sky = server.call("render_preview", json!({ "id": id, "width_px": 300 }));
+    server.call_ok(
+        "set_look",
+        json!({ "id": id, "diagram_id": "solar-radiation" }),
+    );
+    let solar = server.call("render_preview", json!({ "id": id, "width_px": 300 }));
+
+    assert_eq!(sky["isError"], json!(false), "{sky}");
+    assert!(!text_of(&sky).iter().any(|text| text.contains("sky view")));
+    // The fixture was fetched before a fetch kept the typical year.
+    assert_eq!(solar["isError"], json!(false), "{solar}");
+    assert!(text_of(&solar)
+        .iter()
+        .any(|text| text.contains("solar radiation") && text.contains("Fetch the site again")));
+}
+
+#[test]
 #[ignore = "needs the data and render layers, and the network"]
 fn export_writes_every_format() {
     let mut server = Server::start();

@@ -68,6 +68,18 @@
       "stroke_mm": 0.0,
       "pattern": null
     },
+    "sky_view": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "solar_radiation": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
     "block": {
       "fill": "@figure",
       "stroke": "@paper",
