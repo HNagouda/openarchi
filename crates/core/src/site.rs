@@ -28,6 +28,7 @@ use geo::{BoundingRect, Coord, MapCoords, Rect};
 // Shared with sheet sub-selections, which are drawn and checked like a site.
 pub(crate) use self::boundary::boundary_in_rd;
 use self::boundary::site_centre;
+pub use self::boundary::{measure, AreaSize};
 use self::download::Fetcher;
 pub(crate) use self::editions::years_before_editions_were_kept;
 use self::editions::Editions;

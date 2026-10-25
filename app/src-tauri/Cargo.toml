@@ -23,5 +23,3 @@ tauri-plugin-opener = "2"
 # Watches the library so edits made by the MCP server show up in the open window.
 notify = "8"
 base64 = "0.22"
-# Same version as the core, for measuring a drawn area before it is fetched.
-geo = "0.29"

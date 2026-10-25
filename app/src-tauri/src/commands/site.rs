@@ -1,14 +1,11 @@
 //! The site step: address search, measuring a drawn area, and fetching it.
 
-use std::f64::consts::PI;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-use geo::orient::{Direction, Orient};
-use geo::{GeodesicArea, LineString, Polygon};
-use openarchi_core::area::{Area, LonLat, MAX_AREA_M2};
+use openarchi_core::area::Area;
 use openarchi_core::geocode::{self, Place};
-use openarchi_core::site::{build_scene, Progress};
+use openarchi_core::site::{self, build_scene, AreaSize, Progress};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -18,22 +15,8 @@ use crate::state::{lock, AppState, Shared};
 
 const SEARCH_LIMIT: usize = 6;
 
-// A loose box around the Netherlands, only for a gentle hint while drawing.
-// The core's fetch is the real judge and refuses areas it cannot serve.
-const NL_WEST: f64 = 3.2;
-const NL_EAST: f64 = 7.3;
-const NL_SOUTH: f64 = 50.7;
-const NL_NORTH: f64 = 53.7;
-
 pub const FETCH_PROGRESS_EVENT: &str = "fetch-progress";
 pub const FETCH_FINISHED_EVENT: &str = "fetch-finished";
-
-#[derive(Serialize)]
-pub struct AreaSize {
-    pub m2: f64,
-    pub max_m2: f64,
-    pub in_netherlands: bool,
-}
 
 #[derive(Clone, Serialize)]
 struct FetchProgress {
@@ -52,57 +35,10 @@ pub async fn search_places(query: String) -> Result<Vec<Place>, String> {
     blocking(move || geocode::search(&query, SEARCH_LIMIT).map_err(text)).await
 }
 
-/// Counterclockwise whichever way it was drawn: on a sphere a clockwise ring
-/// encloses the rest of the earth, which made a 4 km² polygon measure 510 million.
-fn ring(points: &[LonLat]) -> Polygon<f64> {
-    let coords: Vec<(f64, f64)> = points.iter().map(|point| (point.lon, point.lat)).collect();
-    Polygon::new(LineString::from(coords), vec![]).orient(Direction::Default)
-}
-
-fn corner_points(area: &Area) -> Vec<LonLat> {
-    match area {
-        Area::Circle { center, .. } => vec![*center],
-        Area::Rectangle {
-            south_west,
-            north_east,
-        } => vec![*south_west, *north_east],
-        Area::Polygon { points } => points.clone(),
-    }
-}
-
 /// "2.6 ha, inside the Netherlands": shown live while the user draws.
 #[tauri::command]
 pub fn measure_area(area: Area) -> AreaSize {
-    let m2 = match &area {
-        Area::Circle { radius_m, .. } => PI * radius_m * radius_m,
-        Area::Rectangle {
-            south_west,
-            north_east,
-        } => ring(&[
-            *south_west,
-            LonLat {
-                lon: north_east.lon,
-                lat: south_west.lat,
-            },
-            *north_east,
-            LonLat {
-                lon: south_west.lon,
-                lat: north_east.lat,
-            },
-        ])
-        .geodesic_area_unsigned(),
-        Area::Polygon { points } if points.len() >= 3 => ring(points).geodesic_area_unsigned(),
-        Area::Polygon { .. } => 0.0,
-    };
-    let in_netherlands = corner_points(&area).iter().all(|point| {
-        (NL_WEST..=NL_EAST).contains(&point.lon) && (NL_SOUTH..=NL_NORTH).contains(&point.lat)
-    });
-
-    AreaSize {
-        m2,
-        max_m2: MAX_AREA_M2,
-        in_netherlands,
-    }
+    site::measure(&area)
 }
 
 fn fetch_and_store(
@@ -170,48 +106,5 @@ pub async fn current_project(state: State<'_, Shared>) -> Result<ProjectView, St
     match lock(&state.open).as_ref() {
         Some(open) => Ok(view_of(open)),
         None => Err("No project is open.".to_string()),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// About 2 km by 2 km around Eindhoven, corners in the given order.
-    fn square(clockwise: bool) -> Area {
-        let mut points = vec![
-            LonLat {
-                lon: 5.46,
-                lat: 51.43,
-            },
-            LonLat {
-                lon: 5.4888,
-                lat: 51.43,
-            },
-            LonLat {
-                lon: 5.4888,
-                lat: 51.448,
-            },
-            LonLat {
-                lon: 5.46,
-                lat: 51.448,
-            },
-        ];
-        if clockwise {
-            points.reverse();
-        }
-        Area::Polygon { points }
-    }
-
-    #[test]
-    fn a_polygon_measures_the_same_whichever_way_it_was_drawn() {
-        let counterclockwise = measure_area(square(false)).m2;
-        let clockwise = measure_area(square(true)).m2;
-
-        assert!(
-            (3.9e6..4.1e6).contains(&counterclockwise),
-            "{counterclockwise}"
-        );
-        assert!((clockwise - counterclockwise).abs() < 1.0, "{clockwise}");
     }
 }

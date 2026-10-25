@@ -1,6 +1,8 @@
-//! The drawn area as a polygon in RD New, checked before anything is fetched.
+//! The drawn area as a polygon in RD New, checked before anything is fetched,
+//! and measured the same way while the user draws it.
 
 use geo::{Area as _, Centroid, Coord, LineString, Polygon};
+use serde::Serialize;
 
 use crate::area::{Area, LonLat, MAX_AREA_M2};
 use crate::crs::wgs84_to_rd;
@@ -14,6 +16,14 @@ const NETHERLANDS_WEST: f64 = 3.2;
 const NETHERLANDS_EAST: f64 = 7.3;
 const NETHERLANDS_SOUTH: f64 = 50.7;
 const NETHERLANDS_NORTH: f64 = 53.7;
+
+/// The live hint while drawing: "2.6 ha, inside the Netherlands".
+#[derive(Debug, Clone, Serialize)]
+pub struct AreaSize {
+    pub m2: f64,
+    pub max_m2: f64,
+    pub in_netherlands: bool,
+}
 
 /// The drawn area in RD New, after checking it is something we can fetch.
 pub fn boundary_in_rd(area: &Area) -> Result<Polygon<f64>> {
@@ -36,15 +46,7 @@ pub fn boundary_in_rd(area: &Area) -> Result<Polygon<f64>> {
                     "The rectangle's south-west corner must lie south-west of its north-east corner.".to_string(),
                 ));
             }
-            let south_east = LonLat {
-                lon: north_east.lon,
-                lat: south_west.lat,
-            };
-            let north_west = LonLat {
-                lon: south_west.lon,
-                lat: north_east.lat,
-            };
-            ring_in_rd(&[*south_west, south_east, *north_east, north_west])?
+            ring_in_rd(&rectangle_corners(*south_west, *north_east))?
         }
         Area::Polygon { points } => {
             if points.len() < 3 {
@@ -71,22 +73,67 @@ pub fn boundary_in_rd(area: &Area) -> Result<Polygon<f64>> {
     Ok(boundary)
 }
 
+/// The drawn area's size in RD metres, measured as `boundary_in_rd` measures
+/// it, so the hint while drawing agrees with the check at fetch time.
+pub fn measure(area: &Area) -> AreaSize {
+    let (m2, corners) = match area {
+        Area::Circle { center, radius_m } => (
+            circle(wgs84_to_rd(*center), *radius_m).unsigned_area(),
+            vec![*center],
+        ),
+        Area::Rectangle {
+            south_west,
+            north_east,
+        } => {
+            let corners = rectangle_corners(*south_west, *north_east);
+            (projected(&corners).unsigned_area(), corners.to_vec())
+        }
+        Area::Polygon { points } if points.len() >= 3 => {
+            (projected(points).unsigned_area(), points.clone())
+        }
+        Area::Polygon { points } => (0.0, points.clone()),
+    };
+
+    AreaSize {
+        m2,
+        max_m2: MAX_AREA_M2,
+        in_netherlands: corners.iter().all(is_in_netherlands),
+    }
+}
+
+fn rectangle_corners(south_west: LonLat, north_east: LonLat) -> [LonLat; 4] {
+    let south_east = LonLat {
+        lon: north_east.lon,
+        lat: south_west.lat,
+    };
+    let north_west = LonLat {
+        lon: south_west.lon,
+        lat: north_east.lat,
+    };
+    [south_west, south_east, north_east, north_west]
+}
+
 fn ring_in_rd(points: &[LonLat]) -> Result<Polygon<f64>> {
     check_in_netherlands(points)?;
+    Ok(projected(points))
+}
+
+fn projected(points: &[LonLat]) -> Polygon<f64> {
     let ring: Vec<Coord<f64>> = points
         .iter()
         .map(|&point| wgs84_to_rd(point).into())
         .collect();
     // Polygon::new closes the ring itself.
-    Ok(Polygon::new(LineString::new(ring), vec![]))
+    Polygon::new(LineString::new(ring), vec![])
+}
+
+fn is_in_netherlands(point: &LonLat) -> bool {
+    (NETHERLANDS_WEST..=NETHERLANDS_EAST).contains(&point.lon)
+        && (NETHERLANDS_SOUTH..=NETHERLANDS_NORTH).contains(&point.lat)
 }
 
 fn check_in_netherlands(points: &[LonLat]) -> Result<()> {
-    let is_inside = |point: &LonLat| {
-        (NETHERLANDS_WEST..=NETHERLANDS_EAST).contains(&point.lon)
-            && (NETHERLANDS_SOUTH..=NETHERLANDS_NORTH).contains(&point.lat)
-    };
-    if points.iter().all(is_inside) {
+    if points.iter().all(is_in_netherlands) {
         Ok(())
     } else {
         Err(Error::Invalid(
@@ -140,6 +187,48 @@ mod tests {
         .unwrap();
         let true_area = std::f64::consts::PI * 300.0 * 300.0;
         assert!((boundary.unsigned_area() - true_area).abs() / true_area < 0.001);
+    }
+
+    #[test]
+    fn a_polygon_measures_the_same_whichever_way_it_was_drawn() {
+        // About 2 km by 2 km around Eindhoven.
+        let mut points = vec![
+            LonLat {
+                lon: 5.46,
+                lat: 51.43,
+            },
+            LonLat {
+                lon: 5.4888,
+                lat: 51.43,
+            },
+            LonLat {
+                lon: 5.4888,
+                lat: 51.448,
+            },
+            LonLat {
+                lon: 5.46,
+                lat: 51.448,
+            },
+        ];
+        let counterclockwise = measure(&Area::Polygon {
+            points: points.clone(),
+        });
+        points.reverse();
+        let clockwise = measure(&Area::Polygon { points });
+
+        assert!((3.9e6..4.1e6).contains(&counterclockwise.m2));
+        assert!((clockwise.m2 - counterclockwise.m2).abs() < 1.0);
+        assert!(clockwise.in_netherlands);
+    }
+
+    #[test]
+    fn the_measured_size_is_the_size_the_fetch_checks() {
+        let area = Area::Circle {
+            center: WESTERMARKT,
+            radius_m: 300.0,
+        };
+        let checked = boundary_in_rd(&area).unwrap().unsigned_area();
+        assert_eq!(measure(&area).m2, checked);
     }
 
     #[test]
