@@ -9,11 +9,11 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { usePlainKeys } from "../../lib/keys";
 import type { Pin, PinIcon } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
+import { useLiveValue } from "../liveValue";
+import { followPointer } from "../pointerDrag";
 import { nextPinId, steppedSize, withChangedPin, withoutPin, withPin } from "./pinEdits";
 import { paperPointAt, paperToRd, pinAt, pinGroup, readPins, type Point } from "./sheetPins";
 
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 3;
 // Arrow keys nudge by a millimetre of paper, or a centimetre with Shift.
 const NUDGE_MM = 1;
 const NUDGE_LARGE_MM = 10;
@@ -37,12 +37,12 @@ type Options = {
 export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: Options) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [drag, setDrag] = useState<PinDrag | null>(null);
+  const drag = useLiveValue<PinDrag | null>(null);
   const latestPins = useRef(pins);
   latestPins.current = pins;
 
   // The core's new SVG has the pin where the drop put it.
-  useEffect(() => setDrag(null), [svg]);
+  useEffect(() => drag.set(null), [drag, svg]);
 
   // A pin that undo took away is no longer selected.
   const isPresent = selectedId === null || pins.some((pin) => pin.id === selectedId);
@@ -98,7 +98,7 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
   };
 
   const onPaperPointerDown = (event: React.PointerEvent, view: PaperView): boolean => {
-    setDrag(null);
+    drag.set(null);
     const paper = view.getPaper();
     const point = view.toMm(event.clientX, event.clientY);
     const hit = pinAt(readPins(paper), point.x, point.y);
@@ -113,25 +113,18 @@ export function usePinTool({ pins, onPins, canvas, svg, isEnabled, onRefused }: 
     setEditingId(null);
     const group = pinGroup(paper, hit.id);
     const start = { x: event.clientX, y: event.clientY };
-    let isDragging = false;
     let offset = { dx: 0, dy: 0 };
-    const onMove = (move: PointerEvent) => {
-      const distance = Math.hypot(move.clientX - start.x, move.clientY - start.y);
-      if (!isDragging && distance < DRAG_THRESHOLD_PX) return;
-      isDragging = true;
-      offset = { dx: (move.clientX - start.x) / view.pxPerMm, dy: (move.clientY - start.y) / view.pxPerMm };
-      group?.setAttribute("transform", `translate(${offset.dx} ${offset.dy})`);
-      setDrag({ id: hit.id, ...offset });
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      if (!isDragging) return;
-      // The moved group keeps its offset until the core's new SVG replaces it.
-      moveTo(hit.id, paper, { x: hit.x + offset.dx, y: hit.y + offset.dy });
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    followPointer(event, {
+      onDrag: (move) => {
+        offset = { dx: (move.clientX - start.x) / view.pxPerMm, dy: (move.clientY - start.y) / view.pxPerMm };
+        group?.setAttribute("transform", `translate(${offset.dx} ${offset.dy})`);
+        drag.set({ id: hit.id, ...offset });
+      },
+      onDrop: (_up, isDragged) => {
+        // The moved group keeps its offset until the core's new SVG replaces it.
+        if (isDragged) moveTo(hit.id, paper, { x: hit.x + offset.dx, y: hit.y + offset.dy });
+      },
+    });
     return true;
   };
 

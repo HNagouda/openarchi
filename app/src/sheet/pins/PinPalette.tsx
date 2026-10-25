@@ -3,12 +3,10 @@
 
 import { useState } from "react";
 import type { PinIcon } from "../../lib/types";
+import { followPointer } from "../pointerDrag";
 import { PinGlyph } from "./PinGlyph";
 import { PIN_ICONS } from "./pinEdits";
 import "./pins.css";
-
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 4;
 
 type Ghost = { icon: PinIcon; x: number; y: number };
 
@@ -26,22 +24,14 @@ export function PinPalette({ isDisabled, disabledTip, onDrop, onPlace }: Props) 
   const startDrag = (event: React.PointerEvent, icon: PinIcon) => {
     if (event.button !== 0 || isDisabled) return;
     event.preventDefault();
-    const start = { x: event.clientX, y: event.clientY };
-    let isDragging = false;
-    const onMove = (move: PointerEvent) => {
-      if (!isDragging && Math.hypot(move.clientX - start.x, move.clientY - start.y) < DRAG_THRESHOLD_PX) return;
-      isDragging = true;
-      setGhost({ icon, x: move.clientX, y: move.clientY });
-    };
-    const onUp = (up: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      setGhost(null);
-      if (isDragging) onDrop(icon, up.clientX, up.clientY);
-      else onPlace(icon);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    followPointer(event, {
+      onDrag: (move) => setGhost({ icon, x: move.clientX, y: move.clientY }),
+      onDrop: (up, isDragged) => {
+        setGhost(null);
+        if (isDragged) onDrop(icon, up.clientX, up.clientY);
+        else onPlace(icon);
+      },
+    });
   };
 
   return (

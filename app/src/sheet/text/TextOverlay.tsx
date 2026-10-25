@@ -4,6 +4,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { Look } from "../../lib/types";
 import type { PaperView } from "../Canvas";
+import { useLive, type LiveValue } from "../liveValue";
 import { groupFor, readTexts, type SheetText } from "./sheetTexts";
 import { TextToolbar } from "./TextToolbar";
 import { isTextBox, positionOf, styleOf, textOf, withPosition, withStyle, withText, withoutBox } from "./textEdits";
@@ -23,7 +24,8 @@ type Props = {
   look: Look;
   selectedId: string | null;
   editingId: string | null;
-  drag: TextDrag | null;
+  /** The selected one's offset while it is dragged. */
+  drag: LiveValue<TextDrag | null>;
   /** The diagram name, which an empty title shows instead. */
   diagramName: string;
   onLook: (next: Look, mergeKey?: string) => void;
@@ -39,12 +41,13 @@ export function TextOverlay({ view, svg, look, selectedId, editingId, drag, diag
   useLayoutEffect(() => {
     setTexts(readTexts(view.getPaper()));
   }, [svg, view]);
+  const dragged = useLive(drag);
 
   const text = texts.find((entry) => entry.id === selectedId);
   if (!text) return null;
 
   const px = view.pxPerMm;
-  const offset = drag?.id === text.id ? drag : { dx: 0, dy: 0 };
+  const offset = dragged?.id === text.id ? dragged : { dx: 0, dy: 0 };
   const outline = {
     left: (text.box.x + offset.dx) * px - OUTLINE_PAD_PX,
     top: (text.box.y + offset.dy) * px - OUTLINE_PAD_PX,
@@ -74,7 +77,7 @@ export function TextOverlay({ view, svg, look, selectedId, editingId, drag, diag
           onCancel={onEditEnd}
         />
       ) : (
-        !drag && (
+        !dragged && (
           <div className="text-toolbar-slot" style={toolbarPlace(view, outline)}>
             <TextToolbar
               text={text}

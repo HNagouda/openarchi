@@ -9,11 +9,12 @@ import { ColorPicker, PaletteSwatches } from "../../ui/ColorPicker";
 import { ColorPopover } from "../../ui/ColorPopover";
 import { rememberColour } from "../../ui/colour";
 import type { PaperView } from "../Canvas";
+import { useLive, type LiveValue } from "../liveValue";
 import { LabelField } from "../pins/PinOverlay";
 import type { Point } from "../pins/sheetPins";
 import { handlesOf, ringOf, withChangedHighlight, withoutHighlight } from "./highlightEdits";
 import { rdToPaper } from "./sheetHighlights";
-import type { HighlightDraft } from "./useHighlightTool";
+import type { HighlightDraft, HighlightPreview } from "./useHighlightTool";
 import "./highlights.css";
 
 const HANDLE_RADIUS_PX = 5;
@@ -28,8 +29,8 @@ type Props = {
   highlights: Highlight[];
   selectedId: string | null;
   editingId: string | null;
-  draft: HighlightDraft | null;
-  preview: { id: string; shape: Highlight["shape"] } | null;
+  draft: LiveValue<HighlightDraft | null>;
+  preview: LiveValue<HighlightPreview | null>;
   onHighlights: (next: Highlight[], mergeKey?: string) => void;
   onSeal: () => void;
   onEdit: () => void;
@@ -39,8 +40,10 @@ type Props = {
 };
 
 export function HighlightOverlay(props: Props) {
-  const { view, svg, highlights, selectedId, editingId, draft, preview, onHighlights } = props;
+  const { view, svg, highlights, selectedId, editingId, onHighlights } = props;
   const [toPaper, setToPaper] = useState<((point: Point) => Point) | null>(null);
+  const draft = useLive(props.draft);
+  const preview = useLive(props.preview);
 
   // Read the ground once the SVG is in the page, again whenever the canvas moves or zooms.
   useLayoutEffect(() => {

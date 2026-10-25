@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import type { Pin } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import type { PaperView } from "../Canvas";
+import { useLive, type LiveValue } from "../liveValue";
 import { PinGlyph } from "./PinGlyph";
 import { PIN_ICONS, PIN_SIZES, withChangedPin, withoutPin } from "./pinEdits";
 import { readPins, type SheetPin } from "./sheetPins";
@@ -24,7 +25,8 @@ type Props = {
   pins: Pin[];
   selectedId: string | null;
   editingId: string | null;
-  drag: PinDrag | null;
+  /** The selected one's offset while it is dragged. */
+  drag: LiveValue<PinDrag | null>;
   onPins: (next: Pin[], mergeKey?: string) => void;
   onSeal: () => void;
   onEdit: () => void;
@@ -39,13 +41,14 @@ export function PinOverlay({ view, svg, pins, selectedId, editingId, drag, onPin
   useLayoutEffect(() => {
     setDrawn(readPins(view.getPaper()));
   }, [svg, view]);
+  const dragged = useLive(drag);
 
   const shown = drawn.find((entry) => entry.id === selectedId);
   const pin = pins.find((entry) => entry.id === selectedId);
   if (!shown || !pin) return null;
 
   const px = view.pxPerMm;
-  const offset = drag?.id === shown.id ? drag : { dx: 0, dy: 0 };
+  const offset = dragged?.id === shown.id ? dragged : { dx: 0, dy: 0 };
   const outline = {
     left: (shown.box.x + offset.dx) * px - OUTLINE_PAD_PX,
     top: (shown.box.y + offset.dy) * px - OUTLINE_PAD_PX,
@@ -75,7 +78,7 @@ export function PinOverlay({ view, svg, pins, selectedId, editingId, drag, onPin
           }}
         />
       )}
-      {!isEditing && !drag && (
+      {!isEditing && !dragged && (
         <div className="pin-toolbar-slot" style={{ left: outline.left, top: Math.max(0, outline.top - TOOLBAR_GAP_PX - TOOLBAR_HEIGHT_PX) }}>
           <div className="pin-toolbar" role="toolbar" aria-label="Pin" onPointerDown={(event) => event.stopPropagation()} onDoubleClick={(event) => event.stopPropagation()}>
             {PIN_ICONS.map(({ icon, label }) => (

@@ -3,6 +3,7 @@
 
 import { useLayoutEffect, useState } from "react";
 import type { PaperView } from "../Canvas";
+import { useLive, type LiveValue } from "../liveValue";
 import { readEnds, type PaperEnds } from "./sectionEdits";
 import type { SectionDraft } from "./useSectionTool";
 import "./section.css";
@@ -12,7 +13,7 @@ const HANDLE_RADIUS_PX = 5;
 type Props = {
   view: PaperView;
   svg: string;
-  draft: SectionDraft | null;
+  draft: LiveValue<SectionDraft | null>;
   isSelected: boolean;
 };
 
@@ -23,15 +24,16 @@ export function SectionOverlay({ view, svg, draft, isSelected }: Props) {
   useLayoutEffect(() => {
     setDrawn(readEnds(view.getPaper()));
   }, [svg, view]);
+  const drafted = useLive(draft);
 
-  const ends = draft ?? (isSelected ? drawn : null);
+  const ends = drafted ?? (isSelected ? drawn : null);
   if (!ends) return null;
   const px = view.pxPerMm;
   const [x1, y1, x2, y2] = [ends.start.x * px, ends.start.y * px, ends.end.x * px, ends.end.y * px];
 
   return (
     <svg className="section-overlay" aria-hidden="true">
-      {draft && <line className="section-draft" x1={x1} y1={y1} x2={x2} y2={y2} />}
+      {drafted && <line className="section-draft" x1={x1} y1={y1} x2={x2} y2={y2} />}
       <circle className="section-handle" cx={x1} cy={y1} r={HANDLE_RADIUS_PX} />
       <circle className="section-handle" cx={x2} cy={y2} r={HANDLE_RADIUS_PX} />
       <text className="section-handle-label" x={x1} y={y1 - 2 * HANDLE_RADIUS_PX}>

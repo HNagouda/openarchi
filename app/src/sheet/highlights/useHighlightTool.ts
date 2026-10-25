@@ -14,6 +14,8 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { usePlainKeys } from "../../lib/keys";
 import type { Highlight, HighlightKind, HighlightShape, Look } from "../../lib/types";
 import type { CanvasControls, PaperView } from "../Canvas";
+import { useLiveValue } from "../liveValue";
+import { followPointer } from "../pointerDrag";
 import { paperToRd, type Point } from "../pins/sheetPins";
 import {
   areaOf,
@@ -35,8 +37,6 @@ import {
 import { highlightAt, rdToPaper, svgPoint } from "./sheetHighlights";
 
 export const HIGHLIGHT_KEY = "h";
-// A press that moves less than this is a click, not a drag.
-const DRAG_THRESHOLD_PX = 4;
 // How close to a handle or a polygon's first corner, in paper millimetres, a press still takes it.
 const HANDLE_HIT_MM = 2.5;
 // Arrow keys nudge by a millimetre of paper, or a centimetre with Shift; + and - grow and shrink by a tenth.
@@ -49,6 +49,8 @@ const BOUNDARY_SELECTOR = "#site-boundary";
 
 /** What the overlay draws while the pointer works: RD New points, closed or still being drawn. */
 export type HighlightDraft = { ring: Point[]; isOpen: boolean };
+/** A highlight's shape while it is moved or reshaped, until the core draws it. */
+export type HighlightPreview = { id: string; shape: HighlightShape };
 
 type Options = {
   highlights: Highlight[];
@@ -64,8 +66,8 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
   const [kind, setKind] = useState<HighlightKind>("rectangle");
   const [isDrawing, setDrawing] = useState(false);
   const [corners, setCorners] = useState<Point[]>([]);
-  const [draft, setDraft] = useState<HighlightDraft | null>(null);
-  const [preview, setPreview] = useState<{ id: string; shape: HighlightShape } | null>(null);
+  const draft = useLiveValue<HighlightDraft | null>(null);
+  const preview = useLiveValue<HighlightPreview | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   // While a polygon is drawn, how to stop its next side following the pointer.
@@ -78,7 +80,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
   const unavailable = "Highlights are drawn and edited on a plan, axonometric or explode view.";
 
   // The core's new SVG has the shape where the drop put it.
-  useEffect(() => setPreview(null), [svg]);
+  useEffect(() => preview.set(null), [preview, svg]);
   // A highlight that undo took away is no longer selected.
   const isPresent = selectedId === null || highlights.some((highlight) => highlight.id === selectedId);
   useEffect(() => {
@@ -96,7 +98,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
     stopFollowing.current = null;
     setDrawing(false);
     setCorners([]);
-    setDraft(null);
+    draft.set(null);
   }
 
   const paperOf = () => document.querySelector(".paper");
@@ -117,7 +119,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
     const problem = problemWith(shape, paper);
     if (problem) {
       onRefused(problem);
-      setDraft(null);
+      draft.set(null);
       return;
     }
     const id = nextHighlightId(latest.current);
@@ -132,7 +134,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
     const problem = problemWith(shape, paper);
     if (problem) {
       onRefused(problem);
-      setPreview(null);
+      preview.set(null);
       return;
     }
     onHighlights(withChangedHighlight(latest.current, id, { shape }));
@@ -142,21 +144,11 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
   const follow = (event: React.PointerEvent, view: PaperView, onDrag: (at: Point) => void, onDrop: (at: Point | null) => void) => {
     const toRd = paperToRd(view.getPaper());
     if (!toRd) return;
-    const pressedAt = { x: event.clientX, y: event.clientY };
-    let isDragging = false;
     const at = (pointer: PointerEvent) => toRd(view.toMm(pointer.clientX, pointer.clientY));
-    const onMove = (move: PointerEvent) => {
-      if (!isDragging && Math.hypot(move.clientX - pressedAt.x, move.clientY - pressedAt.y) < DRAG_THRESHOLD_PX) return;
-      isDragging = true;
-      onDrag(at(move));
-    };
-    const onUp = (up: PointerEvent) => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      onDrop(isDragging ? at(up) : null);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    followPointer(event, {
+      onDrag: (move) => onDrag(at(move)),
+      onDrop: (up, isDragged) => onDrop(isDragged ? at(up) : null),
+    });
   };
 
   const pressWhileDrawing = (event: React.PointerEvent, view: PaperView) => {
@@ -178,23 +170,23 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
       }
       const next = [...corners, start];
       setCorners(next);
-      setDraft({ ring: next, isOpen: true });
+      draft.set({ ring: next, isOpen: true });
       // The next side follows the pointer until the next click.
       stopFollowing.current?.();
       const onMove = (move: PointerEvent) => {
         const at = toRd(view.toMm(move.clientX, move.clientY));
-        setDraft({ ring: [...latestCorners.current, at], isOpen: true });
+        draft.set({ ring: [...latestCorners.current, at], isOpen: true });
       };
       window.addEventListener("pointermove", onMove);
       stopFollowing.current = () => window.removeEventListener("pointermove", onMove);
       return;
     }
 
-    setDraft({ ring: [start, start], isOpen: false });
+    draft.set({ ring: [start, start], isOpen: false });
     follow(
       event,
       view,
-      (at) => setDraft({ ring: ringOf(shapeFrom(kind, [start, at])), isOpen: false }),
+      (at) => draft.set({ ring: ringOf(shapeFrom(kind, [start, at])), isOpen: false }),
       (at) => addShape(at ? shapeFrom(kind, [start, at]) : placedShape(kind, start), paper),
     );
   };
@@ -211,7 +203,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
       follow(
         event,
         view,
-        (at) => setPreview({ id: selected.id, shape: withHandleMoved(selected.shape, handle, at) }),
+        (at) => preview.set({ id: selected.id, shape: withHandleMoved(selected.shape, handle, at) }),
         (at) => at && changeShape(selected.id, withHandleMoved(selected.shape, handle, at), paper),
       );
       return true;
@@ -233,7 +225,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
     follow(
       event,
       view,
-      (at) => setPreview({ id: hit.id, shape: moved(hit.shape, at.x - start.x, at.y - start.y) }),
+      (at) => preview.set({ id: hit.id, shape: moved(hit.shape, at.x - start.x, at.y - start.y) }),
       (at) => at && changeShape(hit.id, moved(hit.shape, at.x - start.x, at.y - start.y), paper),
     );
     return true;
@@ -272,7 +264,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
     }
     setKind(next);
     setCorners([]);
-    setDraft(null);
+    draft.set(null);
     setSelectedId(null);
     setDrawing(true);
   };
@@ -315,7 +307,7 @@ export function useHighlightTool({ highlights, onHighlights, canvas, look, svg, 
       if (key === "Backspace" && kind === "polygon") {
         const next = corners.slice(0, -1);
         setCorners(next);
-        setDraft(next.length > 0 ? { ring: next, isOpen: true } : null);
+        draft.set(next.length > 0 ? { ring: next, isOpen: true } : null);
         if (next.length === 0) stopFollowing.current?.();
       }
       return;
