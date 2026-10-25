@@ -49,6 +49,7 @@ fn scene_with_canal() -> Scene {
         }),
         water_bed: None,
         water_levels: Vec::new(),
+        solar: None,
     }
 }
 

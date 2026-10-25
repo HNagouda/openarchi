@@ -77,6 +77,8 @@ fn is_missing(scene: &Scene, layer: Layer) -> bool {
             .all(|raster| scene.measured.get(*raster).is_none()),
         // CBS cells cover the whole country, so none at all means the source was never read.
         Layer::Population => true,
+        // Worked out when drawn, but from the typical year kept at fetch time.
+        Layer::SolarRadiation => scene.solar.is_none(),
         _ => false,
     }
 }

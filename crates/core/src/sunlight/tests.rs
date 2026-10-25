@@ -50,6 +50,7 @@ fn site(features: Vec<Feature>, context: Vec<Feature>) -> Scene {
         terrain: None,
         water_bed: None,
         water_levels: Vec::new(),
+        solar: None,
     }
 }
 

@@ -286,6 +286,7 @@ mod tests {
             terrain: None,
             water_bed: None,
             water_levels: Vec::new(),
+            solar: None,
         };
 
         let neighbourhood = neighbourhood(&scene).unwrap();

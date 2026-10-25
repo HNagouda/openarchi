@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
 use crate::environment::Measured;
+use crate::radiation::SolarYear;
 use crate::sources::raster::Grid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,6 +62,11 @@ pub struct Scene {
     /// no weir or lock holds the water at a set level.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub water_levels: Vec<WaterLevel>,
+    /// The site's typical year of sunlight, month by month, for the solar
+    /// radiation diagram. `None` for scenes fetched before it was kept, or
+    /// when the source could not be reached.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub solar: Option<SolarYear>,
 }
 
 /// The level a water is held at, published as a line along its fairway.
@@ -228,12 +234,20 @@ pub enum Layer {
     /// Hours of direct sun on the ground on one day, in bands. Computed from
     /// building and tree heights when drawn, never stored.
     SunHours,
+    /// The share of the sky seen from the ground, 0 to 1, in bands. Computed
+    /// from building heights and the terrain when drawn, never stored.
+    SkyView,
+    /// Yearly sunlight on the ground in kWh/m², in bands. Computed from the
+    /// scene's typical year, its shadows and its sky view when drawn.
+    SolarRadiation,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 33] = [
+    pub const ALL: [Layer; 35] = [
         // Measured surfaces lie under the map, as the ground they describe.
+        Layer::SolarRadiation,
+        Layer::SkyView,
         Layer::SunHours,
         Layer::Population,
         Layer::Slope,
@@ -304,6 +318,8 @@ impl Layer {
             Layer::WalkBand => "Walk times",
             Layer::Block => "City blocks",
             Layer::SunHours => "Hours of sun",
+            Layer::SkyView => "Sky view",
+            Layer::SolarRadiation => "Solar radiation",
         }
     }
 }

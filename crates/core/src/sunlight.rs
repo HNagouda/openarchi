@@ -14,7 +14,8 @@
 //! every shadow. A sun lower than the shadow diagram draws counts as no sun, as
 //! it would only graze the ground.
 
-mod raster;
+// Shared with the sky view factor and solar radiation, which work on the same grid.
+pub(crate) mod raster;
 
 use geo::{BooleanOps, Geometry, LineString, MultiPolygon, Polygon};
 
@@ -39,14 +40,14 @@ pub struct SunGrid {
 
 /// What lies on a grid cell.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Cell {
+pub(crate) enum Cell {
     Outside,
     Ground,
     Roof,
 }
 
 /// One thing that casts a shadow, reduced to what the shadow needs.
-enum Caster {
+pub(crate) enum Caster {
     /// Every wall of a building, as its two ends at the foot, each wall turned
     /// so the building lies on its left, and the roof height.
     Building {
@@ -60,7 +61,7 @@ enum Caster {
 
 /// The hours of direct sun on every ground cell of the site, on a day of the year.
 pub fn sun_hours(scene: &Scene, month: u32, day: u32) -> SunGrid {
-    let raster = raster_over(&scene.boundary);
+    let raster = raster_over(&scene.boundary, MAX_CELLS);
     let cells = cells(scene, &raster);
     let casters = casters(scene);
     let location = sun::site_location(&scene.area);
@@ -100,13 +101,23 @@ pub fn sun_hours(scene: &Scene, month: u32, day: u32) -> SunGrid {
 /// of its class as its value, the way measured bands do. n breaks make up to
 /// n + 1 areas; classes no cell falls in are left out.
 pub fn bands(grid: &SunGrid, breaks: &[f64]) -> Vec<Feature> {
+    banded(&grid.raster, &grid.hours, breaks, Layer::SunHours)
+}
+
+/// Any grid of values as bands of `layer`, the way `bands` draws hours of sun.
+pub(crate) fn banded(
+    raster: &Raster,
+    values: &[Option<f64>],
+    breaks: &[f64],
+    layer: Layer,
+) -> Vec<Feature> {
     let mut squares: Vec<Vec<Polygon<f64>>> = vec![Vec::new(); breaks.len() + 1];
-    for (index, hours) in grid.hours.iter().enumerate() {
-        let Some(hours) = hours else {
+    for (index, value) in values.iter().enumerate() {
+        let Some(value) = value else {
             continue;
         };
-        let class = breaks.iter().filter(|&&limit| *hours >= limit).count();
-        squares[class].push(cell_square(&grid.raster, index));
+        let class = breaks.iter().filter(|&&limit| *value >= limit).count();
+        squares[class].push(cell_square(raster, index));
     }
 
     squares
@@ -118,7 +129,7 @@ pub fn bands(grid: &SunGrid, breaks: &[f64]) -> Vec<Feature> {
             let band = MultiPolygon::new(class_squares).union(&MultiPolygon::new(Vec::new()));
             let lower_edge = if class == 0 { 0.0 } else { breaks[class - 1] };
             Feature {
-                layer: Layer::SunHours,
+                layer,
                 geometry: Geometry::MultiPolygon(band),
                 attributes: Attributes {
                     value: Some(lower_edge),
@@ -129,8 +140,8 @@ pub fn bands(grid: &SunGrid, breaks: &[f64]) -> Vec<Feature> {
         .collect()
 }
 
-/// A grid over the boundary's bounds, as fine as `MAX_CELLS` allows.
-fn raster_over(boundary: &Polygon<f64>) -> Raster {
+/// A grid over the boundary's bounds, as fine as `max_cells` allows.
+pub(crate) fn raster_over(boundary: &Polygon<f64>, max_cells: f64) -> Raster {
     let (mut min_x, mut min_y) = (f64::INFINITY, f64::INFINITY);
     let (mut max_x, mut max_y) = (f64::NEG_INFINITY, f64::NEG_INFINITY);
     for coord in &boundary.exterior().0 {
@@ -141,7 +152,7 @@ fn raster_over(boundary: &Polygon<f64>) -> Raster {
     }
     let width = (max_x - min_x).max(0.0);
     let height = (max_y - min_y).max(0.0);
-    let cell_m = FINEST_CELL_M.max((width * height / MAX_CELLS).sqrt());
+    let cell_m = FINEST_CELL_M.max((width * height / max_cells).sqrt());
 
     Raster {
         min: (min_x, min_y),
@@ -152,7 +163,7 @@ fn raster_over(boundary: &Polygon<f64>) -> Raster {
 }
 
 /// Which cells lie in the site, and which of those under a roof.
-fn cells(scene: &Scene, raster: &Raster) -> Vec<Cell> {
+pub(crate) fn cells(scene: &Scene, raster: &Raster) -> Vec<Cell> {
     let mut cells = vec![Cell::Outside; raster.len()];
     raster.fill_rings(&rings(&scene.boundary), |index| cells[index] = Cell::Ground);
     let buildings = scene
@@ -173,7 +184,7 @@ fn cells(scene: &Scene, raster: &Raster) -> Vec<Cell> {
 }
 
 /// Buildings and trees in the site and its neighbourhood.
-fn casters(scene: &Scene) -> Vec<Caster> {
+pub(crate) fn casters(scene: &Scene) -> Vec<Caster> {
     let mut casters = Vec::new();
     for feature in scene.features.iter().chain(&scene.context) {
         match (feature.layer, &feature.geometry) {
@@ -198,7 +209,7 @@ fn casters(scene: &Scene) -> Vec<Caster> {
 /// as the roof edge is moved along the shadow, and only walls facing away
 /// from the sun sweep outwards: any point in the shadow lies within one
 /// shadow length behind such a wall. The footprint itself is roof, not ground.
-fn shade(
+pub(crate) fn shade(
     caster: &Caster,
     per_metre: (f64, f64),
     sun: &SunPosition,
@@ -249,14 +260,14 @@ fn walls(polygon: &Polygon<f64>) -> Vec<((f64, f64), (f64, f64))> {
     walls
 }
 
-fn rings(polygon: &Polygon<f64>) -> Vec<Vec<(f64, f64)>> {
+pub(crate) fn rings(polygon: &Polygon<f64>) -> Vec<Vec<(f64, f64)>> {
     std::iter::once(polygon.exterior())
         .chain(polygon.interiors())
         .map(|ring| ring.0.iter().map(|c| (c.x, c.y)).collect())
         .collect()
 }
 
-fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
+pub(crate) fn polygons(geometry: &Geometry<f64>) -> Vec<&Polygon<f64>> {
     match geometry {
         Geometry::Polygon(polygon) => vec![polygon],
         Geometry::MultiPolygon(multi) => multi.0.iter().collect(),

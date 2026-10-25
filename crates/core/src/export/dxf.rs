@@ -103,6 +103,8 @@ fn colour_index(layer: Layer) -> u8 {
         Layer::WalkPath | Layer::WalkBand => 40,
         Layer::Block => 6,
         Layer::SunHours => 50,
+        Layer::SkyView => 140,
+        Layer::SolarRadiation => 40,
     }
 }
 
