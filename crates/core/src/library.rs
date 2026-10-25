@@ -35,7 +35,7 @@ use crate::{Error, Result};
 use self::files::{
     backup_stamps, check_file_stem, file_name, now_rfc3339, read_modified, read_project,
     read_summaries, rfc3339_from_stamp, saved_modified, slugify, stamp_from_rfc3339,
-    write_atomically,
+    write_atomically, SLUG_FALLBACK,
 };
 pub use self::migrate::migrate;
 
@@ -56,9 +56,6 @@ const CACHE_FOLDER: &str = "cache";
 /// Tries at a free random id suffix. A clash needs two projects with the same
 /// name on the same day, so running out means something else is wrong.
 const ID_ATTEMPTS: usize = 100;
-
-/// The slug of a project whose name has no ASCII letters or digits in it.
-const SLUG_FALLBACK: &str = "project";
 
 /// The frame that fits the shape the user drew, so a rectangle is not left
 /// floating inside an empty circle.

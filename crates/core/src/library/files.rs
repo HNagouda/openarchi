@@ -40,6 +40,9 @@ const TEMP_EXTENSION: &str = "tmp";
 /// Longest name slug inside a project id, so file names stay readable.
 const SLUG_MAX_CHARS: usize = 40;
 
+/// The slug of a project whose name has no ASCII letters or digits in it.
+pub(super) const SLUG_FALLBACK: &str = "project";
+
 pub(super) fn read_project(path: &Path) -> Result<Project> {
     let format_error = |detail: String| Error::Format {
         path: path.display().to_string(),
