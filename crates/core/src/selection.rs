@@ -226,9 +226,10 @@ mod tests {
         let (noise, flood) = (gradient(), north_east_flood());
         scene.measured.road_noise_db = stats_within(&noise, &scene.boundary);
         scene.measured.flood_depth_m = stats_within(&flood, &scene.boundary);
-        scene.measured.slope_percent = Some(SLOPE);
+        scene.measured.slope_percent = stats_within(&noise, &scene.boundary);
         scene.measured.grids.insert(Layer::RoadNoise, noise.clone());
         scene.measured.grids.insert(Layer::Flood, flood);
+        scene.measured.grids.insert(Layer::Slope, noise.clone());
 
         let framed = framed(&scene, &circle_at(-50.0, -50.0, 30.0)).unwrap();
         let measured = &framed.measured;
@@ -239,9 +240,8 @@ mod tests {
         assert_ne!(measured.road_noise_db, scene.measured.road_noise_db);
         // The south-west corner stays dry.
         assert_eq!(measured.flood_depth_m, None);
-        // The slope raster is never kept.
-        assert_eq!(measured.slope_percent, Some(SLOPE));
-        assert_eq!(measured.whole_site, vec![Layer::Slope]);
+        assert_eq!(measured.slope_percent, measured.road_noise_db);
+        assert!(measured.whole_site.is_empty());
     }
 
     #[test]

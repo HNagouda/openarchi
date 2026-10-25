@@ -2,17 +2,16 @@
 //!
 //! Percent rather than degrees, because that is how ramps and paths are
 //! specified: 5 % is the steepest walk that needs no landings, 8 % roughly the
-//! 1 in 12 a wheelchair ramp may have. The terrain is first prepared the way
-//! the contours prepare it (5 m cells, holes under buildings filled,
-//! smoothed), so a kerb or a quay wall does not read as a cliff.
+//! 1 in 12 a wheelchair ramp may have. It is read from the terrain the way
+//! the contours read it (`contours::prepared`: 5 m cells, holes under
+//! buildings filled, smoothed), so a kerb or a quay wall does not read as a cliff.
 
-use crate::sources::contours::{coarsened, filled, smoothed};
 use crate::sources::raster::Grid;
 
-/// Slope in percent per 5 m cell of `terrain`, from the 3 x 3 cells around
-/// each one (Horn's method). Edge cells reuse their nearest neighbours.
-pub fn slope_percent(terrain: &Grid) -> Grid {
-    let ground = smoothed(&filled(&coarsened(terrain)));
+/// Slope in percent per cell of `ground`, the terrain as `contours::prepared`
+/// leaves it, from the 3 x 3 cells around each one (Horn's method). Edge
+/// cells reuse their nearest neighbours.
+pub fn slope_percent(ground: &Grid) -> Grid {
     let at = |column: isize, row: isize| {
         let column = column.clamp(0, ground.width as isize - 1) as usize;
         let row = row.clamp(0, ground.height as isize - 1) as usize;
@@ -36,12 +35,20 @@ pub fn slope_percent(terrain: &Grid) -> Grid {
         }
     }
 
-    Grid { values, ..ground }
+    Grid {
+        west: ground.west,
+        north: ground.north,
+        cell_m: ground.cell_m,
+        width: ground.width,
+        height: ground.height,
+        values,
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sources::contours::prepared;
 
     #[test]
     fn a_one_in_twenty_slope_reads_as_five_percent() {
@@ -58,7 +65,7 @@ mod tests {
             height,
             values,
         };
-        let slope = slope_percent(&terrain);
+        let slope = slope_percent(&prepared(&terrain));
         let middle = slope.value(slope.width / 2, slope.height / 2);
         assert!((middle - 5.0).abs() < 0.1, "{middle}");
     }

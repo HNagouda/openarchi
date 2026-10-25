@@ -11,6 +11,7 @@
 use geo::{Coord, Rect};
 
 use super::to_local_centimetres;
+use crate::sources::contours;
 use crate::sources::raster::Grid;
 
 /// The smallest kept cell. Twice the 2 m neighbourhood cells, and still
@@ -30,7 +31,15 @@ pub fn kept(terrain: &Grid, extent: Rect<f64>, origin: (f64, f64)) -> Option<Gri
     let longest_m = cut.width.max(cut.height) as f64 * cut.cell_m;
     let wanted_cell_m = MIN_CELL_M.max(longest_m / MAX_CELLS_ACROSS);
     let factor = (wanted_cell_m / cut.cell_m).ceil().max(1.0) as usize;
-    let coarse = coarsened(&cut, factor);
+    let medians = contours::coarsened(&cut, factor);
+    let coarse = Grid {
+        values: medians
+            .values
+            .iter()
+            .map(|&value| to_decimetre(value))
+            .collect(),
+        ..medians
+    };
     if coarse.values.iter().all(|value| value.is_nan()) {
         return None;
     }
@@ -49,48 +58,9 @@ pub fn kept(terrain: &Grid, extent: Rect<f64>, origin: (f64, f64)) -> Option<Gri
     })
 }
 
-/// Blocks of `factor` by `factor` cells as one cell each, holding the median
-/// of their measured cells to the decimetre, or NaN when none was measured.
-fn coarsened(grid: &Grid, factor: usize) -> Grid {
-    let width = grid.width.div_ceil(factor);
-    let height = grid.height.div_ceil(factor);
-    let mut values = Vec::with_capacity(width * height);
-    let mut block = Vec::with_capacity(factor * factor);
-    for block_row in 0..height {
-        for block_column in 0..width {
-            block.clear();
-            let rows = block_row * factor..((block_row + 1) * factor).min(grid.height);
-            let columns = block_column * factor..((block_column + 1) * factor).min(grid.width);
-            for row in rows {
-                for column in columns.clone() {
-                    let value = grid.value(column, row);
-                    if value.is_finite() {
-                        block.push(value);
-                    }
-                }
-            }
-            values.push(median_to_decimetre(&mut block));
-        }
-    }
-
-    Grid {
-        west: grid.west,
-        north: grid.north,
-        cell_m: grid.cell_m * factor as f64,
-        width,
-        height,
-        values,
-    }
-}
-
-fn median_to_decimetre(values: &mut [f32]) -> f32 {
-    if values.is_empty() {
-        return f32::NAN;
-    }
-    values.sort_by(f32::total_cmp);
-    let median = f64::from(values[values.len() / 2]);
-
-    ((median / KEPT_PRECISION_M).round() * KEPT_PRECISION_M) as f32
+/// 1.234 -> 1.2. NaN, a block with nothing measured, stays NaN.
+fn to_decimetre(metres: f32) -> f32 {
+    ((f64::from(metres) / KEPT_PRECISION_M).round() * KEPT_PRECISION_M) as f32
 }
 
 #[cfg(test)]

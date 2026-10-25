@@ -56,8 +56,9 @@ pub struct Measured {
     /// sheet area can be measured again: `{"road_noise": grid}`. The tree
     /// heights reach further, for the trees around the site that block sight,
     /// sky and sun (`forest.rs`, `site::greenery::TREE_REACH_M`). Only for
-    /// figures that found a value. Slope is never kept, see `site::environment`.
-    /// Empty in scenes fetched before sheet areas measured their own figures.
+    /// figures that found a value. Empty in scenes fetched before sheet areas
+    /// measured their own figures, and without slope in scenes fetched before
+    /// 0.2.0, whose sheet areas quote the whole site's slope.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub grids: BTreeMap<Layer, Grid>,
     /// On a sheet area, the figures that still describe the whole site

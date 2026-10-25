@@ -10,7 +10,6 @@ use geo::Geometry;
 
 use crate::scene::{Attributes, Feature, Layer};
 use crate::sources::ahn::Grid;
-use crate::sources::heights::percentile;
 
 /// Size of the cells contours are traced on.
 const COARSE_CELL_M: f64 = 5.0;
@@ -22,10 +21,17 @@ const INTERVALS_M: [f64; 10] = [0.1, 0.25, 0.5, 1.0, 2.0, 2.5, 5.0, 10.0, 25.0, 
 /// a site with roughly 8 to 20 lines.
 const MAX_LINES: usize = 20;
 
-/// Contour lines over `terrain`, in RD New, with their level in `ground_m`.
-pub fn contour_lines(terrain: &Grid) -> Vec<Feature> {
-    let coarse = smoothed(&filled(&coarsened(terrain)));
-    let finite = coarse
+/// The terrain as contours and slope read it: in cells of `COARSE_CELL_M`,
+/// with the holes filled and the result smoothed.
+pub fn prepared(terrain: &Grid) -> Grid {
+    let factor = (COARSE_CELL_M / terrain.cell_m).round().max(1.0) as usize;
+    smoothed(&filled(&coarsened(terrain, factor)))
+}
+
+/// Contour lines over `ground`, the terrain as `prepared` leaves it, in RD
+/// New, with their level in `ground_m`.
+pub fn contour_lines(ground: &Grid) -> Vec<Feature> {
+    let finite = ground
         .values
         .iter()
         .copied()
@@ -37,17 +43,17 @@ pub fn contour_lines(terrain: &Grid) -> Vec<Feature> {
     }
 
     let levels = levels_between(f64::from(lowest), f64::from(highest));
-    let values: Vec<f64> = coarse
+    let values: Vec<f64> = ground
         .values
         .iter()
         .map(|&value| f64::from(value))
         .collect();
     // Grid index (column, row) maps to x = west + column * cell, y = north - row * cell.
-    let builder = ContourBuilder::new(coarse.width, coarse.height, true)
-        .x_origin(coarse.west)
-        .y_origin(coarse.north)
-        .x_step(coarse.cell_m)
-        .y_step(-coarse.cell_m);
+    let builder = ContourBuilder::new(ground.width, ground.height, true)
+        .x_origin(ground.west)
+        .y_origin(ground.north)
+        .x_step(ground.cell_m)
+        .y_step(-ground.cell_m);
     let Ok(lines) = builder.lines(&values, &levels) else {
         return Vec::new();
     };
@@ -83,27 +89,34 @@ pub fn levels_between(lowest: f64, highest: f64) -> Vec<f64> {
     Vec::new()
 }
 
-/// `grid` in cells of `COARSE_CELL_M`, each the median of the finite cells it covers.
-pub fn coarsened(grid: &Grid) -> Grid {
-    let block = (COARSE_CELL_M / grid.cell_m).round().max(1.0) as usize;
-    let width = grid.width.div_ceil(block);
-    let height = grid.height.div_ceil(block);
-
+/// Blocks of `factor` by `factor` cells of `grid` as one cell each, holding
+/// the median of their finite cells, or NaN when none is finite. Of an even
+/// count the upper middle one, so the median is always a measured height.
+pub fn coarsened(grid: &Grid, factor: usize) -> Grid {
+    let width = grid.width.div_ceil(factor);
+    let height = grid.height.div_ceil(factor);
     let mut values = Vec::with_capacity(width * height);
-    for coarse_row in 0..height {
-        for coarse_column in 0..width {
-            let mut cells = Vec::with_capacity(block * block);
-            for row in coarse_row * block..((coarse_row + 1) * block).min(grid.height) {
-                for column in coarse_column * block..((coarse_column + 1) * block).min(grid.width) {
-                    cells.push(grid.value(column, row));
+    let mut block = Vec::with_capacity(factor * factor);
+    for block_row in 0..height {
+        for block_column in 0..width {
+            block.clear();
+            let rows = block_row * factor..((block_row + 1) * factor).min(grid.height);
+            let columns = block_column * factor..((block_column + 1) * factor).min(grid.width);
+            for row in rows {
+                for column in columns.clone() {
+                    let value = grid.value(column, row);
+                    if value.is_finite() {
+                        block.push(value);
+                    }
                 }
             }
-            values.push(percentile(cells, 0.5).map_or(f32::NAN, |value| value as f32));
+            block.sort_by(f32::total_cmp);
+            values.push(block.get(block.len() / 2).copied().unwrap_or(f32::NAN));
         }
     }
 
     Grid {
-        cell_m: grid.cell_m * block as f64,
+        cell_m: grid.cell_m * factor as f64,
         width,
         height,
         values,
@@ -235,7 +248,7 @@ mod tests {
             values,
         };
 
-        let lines = contour_lines(&terrain);
+        let lines = contour_lines(&prepared(&terrain));
         assert!(
             lines.len() >= 8 && lines.len() <= MAX_LINES,
             "{} lines",
