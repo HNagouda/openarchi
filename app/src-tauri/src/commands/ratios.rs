@@ -66,7 +66,7 @@ pub async fn export_ratios(
                     .as_ref()
                     .map(|open| open.project.name.clone())
                     .unwrap_or_default();
-                ratios::chart_svg(&ratios, &theme, style, &title)
+                ratios::chart_svg(&ratios, &theme, style, &title).map_err(text)?
             }
             _ => return Err(format!("Ratios export as .csv or .svg, not “{extension}”.")),
         };
