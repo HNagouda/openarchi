@@ -313,6 +313,24 @@ export type ModelView = {
   ground_m: number | null;
 };
 
+/** Triangles in one colour; `corners` is every corner as three little-endian f32 (x east, y north, z up), in base64. */
+export type Surface = { colour: string; corners: string; triangle_count: number };
+
+/** The open site as the 3D view draws it, in metres around the site centre. */
+export type View3d = {
+  radius_m: number;
+  sky: string;
+  ground: Surface[];
+  buildings: Surface;
+  neighbours: Surface;
+  model: Surface | null;
+  trees: { colour: string; at: [number, number][]; height_m: number; crown_m: number };
+};
+
+/** Where the sun stands through one day, every few minutes of the clock. */
+export type SunStep = { minute: number; azimuth_deg: number; altitude_deg: number };
+export type SunDay = { month: number; day: number; steps: SunStep[] };
+
 /** An existing building the model reaches over, and how much of it, 0 to 1. */
 export type CoveredBuilding = { id: string; share: number; year_built: number | null; height_m: number | null };
 

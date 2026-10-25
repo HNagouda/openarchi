@@ -1,7 +1,7 @@
 // The main workspace: the diagrams on the left, the sheet in the middle with
 // its tabs underneath, and the inspector on the right.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { Navigate } from "../App";
 import { useCommandHandler } from "../lib/commands";
 import { closeProject, errorText, renameProject } from "../lib/ipc";
@@ -48,6 +48,9 @@ import { useModelTool } from "./model/useModelTool";
 import { ReportsWorkspace } from "../report/ReportsWorkspace";
 import { useLibraryPreviews } from "../report/previews/useLibraryPreviews";
 
+// three.js comes with the 3D view and loads only when it opens.
+const Viewer3D = lazy(() => import("../viewer/Viewer3D"));
+
 // One empty list while the catalog loads, so the memoized diagram column and the thumbnails do not see a new one every render.
 const NO_DIAGRAMS: Diagram[] = [];
 
@@ -70,6 +73,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const [isExportOpen, setExportOpen] = useState(false);
   // The report editor opens over the sheet; the tabs below hold sheets only.
   const [isReportsOpen, setReportsOpen] = useState(false);
+  const [isViewerOpen, setViewerOpen] = useState(false);
   const zoom = useLiveValue(1);
   const canvas = useRef<CanvasControls>(null);
   const toast = useToast();
@@ -238,6 +242,9 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
         <Button icon="redo" tip="Redo" shortcut="mod+shift+z" disabled={!history.canRedo} onClick={history.redo} />
         <span className="topbar-divider" />
         <Button icon="text" tip="Add text" shortcut="t" disabled={!isReady} onClick={textTool.addText} />
+        <Button icon="cube" tip="See the site and the model in 3D, with the sun through the day" disabled={!isReady} onClick={() => setViewerOpen(true)}>
+          3D
+        </Button>
         <Button icon="report" tip="Lay out a report of this site" disabled={!catalog} onClick={() => setReportsOpen(true)}>
           Reports
         </Button>
@@ -366,6 +373,12 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
           onClose={() => setReportsOpen(false)}
           onSaved={(reports) => setProject((current) => ({ ...current, reports }))}
         />
+      )}
+
+      {isViewerOpen && (
+        <Suspense fallback={null}>
+          <Viewer3D themeId={look.theme_id} moment={look.sun} projectName={project.name} onClose={() => setViewerOpen(false)} />
+        </Suspense>
       )}
 
       {isExportOpen && diagram && (

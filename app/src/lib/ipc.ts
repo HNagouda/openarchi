@@ -32,6 +32,8 @@ import type {
   Report,
   ReportBlock,
   ReportFormat,
+  SunDay,
+  View3d,
 } from "./types";
 
 export const libraryPath = () => invoke<string>("library_path");
@@ -124,6 +126,12 @@ export const rereadModel = (key: string, unit: ModelUnit, up: UpAxis) => invoke<
 /** Puts a model in effect where the choice places it, or takes it away with null. */
 export const setModel = (choice: ModelChoice | null) => invoke<void>("set_model", { choice });
 export const coveredBuildings = (choice: ModelChoice) => invoke<CoveredBuilding[]>("covered_buildings", { choice });
+
+/** The open site, its neighbours and the model as triangles, in a palette's ground colours. */
+export const view3d = (themeId: string) => invoke<View3d>("view_3d", { themeId });
+export const sunDay = (month: number, day: number) => invoke<SunDay>("sun_day", { month, day });
+/** Writes a base64 PNG the 3D view took to `path`; returns the path. */
+export const saveViewPng = (path: string, png: string) => invoke<string>("save_view_png", { path, png });
 
 export const saveReports = (reports: Report[]) => invoke<string>("save_reports", { reports });
 /** One block on its own, `width_mm` by `height_mm`, for the report editor to place. */

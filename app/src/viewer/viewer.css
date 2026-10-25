@@ -1,0 +1,80 @@
+/* The 3D view over the sheet: the topbar, the picture, and the sun's controls below. */
+
+.viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  animation: fade-in var(--fast) var(--ease);
+}
+
+.viewer-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+.viewer-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.viewer-message,
+.viewer-progress {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--float-shadow);
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.viewer-progress {
+  top: auto;
+  bottom: 16px;
+  transform: translateX(-50%);
+}
+
+.viewer-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.viewer-time {
+  flex: 1;
+  max-width: 640px;
+}
+
+.viewer-clock {
+  min-width: 44px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.viewer-month {
+  width: 120px;
+}
+
+.viewer-day {
+  width: 56px;
+}
+
+.viewer-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+}

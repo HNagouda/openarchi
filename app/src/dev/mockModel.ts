@@ -1,4 +1,4 @@
-// Dev only: the imported model in a plain browser. Importing any file gives
+// Dev only: the imported model and the 3D view in a plain browser. Importing any file gives
 // the test L-shaped block app_fixtures placed north of the Westerkerk
 // (dev-fixtures/model.json), and the preview gets its footprint drawn in, so
 // moving, turning and replacing can be tried. The fixtures are rendered
@@ -39,6 +39,10 @@ export function answerModel(command: string, args: Record<string, unknown>): unk
     return null;
   }
   if (command === "covered_buildings") return fixture.covered;
+  // The 3D view: one site, one palette and one day, whatever is asked; saved pictures go nowhere.
+  if (command === "view_3d") return fetch("/dev-fixtures/view3d.json").then((response) => response.json());
+  if (command === "sun_day") return fetch("/dev-fixtures/sun-day.json").then((response) => response.json());
+  if (command === "save_view_png") return args.path;
   return undefined;
 }
 
