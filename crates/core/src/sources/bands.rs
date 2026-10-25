@@ -21,7 +21,7 @@ use crate::sources::contours::{filled, smoothed};
 use crate::sources::raster::Grid;
 
 /// Every layer drawn as stacked bands, in one place.
-pub const BANDED: [Layer; 7] = [
+pub const BANDED: [Layer; 10] = [
     Layer::RoadNoise,
     Layer::AllNoise,
     Layer::No2,
@@ -29,6 +29,9 @@ pub const BANDED: [Layer; 7] = [
     Layer::Pm25,
     Layer::Flood,
     Layer::Slope,
+    Layer::TreeCanopy,
+    Layer::VegetationIndex,
+    Layer::HeatIsland,
 ];
 
 /// Band edges are traced on cells this size. Finer than every source, coarse

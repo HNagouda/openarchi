@@ -1,0 +1,118 @@
+{
+  "id": "greenery",
+  "name": "Trees and green",
+  "group": "Environment",
+  "description": "Where the trees stand and how tall they are, where the green land is, and how green the ground reads from the air.",
+  "mute_others": true,
+  "highlight": [
+    "water"
+  ],
+  "as_figure": [],
+  "variants": [
+    {
+      "id": "canopy",
+      "name": "Trees",
+      "title": "Tree canopy",
+      "description": "Every tree of 2.5 m and taller, by its height above the ground, from the RIVM tree map.",
+      "layers": [
+        "tree_canopy",
+        "water",
+        "building"
+      ],
+      "emphasis": "tree_canopy",
+      "classify": {
+        "layer": "tree_canopy",
+        "attribute": "value",
+        "title": "Tree height",
+        "note": "Trees of 2.5 m and taller, height above the ground, from AHN and the infrared aerial photo. RIVM, {year}.",
+        "scheme": {
+          "kind": "sequential",
+          "breaks": [
+            5,
+            10,
+            15,
+            20
+          ],
+          "labels": [
+            "Under 5 m",
+            "5–10 m",
+            "10–15 m",
+            "15–20 m",
+            "20 m and taller"
+          ]
+        }
+      }
+    },
+    {
+      "id": "cover",
+      "name": "Green",
+      "title": "Green cover",
+      "description": "Grass, shrubs and trees, by whether the land is farmland, protected nature or neither, from the RIVM green map.",
+      "layers": [
+        "green_cover",
+        "water",
+        "building"
+      ],
+      "emphasis": "green_cover",
+      "classify": {
+        "layer": "green_cover",
+        "attribute": "group",
+        "title": "Green land",
+        "note": "Grass, shrubs and trees in 5 m cells. RIVM green map, {year}.",
+        "scheme": {
+          "kind": "categorical",
+          "categories": [
+            {
+              "value": "other_green",
+              "label": "Outside farmland and nature areas"
+            },
+            {
+              "value": "farmland",
+              "label": "In farmland"
+            },
+            {
+              "value": "natura_2000",
+              "label": "In Natura 2000"
+            },
+            {
+              "value": "nature_network",
+              "label": "In the Nature Network"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "vegetation",
+      "name": "NDVI",
+      "title": "Vegetation index",
+      "description": "How green the ground reads in the summer infrared aerial photo, as an approximate NDVI.",
+      "layers": [
+        "vegetation_index",
+        "water",
+        "building"
+      ],
+      "emphasis": "vegetation_index",
+      "classify": {
+        "layer": "vegetation_index",
+        "attribute": "value",
+        "title": "Vegetation index (NDVI)",
+        "note": "Approximate NDVI (Rouse et al. 1974), (near infrared − red) / (near infrared + red), from the {year} summer infrared aerial photo. The photo is colour-corrected, not calibrated, so compare places on this site only.",
+        "scheme": {
+          "kind": "sequential",
+          "breaks": [
+            0,
+            0.2,
+            0.4
+          ],
+          "labels": [
+            "Under 0",
+            "0 to 0.2",
+            "0.2 to 0.4",
+            "0.4 and above"
+          ]
+        }
+      }
+    }
+  ]
+}

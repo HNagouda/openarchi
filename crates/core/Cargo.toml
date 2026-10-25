@@ -32,6 +32,9 @@ ttf-parser = "0.25"
 ureq = { version = "3", features = ["json"] }
 # AHN elevation arrives as float GeoTIFF with the floating point predictor.
 tiff = "0.11"
+# PDOK's infrared aerial photo comes only as JPEG. The decoder tiff 0.11
+# already builds on for JPEG-compressed GeoTIFFs, so it adds no new crate.
+zune-jpeg = "0.5"
 # Marching squares for terrain contour lines.
 contour = "0.13"
 humantime = "2"

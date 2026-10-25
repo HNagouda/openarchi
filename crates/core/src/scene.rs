@@ -240,15 +240,27 @@ pub enum Layer {
     /// Yearly sunlight on the ground in kWh/m², in bands. Computed from the
     /// scene's typical year, its shadows and its sky view when drawn.
     SolarRadiation,
+    /// Tree canopy, in bands of tree height.
+    TreeCanopy,
+    /// Green areas, by the protection of the land they lie in.
+    GreenCover,
+    /// An approximate vegetation index (NDVI) from the infrared aerial photo, in bands.
+    VegetationIndex,
+    /// How much warmer the air is than in the countryside around, in bands.
+    HeatIsland,
 }
 
 impl Layer {
     /// Every layer, bottom to top in the default drawing order.
-    pub const ALL: [Layer; 35] = [
+    pub const ALL: [Layer; 39] = [
         // Measured surfaces lie under the map, as the ground they describe.
         Layer::SolarRadiation,
         Layer::SkyView,
         Layer::SunHours,
+        Layer::HeatIsland,
+        Layer::VegetationIndex,
+        Layer::GreenCover,
+        Layer::TreeCanopy,
         Layer::Population,
         Layer::Slope,
         Layer::Flood,
@@ -320,6 +332,10 @@ impl Layer {
             Layer::SunHours => "Hours of sun",
             Layer::SkyView => "Sky view",
             Layer::SolarRadiation => "Solar radiation",
+            Layer::TreeCanopy => "Tree canopy",
+            Layer::GreenCover => "Green cover",
+            Layer::VegetationIndex => "Vegetation index",
+            Layer::HeatIsland => "Heat island",
         }
     }
 }

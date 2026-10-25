@@ -13,6 +13,7 @@ use geo::{Polygon, Rect};
 
 use super::editions::Editions;
 use super::environment::{self, Raster, RIVM_RASTERS};
+use super::greenery::{self, Greenery};
 use super::Source;
 use crate::sources::cache::TileCache;
 use crate::sources::edition::Edition;
@@ -59,6 +60,8 @@ pub enum Dataset {
     /// AHN in 2 m cells, for the heights of buildings around the site.
     ContextSurface,
     ContextTerrain,
+    /// One edition of a tree, green, vegetation or heat raster, see `site/greenery.rs`.
+    Greenery(Greenery, Edition),
 }
 
 /// What one tile of a dataset holds.
@@ -98,6 +101,7 @@ impl Dataset {
             | Dataset::ContextBag
             | Dataset::ContextSurface
             | Dataset::ContextTerrain => Source::Context,
+            Dataset::Greenery(kind, _) => kind.source(),
         }
     }
 
@@ -119,6 +123,7 @@ impl Dataset {
             Dataset::Osm(radius_m) => format!("{}-r{radius_m}", osm::CACHE_NAME),
             Dataset::ContextSurface => format!("ahn-{}-coarse", ahn::SURFACE_COVERAGE),
             Dataset::ContextTerrain => format!("ahn-{}-coarse", ahn::TERRAIN_COVERAGE),
+            Dataset::Greenery(kind, edition) => kind.cache_name(edition),
         }
     }
 }
@@ -142,6 +147,11 @@ pub fn tiles_for(
         .map(|raster| Dataset::Raster(raster, editions.raster(raster).clone()))
         .collect();
     rasters.push(Dataset::Raster(Raster::Flood, editions.flood.clone()));
+    rasters.extend(
+        greenery::KINDS
+            .into_iter()
+            .map(|kind| Dataset::Greenery(kind, editions.greenery(kind).clone())),
+    );
 
     let mut jobs = Vec::new();
     for tile in tiles_touching(boundary) {
@@ -201,6 +211,7 @@ pub fn fetch_from_pdok(dataset: &Dataset, tile: Tile) -> Result<Payload> {
         Dataset::ContextTerrain => {
             ahn::fetch_coarse_tile(ahn::TERRAIN_COVERAGE, rect).map(Payload::Raster)
         }
+        Dataset::Greenery(kind, edition) => kind.fetch(edition, rect).map(Payload::Raster),
     }
 }
 
@@ -310,9 +321,10 @@ fn decode(dataset: &Dataset, bytes: &[u8]) -> Result<Payload> {
                 .collect();
             Ok(Payload::Cells(cells))
         }
-        Dataset::Raster(..) | Dataset::ContextSurface | Dataset::ContextTerrain => {
-            raster::from_bytes(bytes).map(Payload::Raster)
-        }
+        Dataset::Raster(..)
+        | Dataset::ContextSurface
+        | Dataset::ContextTerrain
+        | Dataset::Greenery(..) => raster::from_bytes(bytes).map(Payload::Raster),
         Dataset::Bgt(_)
         | Dataset::Bag
         | Dataset::Brk

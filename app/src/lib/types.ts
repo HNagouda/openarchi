@@ -43,7 +43,11 @@ export type Layer =
   | "block"
   | "sun_hours"
   | "sky_view"
-  | "solar_radiation";
+  | "solar_radiation"
+  | "tree_canopy"
+  | "green_cover"
+  | "vegetation_index"
+  | "heat_island";
 
 export type Paper = "a4" | "a3" | "a2" | "a1" | "a0" | "square";
 export type Frame = "circle" | "square" | "area";

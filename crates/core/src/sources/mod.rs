@@ -20,6 +20,7 @@ pub mod heights;
 pub mod http;
 pub mod knmi;
 pub mod liwo;
+pub mod luchtfoto;
 pub mod osm;
 pub mod pdok;
 pub mod pvgis;

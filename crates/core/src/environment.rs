@@ -17,7 +17,7 @@ use crate::sources::cbs::CELL_AREA_M2;
 use crate::sources::raster::{self, Grid, Stats};
 
 /// Every layer with a figure in `Measured`, in one place.
-const MEASURED_LAYERS: [Layer; 7] = [
+const MEASURED_LAYERS: [Layer; 10] = [
     Layer::RoadNoise,
     Layer::AllNoise,
     Layer::No2,
@@ -25,6 +25,9 @@ const MEASURED_LAYERS: [Layer; 7] = [
     Layer::Pm25,
     Layer::Flood,
     Layer::Slope,
+    Layer::TreeCanopy,
+    Layer::VegetationIndex,
+    Layer::HeatIsland,
 ];
 
 /// Raster figures over the cells inside the site. `None` when the source
@@ -39,6 +42,16 @@ pub struct Measured {
     pub pm25_ug_m3: Option<Stats>,
     pub flood_depth_m: Option<Stats>,
     pub slope_percent: Option<Stats>,
+    /// Tree height in metres; its `coverage` is the share of the site under
+    /// tree canopy. `None` in scenes fetched before trees were read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tree_height_m: Option<Stats>,
+    /// The approximate vegetation index, -1 to 1, see `sources/luchtfoto.rs`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vegetation_index: Option<Stats>,
+    /// The urban heat island effect in °C.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heat_island_c: Option<Stats>,
     /// The raster each figure was measured on, cut to the site's box, so a
     /// sheet area can be measured again: `{"road_noise": grid}`. Only for
     /// figures that found a value. Slope is never kept, see `site::environment`.
@@ -62,6 +75,9 @@ impl Measured {
             Layer::Pm25 => self.pm25_ug_m3,
             Layer::Flood => self.flood_depth_m,
             Layer::Slope => self.slope_percent,
+            Layer::TreeCanopy => self.tree_height_m,
+            Layer::VegetationIndex => self.vegetation_index,
+            Layer::HeatIsland => self.heat_island_c,
             _ => None,
         }
     }
@@ -76,6 +92,9 @@ impl Measured {
             Layer::Pm25 => self.pm25_ug_m3 = stats,
             Layer::Flood => self.flood_depth_m = stats,
             Layer::Slope => self.slope_percent = stats,
+            Layer::TreeCanopy => self.tree_height_m = stats,
+            Layer::VegetationIndex => self.vegetation_index = stats,
+            Layer::HeatIsland => self.heat_island_c = stats,
             _ => {}
         }
     }
@@ -128,6 +147,16 @@ pub struct Summary {
     pub dwellings: Option<u32>,
     /// BAG floor area of every unit on the site, in m².
     pub floor_area_m2: Option<f64>,
+    /// 0 to 1: the share of the site under tree canopy, from RIVM's tree map.
+    pub tree_canopy_share: Option<f64>,
+    pub tree_year: Option<i32>,
+    /// The mean approximate vegetation index (NDVI) over the site, -1 to 1.
+    pub vegetation_index_mean: Option<f64>,
+    pub vegetation_year: Option<i32>,
+    /// The mean urban heat island effect over the site in °C, summer air
+    /// temperature above the countryside around.
+    pub heat_island_mean_c: Option<f64>,
+    pub heat_island_year: Option<i32>,
     /// On a sheet area, the figures above that describe the whole site
     /// instead: `["slope"]`. See `Measured::whole_site`.
     pub whole_site: Vec<Layer>,
@@ -168,7 +197,27 @@ pub fn summarise(scene: &Scene) -> Summary {
         population_year: scene.year_of(Layer::Population),
         dwellings: dwellings_in(scene),
         floor_area_m2: floor_area_in(scene),
+        tree_canopy_share: tree_canopy_share(scene),
+        tree_year: scene.year_of(Layer::TreeCanopy),
+        vegetation_index_mean: mean(&measured.vegetation_index),
+        vegetation_year: scene.year_of(Layer::VegetationIndex),
+        heat_island_mean_c: mean(&measured.heat_island_c),
+        heat_island_year: scene.year_of(Layer::HeatIsland),
         whole_site: measured.whole_site.clone(),
+    }
+}
+
+/// The share of the site under trees. A scene that read the tree map but met
+/// no tree has no figure; it has no canopy, which is not unknown.
+fn tree_canopy_share(scene: &Scene) -> Option<f64> {
+    let has_tree_data = scene
+        .credits
+        .iter()
+        .any(|credit| credit.layers.contains(&Layer::TreeCanopy));
+    match scene.measured.tree_height_m {
+        Some(stats) => Some(stats.coverage),
+        None if has_tree_data => Some(0.0),
+        None => None,
     }
 }
 

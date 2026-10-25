@@ -64,6 +64,35 @@ pub const PM25: Map = Map {
 /// Every map openarchi fetches, in one place.
 pub const MAPS: [Map; 5] = [ROAD_NOISE, ALL_NOISE, NO2, PM10, PM25];
 
+/// Tree height in whole metres above the ground, 5 m cells, for every tree
+/// of 2.5 m or more; cells without a tree are nodata.
+pub const TREE_HEIGHT: Map = Map {
+    before_date: "alo__rivm_",
+    before_year: "_boomhoogte_",
+    known: "alo__rivm_20240101_boomhoogte_2022",
+};
+/// Green land in 5 m cells, by what protects it: 1 farmland, 2 Natura 2000,
+/// 3 the Nature Network (Natuurnetwerk Nederland), 4 anywhere else. Cells
+/// without green are nodata. The codes are in the WMS legend of the layer.
+pub const GREEN_CLASSES: Map = Map {
+    before_date: "alo__rivm_",
+    before_year: "_groenkaart_",
+    known: "alo__rivm_20240101_groenkaart_2022",
+};
+/// The green maps, in one place, kept apart from `MAPS` because they come
+/// from another atlas page and fail on their own.
+pub const GREEN_MAPS: [Map; 2] = [TREE_HEIGHT, GREEN_CLASSES];
+
+/// The urban heat island effect in °C, 10 m cells: how much warmer the air is
+/// over a summer (June to August) than in the countryside around, from RIVM's
+/// model. RIVM's own WCS has it under an undated id outside the "alo__rivm_"
+/// maps, so the edition is pinned, like LIWO's.
+// #! NOTE[heat, source] : RIVM's own coverage rather than the Klimaateffectatlas copy, see docs/data-sources.md; switch if the atlas version is the one to quote?
+pub const HEAT_ISLAND_ID: &str = "ank__Stedelijk_hitte_eiland_effect_01062022_v2";
+/// The year the heat island map was published, from its id. It describes no
+/// single year: the model runs on land use and green maps of around 2020.
+pub const HEAT_ISLAND_YEAR: i32 = 2022;
+
 /// The coverage of one edition of a map.
 pub fn coverage(id: &str) -> Coverage<'_> {
     Coverage {
@@ -139,6 +168,28 @@ pub fn credit() -> Credit {
     }
 }
 
+// data.overheid.nl lists the tree height and green maps as public domain,
+// with RIVM as the owner, like the noise maps.
+pub fn green_credit() -> Credit {
+    Credit {
+        name: "RIVM Atlas Leefomgeving, tree height and green maps".to_string(),
+        license: "Public Domain Mark 1.0".to_string(),
+        url: "https://www.atlasleefomgeving.nl".to_string(),
+        layers: vec![Layer::TreeCanopy, Layer::GreenCover],
+    }
+}
+
+// data.overheid.nl lists "Stedelijk hitte-eiland effect (UHI) in Nederland" as
+// public domain, made by RIVM for the Atlas Natuurlijk Kapitaal.
+pub fn heat_credit() -> Credit {
+    Credit {
+        name: "RIVM, urban heat island effect (UHI)".to_string(),
+        license: "Public Domain Mark 1.0".to_string(),
+        url: "https://www.atlasleefomgeving.nl/stedelijk-hitte-eiland-effect-uhi".to_string(),
+        layers: vec![Layer::HeatIsland],
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -197,9 +248,22 @@ mod tests {
     }
 
     #[test]
+    fn the_green_maps_find_their_newest_year_and_skip_the_older_atlas() {
+        let ids = vec![
+            "alo__rivm_20240101_boomhoogte_2022".to_string(),
+            "alo__rivm_20240101_groenkaart_2022".to_string(),
+            // The 10 m share of green, in the older natural capital atlas.
+            "ank__rivm_20231221_groenkaart_10m_2022".to_string(),
+            "ank__rivm_087_20170415_gm_boomhoogte".to_string(),
+        ];
+        assert_eq!(newest(&TREE_HEIGHT, &ids).unwrap().id, ids[0]);
+        assert_eq!(newest(&GREEN_CLASSES, &ids).unwrap().id, ids[1]);
+    }
+
+    #[test]
     fn every_known_edition_has_the_shape_of_its_map() {
-        for map in MAPS {
-            assert!(parse(&map, map.known).is_some(), "{}", map.known);
+        for map in MAPS.iter().chain(&GREEN_MAPS) {
+            assert!(parse(map, map.known).is_some(), "{}", map.known);
         }
     }
 }

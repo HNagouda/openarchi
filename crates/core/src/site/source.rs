@@ -1,5 +1,5 @@
 use crate::scene::Credit;
-use crate::sources::{ahn, bag, bgt, brk, cbs, liwo, osm, rivm};
+use crate::sources::{ahn, bag, bgt, brk, cbs, liwo, luchtfoto, osm, rivm};
 
 /// Every data source of a scene, in one place.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -15,9 +15,15 @@ pub(super) enum Source {
     Osm,
     /// Buildings, roads, water and green around the site, see `site/context.rs`.
     Context,
+    /// The RIVM tree height and green maps, see `site/greenery.rs`.
+    Green,
+    /// The vegetation index from the PDOK infrared photo.
+    Vegetation,
+    /// The RIVM heat island map.
+    Heat,
 }
 
-pub(super) const SOURCES: [Source; 10] = [
+pub(super) const SOURCES: [Source; 13] = [
     Source::Bgt,
     Source::Bag,
     Source::Brk,
@@ -28,6 +34,9 @@ pub(super) const SOURCES: [Source; 10] = [
     Source::Cbs,
     Source::BagUnits,
     Source::Context,
+    Source::Green,
+    Source::Vegetation,
+    Source::Heat,
 ];
 
 /// The sources a site cannot do without. The others add layers and figures,
@@ -47,6 +56,9 @@ impl Source {
             Source::BagUnits => "Dwellings",
             Source::Osm => "Places, transit and walking routes",
             Source::Context => "Neighbourhood",
+            Source::Green => "Trees and green",
+            Source::Vegetation => "Vegetation index",
+            Source::Heat => "Heat island",
         }
     }
 
@@ -65,6 +77,9 @@ impl Source {
             Source::Osm => Some(osm::credit()),
             // BGT, BAG and AHN again, which the site already credits.
             Source::Context => None,
+            Source::Green => Some(rivm::green_credit()),
+            Source::Vegetation => Some(luchtfoto::credit()),
+            Source::Heat => Some(rivm::heat_credit()),
         }
     }
 }

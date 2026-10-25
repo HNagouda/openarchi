@@ -12,6 +12,7 @@ mod context;
 mod download;
 mod editions;
 mod environment;
+mod greenery;
 mod solar;
 mod source;
 mod terrain;
@@ -310,6 +311,7 @@ fn join(
             .and_then(|tiles| raster::join(tiles));
         joined.context = context::features(&records, &mut rasters);
     }
+    let greenery_tiles = greenery::take_tiles(&mut rasters, editions);
     let mut take = |dataset| unique(records.remove(&dataset).unwrap_or_default());
     // Units first, so the buildings can count them.
     let units = (!failed.contains_key(&Source::BagUnits))
@@ -358,6 +360,16 @@ fn join(
             Source::Cbs => {
                 let years = cbs::years(editions.population).map(|year| take(Dataset::Cbs(year)));
                 joined.features.extend(cbs::to_features(years.into()));
+            }
+            Source::Green | Source::Vegetation | Source::Heat => {
+                for kind in greenery::KINDS
+                    .iter()
+                    .filter(|kind| kind.source() == source)
+                {
+                    let tiles = greenery_tiles.get(kind).map(Vec::as_slice).unwrap_or(&[]);
+                    let features = greenery::bands(*kind, tiles, boundary, &mut joined.measured);
+                    joined.features.extend(features);
+                }
             }
             Source::BagUnits | Source::Context => {}
             Source::Osm => match osm::parse(&osm_body.take().unwrap_or_default()) {

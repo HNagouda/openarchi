@@ -280,13 +280,26 @@ fn write_scene(scene_path: &Path, out_dir: &Path, only: Option<&String>) {
     std::fs::create_dir_all(out_dir).expect("create the folder");
     let text = std::fs::read_to_string(scene_path).expect("read the scene");
     let scene: Scene = serde_json::from_str(&text).expect("parse the scene");
-    for diagram in builtin_diagrams() {
-        if only.is_some_and(|id| *id != diagram.id) {
-            continue;
-        }
+    // Every variant too, like the fixture samples: "greenery-canopy--paper.png".
+    let drawings: Vec<_> = builtin_diagrams()
+        .into_iter()
+        .filter(|diagram| only.is_none_or(|id| *id == diagram.id))
+        .flat_map(|diagram| {
+            diagram
+                .drawings()
+                .into_iter()
+                .map(move |(variant, _)| (diagram.clone(), variant))
+        })
+        .collect();
+    for (diagram, variant) in drawings {
+        let stem = match &variant {
+            Some(variant) => format!("{}-{variant}", diagram.id),
+            None => diagram.id.clone(),
+        };
         for theme in builtin_themes() {
             let look = Look {
                 diagram_id: diagram.id.clone(),
+                variant: variant.clone(),
                 theme_id: theme.id.clone(),
                 sheet: Sheet {
                     title: diagram.name.clone(),
@@ -304,7 +317,7 @@ fn write_scene(scene_path: &Path, out_dir: &Path, only: Option<&String>) {
                 highlights: &[],
             };
             let png = render_png(&input, SAMPLE_WIDTH_PX).expect("render the sample");
-            let name = format!("{}--{}.png", diagram.id, theme.id);
+            let name = format!("{stem}--{}.png", theme.id);
             std::fs::write(out_dir.join(name), png).expect("write the sample");
         }
     }

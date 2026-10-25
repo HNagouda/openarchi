@@ -80,6 +80,30 @@
       "stroke_mm": 0.0,
       "pattern": null
     },
+    "tree_canopy": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "green_cover": {
+      "fill": "@muted",
+      "stroke": "@ink",
+      "stroke_mm": 0.08,
+      "pattern": null
+    },
+    "vegetation_index": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
+    "heat_island": {
+      "fill": "@muted",
+      "stroke": null,
+      "stroke_mm": 0.0,
+      "pattern": null
+    },
     "block": {
       "fill": "@figure",
       "stroke": "@paper",
