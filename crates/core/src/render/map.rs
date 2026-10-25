@@ -7,30 +7,29 @@ use std::fmt::Write;
 use super::context::{self, ContextArea, Neighbourhood};
 use super::cull;
 use super::derived;
-use super::drawing::{pattern_id, write_layer, Canvas, Drawn};
+use super::drawing::{pattern_id, Canvas};
 use super::frame::FrameShape;
 use super::geometry::Projection;
 use super::highlights::{self, HighlightLayer};
 use super::layout::Rect;
 use super::legend::{self, Legend};
+use super::map_layers::{self, FlatLayers, LayerPass};
 use super::map_legend::{add_lines_to_mode_rows, add_merged_row};
 use super::map_shadows::{
     shadow_casters, shadow_row, write_shadows, AMBIENT_SHADOW_OPACITY, DIAGRAM_SHADOW_OPACITY,
 };
 use super::massing;
 use super::patterns;
-use super::points::{self, PointLayer};
 use super::solid::{self, Neighbours};
-use super::style;
+use super::style::{self, ResolvedLayer};
 use super::sunpath::{self, SunPath};
 use super::svg::layer_attributes;
 use super::typeset::Typesetter;
-use super::viewpoint;
-use super::walk_bands::{self, Bands};
+use super::viewpoint::{self, Seen};
 use super::RenderInput;
 use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER, WIND_PLACEHOLDER};
 use crate::scene::{Feature, Layer, Scene};
-use crate::sun;
+use crate::sun::{self, SunPosition};
 use crate::theme::Theme;
 use crate::wind;
 use crate::Result;
@@ -110,16 +109,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
             scope,
         ),
     };
-    let mut layers = style::resolve_layers(diagram, theme, look)?;
-    if !projection.is_plan() {
-        // A drop shadow is a flat trick; tilted views cast real ones or none.
-        for resolved in &mut layers {
-            resolved.style.shadow_mm = 0.0;
-        }
-    }
-    if spec.has_volume {
-        massing::lighten(&mut layers, look, theme);
-    }
+    let layers = resolved_layers(input, spec)?;
     let location = sun::site_location(&scene.area);
     let sun = sun::position_at(location, &look.sun);
     let seen = viewpoint::compute(scene, diagram, look, input.pins, frame.ground_bounds());
@@ -141,98 +131,30 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         scope,
     };
     let neighbourhood = Neighbourhood::of(scene, &look.sheet, spec.context, scope);
-
-    let mut defs = String::new();
-    frame.write_defs(&mut defs);
-    if let Some(neighbourhood) = &neighbourhood {
-        neighbourhood.write_defs(&mut defs, &projection);
-    }
-    for resolved in &layers {
-        if let Some(pattern) = &resolved.style.pattern {
-            defs.push_str(&patterns::pattern_def(
-                &pattern_id(scope, resolved.layer),
-                pattern,
-                resolved.style.fill.as_deref(),
-            ));
-        }
-    }
+    let defs = map_defs(&frame, neighbourhood.as_ref(), &layers, &projection, scope);
 
     let mut body = String::new();
     frame.write_ground(&mut body, &palette.ground, &format!("{scope}ground"));
     if let Some(neighbourhood) = &neighbourhood {
         neighbourhood.write_ground(&mut body, theme, &canvas, spec.has_volume)?;
     }
-    let is_shadow_diagram = diagram.solar == Some(Solar::Shadow);
     let casters = shadow_casters(&layers, &features);
-    let mut drawn = Vec::with_capacity(layers.len());
-    let mut has_shadows = false;
-    let mut band_rows = Vec::new();
-    let mut transit_lines = Vec::new();
-    let mut has_merged_points = false;
-    for resolved in &layers {
-        let layer_features = layer_features(&features, resolved.layer);
-        let is_caster = matches!(resolved.layer, Layer::Building | Layer::Tree);
-        if is_shadow_diagram && !spec.has_volume && is_caster && !has_shadows {
-            write_shadows(
-                &mut body,
-                &casters,
-                &sun,
-                &canvas,
-                theme,
-                DIAGRAM_SHADOW_OPACITY,
-            );
-            has_shadows = true;
-        }
-        if spec.has_volume && is_caster {
-            drawn.push(solid::drawn(resolved, layer_features, diagram));
-            continue;
-        }
-        if resolved.layer == Layer::WalkBand {
-            let bands = Bands {
-                resolved,
-                features: layer_features,
-                canvas: &canvas,
-                paper: &palette.paper,
-                typesetter,
-                has_labels: !spec.is_plate,
-            };
-            band_rows = walk_bands::write(&mut body, &bands);
-            // The bands bring their own legend rows, one per band.
-            drawn.push(Drawn {
-                has_features: false,
-                classes_present: Vec::new(),
-                has_unknown: false,
-            });
-            continue;
-        }
-        if legend::is_point_layer(resolved.layer) {
-            let point_layer = PointLayer {
-                resolved,
-                features: layer_features,
-                diagram,
-                canvas: &canvas,
-                paper: &palette.paper,
-                typesetter,
-                has_labels: !spec.is_plate,
-            };
-            let drawn_points = points::write(&mut body, &point_layer);
-            transit_lines.extend(drawn_points.lines);
-            has_merged_points |= drawn_points.has_merged;
-            drawn.push(drawn_points.drawn);
-            continue;
-        }
-        drawn.push(write_layer(
-            &mut body,
-            resolved,
-            layer_features,
-            diagram,
-            theme,
-            &canvas,
-        ));
-    }
+    let pass = LayerPass {
+        layers: &layers,
+        features: &features,
+        casters: &casters,
+        sun: &sun,
+        canvas: &canvas,
+        theme,
+        diagram,
+        typesetter,
+        has_volume: spec.has_volume,
+        has_labels: !spec.is_plate,
+    };
+    let flat = map_layers::write(&mut body, &pass);
 
     if spec.has_volume {
-        let opacity = if is_shadow_diagram {
+        let opacity = if diagram.solar == Some(Solar::Shadow) {
             DIAGRAM_SHADOW_OPACITY
         } else {
             AMBIENT_SHADOW_OPACITY
@@ -291,33 +213,15 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
         );
     }
 
-    let mut legend = legend::build(&layers, &drawn, diagram, &palette.accent);
-    // The note names the year of the data, which only the scene knows.
-    if legend.note.is_some() {
-        legend.note = diagram
-            .classify
-            .as_ref()
-            .and_then(|classify| classify.note_for(scene))
-            .map(|note| note.replace(DATE_PLACEHOLDER, &look.sun.date_label()))
-            .map(|note| note.replace(WIND_PLACEHOLDER, &wind::described(scene, look.wind_season)));
-    }
-    add_lines_to_mode_rows(&mut legend, &transit_lines);
-    if has_merged_points {
-        add_merged_row(&mut legend, &palette.ink);
-    }
-    let site_row = legend.rows.len() - 1;
-    for (offset, row) in band_rows.into_iter().enumerate() {
-        legend.rows.insert(site_row + offset, row);
-    }
-    legend
-        .rows
-        .extend(highlights::legend_rows(&highlight_layer));
-    if is_shadow_diagram {
-        legend.rows.push(shadow_row(&sun, look, theme));
-    }
-    if let Some(seen) = &seen {
-        viewpoint::describe(&mut legend, seen, palette);
-    }
+    let mut legend = map_legend(
+        input,
+        diagram,
+        &layers,
+        flat,
+        &highlight_layer,
+        seen.as_ref(),
+        &sun,
+    );
     if diagram.solar == Some(Solar::SunPath) {
         legend.rows.retain(|row| row.label != legend::SITE_LABEL);
         let path = SunPath {
@@ -336,6 +240,91 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     }
 
     Ok(Map { defs, body, legend })
+}
+
+/// The diagram's layers in the look's theme, as this map draws them.
+fn resolved_layers(input: &RenderInput, spec: &MapSpec) -> Result<Vec<ResolvedLayer>> {
+    let mut layers = style::resolve_layers(spec.diagram, input.theme, input.look)?;
+    if !spec.projection.is_plan() {
+        // A drop shadow is a flat trick; tilted views cast real ones or none.
+        for resolved in &mut layers {
+            resolved.style.shadow_mm = 0.0;
+        }
+    }
+    if spec.has_volume {
+        massing::lighten(&mut layers, input.look, input.theme);
+    }
+
+    Ok(layers)
+}
+
+/// The frame's clip, the neighbourhood's and every layer's fill pattern.
+fn map_defs(
+    frame: &FrameShape,
+    neighbourhood: Option<&Neighbourhood>,
+    layers: &[ResolvedLayer],
+    projection: &Projection,
+    scope: &str,
+) -> String {
+    let mut defs = String::new();
+    frame.write_defs(&mut defs);
+    if let Some(neighbourhood) = neighbourhood {
+        neighbourhood.write_defs(&mut defs, projection);
+    }
+    for resolved in layers {
+        if let Some(pattern) = &resolved.style.pattern {
+            defs.push_str(&patterns::pattern_def(
+                &pattern_id(scope, resolved.layer),
+                pattern,
+                resolved.style.fill.as_deref(),
+            ));
+        }
+    }
+
+    defs
+}
+
+/// The legend of the drawn layers, with the rows only this map knows to add:
+/// the walk bands, transit lines, highlights, shadow time and the view.
+fn map_legend(
+    input: &RenderInput,
+    diagram: &Diagram,
+    layers: &[ResolvedLayer],
+    flat: FlatLayers,
+    highlight_layer: &HighlightLayer,
+    seen: Option<&Seen>,
+    sun: &SunPosition,
+) -> Legend {
+    let scene = input.scene;
+    let look = input.look;
+    let palette = &input.theme.palette;
+    let mut legend = legend::build(layers, &flat.drawn, diagram, &palette.accent);
+    // The note names the year of the data, which only the scene knows.
+    if legend.note.is_some() {
+        legend.note = diagram
+            .classify
+            .as_ref()
+            .and_then(|classify| classify.note_for(scene))
+            .map(|note| note.replace(DATE_PLACEHOLDER, &look.sun.date_label()))
+            .map(|note| note.replace(WIND_PLACEHOLDER, &wind::described(scene, look.wind_season)));
+    }
+    add_lines_to_mode_rows(&mut legend, &flat.transit_lines);
+    if flat.has_merged_points {
+        add_merged_row(&mut legend, &palette.ink);
+    }
+    let site_row = legend.rows.len() - 1;
+    for (offset, row) in flat.band_rows.into_iter().enumerate() {
+        legend.rows.insert(site_row + offset, row);
+    }
+    legend.rows.extend(highlights::legend_rows(highlight_layer));
+    if diagram.solar == Some(Solar::Shadow) {
+        legend.rows.push(shadow_row(sun, look, input.theme));
+    }
+    if let Some(seen) = seen {
+        viewpoint::describe(&mut legend, seen, palette);
+    }
+
+    legend
 }
 
 fn write_outlines(out: &mut String, frame: &FrameShape, spec: &MapSpec, theme: &Theme) {

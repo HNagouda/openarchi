@@ -23,6 +23,7 @@ mod legend;
 mod legend_draw;
 mod lighting;
 mod map;
+mod map_layers;
 mod map_legend;
 mod map_shadows;
 mod map_sheet;
