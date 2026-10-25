@@ -42,6 +42,7 @@ crates/core/            the library: no window, no async
   src/catalog/          finding a diagram by id, and the old ids of diagrams folded into variants
   src/project.rs        one site plus its sheets (looks) and pins
   src/pin.rs            landmarks in RD New metres, shown on every sheet
+  src/highlight.rs      areas marked inside the site in RD New metres, shown on every sheet
   src/selection.rs      a sheet's sub-selection: the scene cut to a smaller area
   src/library.rs        project files, backups and Recently Deleted
   assets/               diagram and theme JSON, and the bundled OFL fonts
@@ -77,6 +78,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | How a palette of swatches becomes a theme (import formats, the role rule, contrast checks, mixed colours) | `crates/core/src/palette/`; the editor is `app/src/sheet/palette/` |
 | Sheet furniture (legend, scale bar) | `crates/core/src/render/` |
 | Something drawn on top of every view, like pins | a module in `crates/core/src/render/`, placed with `SheetDrawing::ground` |
+| Something drawn on the ground of every map, like highlights | a module in `crates/core/src/render/`, called from `map::draw` for maps whose `MapSpec::has_highlights` is set |
 | A new view mode | a `ViewMode` in `view.rs`, drawn by a module in `crates/core/src/render/` that returns a `SheetDrawing`, like `render/section.rs` |
 | A new export format | `crates/core/src/export/` |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs`, the rule in `notes.rs` |

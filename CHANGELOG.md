@@ -37,6 +37,16 @@ What changed in each version of openarchi, newest first.
 - Assistants can list and add sheets and list, add, move and remove pins, and work on any tab.
 - Projects made before tabs open as one sheet, unchanged.
 
+### Highlights and pin sizes
+
+- Mark part of the site as a highlight: the plot, a proposed house, a square to redesign. The rectangle, circle and polygon in the tab bar draw one on the sheet, a rectangle dragged from corner to corner, a circle from its centre outwards, a polygon a click per corner and Return or a double-click to finish. H turns the tool on, and Return on a shape button places one of a house's size in the middle of the view.
+- A highlight is drawn by the core in the palette's accent: a light tint and an outline, solid for what is there or dashed for what is proposed, with its label above it and in the legend. It can add its area in m² to the label, and "dim the rest" fades everything outside it a little. In an axonometric it lies on the ground under the buildings, and the buildings standing in it keep their colour while the rest fade; in an explode view it lies on the bottom plate. A section leaves it off.
+- Click a highlight to select it, drag it to move it, drag its handles to reshape it, and use the arrow keys to nudge it, + and − to grow or shrink it, Return to label it and Delete to remove it. Every change undoes. Its middle has to lie inside the sheet's area, and it has to cover at least 4 m².
+- Open as sheet, in a highlight's bar, adds a tab whose area is exactly that highlight, so its ratios and figures describe it. The eye beside the shape buttons hides the highlights on one sheet.
+- Pins come in four sizes, S, M, L and XL, from the pin's bar, or − and + with a pin selected. The label grows more slowly than the marker. Older pins are medium.
+- Assistants can list, add, edit and remove highlights, open one as a sheet, give pins a size, and show or hide pins and highlights per sheet with `show_on_sheet`.
+- Highlights are not yet edited on an explode view, and DXF exports leave them out.
+
 ### Diagram column
 
 - The diagrams moved from the filmstrip along the bottom to a column on the left of the sheet, grouped under Context and built form, Movement and places, Environment, People, and Sun and shade. Each one shows a small picture in the current palette and its name, and the one on the sheet is marked.
