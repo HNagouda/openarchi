@@ -12,6 +12,7 @@ mod context;
 mod download;
 mod editions;
 mod environment;
+mod solar;
 mod source;
 mod terrain;
 #[cfg(test)]
@@ -77,6 +78,12 @@ pub fn build_scene(
         total: 1,
     });
     water::keep(&mut scene, cache);
+    on_progress(Progress {
+        step: "Typical year of sunlight".to_string(),
+        done: 0,
+        total: 1,
+    });
+    solar::keep(&mut scene, cache);
 
     Ok(scene)
 }
@@ -195,6 +202,7 @@ fn build_scene_with(
         terrain,
         water_bed: None,
         water_levels: Vec::new(),
+        solar: None,
     })
 }
 

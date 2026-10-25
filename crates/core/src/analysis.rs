@@ -275,8 +275,9 @@ fn rain(scene: &Scene, cache: &TileCache, last_year: i32) -> Result<(Rain, Vec<S
 
 /// The bytes under `key` in the tile cache, or from `fetch`, which are then
 /// kept. A failure to keep them costs the next call some time, not this one
-/// its data, so it comes back as a warning.
-fn cached(
+/// its data, so it comes back as a warning. Shared with the site fetch, which
+/// keeps the same typical year for the solar radiation diagram.
+pub(crate) fn cached(
     cache: &TileCache,
     dataset: &str,
     key: Tile,
