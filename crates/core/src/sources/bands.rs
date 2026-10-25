@@ -20,7 +20,8 @@ use crate::scene::{Attributes, Feature, Layer};
 use crate::sources::contours::{filled, smoothed};
 use crate::sources::raster::Grid;
 
-/// Every layer drawn as stacked bands, in one place.
+/// Every layer drawn as stacked bands, in one place. The same ten as
+/// `environment::MEASURED_LAYERS` today, so a new one is likely needed in both.
 pub const BANDED: [Layer; 10] = [
     Layer::RoadNoise,
     Layer::AllNoise,

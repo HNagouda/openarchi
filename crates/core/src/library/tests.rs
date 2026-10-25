@@ -60,8 +60,8 @@ fn project_id_is_date_slug_and_four_hex_characters() {
 
 #[test]
 fn name_without_ascii_letters_still_gets_an_id() {
-    assert_eq!(slugify("日本"), "project");
-    assert_eq!(slugify("  --Café  Noord-- "), "caf-noord");
+    assert_eq!(slugify("日本", SLUG_FALLBACK), "project");
+    assert_eq!(slugify("  --Café  Noord-- ", SLUG_FALLBACK), "caf-noord");
 }
 
 #[test]

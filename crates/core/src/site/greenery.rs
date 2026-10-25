@@ -9,11 +9,11 @@
 
 use std::collections::HashMap;
 
-use geo::{BoundingRect, Coord, Polygon, Rect};
+use geo::{Polygon, Rect};
 
 use super::download::Dataset;
 use super::editions::Editions;
-use super::environment::breaks_for;
+use super::environment::measured_bands;
 use super::source::Source;
 use crate::environment::Measured;
 use crate::scene::{Feature, Layer};
@@ -133,26 +133,21 @@ pub fn bands(
         Greenery::TreeHeight => forest::without_buildings(&grid, buildings.iter().copied()),
         _ => grid,
     };
-
-    let stats = raster::stats_within(&grid, boundary);
-    measured.set(kind.layer(), stats);
-    if let (Some(_), Some(bbox)) = (stats, boundary.bounding_rect()) {
-        let reach = match kind {
-            Greenery::TreeHeight => TREE_REACH_M,
-            _ => 0.0,
-        };
-        let kept = Rect::new(
-            bbox.min() - Coord { x: reach, y: reach },
-            bbox.max() + Coord { x: reach, y: reach },
-        );
-        measured.grids.insert(kind.layer(), grid.cropped(kept));
-    }
-    let (lowest, gaps) = match kind {
+    let (reach_m, lowest, gaps) = match kind {
         // A cell without a tree is ground, not unknown.
-        Greenery::TreeHeight => (Lowest::From(CANOPY_EDGE_M), Gaps::Means(0.0)),
-        _ => (Lowest::Everything, Gaps::Unknown),
+        Greenery::TreeHeight => (TREE_REACH_M, Lowest::From(CANOPY_EDGE_M), Gaps::Means(0.0)),
+        _ => (0.0, Lowest::Everything, Gaps::Unknown),
     };
-    bands::banded(&grid, kind.layer(), &breaks_for(kind.layer()), lowest, gaps)
+
+    measured_bands(
+        &grid,
+        kind.layer(),
+        boundary,
+        reach_m,
+        lowest,
+        gaps,
+        measured,
+    )
 }
 
 /// One area per green class, each traced on its own because the classes have

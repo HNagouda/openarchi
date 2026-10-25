@@ -4,8 +4,8 @@
 //! one function fetches any collection inside a bounding box. We ask for RD New
 //! both for the box and for the answer, which spares any reprojection.
 //!
-//! Tiling and caching happen one level up, in `site.rs`, so this file only
-//! knows how to read every page of one box.
+//! Tiling and caching happen one level up, in `site/download.rs`, so this
+//! file only knows how to read every page of one box.
 
 use geo::{Geometry, Rect};
 use serde::{Deserialize, Serialize};

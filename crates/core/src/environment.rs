@@ -16,7 +16,9 @@ use crate::scene::{Layer, Scene};
 use crate::sources::cbs::CELL_AREA_M2;
 use crate::sources::raster::{self, Grid, Stats};
 
-/// Every layer with a figure in `Measured`, in one place.
+/// Every layer with a figure in `Measured`, in one place. The same ten as
+/// `sources::bands::BANDED` today, so a new one is likely needed in both.
+// #! NOTE[measured, bands] : Is every measured raster banded and every banded raster measured by design, so the two lists could be one?
 const MEASURED_LAYERS: [Layer; 10] = [
     Layer::RoadNoise,
     Layer::AllNoise,
@@ -56,8 +58,9 @@ pub struct Measured {
     /// sheet area can be measured again: `{"road_noise": grid}`. The tree
     /// heights reach further, for the trees around the site that block sight,
     /// sky and sun (`forest.rs`, `site::greenery::TREE_REACH_M`). Only for
-    /// figures that found a value. Slope is never kept, see `site::environment`.
-    /// Empty in scenes fetched before sheet areas measured their own figures.
+    /// figures that found a value. Empty in scenes fetched before sheet areas
+    /// measured their own figures, and without slope in scenes fetched before
+    /// 0.2.0, whose sheet areas quote the whole site's slope.
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub grids: BTreeMap<Layer, Grid>,
     /// On a sheet area, the figures that still describe the whole site

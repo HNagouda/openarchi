@@ -63,7 +63,7 @@ pub struct Palette {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Typography {
-    /// A family bundled with the app: "Inter", "Fraunces", "IBM Plex Mono".
+    /// A family bundled with the app: "Inter", "Source Serif 4", "IBM Plex Mono".
     pub family: String,
     /// True for spaced capitals in titles and labels.
     pub uppercase_labels: bool,

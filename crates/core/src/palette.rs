@@ -18,11 +18,13 @@ use serde::{Deserialize, Serialize};
 use crate::theme::{Theme, Typography};
 use crate::Result;
 
-pub use colour::{contrast_ratio, lch, Lch};
+use colour::contrast_ratio;
 // Shared with the catalog, which gives a saved palette the layers added after it.
-pub(crate) use derive::{layer_style, TEMPLATE_THEME};
-pub use parse::{hex_code, parse, MAX_SWATCHES, MIN_SWATCHES};
-pub use roles::{resolve, RoleColour, RESOLVED_ROLES};
+pub(crate) use derive::{layer_style, template_theme};
+pub use parse::parse;
+use parse::MAX_SWATCHES;
+use roles::resolve;
+pub use roles::RoleColour;
 
 /// WCAG 2.1 success criterion 1.4.3: body text needs 4.5:1 against its background.
 pub const TEXT_CONTRAST: f64 = 4.5;

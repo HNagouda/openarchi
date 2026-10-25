@@ -33,8 +33,9 @@ use crate::sources::cache::TileCache;
 use crate::{Error, Result};
 
 use self::files::{
-    backup_stamps, check_file_stem, file_name, now_rfc3339, read_project, read_summaries,
-    rfc3339_from_stamp, saved_modified, slugify, stamp_from_rfc3339, summarize, write_atomically,
+    backup_stamps, check_file_stem, file_name, now_rfc3339, read_modified, read_project,
+    read_summaries, rfc3339_from_stamp, saved_modified, slugify, stamp_from_rfc3339,
+    write_atomically, SLUG_FALLBACK,
 };
 pub use self::migrate::migrate;
 
@@ -186,14 +187,14 @@ impl Library {
         read_project(&path)
     }
 
-    /// When the project on disk was last saved, read without unpacking its
-    /// scene, so the app can tell whether someone else wrote it since.
+    /// When the project on disk was last saved, read from the start of the
+    /// file, so the app can tell whether someone else wrote it since.
     pub fn modified(&self, id: &str) -> Result<String> {
         let path = self.project_path(id)?;
         if !path.exists() {
             return Err(no_project(id));
         }
-        Ok(summarize(&path)?.modified)
+        read_modified(&path)
     }
 
     /// Writes atomically, backs up the previous version, stamps `modified`.
@@ -332,7 +333,7 @@ impl Library {
     /// so two projects with the same name on the same day do not clash.
     fn new_id(&self, name: &str, now: &str) -> Result<String> {
         let date = &now[..10];
-        let slug = slugify(name);
+        let slug = slugify(name, SLUG_FALLBACK);
         for _ in 0..ID_ATTEMPTS {
             let id = format!("{date}-{slug}-{:04x}", fastrand::u16(..));
             if !self.project_path(&id)?.exists() && !self.trash_path(&id)?.exists() {
@@ -394,5 +395,7 @@ fn no_project(id: &str) -> Error {
 mod format_tests;
 #[cfg(test)]
 mod packed_save_tests;
+#[cfg(test)]
+mod summary_tests;
 #[cfg(test)]
 mod tests;

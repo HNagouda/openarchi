@@ -14,6 +14,7 @@ use geo::{
     BoundingRect, Contains, Coord, Geometry, Intersects, MapCoords, Polygon, Rect, Simplify,
 };
 
+use super::boundary::site_reach;
 use super::download::Dataset;
 use super::{to_local_centimetres, unique};
 use crate::scene::{Attributes, Feature, Layer};
@@ -42,11 +43,7 @@ const SIMPLIFY_M: f64 = 0.25;
 
 /// The square the neighbourhood is fetched for, centred on the site, in RD New.
 pub fn extent(boundary: &Polygon<f64>, origin: (f64, f64)) -> Rect<f64> {
-    let site_reach = boundary
-        .exterior()
-        .points()
-        .map(|point| ((point.x() - origin.0).powi(2) + (point.y() - origin.1).powi(2)).sqrt())
-        .fold(0.0, f64::max);
+    let site_reach = site_reach(boundary, origin);
     let ring = (site_reach * RING_SHARE).clamp(MIN_RING_M, MAX_RING_M);
     let half = site_reach + ring;
 

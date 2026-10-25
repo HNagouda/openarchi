@@ -17,7 +17,7 @@ use crate::scene::Layer;
 use crate::theme::{LayerStyle, Palette, Pattern, Theme, Typography, THEME_FORMAT_VERSION};
 use crate::{Error, Result};
 
-pub const TEMPLATE_THEME: &str = "paper";
+const TEMPLATE_THEME: &str = "paper";
 const AUTHOR: &str = "You";
 const DEFAULT_FAMILY: &str = "Inter";
 
@@ -39,6 +39,14 @@ const WATER_HATCH_ANGLE_DEG: f64 = 45.0;
 const WATER_HATCH_SPACING_MM: f64 = 0.6;
 const WATER_HATCH_STROKE_MM: f64 = 0.1;
 const WATER_HATCH_SHARE: f64 = 0.6;
+
+/// The built-in theme every palette is mixed after.
+pub fn template_theme() -> Result<Theme> {
+    builtin_themes()
+        .into_iter()
+        .find(|theme| theme.id == TEMPLATE_THEME)
+        .ok_or_else(|| Error::Invalid(format!("built-in theme {TEMPLATE_THEME:?} is missing")))
+}
 
 pub fn theme(draft: &PaletteDraft, id: &str, roles: &[RoleColour]) -> Result<Theme> {
     let hex_of = |role: &str| -> String {
@@ -62,10 +70,7 @@ pub fn theme(draft: &PaletteDraft, id: &str, roles: &[RoleColour]) -> Result<The
         ink,
     };
 
-    let template = builtin_themes()
-        .into_iter()
-        .find(|theme| theme.id == TEMPLATE_THEME)
-        .ok_or_else(|| Error::Invalid(format!("built-in theme {TEMPLATE_THEME:?} is missing")))?;
+    let template = template_theme()?;
     let mut layers = BTreeMap::new();
     for (layer, style) in &template.layers {
         layers.insert(*layer, layer_style(*layer, style, &palette)?);

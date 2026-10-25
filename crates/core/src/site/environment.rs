@@ -18,7 +18,7 @@ use crate::scene::{Feature, Layer};
 use crate::sources::bands::{self, Gaps, Lowest};
 use crate::sources::edition::Edition;
 use crate::sources::grid::{tiles_covering, Tile};
-use crate::sources::raster::{self, Grid, Stats};
+use crate::sources::raster::{self, Grid};
 use crate::sources::slope::slope_percent;
 use crate::sources::wcs::Coverage;
 use crate::sources::{liwo, rivm};
@@ -29,7 +29,8 @@ const MARGIN_M: f64 = 30.0;
 /// Water shallower than this is a wet street, not a flood worth a band.
 const FLOOD_MIN_DEPTH_M: f64 = 0.01;
 
-/// Every fetched raster, in one place.
+/// Every raster of this module, in one place. The greenery rasters are
+/// `site::greenery::Greenery`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Raster {
     RoadNoise,
@@ -92,41 +93,60 @@ pub fn raster_bands(
     let Some(grid) = raster::join(tiles) else {
         return Vec::new();
     };
-    let stats = raster::stats_within(&grid, boundary);
-    measured.set(raster.layer(), stats);
-    // Without a value over the whole site there is none in a part of it either, so nothing is kept.
-    if let (Some(_), Some(bbox)) = (stats, boundary.bounding_rect()) {
-        measured.grids.insert(raster.layer(), grid.cropped(bbox));
-    }
     let (lowest, gaps) = match raster {
         // A cell LIWO leaves empty stays dry in every scenario.
         Raster::Flood => (Lowest::From(FLOOD_MIN_DEPTH_M), Gaps::Means(0.0)),
         _ => (Lowest::Everything, Gaps::Unknown),
     };
-    bands::banded(
-        &grid,
-        raster.layer(),
-        &breaks_for(raster.layer()),
-        lowest,
-        gaps,
+
+    measured_bands(&grid, raster.layer(), boundary, 0.0, lowest, gaps, measured)
+}
+
+/// Slope bands from `ground`, the terrain as `contours::prepared` leaves it.
+/// Its figures inside `boundary` go into `measured`, with the slope raster
+/// cut to the boundary's box: 5 m cells, like the tree heights.
+pub fn slope_bands(
+    ground: &Grid,
+    boundary: &Polygon<f64>,
+    measured: &mut Measured,
+) -> Vec<Feature> {
+    let slope = slope_percent(ground);
+    measured_bands(
+        &slope,
+        Layer::Slope,
+        boundary,
+        0.0,
+        Lowest::Everything,
+        Gaps::Unknown,
+        measured,
     )
 }
 
-/// Slope bands from the terrain model, and the slope figures inside `boundary`.
-/// The slope raster is not kept for sheet areas: it has the terrain's 0.5 m
-/// cells, 400 times as many as a 10 m noise raster over the same site.
-pub fn slope_bands(terrain: &Grid, boundary: &Polygon<f64>) -> (Vec<Feature>, Option<Stats>) {
-    let slope = slope_percent(terrain);
-    let stats = raster::stats_within(&slope, boundary);
-    let features = bands::banded(
-        &slope,
-        Layer::Slope,
-        &breaks_for(Layer::Slope),
-        Lowest::Everything,
-        Gaps::Unknown,
-    );
+/// The bands of `grid`, the raster of `layer`. Its figures inside `boundary`
+/// go into `measured`, and when they found a value, the raster cut to the
+/// boundary's box widened by `reach_m`, so a sheet area can be measured again.
+pub(super) fn measured_bands(
+    grid: &Grid,
+    layer: Layer,
+    boundary: &Polygon<f64>,
+    reach_m: f64,
+    lowest: Lowest,
+    gaps: Gaps,
+    measured: &mut Measured,
+) -> Vec<Feature> {
+    let stats = raster::stats_within(grid, boundary);
+    measured.set(layer, stats);
+    // Without a value over the whole site there is none in a part of it either, so nothing is kept.
+    if let (Some(_), Some(bbox)) = (stats, boundary.bounding_rect()) {
+        let reach = Coord {
+            x: reach_m,
+            y: reach_m,
+        };
+        let kept = Rect::new(bbox.min() - reach, bbox.max() + reach);
+        measured.grids.insert(layer, grid.cropped(kept));
+    }
 
-    (features, stats)
+    bands::banded(grid, layer, &breaks_for(layer), lowest, gaps)
 }
 
 /// `measured` with its kept rasters moved into the scene's frame, which is

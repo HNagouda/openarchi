@@ -178,7 +178,10 @@ fn a_fetched_site_keeps_its_rasters_cut_to_its_box_in_its_own_frame() {
     );
     let again = raster::stats_within(no2, &scene.boundary).unwrap();
     assert_eq!((again.mean, again.coverage), (50.0, 1.0));
-    assert!(!scene.measured.grids.contains_key(&Layer::Slope));
+    // The slope is kept in the 5 m cells it was worked out on.
+    let slope = &scene.measured.grids[&Layer::Slope];
+    assert_eq!(slope.cell_m, 5.0);
+    assert!(slope.width <= 82 && slope.height <= 82, "{slope:?}");
 
     let json = serde_json::to_string(&scene).unwrap();
     let back: Scene = serde_json::from_str(&json).unwrap();

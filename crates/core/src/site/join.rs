@@ -8,6 +8,7 @@ use geo::{Geometry, MapCoords, Polygon, Rect};
 use super::download::{Dataset, Download, Payload};
 use super::editions::Editions;
 use super::environment::{Raster, RIVM_RASTERS};
+use super::greenery::Greenery;
 use super::source::{Source, BASE_SOURCES, SOURCES};
 use super::{context, environment, greenery, to_local_centimetres};
 use crate::environment::Measured;
@@ -135,13 +136,15 @@ pub(super) fn join(
                 joined.features.extend(cbs::to_features(years.into()));
             }
             Source::Green | Source::Vegetation | Source::Heat => {
-                // The site's and the neighbourhood's buildings, joined above, to clear the tree map's roofs.
-                let buildings = footprints(&joined);
-                let buildings: Vec<&Polygon<f64>> = buildings.iter().collect();
                 for kind in greenery::KINDS
                     .iter()
                     .filter(|kind| kind.source() == source)
                 {
+                    // The site's and the neighbourhood's buildings, joined above, to clear the tree map's roofs.
+                    let buildings = match kind {
+                        Greenery::TreeHeight => footprints(&joined.features, &joined.context),
+                        _ => Vec::new(),
+                    };
                     let tiles = greenery_tiles.get(kind).map(Vec::as_slice).unwrap_or(&[]);
                     let features =
                         greenery::bands(*kind, tiles, boundary, &buildings, &mut joined.measured);
@@ -180,19 +183,21 @@ pub(super) fn unique(records: Vec<Record>) -> Vec<Record> {
         .collect()
 }
 
-/// Every building footprint joined so far, in the site and around it.
-fn footprints(joined: &Joined) -> Vec<Polygon<f64>> {
-    joined
-        .features
-        .iter()
-        .chain(&joined.context)
-        .filter(|feature| feature.layer == Layer::Building)
-        .flat_map(|feature| match &feature.geometry {
-            Geometry::Polygon(polygon) => vec![polygon.clone()],
-            Geometry::MultiPolygon(multi) => multi.0.clone(),
-            _ => Vec::new(),
-        })
-        .collect()
+/// Every building footprint in `features` and `context`, the site and around it.
+fn footprints<'a>(features: &'a [Feature], context: &'a [Feature]) -> Vec<&'a Polygon<f64>> {
+    let mut footprints = Vec::new();
+    for feature in features.iter().chain(context) {
+        if feature.layer != Layer::Building {
+            continue;
+        }
+        match &feature.geometry {
+            Geometry::Polygon(polygon) => footprints.push(polygon),
+            Geometry::MultiPolygon(multi) => footprints.extend(&multi.0),
+            _ => {}
+        }
+    }
+
+    footprints
 }
 
 // Heights use the whole footprint, before clipping, so a building cut by the

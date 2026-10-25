@@ -10,9 +10,9 @@
 use std::collections::BTreeSet;
 use std::thread;
 
-use geo::{BoundingRect, Geometry, Rect};
+use geo::{BoundingRect, Geometry, MapCoords, Rect};
 
-use super::terrain;
+use super::{terrain, to_local_centimetres};
 use crate::scene::{Layer, Scene, WaterLevel};
 use crate::sources::cache::TileCache;
 use crate::sources::edition;
@@ -139,7 +139,9 @@ pub fn keep_with(scene: &mut Scene, cache: &TileCache, bed_id: &str, fetchers: &
         scene.water_levels = levels
             .into_iter()
             .map(|level| WaterLevel {
-                line: rws::localised(level.line, scene.origin),
+                line: level
+                    .line
+                    .map_coords(|coord| to_local_centimetres(coord, scene.origin)),
                 ..level
             })
             .collect();

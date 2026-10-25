@@ -8,6 +8,7 @@ mod lookup;
 mod missing_layers;
 
 use std::path::Path;
+use std::sync::OnceLock;
 
 pub use self::lookup::{current_id, current_look, find_drawing, find_plate, plate_id};
 use crate::diagram::Diagram;
@@ -121,24 +122,37 @@ const BUILTIN_THEMES: [(&str, &str); 8] = [
 
 /// Built-in diagrams, in the order the picker shows them.
 pub fn builtin_diagrams() -> Vec<Diagram> {
-    BUILTIN_DIAGRAMS
-        .iter()
-        .map(|(name, json)| {
-            serde_json::from_str(json)
-                .unwrap_or_else(|error| panic!("built-in diagram {name} is broken: {error}"))
-        })
-        .collect()
+    // Parsed once: the files are compiled in, and renders and ratios ask for
+    // them on every call. Immutable after the first call.
+    static PARSED: OnceLock<Vec<Diagram>> = OnceLock::new();
+    let parsed = PARSED.get_or_init(|| {
+        BUILTIN_DIAGRAMS
+            .iter()
+            .map(|(name, json)| {
+                serde_json::from_str(json)
+                    .unwrap_or_else(|error| panic!("built-in diagram {name} is broken: {error}"))
+            })
+            .collect()
+    });
+
+    parsed.clone()
 }
 
 /// Built-in themes, in the order the picker shows them.
 pub fn builtin_themes() -> Vec<Theme> {
-    BUILTIN_THEMES
-        .iter()
-        .map(|(name, json)| {
-            serde_json::from_str(json)
-                .unwrap_or_else(|error| panic!("built-in theme {name} is broken: {error}"))
-        })
-        .collect()
+    // Parsed once, like the diagrams: the palette editor asks on every change.
+    static PARSED: OnceLock<Vec<Theme>> = OnceLock::new();
+    let parsed = PARSED.get_or_init(|| {
+        BUILTIN_THEMES
+            .iter()
+            .map(|(name, json)| {
+                serde_json::from_str(json)
+                    .unwrap_or_else(|error| panic!("built-in theme {name} is broken: {error}"))
+            })
+            .collect()
+    });
+
+    parsed.clone()
 }
 
 /// Built-in themes followed by every valid `*.json` theme in `user_dir`.

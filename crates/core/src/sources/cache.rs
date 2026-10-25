@@ -78,6 +78,28 @@ impl TileCache {
         Ok(Some(bytes))
     }
 
+    /// The bytes under `key`, from the cache or else from `fetch`, which are
+    /// then kept. A failure to keep them costs the next call some time, not
+    /// this one its data, so it comes back as a warning.
+    pub fn read_or_fetch(
+        &self,
+        dataset: &str,
+        key: Tile,
+        fetch: impl FnOnce() -> Result<Vec<u8>>,
+    ) -> Result<(Vec<u8>, Option<String>)> {
+        // A cache that cannot be read is fetched around, which also repairs it on write.
+        if let Ok(Some(bytes)) = self.read(dataset, key) {
+            return Ok((bytes, None));
+        }
+
+        let bytes = fetch()?;
+        let warning = self
+            .write(dataset, key, &bytes)
+            .err()
+            .map(|error| format!("Downloaded data could not be kept for next time: {error}"));
+        Ok((bytes, warning))
+    }
+
     /// Stores a tile, replacing any older copy.
     pub fn write(&self, dataset: &str, tile: Tile, bytes: &[u8]) -> Result<()> {
         let path = self.tile_path(dataset, tile);

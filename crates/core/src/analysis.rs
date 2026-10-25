@@ -41,7 +41,7 @@ use crate::sources::cache::TileCache;
 use crate::sources::grid::Tile;
 use crate::sources::{knmi, pvgis};
 use crate::theme::Theme;
-use crate::{Error, Result};
+use crate::Result;
 
 pub use a4::report_pages;
 pub use climate::Climate;
@@ -242,7 +242,7 @@ pub fn last_full_year() -> i32 {
 
 fn climate(scene: &Scene, cache: &TileCache) -> Result<(Climate, Vec<String>)> {
     let cell = pvgis::cell_of(scene.origin);
-    let (bytes, warning) = cached(cache, pvgis::CACHE_DATASET, cell, || {
+    let (bytes, warning) = cache.read_or_fetch(pvgis::CACHE_DATASET, cell, || {
         let bytes = pvgis::fetch(cell)?;
         // Only an answer that parses is worth keeping for a month.
         pvgis::parse(&bytes)?;
@@ -261,7 +261,7 @@ fn rain(scene: &Scene, cache: &TileCache, last_year: i32) -> Result<(Rain, Vec<S
         column: station.id as i64,
         row: last_year as i64,
     };
-    let (bytes, warning) = cached(cache, knmi::CACHE_DATASET, key, || {
+    let (bytes, warning) = cache.read_or_fetch(knmi::CACHE_DATASET, key, || {
         let bytes = knmi::fetch(station.id, first_year, last_year)?;
         // KNMI answers a bad query with an HTML page and status 200; never keep that.
         knmi::parse(&bytes)?;
@@ -271,29 +271,6 @@ fn rain(scene: &Scene, cache: &TileCache, last_year: i32) -> Result<(Rain, Vec<S
 
     let rain = rain::from_days(station, distance_km, first_year, last_year, &days);
     Ok((rain, warning.into_iter().collect()))
-}
-
-/// The bytes under `key` in the tile cache, or from `fetch`, which are then
-/// kept. A failure to keep them costs the next call some time, not this one
-/// its data, so it comes back as a warning. Shared with the site fetch, which
-/// keeps the same typical year for the solar radiation diagram.
-pub(crate) fn cached(
-    cache: &TileCache,
-    dataset: &str,
-    key: Tile,
-    fetch: impl FnOnce() -> Result<Vec<u8>>,
-) -> Result<(Vec<u8>, Option<String>)> {
-    // A cache that cannot be read is fetched around, which also repairs it on write.
-    if let Ok(Some(bytes)) = cache.read(dataset, key) {
-        return Ok((bytes, None));
-    }
-
-    let bytes = fetch()?;
-    let warning = cache
-        .write(dataset, key, &bytes)
-        .err()
-        .map(|error: Error| format!("Downloaded data could not be kept for next time: {error}"));
-    Ok((bytes, warning))
 }
 
 #[cfg(test)]

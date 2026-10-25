@@ -1,5 +1,5 @@
-//! A sheet's sub-selection: a smaller area inside the fetched site that the
-//! sheet frames and clips to.
+//! A sheet opened from a highlight: a smaller area inside the fetched site
+//! that the sheet frames and clips to.
 //!
 //! The scene is cut to the smaller area and then drawn, measured and exported
 //! exactly like a whole site, so there is no second renderer to drift, the
@@ -21,7 +21,7 @@ use crate::site::boundary_in_rd;
 use crate::sources::clip::{self, Clipped};
 use crate::{Error, Result};
 
-/// A sub-selection must keep at least this much of the site, in square
+/// A sheet area must keep at least this much of the site, in square
 /// metres: less is a slip of the mouse, not an area worth a sheet.
 const MIN_AREA_M2: f64 = 25.0;
 
@@ -43,17 +43,31 @@ pub fn framed(scene: &Scene, selection: &Area) -> Result<Scene> {
     });
     let boundary = largest_part(&scene.boundary, &drawn).ok_or_else(|| {
         Error::Invalid(
-            "The sub-selection lies outside the fetched site. Draw it inside the site.".to_string(),
+            "The highlight lies outside the fetched site. Draw it inside the site.".to_string(),
         )
     })?;
 
-    let mut framed = scene.clone();
-    framed.area = selection.clone();
-    framed.features = clipped(&scene.features, &boundary);
-    framed.context = surroundings(scene, &boundary);
-    framed.measured = environment::measured_within(&scene.measured, &boundary);
-    framed.boundary = boundary;
-    Ok(framed)
+    // Written out field by field: cloning the scene whole would copy its
+    // features and neighbourhood only to replace them.
+    Ok(Scene {
+        area: selection.clone(),
+        crs: scene.crs.clone(),
+        origin: scene.origin,
+        features: clipped(&scene.features, &boundary),
+        credits: scene.credits.clone(),
+        fetched_at: scene.fetched_at.clone(),
+        warnings: scene.warnings.clone(),
+        measured: environment::measured_within(&scene.measured, &boundary),
+        walk: scene.walk.clone(),
+        editions: scene.editions.clone(),
+        context: surroundings(scene, &boundary),
+        terrain: scene.terrain.clone(),
+        water_bed: scene.water_bed.clone(),
+        water_levels: scene.water_levels.clone(),
+        solar: scene.solar.clone(),
+        wind: scene.wind.clone(),
+        boundary,
+    })
 }
 
 /// The biggest piece where the site and the selection overlap, if it is big enough to draw.
@@ -226,9 +240,10 @@ mod tests {
         let (noise, flood) = (gradient(), north_east_flood());
         scene.measured.road_noise_db = stats_within(&noise, &scene.boundary);
         scene.measured.flood_depth_m = stats_within(&flood, &scene.boundary);
-        scene.measured.slope_percent = Some(SLOPE);
+        scene.measured.slope_percent = stats_within(&noise, &scene.boundary);
         scene.measured.grids.insert(Layer::RoadNoise, noise.clone());
         scene.measured.grids.insert(Layer::Flood, flood);
+        scene.measured.grids.insert(Layer::Slope, noise.clone());
 
         let framed = framed(&scene, &circle_at(-50.0, -50.0, 30.0)).unwrap();
         let measured = &framed.measured;
@@ -239,9 +254,8 @@ mod tests {
         assert_ne!(measured.road_noise_db, scene.measured.road_noise_db);
         // The south-west corner stays dry.
         assert_eq!(measured.flood_depth_m, None);
-        // The slope raster is never kept.
-        assert_eq!(measured.slope_percent, Some(SLOPE));
-        assert_eq!(measured.whole_site, vec![Layer::Slope]);
+        assert_eq!(measured.slope_percent, measured.road_noise_db);
+        assert!(measured.whole_site.is_empty());
     }
 
     #[test]

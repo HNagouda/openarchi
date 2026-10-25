@@ -40,15 +40,6 @@ pub struct Project {
     pub created: String,
     pub modified: String,
     pub area: Area,
-    /// `None` until the site has been fetched.
-    /// Left out of the file while `None`, so `Library::save_with_packed_scene`
-    /// can write the packed text in its place.
-    #[serde(
-        with = "packed_scene",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub scene: Option<Scene>,
     /// The first sheet. Projects from before sheets had tabs have only this one.
     pub look: Look,
     /// Pages the user laid out from the project's charts, analysis and sheets.
@@ -64,6 +55,16 @@ pub struct Project {
     /// Areas the user highlighted inside the site, shown on every sheet that does not hide them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub highlights: Vec<Highlight>,
+    /// `None` until the site has been fetched.
+    /// Left out of the file while `None`, so `Library::save_with_packed_scene`
+    /// can write the packed text in its place. Last, because it is nearly the
+    /// whole file: the project list reads every other field before it.
+    #[serde(
+        with = "packed_scene",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub scene: Option<Scene>,
 }
 
 impl Project {

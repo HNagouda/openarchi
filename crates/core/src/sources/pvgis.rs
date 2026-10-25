@@ -10,7 +10,7 @@
 use serde::Deserialize;
 
 use crate::area::LonLat;
-use crate::crs::{rd_to_wgs84, wgs84_to_rd};
+use crate::crs::rd_to_wgs84;
 use crate::scene::Credit;
 use crate::sources::grid::Tile;
 use crate::sources::http;
@@ -100,11 +100,6 @@ pub fn fetch(cell: Tile) -> Result<Vec<u8>> {
             ("outputformat", "json"),
         ],
     )
-}
-
-/// The cell of a site given in longitude and latitude.
-pub fn cell_of_location(location: LonLat) -> Tile {
-    cell_of(wgs84_to_rd(location))
 }
 
 pub fn parse(bytes: &[u8]) -> Result<Tmy> {

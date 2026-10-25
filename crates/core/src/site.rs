@@ -138,10 +138,10 @@ fn build_scene_with(
 
     if let Some(elevation) = &elevation {
         add_building_heights(&mut features, elevation);
-        features.extend(contours::contour_lines(&elevation.terrain));
-        let (slope, stats) = environment::slope_bands(&elevation.terrain, &boundary);
-        features.extend(slope);
-        measured.slope_percent = stats;
+        // Contours and slope read the same filled and smoothed ground, made once.
+        let ground = contours::prepared(&elevation.terrain);
+        features.extend(contours::contour_lines(&ground));
+        features.extend(environment::slope_bands(&ground, &boundary, &mut measured));
     }
     let terrain = kept_terrain(
         context_terrain,
