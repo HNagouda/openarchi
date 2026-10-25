@@ -1,5 +1,5 @@
-//! Protocol tests for the Wind diagram: its season, and that it stays in plan
-//! the way the app keeps it there.
+//! Protocol tests for the Wind diagram: its season, and that it stays flat
+//! the way the app keeps it: in plan or on an explode plate.
 
 use serde_json::json;
 
@@ -24,7 +24,7 @@ fn the_wind_season_is_saved_with_the_sheet() {
 }
 
 #[test]
-fn the_wind_refuses_tilted_views_and_plates() {
+fn the_wind_refuses_the_axonometric_view() {
     let mut server = Server::start();
     let id = server.create_westermarkt();
 
@@ -33,15 +33,24 @@ fn the_wind_refuses_tilted_views_and_plates() {
         json!({ "id": id, "diagram_id": "wind", "view": { "mode": "axonometric" } }),
     );
     assert!(tilted.contains("plan only"), "{tilted}");
-    let plate = server.call_err(
-        "set_look",
-        json!({ "id": id, "view": { "mode": "explode", "plates": ["context", "wind"] } }),
-    );
-    assert!(plate.contains("plan only"), "{plate}");
 }
 
 #[test]
-fn choosing_the_wind_on_a_tilted_sheet_turns_it_to_its_plan() {
+fn the_wind_can_be_an_explode_plate() {
+    let mut server = Server::start();
+    let id = server.create_westermarkt();
+
+    let look = server.call_ok(
+        "set_look",
+        json!({ "id": id, "view": { "mode": "explode", "plates": ["context", "wind"] } }),
+    );
+    assert_eq!(look["view"]["plates"], json!(["context", "wind"]));
+    let own = server.call_ok("set_look", json!({ "id": id, "diagram_id": "wind" }));
+    assert_eq!(own["view"]["mode"], json!("explode"));
+}
+
+#[test]
+fn choosing_the_wind_on_an_axonometric_sheet_turns_it_to_its_plan() {
     let mut server = Server::start();
     let id = server.create_westermarkt();
     server.call_ok(

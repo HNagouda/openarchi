@@ -43,13 +43,15 @@ function plateId(diagramId: string, variantId?: string | null): string {
   return variantId ? `${diagramId}${VARIANT_SEPARATOR}${variantId}` : diagramId;
 }
 
-/** Every plate the explode view can stack: each diagram, or each variant of one that has them. A plan-only diagram is no plate. */
+/** Every plate the explode view can stack, by name: each diagram, or each variant of one that has them.
+ * A plan-only diagram is a plate too, because a plate is a flat map. */
 export function plateOptions(diagrams: Diagram[]): { id: string; name: string }[] {
-  return diagrams.filter((diagram) => !diagram.plan_only).flatMap((diagram) =>
+  const plates = diagrams.flatMap((diagram) =>
     diagram.variants.length === 0
       ? [{ id: diagram.id, name: diagram.name }]
       : diagram.variants.map((variant) => ({ id: plateId(diagram.id, variant.id), name: variant.title })),
   );
+  return plates.sort((first, second) => first.name.localeCompare(second.name));
 }
 
 /** A plate's name on screen; an id the catalog no longer has shows as it is. */

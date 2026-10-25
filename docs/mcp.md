@@ -137,7 +137,7 @@ The View diagram tints the ground a person standing at the sheet's viewpoint can
 
 ## How does an assistant choose the wind?
 
-The Wind diagram blows the site's most common wind direction, from its typical year, through the site in plan, and colours the ground by how fast the air moves there as a share of the incoming wind. It is worked out in two dimensions, so it is drawn in plan only: `set_look` refuses `view.mode` `axonometric` or `explode` for it and refuses it as an explode plate, and choosing it on a tilted sheet turns the sheet to its plan, as in the app, where those view buttons are greyed out. `set_wind_season` takes `season`: `year` (the default), `winter`, `spring`, `summer` or `autumn`, the seasons of the wind roses in the analysis. It answers with the wind that gives, such as "from the SW, most common all year (12% of hours)".
+The Wind diagram blows the site's most common wind direction, from its typical year, through the site in plan, and colours the ground by how fast the air moves there as a share of the incoming wind. It is worked out in two dimensions, so it is drawn flat only: `set_look` refuses `view.mode` `axonometric` for it, and choosing it on an axonometric sheet turns the sheet to its plan, as in the app, where that view button is greyed out. It can still be an explode plate, because plates are flat maps. `set_wind_season` takes `season`: `year` (the default), `winter`, `spring`, `summer` or `autumn`, the seasons of the wind roses in the analysis. It answers with the wind that gives, such as "from the SW, most common all year (12% of hours)".
 
 ```json
 { "id": "2026-10-24-westermarkt-3f9a", "season": "winter" }

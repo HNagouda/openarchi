@@ -22,12 +22,9 @@ pub fn find_diagram(id: &str) -> Result<Diagram, String> {
 }
 
 /// An explode plate: a diagram id, or "diagram:variant" for one variant.
-/// A plan-only diagram is no plate, as in the app's plate list.
+/// A plan-only diagram may be one too, because a plate is a flat map.
 pub fn check_plate(plate: &str) -> Result<(), String> {
     match catalog::find_plate(&catalog::builtin_diagrams(), plate) {
-        Some(diagram) if diagram.plan_only => Err(format!(
-            "'{plate}' is drawn in plan only, so it cannot be an explode plate"
-        )),
         Some(_) => Ok(()),
         None => Err(format!(
             "no diagram for plate '{plate}'; use an id from list_diagrams, or 'id:variant' for one variant"
@@ -35,16 +32,16 @@ pub fn check_plate(plate: &str) -> Result<(), String> {
     }
 }
 
-/// Keeps a plan-only diagram in plan, as the app does: asking for a tilted or
-/// exploded view of it is refused, and choosing it on a tilted sheet turns the
-/// sheet to its plan. `asked` is the view mode set_look was given, if any.
+/// Keeps a plan-only diagram out of the axonometric view, as the app does:
+/// asking for it is refused, and choosing the diagram on an axonometric sheet
+/// turns the sheet to its plan. Explode plates are flat maps, so they stay.
+/// `asked` is the view mode set_look was given, if any.
 pub fn kept_in_plan(mut look: Look, asked: Option<ViewMode>) -> Result<Look, String> {
     let diagram = find_diagram(&look.diagram_id)?;
-    let is_tilted = |mode| matches!(mode, ViewMode::Axonometric | ViewMode::Explode);
-    if !diagram.plan_only || !is_tilted(look.view.mode) {
+    if !diagram.plan_only || look.view.mode != ViewMode::Axonometric {
         return Ok(look);
     }
-    if asked.is_some_and(is_tilted) {
+    if asked == Some(ViewMode::Axonometric) {
         return Err(format!(
             "the {} diagram is drawn in plan only, because its flow is worked out in two dimensions; use view.mode \"plan\"",
             diagram.name

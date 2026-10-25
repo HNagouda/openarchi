@@ -12,14 +12,15 @@ export function useDiagramStepping(look: Look, diagrams: Diagram[], themes: Them
   const latestLook = useRef(look);
   latestLook.current = look;
 
-  // A new diagram starts on its first variant, and a plan-only one turns a tilted sheet to its plan in the same step.
+  // A new diagram starts on its first variant, and a plan-only one turns an axonometric sheet to its plan in the same step.
+  // Explode plates are flat maps, so an explode sheet stays.
   const selectDiagram = useCallback(
     (diagram_id: string) => {
       const current = latestLook.current;
       if (diagram_id === current.diagram_id) return;
       const isPlanOnly = diagrams.find((entry) => entry.id === diagram_id)?.plan_only === true;
-      const isTilted = current.view.mode === "axonometric" || current.view.mode === "explode";
-      const view = isPlanOnly && isTilted ? { ...current.view, mode: "plan" as const } : current.view;
+      const isAxonometric = current.view.mode === "axonometric";
+      const view = isPlanOnly && isAxonometric ? { ...current.view, mode: "plan" as const } : current.view;
       changeLook({ ...current, diagram_id, variant: null, view });
     },
     [diagrams, changeLook],

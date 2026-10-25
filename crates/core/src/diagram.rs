@@ -80,9 +80,10 @@ pub struct Diagram {
     /// with a walk; without one the diagram stays at the site.
     #[serde(default)]
     pub walk_minutes: Option<u32>,
-    /// Drawn in plan only: the axonometric and explode views are refused,
-    /// and an old look that asks for one draws the plan. The wind is solved
-    /// in two dimensions, so a tilted view would add height it never had.
+    /// Drawn flat only: the axonometric view is refused, and an old look that
+    /// asks for one draws the plan. The wind is solved in two dimensions, so
+    /// buildings standing at their height would add height it never had. An
+    /// explode plate is a flat map, so the diagram may still be one.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub plan_only: bool,
     /// Ways to draw the same question with another layer or measure, such as

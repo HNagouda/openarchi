@@ -12,7 +12,7 @@ use openarchi_core::view::{SunMoment, View, ViewMode};
 use crate::SAMPLE_WIDTH_PX;
 
 /// The view samples: file name, diagram, theme and view mode.
-const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 11] = [
+const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 12] = [
     (
         "axo--building-height--paper",
         "building-height",
@@ -52,6 +52,7 @@ const VIEW_SAMPLES: [(&str, &str, &str, ViewMode); 11] = [
         ViewMode::Explode,
     ),
     ("explode--pastel", "context", "pastel", ViewMode::Explode),
+    ("explode--wind--paper", "wind", "paper", ViewMode::Explode),
     ("sun-path--paper", "sun-path", "paper", ViewMode::Plan),
     ("shadow--paper", "shadow", "paper", ViewMode::Plan),
 ];
@@ -84,6 +85,12 @@ pub(crate) fn write_views(scene: &Scene, out_dir: &Path) {
                     30.0
                 } else {
                     0.0
+                },
+                // The wind sample shows that a plan-only diagram still makes a flat plate.
+                plates: if diagram_id == "wind" {
+                    vec!["wind".to_string(), "context".to_string()]
+                } else {
+                    View::default().plates
                 },
                 ..View::default()
             },

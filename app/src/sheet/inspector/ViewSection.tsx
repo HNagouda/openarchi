@@ -55,10 +55,10 @@ export function ViewSection({ diagrams, look, onLook, onSeal }: Props) {
   // In an explode view the plates are drawn, not the sheet's own diagram.
   const drawn = sheetDiagrams(diagrams, look);
   // The section view needs a line to cut along; until one is drawn it is greyed out.
-  // A plan-only diagram, such as the wind, greys out the tilted views for good.
+  // A plan-only diagram, such as the wind, greys out the axonometric view for good. Explode plates are flat maps, so explode stays.
   const modes = MODES.map((mode) => {
     if (mode.value === "section" && !look.section) return { ...mode, isDisabled: true, tip: NO_LINE_TIP };
-    if (diagram?.plan_only && TILTED_MODES.includes(mode.value)) return { ...mode, isDisabled: true, tip: PLAN_ONLY_TIP };
+    if (diagram?.plan_only && mode.value === "axonometric") return { ...mode, isDisabled: true, tip: PLAN_ONLY_TIP };
     return mode;
   });
   const hasWind = drawn.some((entry) => entry.layers.includes("wind"));

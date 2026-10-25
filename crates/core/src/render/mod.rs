@@ -145,13 +145,12 @@ pub fn missing_data(input: &RenderInput) -> Result<Vec<String>> {
     Ok(missing::notes(&scene, &drawn, look))
 }
 
-/// The look as `diagram` can draw it: a plan-only diagram turns a tilted or
-/// exploded view into its plan. The app and set_look never ask for one; a
-/// look from elsewhere still draws.
+/// The look as `diagram` can draw it: a plan-only diagram turns an
+/// axonometric view into its plan. Explode plates are flat maps, so they stay.
+/// The app and set_look never ask for one; a look from elsewhere still draws.
 fn planned(diagram: &Diagram, look: &Look) -> Look {
-    let is_tilted = matches!(look.view.mode, ViewMode::Axonometric | ViewMode::Explode);
     let mut planned = look.clone();
-    if diagram.plan_only && is_tilted {
+    if diagram.plan_only && look.view.mode == ViewMode::Axonometric {
         planned.view.mode = ViewMode::Plan;
     }
     planned

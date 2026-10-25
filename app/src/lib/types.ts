@@ -233,7 +233,7 @@ export type Diagram = {
   solar?: "sun_path" | "shadow" | "sun_hours" | null;
   /** Zooms the plan out to the walk band of this many minutes. */
   walk_minutes?: number | null;
-  /** Drawn in plan only: the axonometric and explode views are greyed out and it is no plate. */
+  /** Drawn flat only: the axonometric view is greyed out. It can still be an explode plate. */
   plan_only?: boolean;
   /** Other layers or measures for the same question; the first is the default. */
   variants: Variant[];
