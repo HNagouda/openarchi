@@ -80,7 +80,8 @@ pub async fn export_ratios(
 pub fn find_theme(state: &AppState, id: &str) -> Result<Theme, String> {
     current_catalog(state)
         .themes
-        .into_iter()
+        .iter()
         .find(|theme| theme.id == id)
+        .cloned()
         .ok_or_else(|| format!("There is no theme called “{id}”."))
 }

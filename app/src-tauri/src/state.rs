@@ -23,7 +23,8 @@ pub struct AppState {
     /// Opened once at start. An error here is shown in the gallery, calmly.
     pub library: Result<Library, String>,
     pub open: Mutex<Option<OpenProject>>,
-    pub catalog: Mutex<Option<Catalog>>,
+    /// Shared, not copied: every preview and thumbnail reads it.
+    pub catalog: Mutex<Option<Arc<Catalog>>>,
     /// Gallery thumbnails as data URLs, keyed by id, modified time and width.
     pub thumbnails: Mutex<HashMap<String, String>>,
     /// When the app itself last wrote each project, so the watcher can tell

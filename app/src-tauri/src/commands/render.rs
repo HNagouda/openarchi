@@ -41,12 +41,11 @@ fn read_catalog(state: &AppState) -> Catalog {
 }
 
 /// The cached catalog, loaded on first use.
-pub fn current_catalog(state: &AppState) -> Catalog {
+pub fn current_catalog(state: &AppState) -> Arc<Catalog> {
     let mut cached = lock(&state.catalog);
-    if cached.is_none() {
-        *cached = Some(read_catalog(state));
-    }
-    cached.clone().expect("catalog was just loaded")
+    cached
+        .get_or_insert_with(|| Arc::new(read_catalog(state)))
+        .clone()
 }
 
 /// Resolves the look's diagram and theme ids and hands `work` a render input.
@@ -154,7 +153,7 @@ pub async fn get_catalog(state: State<'_, Shared>) -> Result<Catalog, String> {
     let state = state.inner().clone();
     blocking(move || {
         *lock(&state.catalog) = None;
-        Ok(current_catalog(&state))
+        Ok(Catalog::clone(&current_catalog(&state)))
     })
     .await
 }

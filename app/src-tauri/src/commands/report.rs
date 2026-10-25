@@ -3,7 +3,6 @@
 
 use std::path::PathBuf;
 
-use openarchi_core::catalog;
 use openarchi_core::export::series::slug;
 use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
@@ -16,7 +15,7 @@ use tauri::State;
 
 use crate::commands::library::save_open_project;
 use crate::commands::ratios::find_theme;
-use crate::commands::render::open_scene;
+use crate::commands::render::{current_catalog, open_scene};
 use crate::guard::{blocking, text};
 use crate::state::{lock, AppState, Shared};
 
@@ -127,14 +126,14 @@ fn with_data<'c, T>(
     let scene = open_scene(state)?;
     let look = open_look(state)?;
     let (pins, highlights) = open_marks(state)?;
-    let diagrams = catalog::builtin_diagrams();
+    let catalog = current_catalog(state);
     let cache = state.library()?.tile_cache();
     let data = ReportData::gather(
         &scene,
         &look,
         &pins,
         &highlights,
-        &diagrams,
+        &catalog.diagrams,
         theme,
         &cache,
         contents,

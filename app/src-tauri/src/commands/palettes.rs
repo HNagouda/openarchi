@@ -148,8 +148,9 @@ fn checked(state: &AppState, draft: &PaletteDraft, id: &str) -> Result<PaletteCh
 fn find(state: &AppState, id: &str) -> Result<Theme, String> {
     current_catalog(state)
         .themes
-        .into_iter()
+        .iter()
         .find(|theme| theme.id == id)
+        .cloned()
         .ok_or_else(|| format!("There is no palette called “{id}”."))
 }
 
