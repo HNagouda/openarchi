@@ -1,7 +1,7 @@
 //! An analysis section's facts or design notes, laid out at a block's width.
-//!
-//! Sizes match the A4 analysis pages, so a report and the analysis PDF set
-//! the same section in the same type.
+
+// #! TODO[analysis, report] : One fact grid and heading for analysis/page.rs, analysis/a4_blocks.rs and this file
+// The three draw the same section with their own sizes, and the heading and fact gap have drifted apart.
 
 use std::fmt::Write;
 

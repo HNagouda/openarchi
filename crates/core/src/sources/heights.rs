@@ -1,11 +1,7 @@
 //! Building heights from AHN: roof level from the surface model, ground level
 //! from the terrain just outside the footprint.
 
-// geo 0.29 deprecates EuclideanDistance, but its replacement only measures point
-// to point. The contract pins geo 0.29.
-#[allow(deprecated)]
-use geo::EuclideanDistance;
-use geo::{BoundingRect, Contains, Point, Polygon, Rect};
+use geo::{BoundingRect, Contains, Distance, Euclidean, Point, Polygon, Rect};
 
 use crate::sources::ahn::Elevation;
 
@@ -56,9 +52,8 @@ pub fn building_height(
     (height_m, ground_m.map(round_to_cm))
 }
 
-#[allow(deprecated)]
 fn is_near(centre: &Point<f64>, footprint: &Polygon<f64>) -> bool {
-    centre.euclidean_distance(footprint) <= GROUND_RING_M
+    Euclidean::distance(centre, footprint) <= GROUND_RING_M
 }
 
 /// The value at `fraction` (0 to 1) of the sorted finite values, nearest rank.

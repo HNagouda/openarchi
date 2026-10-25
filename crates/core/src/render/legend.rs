@@ -7,6 +7,7 @@
 //! difference the drawing does not show.
 
 use super::drawing::{pattern_id, Drawn};
+use super::frame::SITE_STROKE_MM;
 use super::style::{ResolvedLayer, Role};
 use super::symbols::{self, Shape};
 use crate::diagram::Diagram;
@@ -21,7 +22,6 @@ pub const SITE_LABEL: &str = "Site boundary";
 const OPEN_GROUND_LABEL: &str = "Open ground";
 /// Rows merged from more layers than this are labelled by what they share, not by name.
 const MAX_JOINED_LABELS: usize = 3;
-const SITE_STROKE_MM: f64 = 0.5;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Swatch {

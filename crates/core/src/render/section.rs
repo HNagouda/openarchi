@@ -21,6 +21,7 @@ use super::section_levels::{self, Frame};
 use super::section_pieces::{self, Building, Cut, AIR_M, EARTH_M};
 use super::section_water;
 use super::solid;
+use super::solid::ESTIMATED_GREY;
 use super::style::{self, ResolvedLayer};
 use super::typeset::Typesetter;
 use super::RenderInput;
@@ -31,8 +32,6 @@ use crate::theme::Theme;
 use crate::Result;
 
 pub const TITLE: &str = "Section A\u{2013}A\u{2032}";
-/// How far a building of unknown height moves towards the unknown colour, as in the axonometric.
-const ESTIMATED_GREY: f64 = 0.65;
 const CLIP_ID: &str = "section-view";
 
 pub fn render(

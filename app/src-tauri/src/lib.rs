@@ -19,7 +19,9 @@ use crate::guard::{calm, text};
 use crate::state::AppState;
 
 /// Keeps the folder watcher alive for as long as the app runs.
-struct WatcherHandle(#[allow(dead_code)] Mutex<Option<notify::RecommendedWatcher>>);
+struct WatcherHandle {
+    _watcher: Mutex<Option<notify::RecommendedWatcher>>,
+}
 
 pub fn run() {
     let library = calm(|| Library::open_default().map_err(text));
@@ -39,7 +41,9 @@ pub fn run() {
 
             // Without a library there is nothing to watch; the gallery says why.
             let watcher = watcher::watch_projects(app.handle().clone(), state.clone()).ok();
-            app.manage(WatcherHandle(Mutex::new(watcher)));
+            app.manage(WatcherHandle {
+                _watcher: Mutex::new(watcher),
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

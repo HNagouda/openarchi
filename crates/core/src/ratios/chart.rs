@@ -52,8 +52,8 @@ pub enum ChartStyle {
     Pie,
 }
 
-/// A page with every group as bars or pies, headed by `title`, in the
-/// colours and type the analysis charts and report blocks use.
+/// A page with every group as bars or pies, headed by `title`.
+// #! TODO[ratios, report] : Draw this page from report/ratio_blocks.rs, which repeats it with another track colour and share column
 pub fn chart_svg(ratios: &Ratios, theme: &Theme, style: ChartStyle, title: &str) -> Result<String> {
     let paint = Paint::new(theme)?;
 

@@ -21,18 +21,19 @@ use super::solid_draw::{write_building, write_tree};
 use super::style::ResolvedLayer;
 use super::svg::layer_attributes;
 use crate::diagram::Diagram;
+use crate::floors::STOREY_HEIGHT_M;
 use crate::scene::{polygons, Feature};
 use crate::sun::SunPosition;
 use crate::theme::Theme;
 
 /// Used when a building has no measured height: three storeys, a common Dutch
 /// terraced house. Such buildings are greyed so nobody reads the guess as data.
-pub const DEFAULT_HEIGHT_M: f64 = 9.0;
+pub const DEFAULT_HEIGHT_M: f64 = 3.0 * STOREY_HEIGHT_M;
 /// Trees carry no height in the data. A mature street tree in a Dutch town.
 pub const TREE_HEIGHT_M: f64 = 10.0;
 const TREE_CROWN_RADIUS_M: f64 = 3.0;
 /// How far a building of unknown height moves towards the unknown colour.
-const ESTIMATED_GREY: f64 = 0.65;
+pub(super) const ESTIMATED_GREY: f64 = 0.65;
 /// Edges between faces: a light hairline in the paper colour.
 const EDGE_MM: f64 = 0.06;
 const EDGE_OPACITY: f64 = 0.7;

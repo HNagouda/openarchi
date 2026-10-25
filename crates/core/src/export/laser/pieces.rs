@@ -7,7 +7,7 @@ use geo::{
 
 use super::glyphs::{self, centred_label, fitted_label, LABEL_MIN_MM};
 use super::{Frame, LaserSettings, Part};
-use crate::render::DEFAULT_HEIGHT_M;
+use crate::render::building_height;
 use crate::scene::{polygons, Layer, Scene};
 
 /// Wiggles in a footprint smaller than this, in model millimetres, are finer
@@ -56,10 +56,7 @@ pub fn buildings(scene: &Scene, frame: Frame, settings: &LaserSettings) -> Build
         if feature.layer != Layer::Building {
             continue;
         }
-        let (height, is_estimated) = match feature.attributes.height_m {
-            Some(height) if height > 0.0 => (height, false),
-            _ => (DEFAULT_HEIGHT_M, true),
-        };
+        let (height, is_estimated) = building_height(feature);
         for polygon in polygons(&feature.geometry) {
             if let Some(model) = to_model(polygon, frame) {
                 shapes.push((model, height, is_estimated));

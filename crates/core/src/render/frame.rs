@@ -18,7 +18,7 @@ use crate::sheet::Frame;
 use crate::theme::Palette;
 
 /// The site outline in the accent colour: strong enough to find, thin enough to stay a line.
-const SITE_STROKE_MM: f64 = 0.5;
+pub(super) const SITE_STROKE_MM: f64 = 0.5;
 /// The frame edge in ink, a hairline.
 const FRAME_STROKE_MM: f64 = 0.2;
 const FRAME_STROKE_OPACITY: f64 = 0.7;
