@@ -3,12 +3,13 @@
 
 use std::fmt::Write;
 
-use geo::{LineString, Polygon};
+use geo::{LineString, Polygon, Simplify};
 
 use super::color;
 use super::geometry::{decimal, mm, push_paper_points, Projection};
 use super::lighting::{wall_fill, Light};
 use super::shadow::signed_area;
+use super::simplify::SIMPLIFY_MM;
 use super::solid::tree_size;
 
 const TRUNK_MM: f64 = 0.14;
@@ -29,6 +30,9 @@ pub(super) fn write_building(
     projection: &Projection,
     fade: Option<(&str, f64)>,
 ) {
+    // Footprint edges far shorter than the paper can show would each become a
+    // wall, and a large site at a small scale has tens of thousands of them.
+    let polygon = &polygon.simplify(&(SIMPLIFY_MM / projection.mm_per_m));
     let mut walls = Vec::new();
     collect_walls(polygon.exterior(), false, height, projection, &mut walls);
     for interior in polygon.interiors() {

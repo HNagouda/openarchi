@@ -1,10 +1,11 @@
 //! Leaves out path points nobody could see on paper.
 
 /// Points closer than this to the line through their neighbours are left out,
-/// in hundredths of a millimetre. A quarter of the finest 0.1 mm line cannot
-/// be seen on paper, and dropping them halves the larger sheets, which the
-/// app has to parse and paint on every change.
-const SIMPLIFY_HUNDREDTHS: f64 = 2.5;
+/// in millimetres on paper. A quarter of the finest 0.1 mm line cannot be
+/// seen on paper, and dropping them halves the larger sheets, which the app
+/// has to parse and paint on every change.
+pub const SIMPLIFY_MM: f64 = 0.025;
+const SIMPLIFY_HUNDREDTHS: f64 = SIMPLIFY_MM * 100.0;
 
 /// `points` without those within `SIMPLIFY_HUNDREDTHS` of the line through
 /// the points kept around them (Douglas-Peucker). The first and last point
