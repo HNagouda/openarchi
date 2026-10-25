@@ -2,7 +2,7 @@
     "id": "solar-radiation",
     "name": "Solar radiation",
     "group": "Sun and shade",
-    "description": "How much sunlight the ground receives in a typical year: direct sun past the building shadows, plus the light of the sky it sees.",
+    "description": "How much sunlight the ground and the roofs receive in a typical year: direct sun past the buildings and dense trees, plus the light of the sky they see.",
     "layers": [
         "solar_radiation",
         "water",
@@ -14,7 +14,7 @@
         "water"
     ],
     "as_figure": [],
-    "blank": [
+    "outline": [
         "building"
     ],
     "classify": {
@@ -22,23 +22,23 @@
         "attribute": "value",
         "title": "Sunlight per year, kWh/m²",
         "is_brighter_more": true,
-        "note": "PVGIS typical year: direct sun where lit, hourly on a mean day per month (Klein 1977), plus diffuse × sky view factor (Liu & Jordan 1960). Trees left out.",
+        "note": "PVGIS typical year: direct sun where lit, hourly on a mean day per month (Klein 1977), plus diffuse × sky view factor (Liu & Jordan 1960). Woods block (FAO forest: over 0.5 ha, trees over 5 m); single trees do not.",
         "scheme": {
             "kind": "sequential",
             "breaks": [
-                300,
-                500,
-                700,
-                850,
-                1000
+                0.3,
+                0.5,
+                0.7,
+                0.85,
+                0.95
             ],
             "labels": [
-                "Under 300",
-                "300–500",
-                "500–700",
-                "700–850",
-                "850–1,000",
-                "1,000 or more"
+                "Under 30 % of open ground",
+                "30–50 %",
+                "50–70 %",
+                "70–85 %",
+                "85–95 %",
+                "95 % or more"
             ]
         }
     }

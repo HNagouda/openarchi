@@ -103,6 +103,21 @@ impl Project {
         }
     }
 
+    /// Sheets whose eye stood on a pin that is gone go back to the site
+    /// centre, so a new pin that reuses the id does not take the eye.
+    pub fn untie_lost_view_pins(&mut self) {
+        let pins = &self.pins;
+        for look in std::iter::once(&mut self.look).chain(&mut self.more_sheets) {
+            let is_lost = look
+                .view_pin
+                .as_ref()
+                .is_some_and(|id| !pins.iter().any(|pin| pin.id == *id));
+            if is_lost {
+                look.view_pin = None;
+            }
+        }
+    }
+
     pub fn sheet_mut(&mut self, number: usize) -> Result<&mut Look> {
         self.sheet(number)?;
         if number == 1 {
@@ -150,14 +165,34 @@ pub struct Look {
     /// plan as a cut marker. `None` until the user draws one; older projects have none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub section: Option<SectionLine>,
-    /// Where the view diagram's eye stands, in RD New metres. `None` stands
-    /// it at the site centre; older projects have none. See `viewshed`.
+    /// Where the view diagram's eye stands, in RD New metres, when it was
+    /// placed on the sheet. `None` stands it at the site centre; older
+    /// projects have none. See `viewshed`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub view_point: Option<(f64, f64)>,
     /// The months the wind diagram takes its prevailing wind from. Older
     /// projects have none and draw the wind of the whole year.
     #[serde(default, skip_serializing_if = "WindSeason::is_year")]
     pub wind_season: WindSeason,
+    /// The pin the view diagram's eye stands on, by id, so the eye follows
+    /// the pin when it moves. Wins over `view_point`. Older projects have none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub view_pin: Option<String>,
+}
+
+impl Look {
+    /// Where the view diagram's eye stands, in RD New metres: on its pin, at
+    /// the placed point, or `None` for the site centre. A pin that is gone
+    /// stands the eye back at the site centre rather than at a stale place.
+    pub fn eye_among(&self, pins: &[Pin]) -> Option<(f64, f64)> {
+        match &self.view_pin {
+            Some(id) => pins
+                .iter()
+                .find(|pin| pin.id == *id)
+                .map(|pin| (pin.x, pin.y)),
+            None => self.view_point,
+        }
+    }
 }
 
 impl Default for Look {
@@ -177,6 +212,7 @@ impl Default for Look {
             section: None,
             view_point: None,
             wind_season: WindSeason::Year,
+            view_pin: None,
         }
     }
 }

@@ -171,7 +171,8 @@ pub async fn render_preview(
 }
 
 /// A PNG of the open project in `look`, for the diagram column. Pins and
-/// highlights would be specks at this size, so they are left off.
+/// highlights would be specks at this size, so they are left off; the pins
+/// still go in, hidden, so a View eye standing on one stands there.
 #[tauri::command]
 pub async fn render_thumbnail(
     state: State<'_, Shared>,
@@ -180,7 +181,15 @@ pub async fn render_thumbnail(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let bytes = render_shown(&state, &look, &[], &[], |input| render_png(input, width))?;
+        let pins = match lock(&state.open).as_ref() {
+            Some(open) => open.project.pins.clone(),
+            None => Vec::new(),
+        };
+        let look = Look {
+            hide_pins: true,
+            ..look
+        };
+        let bytes = render_shown(&state, &look, &pins, &[], |input| render_png(input, width))?;
         Ok(png_data_url(&bytes))
     })
     .await

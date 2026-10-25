@@ -1,11 +1,16 @@
 mod render_support;
 
+use openarchi_core::pin::{Pin, PinIcon, PinSize};
 use openarchi_core::project::Look;
 use openarchi_core::render::{render_svg, RenderInput};
 use openarchi_core::view::ViewMode;
 use render_support::{diagram, look, scene, theme, ORIGIN};
 
 fn svg_with(look: &Look) -> String {
+    svg_with_pins(look, &[])
+}
+
+fn svg_with_pins(look: &Look, pins: &[Pin]) -> String {
     let scene = scene();
     let (diagram, theme) = (diagram(&look.diagram_id), theme("paper"));
     render_svg(&RenderInput {
@@ -13,10 +18,29 @@ fn svg_with(look: &Look) -> String {
         diagram: &diagram,
         theme: &theme,
         look,
-        pins: &[],
+        pins,
         highlights: &[],
     })
     .expect("render")
+}
+
+/// The pin "pin-1", `east` and `north` metres from the site centre.
+fn pin_at(east: f64, north: f64) -> Pin {
+    Pin {
+        id: "pin-1".to_string(),
+        icon: PinIcon::Pin,
+        label: String::new(),
+        x: ORIGIN.0 + east,
+        y: ORIGIN.1 + north,
+        size: PinSize::Medium,
+    }
+}
+
+fn on_pin_look() -> Look {
+    Look {
+        view_pin: Some("pin-1".to_string()),
+        ..view_look()
+    }
 }
 
 fn view_look() -> Look {
@@ -47,7 +71,7 @@ fn the_view_tints_the_ground_in_view_and_says_how() {
 
     assert!(svg.contains(r#"id="layer-viewshed""#));
     assert!(svg.contains("Franklin &amp; Ray 1994"));
-    assert!(svg.contains("Viewpoint, eye 1.5 m above the ground"));
+    assert!(svg.contains("Viewpoint, eye 1.7 m above the ground"));
 }
 
 #[test]
@@ -91,4 +115,22 @@ fn a_look_saved_before_viewpoints_opens_at_the_site_centre() {
     let read: Look = serde_json::from_value(saved).unwrap();
 
     assert_eq!(read.view_point, None);
+    assert_eq!(read.view_pin, None);
+}
+
+#[test]
+fn moving_the_pin_moves_an_eye_standing_on_it() {
+    let look = on_pin_look();
+    let before = eye_on_paper(&svg_with_pins(&look, &[pin_at(-60.0, 0.0)]));
+    let after = eye_on_paper(&svg_with_pins(&look, &[pin_at(60.0, 0.0)]));
+
+    assert!(after.0 > before.0 + 10.0, "{before:?} {after:?}");
+}
+
+#[test]
+fn deleting_the_pin_stands_the_eye_back_at_the_site_centre() {
+    let centre = eye_on_paper(&svg_with(&view_look()));
+    let orphaned = eye_on_paper(&svg_with_pins(&on_pin_look(), &[]));
+
+    assert_eq!(orphaned, centre);
 }

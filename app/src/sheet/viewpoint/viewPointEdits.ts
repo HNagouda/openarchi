@@ -25,14 +25,29 @@ export function readEye(paper: Element | null): Point | null {
   return { x, y };
 }
 
-/** The eye at an RD New point, or back at the site centre for `null`. */
+/** The eye at an RD New point, or back at the site centre for `null`. Either unties it from a pin. */
 export function withViewPoint(look: Look, point: Point | null): Look {
-  return { ...look, view_point: point ? [point.x, point.y] : null };
+  return { ...look, view_point: point ? [point.x, point.y] : null, view_pin: null };
 }
 
-/** The pin the eye stands on, when it was put there from the menu and the pin has not moved since. */
+/** The eye on a pin, following it wherever the pin is moved. */
+export function withViewPin(look: Look, pinId: string): Look {
+  return { ...look, view_point: null, view_pin: pinId };
+}
+
+/** The pin the eye stands on, or undefined when it stands elsewhere or its pin was deleted. */
 export function pinUnderEye(look: Look, pins: Pin[]): Pin | undefined {
-  const point = look.view_point;
-  if (!point) return undefined;
-  return pins.find((pin) => pin.x === point[0] && pin.y === point[1]);
+  if (!look.view_pin) return undefined;
+  return pins.find((pin) => pin.id === look.view_pin);
+}
+
+/**
+ * Sheets whose eye stood on a pin that is gone go back to the site centre, so
+ * a new pin that reuses the id does not take the eye. The core does the same
+ * in `Project::untie_lost_view_pins`.
+ */
+export function withoutLostViewPins(sheets: Look[], pins: Pin[]): Look[] {
+  const isLost = (look: Look) => Boolean(look.view_pin) && !pins.some((pin) => pin.id === look.view_pin);
+  if (!sheets.some(isLost)) return sheets;
+  return sheets.map((look) => (isLost(look) ? { ...look, view_pin: null } : look));
 }

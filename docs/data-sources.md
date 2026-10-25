@@ -210,7 +210,9 @@ Before using it, RIVM's own WCS was searched for the same map, because the Klima
 
 TU/e brought up one odd value: the tree map's highest cell there is 60 m, far above any tree on campus, so a tall building probably slipped through RIVM's mask. The canopy share is not affected much by one cell, but the legend's top band can show a spot that is not a tree.
 
-#! NOTE[trees, data] : RIVM's tree map has a 60 m "tree" on the TU/e campus; mask tree cells under BAG footprints, or leave RIVM's data as it is?
+#! NOTE[trees, decision] : Tree cells that a BAG footprint reaches into are left out (Harsh, 2026-10-25)
+
+Harsh chose to mask them. Masking only the cells whose centre lies in a footprint was not enough: a TU/e site fetched at `fetch_site -- 5.4858 51.4474 250` still kept its 60 m cell, which lies 1.3 m outside the footprint of a 53.6 m tower built in 1991, on a cell that straddles the façade. So a cell is cleared when the footprint covers its centre or any of its four corners. After that the highest tree cell on the site is 24 m, in the wood along the Dommel. The site's and the neighbourhood's buildings both count, and the tree heights are now fetched and kept 150 m past the site's box, because woods around the site block sky and sun too (`crates/core/src/forest.rs`).
 
 Timings, from `fetch_site` with every other tile already cached so only the new rasters were downloaded: the 300 m Westerkerk site needed 16 tiles of each, 64 requests, all done 1.0 s into the fetch. An uncached 300 m fetch at TU/e (`fetch_site -- 5.4908 51.4483 300`) had every tree, green and infrared tile in by 4.1 s, while the whole fetch took 46.7 s because of the Overpass query running alongside.
 

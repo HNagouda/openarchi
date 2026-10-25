@@ -7,6 +7,7 @@ use crate::diagram::Diagram;
 use crate::project::Look;
 use crate::scene::Layer;
 use crate::theme::{LayerStyle, Pattern, Theme};
+use crate::view::ViewMode;
 use crate::Result;
 
 /// Stroke in the fill colour on figure layers. Neighbouring tiles of a planar
@@ -15,6 +16,8 @@ const FIGURE_SEAM_MM: f64 = 0.25;
 /// The ink edge of a blank layer: enough to find a building, too fine to compete with the ground.
 const BLANK_EDGE_MM: f64 = 0.1;
 const BLANK_TINT: f64 = 0.08;
+/// The edge of an outlined layer: a little firmer than a blank edge, since it has no fill to hold it.
+const OUTLINE_EDGE_MM: f64 = 0.15;
 /// A fine diagonal hatch over a blank layer, so it never reads as the
 /// lightest class of the ground under it.
 const BLANK_HATCH_ANGLE_DEG: f64 = 45.0;
@@ -65,9 +68,13 @@ pub fn resolve_layers(diagram: &Diagram, theme: &Theme, look: &Look) -> Result<V
             .filter(|classify| classify.layer == layer);
         let is_kept = diagram.emphasis == Some(layer) || diagram.highlight.contains(&layer);
         let is_figure = diagram.as_figure.contains(&layer);
-        let is_blank = diagram.blank.contains(&layer);
+        let is_plan = look.view.mode == ViewMode::Plan;
+        let is_outlined = diagram.outline.contains(&layer) && is_plan;
+        let is_blank =
+            diagram.blank.contains(&layer) || (diagram.outline.contains(&layer) && !is_plan);
 
-        let is_quieted = !is_kept && !is_figure && !is_blank && classified.is_none();
+        let is_quieted =
+            !is_kept && !is_figure && !is_blank && !is_outlined && classified.is_none();
         if diagram.mute_others && is_quieted {
             mute(&mut style);
             role = Role::Muted;
@@ -78,6 +85,9 @@ pub fn resolve_layers(diagram: &Diagram, theme: &Theme, look: &Look) -> Result<V
         }
         if is_blank {
             make_blank(&mut style, theme);
+        }
+        if is_outlined {
+            make_outline(&mut style);
         }
         let mut classes = match classified {
             Some(classify) => {
@@ -152,6 +162,17 @@ fn make_blank(style: &mut LayerStyle, theme: &Theme) {
         stroke_mm: BLANK_HATCH_STROKE_MM,
         color: color::mix(&palette.paper, &palette.ink, BLANK_HATCH_SHARE),
     });
+    style.shadow_mm = 0.0;
+}
+
+/// Only the ink edge of a blank layer, so what lies under it shows.
+fn make_outline(style: &mut LayerStyle) {
+    style.fill = None;
+    style.stroke = Some("@ink".to_string());
+    style.stroke_mm = OUTLINE_EDGE_MM;
+    style.dash_mm.clear();
+    style.opacity = 1.0;
+    style.pattern = None;
     style.shadow_mm = 0.0;
 }
 

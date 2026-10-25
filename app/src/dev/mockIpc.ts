@@ -156,12 +156,13 @@ async function answer(command: string, args: Args) {
     const name = isFixedView ? `${shown.view.mode}--${shown.theme_id}` : fixtureName(shown);
     const svg = await fetch(`${FIXTURES}/previews/${name}.svg`).then((response) => response.text());
     if (shown.view.mode === "section") return svg;
-    const withLine = withMockSection(withMockViewPoint(svg, shown), shown);
+    const pins = (args.pins as Pin[] | undefined) ?? [];
+    const withLine = withMockSection(withMockViewPoint(svg, shown, pins), shown);
     // The explode fixture's ground points belong to its top plate, so the mock draws highlights there only;
     // the core draws them on every plate.
     const highlights = shown.hide_highlights ? [] : ((args.highlights as Highlight[] | undefined) ?? []);
     const withHighlights = withMockHighlights(withLine, highlights);
-    return shown.hide_pins ? withHighlights : withMockPins(withHighlights, (args.pins as Pin[] | undefined) ?? []);
+    return shown.hide_pins ? withHighlights : withMockPins(withHighlights, pins);
   }
   if (command === "render_thumbnail") return picture(args.look as Look);
   if (command === "search_places") {

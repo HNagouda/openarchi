@@ -143,6 +143,8 @@ export type Look = {
   view_point?: [number, number] | null;
   /** The months the Wind diagram takes its prevailing wind from; missing is the whole year. */
   wind_season?: WindSeason;
+  /** The pin the View diagram's eye stands on and follows; wins over `view_point`. */
+  view_pin?: string | null;
 };
 
 // crates/core/src/section.rs
