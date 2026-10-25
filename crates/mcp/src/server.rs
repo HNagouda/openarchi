@@ -27,19 +27,27 @@ const MAX_PLACES: u32 = 20;
 /// What MCP clients show as the server's name.
 const SERVER_NAME: &str = "openarchi";
 
-const INSTRUCTIONS: &str = "openarchi turns a site in the Netherlands into styled \
-site-analysis diagrams (figure-ground, building age, heights, uses, green and water). \
-A typical session: search_places to find the site, create_project with an area around \
-it, fetch_site to download the site data, list_diagrams and list_themes, set_look to \
-choose and tune the style, edit_text to style, move or add text on the sheet, \
-add_sheet for more sheet tabs (each with its own look), add_highlight to mark the plot \
-or another area, open_highlight_as_sheet for a sheet of just that area, add_pin to mark landmarks on every sheet, render_preview to look at the sheet, get_environment for noise, air, flood and population, get_ratios for the \
-numbers behind it (land use, building use, coverage, floor area ratio), get_analysis \
-for the location, climate and design notes, export to \
-write a file, export_laser for laser cutting files of a physical site model, and list_reports and export_report for the multi-page reports the \
-user laid out in the app. Projects live in the same library as the openarchi app, so the user sees every \
-project you make there. delete_project moves a project to Recently Deleted and \
-restore_project brings it back.";
+const INSTRUCTIONS: &str = "openarchi turns a site in the Netherlands into \
+styled site-analysis diagrams (figure-ground, building age, heights, uses, green \
+and water). A typical session: search_places to find the site, create_project \
+with an area around it, and fetch_site to download the site data. Then style the \
+sheet: list_diagrams and list_themes, set_look to choose and tune the look, \
+edit_text to style, move or add text, create_theme or import_palette for a \
+palette of your own. add_sheet adds sheet tabs, each with its own look, and \
+list_sheets lists them. add_pin marks landmarks and add_highlight marks the plot \
+or another area on every sheet; open_highlight_as_sheet gives a sheet of just \
+that area, and show_on_sheet shows or hides the marks per sheet. Each sheet also \
+has set_section for its section line, set_view_point for the eye of the View \
+diagram and set_wind_season for the Wind diagram. The numbers come from \
+get_ratios (land use, coverage, floor area ratio), get_environment (noise, air, \
+flood, population), get_neighbourhood (the 15 minute neighbourhood) and \
+get_analysis (location, climate, design notes). render_preview shows the sheet, \
+export writes it or the whole series to files, export_laser writes laser cutting \
+files for a physical site model, and list_reports and export_report give the \
+multi-page reports the user laid out in the app. Projects live in the same \
+library as the openarchi app, so the user sees every project you make there. \
+delete_project moves a project to Recently Deleted and restore_project brings it \
+back.";
 
 #[derive(Clone)]
 pub struct OpenArchi {
