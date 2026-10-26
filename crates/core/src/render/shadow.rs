@@ -5,6 +5,11 @@
 //! quadrilateral per wall joining the two. Every piece is written with the same
 //! winding and filled nonzero, so the overlaps merge into one flat shadow
 //! instead of darkening where pieces cross.
+//!
+//! The pieces go into opaque paths of a few hundred each, inside one
+//! see-through group, which keeps the overlaps flat across paths too. One path
+//! of 50 000 pieces, as an imported model casts, took Preview 24 s to draw and
+//! left PDF pages blank; in paths of 200 it draws in a fraction of a second.
 
 use std::f64::consts::TAU;
 use std::fmt::Write;
@@ -21,8 +26,37 @@ use crate::sun::SunPosition;
 pub const MIN_SUN_ALTITUDE_DEG: f64 = 2.0;
 /// Corners on a tree's shadow ellipse.
 const TREE_SHADOW_POINTS: usize = 12;
+/// Buildings, trees or model faces per path element; see the module comment.
+const PIECES_PER_PATH: usize = 200;
 
-/// The shadow of every building and tree as one path element, or nothing when the sun is down.
+/// Shadow pieces gathered into path elements of `PIECES_PER_PATH` each. A
+/// piece is everything one caster pushes, so a courtyard's hole stays in the
+/// same path as its outline.
+struct ShadowPaths {
+    written: String,
+    data: String,
+    pieces: usize,
+}
+
+impl ShadowPaths {
+    fn end_piece(&mut self) {
+        self.pieces += 1;
+        if self.pieces == PIECES_PER_PATH {
+            self.flush();
+        }
+    }
+
+    fn flush(&mut self) {
+        if !self.data.is_empty() {
+            let _ = write!(self.written, r#"<path d="{}"/>"#, self.data);
+            self.data.clear();
+        }
+        self.pieces = 0;
+    }
+}
+
+/// The shadow of every building and tree as one see-through group of path
+/// elements, or nothing when the sun is down.
 pub fn write(
     out: &mut String,
     features: &[&Feature],
@@ -34,39 +68,47 @@ pub fn write(
     let Some(per_metre) = shadow_per_metre(sun) else {
         return;
     };
-    let mut data = String::new();
+    let mut paths = ShadowPaths {
+        written: String::new(),
+        data: String::new(),
+        pieces: 0,
+    };
     for feature in features {
         match (feature.layer, &feature.geometry) {
             (Layer::Building, geometry) => {
                 let (height, _) = building_height(feature);
                 let offset = (per_metre.0 * height, per_metre.1 * height);
                 for polygon in polygons(geometry) {
-                    push_prism_shadow(&mut data, polygon, offset, projection);
+                    push_prism_shadow(&mut paths.data, polygon, offset, projection);
                 }
+                paths.end_piece();
             }
             (Layer::Tree, Geometry::Point(point)) => {
                 push_tree_shadow(
-                    &mut data,
+                    &mut paths.data,
                     (point.x(), point.y()),
                     per_metre,
                     sun,
                     projection,
                 );
+                paths.end_piece();
             }
             _ => {}
         }
     }
     if let Some(model) = model {
-        push_model_shadow(&mut data, model, per_metre, projection);
+        push_model_shadow(&mut paths, model, per_metre, projection);
     }
-    if data.is_empty() {
+    paths.flush();
+    if paths.written.is_empty() {
         return;
     }
 
     let _ = write!(
         out,
-        r#"<path d="{data}" fill-rule="nonzero" opacity="{}"/>"#,
-        decimal(opacity)
+        r#"<g fill-rule="nonzero" opacity="{}">{}</g>"#,
+        decimal(opacity),
+        paths.written
     );
 }
 
@@ -117,7 +159,7 @@ fn push_prism_shadow(
 /// cover the model's shadow, and they merge with the buildings' in the same
 /// nonzero fill. A face's holes count down only inside its own outline.
 fn push_model_shadow(
-    data: &mut String,
+    paths: &mut ShadowPaths,
     model: &PlacedModel,
     per_metre: (f64, f64),
     projection: &Projection,
@@ -128,8 +170,9 @@ fn push_model_shadow(
                 .iter()
                 .map(|&[x, y, z]| (x + per_metre.0 * z, y + per_metre.1 * z))
                 .collect();
-            push_ground_ring(data, &on_ground, index > 0, projection);
+            push_ground_ring(&mut paths.data, &on_ground, index > 0, projection);
         }
+        paths.end_piece();
     }
 }
 

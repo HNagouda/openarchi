@@ -47,6 +47,7 @@ What changed in each version of openarchi, newest first.
 - Themes are now called palettes in the app.
 - Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
 - Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
+- PDFs of axonometric and shadow sheets open at once in Preview and print in full. A sheet with an imported model used to take Preview half a minute to draw, so pages showed blank or only their lower left corner. Edges between faces are now drawn solid in a colour between the face and the paper, and the shadows go in small pieces, which also makes these PDFs about a third of the size.
 
 ### Sheet tabs and pins
 

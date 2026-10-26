@@ -101,10 +101,11 @@ pub fn write_solid(
             push_paper_points(&mut data, &points, true);
         }
         if !data.is_empty() {
+            let fill = face_fill(accent, face.normal, light);
             let _ = write!(
                 out,
-                r#"<path d="{data}" fill="{}"/>"#,
-                face_fill(accent, face.normal, light)
+                r#"<path d="{data}" fill="{fill}" stroke="{}"/>"#,
+                light.edge(&fill)
             );
         }
     }

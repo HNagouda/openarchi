@@ -53,10 +53,11 @@ pub(super) fn write_building(
             .collect();
         let mut data = String::new();
         if push_paper_points(&mut data, &points, true) {
+            let fill = faded(wall_fill(base, wall.normal, light), fade);
             let _ = write!(
                 out,
-                r#"<path d="{data}" fill="{}"/>"#,
-                faded(wall_fill(base, wall.normal, light), fade)
+                r#"<path d="{data}" fill="{fill}" stroke="{}"/>"#,
+                light.edge(&fill)
             );
         }
     }
@@ -76,7 +77,11 @@ pub(super) fn write_building(
         } else {
             roof.to_string()
         };
-        let _ = write!(out, r#"<path d="{data}" fill="{roof}"/>"#);
+        let _ = write!(
+            out,
+            r#"<path d="{data}" fill="{roof}" stroke="{}"/>"#,
+            light.edge(&roof)
+        );
     }
 }
 
@@ -147,7 +152,7 @@ pub(super) fn write_tree(
     let crown_radius = radius * projection.mm_per_m;
     let _ = write!(
         out,
-        r#"<path d="M{} {}V{}" stroke="{trunk}" stroke-width="{}" stroke-opacity="1"/><circle cx="{}" cy="{}" r="{}" fill="{fill}" opacity="{}"/>"#,
+        r#"<path d="M{} {}V{}" stroke="{trunk}" stroke-width="{}"/><circle cx="{}" cy="{}" r="{}" fill="{fill}" stroke="{}" opacity="{}"/>"#,
         mm(base_x),
         mm(base_y),
         mm(crown_y),
@@ -155,6 +160,7 @@ pub(super) fn write_tree(
         mm(crown_x),
         mm(crown_y),
         mm(crown_radius),
+        light.edge(fill),
         decimal(opacity)
     );
 }

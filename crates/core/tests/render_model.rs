@@ -65,10 +65,9 @@ fn svg(scene: &Scene, diagram_id: &str, look: &Look, model: Option<&Model>) -> S
 }
 
 /// The `d` of the path inside the group with `id`.
-fn group_path<'a>(svg: &'a str, id: &str) -> &'a str {
-    let group = &svg[svg.find(&format!(r#"id="{id}""#)).expect("the group")..];
-    let start = group.find(r#" d=""#).expect("a path") + 4;
-    &group[start..start + group[start..].find('"').unwrap()]
+fn shadows(svg: &str) -> &str {
+    let group = &svg[svg.find(r#"id="shadows""#).expect("the shadows")..];
+    &group[..group.find("</g>\n").unwrap()]
 }
 
 fn paths_in_solids(svg: &str) -> usize {
@@ -148,7 +147,7 @@ fn the_model_casts_a_shadow_in_the_shadow_diagram() {
     let with = svg(&scene, "shadow", &look, Some(&model));
     let without = svg(&scene, "shadow", &look, None);
 
-    assert!(group_path(&with, "shadows").len() > group_path(&without, "shadows").len());
+    assert!(shadows(&with).len() > shadows(&without).len());
 }
 
 #[test]

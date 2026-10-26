@@ -17,6 +17,11 @@ const ROOF_BIAS: f64 = 0.3;
 const SUN_UP_DEG: f64 = 0.5;
 /// Sheets darker than this sink shade into the paper rather than into black.
 const DARK_SHEET_LUMINANCE: f64 = 0.5;
+/// The edge between two faces is this share of the way from the face's fill
+/// to the paper: the look of a 70 % paper line, drawn opaque. See-through
+/// edges made every face its own PDF graphics state, and with 28 000 of them
+/// Preview drew a sheet for 26 s and left pages blank or a quarter drawn.
+const EDGE_SHARE: f64 = 0.7;
 
 /// The light a sheet's buildings are drawn in, resolved once per sheet.
 pub struct Light {
@@ -26,6 +31,8 @@ pub struct Light {
     /// How strongly walls differ from their roof: 1 for the site, less for
     /// the muted neighbours around it.
     pub strength: f64,
+    /// The paper, which edges between faces are mixed toward.
+    pub paper: String,
 }
 
 impl Light {
@@ -35,6 +42,17 @@ impl Light {
             sun: self.sun,
             shade: self.shade.clone(),
             strength,
+            paper: self.paper.clone(),
+        }
+    }
+
+    /// The edge drawn round a face filled with `fill`: a pattern or other
+    /// non-colour fill gets the plain paper.
+    pub fn edge(&self, fill: &str) -> String {
+        if fill.starts_with('#') {
+            color::mix(fill, &self.paper, EDGE_SHARE)
+        } else {
+            self.paper.clone()
         }
     }
 }
@@ -59,6 +77,7 @@ pub fn light(sun: &SunPosition, theme: &Theme) -> Light {
         sun,
         shade,
         strength: 1.0,
+        paper: theme.palette.paper.clone(),
     }
 }
 
@@ -100,6 +119,7 @@ mod tests {
             sun: Some((0.0, -0.7, 0.7)),
             shade: "#000000".to_string(),
             strength: 1.0,
+            paper: "#FFFFFF".to_string(),
         };
         let south = wall_fill("#808080", (0.0, -1.0), &light);
         let north = wall_fill("#808080", (0.0, 1.0), &light);
@@ -112,6 +132,7 @@ mod tests {
             sun: Some((0.0, -0.7, 0.7)),
             shade: "#000000".to_string(),
             strength: 1.0,
+            paper: "#FFFFFF".to_string(),
         };
         assert_eq!(face_fill("#808080", [0.0, 0.0, 1.0], &light), "#808080");
     }
