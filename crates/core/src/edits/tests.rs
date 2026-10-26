@@ -206,7 +206,9 @@ fn a_moved_tree_outside_a_smaller_site_is_dropped_so_saves_still_pass() {
 #[test]
 fn a_planted_tree_taken_away_leaves_nothing_for_the_next_one_with_its_id() {
     let (edits, id) = SiteEdits::default().with_planted(ORIGIN.0, ORIGIN.1);
-    let edits = edits.with_model_picks(std::slice::from_ref(&id)).with_removed(&id);
+    let edits = edits
+        .with_model_picks(std::slice::from_ref(&id))
+        .with_removed(&id);
 
     let (edits, again) = edits.with_planted(ORIGIN.0 + 1.0, ORIGIN.1);
 
