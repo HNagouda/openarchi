@@ -1,7 +1,7 @@
 // The six tools that act on the paper: text, pins, highlights, the section
 // line, the View eye and the site edits, all wired to the sheet's undo history.
 
-import type { RefObject } from "react";
+import { useEffect, type RefObject } from "react";
 import { sheetDiagrams } from "../lib/diagrams";
 import type { Diagram } from "../lib/types";
 import type { CanvasControls } from "./Canvas";
@@ -50,6 +50,16 @@ export function usePaperTools({ history, diagrams, canvas, svg, isEditable, isRe
   const viewPoint = useViewPointTool({ look, onLook: history.changeLook, svg, isEnabled: hasEye, onRefused: refuse });
 
   const edit = useEditTool({ edits: book.edits, onEdits: history.changeEdits, look, svg, isEnabled: isEditable, onRefused: refuse });
+
+  // The edit tool takes every press while it is on, so the other marks let go
+  // of their selection, or Delete would remove a pin along with a tree.
+  useEffect(() => {
+    if (!edit.isEditing) return;
+    text.setSelectedId(null);
+    pin.setSelectedId(null);
+    highlights.tool.setSelectedId(null);
+    section.setSelected(false);
+  }, [edit.isEditing]);
 
   const tools: PaperTools = { section, highlight: highlights.tool, pin, text, viewPoint, edit };
   return { tools, highlights };

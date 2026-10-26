@@ -192,6 +192,29 @@ fn edits_of_trees_gone_after_a_new_fetch_are_dropped() {
 }
 
 #[test]
+fn a_moved_tree_outside_a_smaller_site_is_dropped_so_saves_still_pass() {
+    let mut smaller = site();
+    smaller.boundary = geo::Rect::new((-30.0, -30.0), (30.0, 30.0)).to_polygon();
+    let edits = SiteEdits::default().with_moved("G0363.oak", ORIGIN.0 + 100.0, ORIGIN.1);
+
+    let kept = edits.kept_in(&smaller);
+
+    assert!(kept.moved.is_empty());
+    assert!(kept.check(&smaller).is_ok());
+}
+
+#[test]
+fn a_planted_tree_taken_away_leaves_nothing_for_the_next_one_with_its_id() {
+    let (edits, id) = SiteEdits::default().with_planted(ORIGIN.0, ORIGIN.1);
+    let edits = edits.with_model_picks(std::slice::from_ref(&id)).with_removed(&id);
+
+    let (edits, again) = edits.with_planted(ORIGIN.0 + 1.0, ORIGIN.1);
+
+    assert_eq!(again, id);
+    assert!(!edits.is_removed(&again));
+}
+
+#[test]
 fn a_tree_outside_the_site_is_refused() {
     let scene = site();
     let (outside, _) = SiteEdits::default().with_planted(ORIGIN.0 + 500.0, ORIGIN.1);

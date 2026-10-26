@@ -23,7 +23,10 @@ export function isRemoved(edits: SiteEdits, id: string): boolean {
 
 /** `id` taken away by hand. A planted tree is simply gone. */
 export function withRemoved(edits: SiteEdits, id: string): SiteEdits {
-  if (id.startsWith(PLANTED_PREFIX)) return { ...edits, planted: plantedOf(edits).filter((tree) => tree.id !== id) };
+  if (id.startsWith(PLANTED_PREFIX)) {
+    // Its other edits go with it, so a later tree given the same id starts clean.
+    return { ...edits, planted: plantedOf(edits).filter((tree) => tree.id !== id), removed: removedOf(edits).filter((removed) => removed.id !== id) };
+  }
   if (isRemoved(edits, id)) return edits;
   return { ...edits, removed: [...removedOf(edits), { id }] };
 }
@@ -59,7 +62,7 @@ export function withPlanted(edits: SiteEdits, x: number, y: number): { edits: Si
 /** What the model stands on picked afresh: `ids` taken away under it, the rest of its picks back. Hand removals stay. */
 export function withModelPicks(edits: SiteEdits, ids: string[]): SiteEdits {
   const kept = withoutModelPicks(edits);
-  const added = ids.filter((id) => !isRemoved(kept, id)).map((id) => ({ id, is_under_model: true }));
+  const added = [...new Set(ids)].filter((id) => !isRemoved(kept, id)).map((id) => ({ id, is_under_model: true }));
   return { ...kept, removed: [...removedOf(kept), ...added] };
 }
 

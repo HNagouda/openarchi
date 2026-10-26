@@ -118,6 +118,12 @@ impl OpenArchi {
                         input.tree
                     ));
                 }
+                if project.edits.is_removed(&input.tree) {
+                    return Err(format!(
+                        "'{}' is removed; restore_on_site brings it back before it can move",
+                        input.tree
+                    ));
+                }
                 let (x, y) = rd_point(input.at, input.rd)?;
                 let edits = project.edits.with_moved(&input.tree, x, y);
                 edits.check(fetched_scene(&project)?).map_err(text)?;

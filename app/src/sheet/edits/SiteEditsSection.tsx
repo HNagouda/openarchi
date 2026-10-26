@@ -39,7 +39,7 @@ export function SiteEditsSection({ tool }: { tool: EditTool }) {
                   <button type="button" className="edit-name" title={thingLabel(thing)} onClick={() => tool.setSelected(thing)}>
                     {thingLabel(thing)}
                   </button>
-                  <Button variant="plain" onClick={() => (thing.is_planted ? tool.toggleRemoved(thing) : tool.restore(thing))}>
+                  <Button variant="plain" onClick={() => (thing.is_planted ? tool.remove(thing) : tool.restore(thing))}>
                     {thing.is_planted ? "Remove" : "Restore"}
                   </Button>
                 </li>

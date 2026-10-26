@@ -101,11 +101,14 @@ export function useModelTool({ project, choice, edits, onModel, onEdits, onSeal,
     const current = latest.current;
     if (!current) return;
     placements.current += 1;
-    mergeKey ??= `model-place-${placements.current}`;
+    const placementNumber = placements.current;
+    mergeKey ??= `model-place-${placementNumber}`;
     const placed = { ...current, placement };
     onModel(placed, latestEdits.current, mergeKey);
     try {
       const under = await underModel(placed, latestEdits.current);
+      // A newer placement asked while this one was answered wins; this answer would move the model back.
+      if (placementNumber !== placements.current) return;
       onModel(placed, withModelPicks(latestEdits.current, under.picked), mergeKey);
     } catch (error) {
       toast(`Couldn't find the buildings and trees under the model. ${errorText(error)}`, { isError: true });

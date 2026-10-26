@@ -74,7 +74,9 @@ impl SiteEdits {
     pub fn with_removed(&self, id: &str) -> SiteEdits {
         let mut edits = self.clone();
         if id.starts_with(PLANTED_PREFIX) {
+            // Its other edits go with it, so a later tree given the same id starts clean.
             edits.planted.retain(|tree| tree.id != id);
+            edits.removed.retain(|removed| removed.id != id);
         } else if !edits.is_removed(id) {
             edits.removed.push(Removed {
                 id: id.to_string(),
@@ -177,7 +179,8 @@ impl SiteEdits {
 
     /// The edits that still name something in `scene`, for a site fetched
     /// again: a tree or building that is gone takes its edits with it, and a
-    /// planted tree outside the new outline goes too.
+    /// planted or moved tree outside the new outline goes too, since `check`
+    /// would refuse every later save.
     pub fn kept_in(&self, scene: &Scene) -> SiteEdits {
         let planted: Vec<TreeAt> = self
             .planted
@@ -199,6 +202,7 @@ impl SiteEdits {
                 .moved
                 .iter()
                 .filter(|tree| surveyed(scene, &tree.id) == Some(Layer::Tree))
+                .filter(|tree| is_on_site(scene, tree.x, tree.y))
                 .cloned()
                 .collect(),
             planted,

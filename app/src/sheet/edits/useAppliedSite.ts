@@ -18,6 +18,8 @@ type Options = {
 export function useAppliedSite({ model, edits, onApplied, toast }: Options) {
   const appliedModel = useRef(JSON.stringify(model));
   const appliedEdits = useRef(JSON.stringify(edits));
+  // Each change waits for the one before, so quick changes reach the app in the order the history made them.
+  const queue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     const wantedModel = JSON.stringify(model);
@@ -32,7 +34,8 @@ export function useAppliedSite({ model, edits, onApplied, toast }: Options) {
       if (isModelNew) await setModel(model);
       if (isEditsNew) await setSiteEdits(edits);
     };
-    apply()
+    queue.current = queue.current
+      .then(apply)
       .then(onApplied)
       .catch((error) => toast(`Couldn't change the site. ${errorText(error)}`, { isError: true }));
   }, [model, edits, onApplied, toast]);

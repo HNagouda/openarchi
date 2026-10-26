@@ -97,6 +97,9 @@ export function useEditTool({ edits, onEdits, look, svg, isEnabled, onRefused }:
 
   const restore = (thing: Editable) => onEdits(withRestored(latest.current, thing.id));
 
+  /** Takes the thing away for good when it is planted, however it stands now. */
+  const remove = (thing: Editable) => onEdits(withRemoved(latest.current, thing.id));
+
   const plantAt = (paper: Element | null, at: Point) => {
     if (!isOnSite(paper, at)) {
       onRefused("Trees are planted inside the outline of the site.");
@@ -164,7 +167,7 @@ export function useEditTool({ edits, onEdits, look, svg, isEnabled, onRefused }:
     }
   }, isEnabled);
 
-  return { isEditing, isPlan, mode, setMode, selected, setSelected, things, drag, toggle, toggleRemoved, restore, onPaperPointerDown };
+  return { isEditing, isPlan, mode, setMode, selected, setSelected, things, drag, toggle, toggleRemoved, restore, remove, onPaperPointerDown };
 }
 
 export type EditTool = ReturnType<typeof useEditTool>;
