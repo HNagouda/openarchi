@@ -45,7 +45,7 @@ dirs = "6"
 fastrand = "2"
 # Stored scenes and cached tiles are compressed. zstd rather than gzip: about
 # a third smaller on scene JSON and several times faster to unpack.
-zstd = "0.13"
+zstd = "0.14"
 # The compressed scene sits inside the JSON project file as text.
 base64 = "0.22"
 # Imported models. Archicad writes OBJ from Save As without add-ons; SketchUp,
