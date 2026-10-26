@@ -21,6 +21,7 @@ use crate::scene::{polygons, Feature, Layer, Scene};
 use crate::sun;
 use crate::theme::Theme;
 use crate::view::SunMoment;
+use crate::viewshed;
 use crate::Result;
 
 use self::surfaces::{extrude, flat, Triangles};
@@ -63,6 +64,8 @@ const MINUTES_PER_DAY: u32 = 24 * 60;
 pub struct View3d {
     /// The furthest point of the site from its centre, for framing the camera.
     pub radius_m: f64,
+    /// Where a standing eye is, the View diagram's (`viewshed.rs`).
+    pub eye_height_m: f64,
     /// The paper colour, behind everything.
     pub sky: String,
     pub ground: Vec<Surface>,
@@ -150,6 +153,7 @@ pub fn view(scene: &Scene, theme: &Theme, model: Option<&Model>) -> Result<View3
 
     Ok(View3d {
         radius_m: radius_m(scene),
+        eye_height_m: viewshed::EYE_HEIGHT_M,
         sky: theme.palette.paper.clone(),
         ground,
         buildings: Surface::of(BUILDING_COLOUR, prisms(buildings)),

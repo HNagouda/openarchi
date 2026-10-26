@@ -4,13 +4,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { errorText, sunDay as fetchSunDay, view3d } from "../lib/ipc";
-import type { SunDay, SunMoment } from "../lib/types";
+import type { SunDay, SunMoment, View } from "../lib/types";
 import { Button } from "../ui/Button";
 import { useToast } from "../ui/Toasts";
 import { fileStem, saveDay, saveOrbit, savePicture } from "./frames";
+import type { Mode } from "./navigation";
 import { createStage, type Stage } from "./stage";
 import { clockLabel, daylight, MINUTES_PER_DAY, sunAt } from "./sunDay";
 import { PERCENT } from "../lib/units";
+import { ViewButtons } from "./ViewButtons";
 import "./viewer.css";
 
 // Playing, the clock runs this many minutes a second: a summer day in about ten seconds.
@@ -24,12 +26,14 @@ type Props = {
   themeId: string;
   /** The sheet's date and time, where the view starts. */
   moment: SunMoment;
+  /** The sheet's turn and tilt, for the view that matches it. */
+  sheetView: View;
   /** The project's name, for the names of saved pictures. */
   projectName: string;
   onClose: () => void;
 };
 
-export default function Viewer3D({ themeId, moment, projectName, onClose }: Props) {
+export default function Viewer3D({ themeId, moment, sheetView, projectName, onClose }: Props) {
   const stem = fileStem(projectName);
   const host = useRef<HTMLDivElement>(null);
   const stage = useRef<Stage | null>(null);
@@ -42,6 +46,8 @@ export default function Viewer3D({ themeId, moment, projectName, onClose }: Prop
   const [isPlaying, setPlaying] = useState(false);
   const [isOrbiting, setOrbiting] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const [mode, setMode] = useState<Mode>("orbit");
+  const angle = useRef({ rotationDeg: sheetView.rotation_deg, tiltDeg: sheetView.tilt_deg });
   const latest = useRef({ minute, day });
   latest.current = { minute, day };
 
@@ -50,7 +56,7 @@ export default function Viewer3D({ themeId, moment, projectName, onClose }: Prop
     view3d(themeId)
       .then((view) => {
         if (!isCurrent || !host.current) return;
-        stage.current = createStage(host.current, view);
+        stage.current = createStage(host.current, view, angle.current, setMode);
         setReady(true);
       })
       .catch((reason) => {
@@ -104,7 +110,10 @@ export default function Viewer3D({ themeId, moment, projectName, onClose }: Prop
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      // Esc first steps back out of walking, then closes the view.
+      if (stage.current?.navigation.leave()) return;
+      onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -155,6 +164,7 @@ export default function Viewer3D({ themeId, moment, projectName, onClose }: Prop
             {error}
           </div>
         )}
+        {isReady && <ViewButtons navigation={stage.current?.navigation ?? null} mode={mode} />}
         {progress !== null && <div className="viewer-progress">Saving… {Math.round(progress * PERCENT)} %</div>}
       </div>
       <footer className="viewer-controls">
@@ -180,7 +190,7 @@ export default function Viewer3D({ themeId, moment, projectName, onClose }: Prop
         </select>
         <input className="text-input viewer-day tabular" aria-label="Day" type="number" min={1} max={MONTH_DAYS[date.month - 1]} value={date.day} onChange={(event) => changeDay(Number(event.target.value))} />
         <span className="viewer-divider" />
-        <Button icon="orbit" tip="Turn round the site; drag to look, scroll to come closer" isActive={isOrbiting} disabled={!isReady} onClick={() => setOrbiting(!isOrbiting)}>
+        <Button icon="orbit" tip="Turn round the site; drag to turn, right-drag to slide, scroll to come closer" isActive={isOrbiting} disabled={!isReady} onClick={() => setOrbiting(!isOrbiting)}>
           Orbit
         </Button>
       </footer>

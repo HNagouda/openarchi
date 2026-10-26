@@ -319,6 +319,7 @@ export type Surface = { colour: string; corners: string; triangle_count: number 
 /** The open site as the 3D view draws it, in metres around the site centre. */
 export type View3d = {
   radius_m: number;
+  eye_height_m: number;
   sky: string;
   ground: Surface[];
   buildings: Surface;
