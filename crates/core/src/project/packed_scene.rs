@@ -6,6 +6,8 @@
 //! stays plain JSON, so the project list can read a name without unpacking the
 //! scene, and an older openarchi still sees `format_version` and says to update.
 
+use std::io::Read;
+
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use serde::de::Error as _;
@@ -21,6 +23,10 @@ use crate::{Error, Result};
 /// is barely smaller and half as fast.
 // #! NOTE[mcp, save] : Should MCP edits that leave the scene alone save with the packed text read from disk, as the app does?
 const COMPRESSION_LEVEL: i32 = 6;
+/// A scene never unpacks to more than this. The largest site the app allows
+/// (4 km²) unpacks to a few hundred MB; a hostile file that would inflate to
+/// tens of GB stops here as damaged instead of filling the memory.
+const MAX_UNPACKED_BYTES: u64 = 2 << 30;
 
 /// The scene as stored text.
 pub fn pack(scene: &Scene) -> Result<String> {
@@ -45,8 +51,18 @@ pub fn unpack(text: &str) -> Result<Scene> {
     let compressed = BASE64
         .decode(text)
         .map_err(|error| unpack_error(error.to_string()))?;
-    let json =
-        zstd::decode_all(compressed.as_slice()).map_err(|error| unpack_error(error.to_string()))?;
+    let decoder = zstd::Decoder::new(compressed.as_slice())
+        .map_err(|error| unpack_error(error.to_string()))?;
+    let mut json = Vec::new();
+    decoder
+        .take(MAX_UNPACKED_BYTES + 1)
+        .read_to_end(&mut json)
+        .map_err(|error| unpack_error(error.to_string()))?;
+    if json.len() as u64 > MAX_UNPACKED_BYTES {
+        return Err(unpack_error(
+            "it unpacks to more than a scene can hold".to_string(),
+        ));
+    }
     serde_json::from_slice(&json).map_err(|error| unpack_error(error.to_string()))
 }
 

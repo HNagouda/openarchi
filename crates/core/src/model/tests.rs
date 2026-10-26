@@ -362,3 +362,18 @@ fn a_tree_moved_under_the_model_is_in_its_way() {
 
     assert_eq!(picked(&model, &scene, &edits), vec![id]);
 }
+
+#[test]
+fn a_gltf_buffer_outside_the_model_folder_is_refused() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("model");
+    std::fs::create_dir(&folder).unwrap();
+    std::fs::write(root.path().join("secret.bin"), [0u8; 4]).unwrap();
+    let gltf = r#"{"asset":{"version":"2.0"},"buffers":[{"uri":"../secret.bin","byteLength":4}],"scenes":[{"nodes":[]}]}"#;
+    let path = folder.join("house.gltf");
+    std::fs::write(&path, gltf).unwrap();
+
+    let error = read(&path, None, None).unwrap_err().to_string();
+
+    assert!(error.contains("model's folder"), "{error}");
+}

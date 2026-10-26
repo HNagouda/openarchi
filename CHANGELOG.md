@@ -2,7 +2,11 @@
 
 What changed in each version of openarchi, newest first.
 
-## 0.2.0 (unreleased)
+## 1.0.0-beta.1
+
+The first public release, a beta to try. Draw a site anywhere in the Netherlands and openarchi fetches open data for it and turns it into a series of styled site analysis sheets: 30 diagrams in plan, axonometric, exploded and section views, ratios, a climate and comfort analysis, an A4 site report, laser cutting files, and a live 3D view where you can place your own Archicad, SketchUp or Rhino model on the site and edit the trees and buildings around it.
+
+Known limits in this beta: there is no traffic congestion diagram, because no open data covers city streets; line dashes can be set in a palette file but not yet per layer in the app; and the installers are not signed, so macOS and Windows ask you to confirm the first time you open the app (see the README).
 
 ### 3D
 
@@ -45,6 +49,12 @@ What changed in each version of openarchi, newest first.
 - Switch a drawn site between circle, rectangle and polygon. It keeps its centre and its size across.
 - A fit button and ⌘0 bring the map back to the drawn site.
 - The place search and the Circle, Rectangle and Polygon tools sit at the top of the side panel instead of floating over the map, so they never cover the site you are drawing. The tools are named, and C, R and P still pick them.
+- Fetching a site again after moving, resizing or reshaping it only downloads what is new. A 300 m site nudged by 50 m comes back in under half a second.
+- Downloaded map data is kept for 30 days and shared between projects, so a site next to one you already fetched is quick too. The cache stays under 1 GB.
+- A large site downloads faster: a 1 km radius site takes about 12 s instead of about 26 s.
+- Search an address and draw a circle, rectangle or polygon of up to 4 km². The radius is a value you can type.
+- openarchi fetches buildings with year built, use and height, road surfaces at their true width, water, green, trees, parcels and terrain contours from PDOK, with a progress bar.
+- If one data service fails, the site still opens without that layer and says what is missing.
 
 ### Looks
 
@@ -180,15 +190,12 @@ What changed in each version of openarchi, newest first.
 - Export the ratios as a CSV table or as an SVG page of charts in the sheet's theme.
 - Assistants can read the same numbers with the `get_ratios` tool.
 
-### Sites
-
-- Fetching a site again after moving, resizing or reshaping it only downloads what is new. A 300 m site nudged by 50 m comes back in under half a second.
-- Downloaded map data is kept for 30 days and shared between projects, so a site next to one you already fetched is quick too. The cache stays under 1 GB.
-- A large site downloads faster: a 1 km radius site takes about 12 s instead of about 26 s.
-
 ### Your work
 
 - Project files are about six times smaller, and large sites open in a fraction of the time and memory. Projects from 0.1.0 still open and are stored the new way on their next save.
+- Projects save as you go, and every save keeps a backup of the version before it.
+- ⌘Z and ⇧⌘Z undo and redo every change to a sheet.
+- Deleted projects wait in Recently Deleted until you restore them.
 
 ### Text on the sheet
 
@@ -206,9 +213,6 @@ What changed in each version of openarchi, newest first.
 ### Under the hood
 
 - The neighbourhood only writes what the paper can show: features beyond the drawing zone, and standing neighbours too far away for their walls to rise into it, are left out instead of clipped. On a large city-centre site a plan sheet drops from about 3 MB to 0.6 MB and an axonometric one from 9.7 MB to 7.4 MB, and thumbnails draw up to five times faster.
-- Project files move to format 2. Files from 0.1.0 open as before, with their title in the automatic layout.
-
-Sheets can now show the site in three dimensions and the sun over it.
 
 ### Views
 
@@ -225,6 +229,7 @@ Sheets can now show the site in three dimensions and the sun over it.
 ### Assistants
 
 - `set_look` takes `view` and `sun`, so an assistant can switch views, pick the plates and set the moment for the sun diagrams.
+- `openarchi-mcp` lets an AI assistant create sites, switch diagrams and themes, design new themes, see a preview and export. Changes it makes show up live in the open app.
 
 ### Your own palettes
 
@@ -392,16 +397,6 @@ Sheets can now show the site in three dimensions and the sun over it.
 - The Shortcuts tab lists the highlight, viewpoint and pin-size keys, Esc, and T in a report.
 - Nudging a report block wider than its page keeps it at the page's edge instead of pushing it off.
 
-## 0.1.0 (unreleased)
-
-The first version: draw a site anywhere in the Netherlands and turn it into a series of styled site analysis diagrams.
-
-### Sites
-
-- Search an address and draw a circle, rectangle or polygon of up to 4 km². The radius is a value you can type.
-- openarchi fetches buildings with year built, use and height, road surfaces at their true width, water, green, trees, parcels and terrain contours from PDOK, with a progress bar.
-- If one data service fails, the site still opens without that layer and says what is missing.
-
 ### Diagrams and themes
 
 - Nine diagrams: context, figure-ground, open space, building use, building age, building height, landscape, movement and parcels. Keys 1 to 9 switch between them.
@@ -414,13 +409,3 @@ The first version: draw a site anywhere in the Netherlands and turn it into a se
 - A4 to A0 or square, portrait or landscape, at a scale from 1:500 to 1:10000, framed as a circle, a square or the drawn shape.
 - The legend, north arrow, scale bar and data credits are laid out automatically and never overlap the drawing.
 - ⌘E exports this diagram or the whole series as SVG, PDF, PNG or DXF. SVG and PDF keep named layers, and DXF uses real RD New coordinates.
-
-### Your work
-
-- Projects save as you go, and every save keeps a backup of the version before it.
-- ⌘Z and ⇧⌘Z undo and redo every change to a sheet.
-- Deleted projects wait in Recently Deleted until you restore them.
-
-### Assistants
-
-- `openarchi-mcp` lets an AI assistant create sites, switch diagrams and themes, design new themes, see a preview and export. Changes it makes show up live in the open app.

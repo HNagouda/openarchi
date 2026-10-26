@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use super::compose::pages_svg;
 use super::data::ReportData;
 use super::Report;
-use crate::export::{svg_pages_to_pdf, svg_to_png};
+use crate::export::{check_extension, svg_pages_to_pdf, svg_to_png};
 use crate::{Error, Result};
 
 const MM_PER_INCH: f64 = 25.4;
@@ -41,6 +41,7 @@ pub fn export(
     path: &Path,
 ) -> Result<Vec<PathBuf>> {
     report.check()?;
+    check_extension(path, format.extension())?;
     let pages = pages_svg(report, data)?;
     if format == ReportFormat::Pdf {
         write(path, &svg_pages_to_pdf(&pages, &report.name)?)?;

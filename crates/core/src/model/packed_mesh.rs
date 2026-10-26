@@ -5,6 +5,7 @@
 //! metres, then every triangle as three u32. f32 keeps a 100 m building to a
 //! hundredth of a millimetre, at half the size of f64.
 
+use std::io::Read;
 use std::sync::Arc;
 
 use base64::engine::general_purpose::STANDARD as BASE64;
@@ -19,6 +20,9 @@ use crate::{Error, Result};
 /// Corners and indices compress well; level 6 matches the packed scene.
 const COMPRESSION_LEVEL: i32 = 6;
 const NUMBER_BYTES: usize = 4;
+/// A mesh never unpacks to more than this: 500,000 triangles are about 12 MB,
+/// and a hostile file that would inflate to tens of GB stops here as damaged.
+const MAX_UNPACKED_BYTES: u64 = 256 << 20;
 
 pub fn pack(mesh: &Mesh) -> Result<String> {
     let mut bytes = Vec::with_capacity(
@@ -47,8 +51,18 @@ pub fn unpack(text: &str) -> Result<Mesh> {
     let compressed = BASE64
         .decode(text)
         .map_err(|error| damaged(error.to_string()))?;
-    let bytes =
-        zstd::decode_all(compressed.as_slice()).map_err(|error| damaged(error.to_string()))?;
+    let decoder =
+        zstd::Decoder::new(compressed.as_slice()).map_err(|error| damaged(error.to_string()))?;
+    let mut bytes = Vec::new();
+    decoder
+        .take(MAX_UNPACKED_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| damaged(error.to_string()))?;
+    if bytes.len() as u64 > MAX_UNPACKED_BYTES {
+        return Err(damaged(
+            "it unpacks to more than a model can hold".to_string(),
+        ));
+    }
     let (numbers, left_over) = bytes.as_chunks::<NUMBER_BYTES>();
     let Some((count, rest)) = numbers.split_first() else {
         return Err(damaged("it is empty".to_string()));

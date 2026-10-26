@@ -69,6 +69,7 @@ pub fn export_with_dxf_layers(
     dxf_layers: DxfLayers,
     path: &Path,
 ) -> Result<()> {
+    check_extension(path, format.extension())?;
     let bytes = match format {
         ExportFormat::Svg => render_svg(input)?.into_bytes(),
         ExportFormat::Pdf => convert::pdf(&render_svg(input)?)?,
@@ -77,6 +78,22 @@ pub fn export_with_dxf_layers(
     };
 
     std::fs::write(path, bytes).map_err(|source| Error::io(path, source))
+}
+
+/// Refuses a path that does not end in `extension`, so a call from the web
+/// view can only write the kind of file it asked for, never ".zshrc".
+pub fn check_extension(path: &Path, extension: &str) -> Result<()> {
+    let is_match = path
+        .extension()
+        .is_some_and(|found| found.eq_ignore_ascii_case(extension));
+    if is_match {
+        Ok(())
+    } else {
+        Err(Error::Invalid(format!(
+            "a .{extension} file can only be written to a path ending in .{extension}, got {}",
+            path.display()
+        )))
+    }
 }
 
 /// The DXF of what the sheet shows, cut to its area like the SVG: a section

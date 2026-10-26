@@ -174,3 +174,23 @@ fn dxf_polygon_holes_are_their_own_closed_polylines() {
 
     assert_eq!(water_polylines, 2, "canal and island");
 }
+
+#[test]
+fn an_export_refuses_a_path_that_does_not_end_in_its_format() {
+    let scene = scene();
+    let (diagram, theme, look) = (diagram("context"), theme("paper"), look());
+    let input = RenderInput {
+        scene: &scene,
+        diagram: &diagram,
+        theme: &theme,
+        look: &look,
+        pins: &[],
+        highlights: &[],
+        model: None,
+    };
+    let folder = tempfile::tempdir().expect("temp folder");
+    let path = folder.path().join(".zshrc");
+
+    assert!(export(&input, ExportFormat::Pdf, 150, &path).is_err());
+    assert!(!path.exists());
+}

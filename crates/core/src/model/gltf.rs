@@ -2,7 +2,7 @@
 //! .gltf with its buffers embedded or in files beside it. Every node's
 //! transform is applied; materials and textures are not read.
 
-use std::path::Path;
+use std::path::{Component, Path};
 
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
@@ -22,6 +22,9 @@ const IDENTITY: Matrix = [
     [0.0, 0.0, 1.0, 0.0],
     [0.0, 0.0, 0.0, 1.0],
 ];
+/// Nodes nested deeper than this are refused. Exported buildings go a few
+/// levels deep; a hostile file nested thousands deep would overflow the stack.
+const MAX_NODE_DEPTH: usize = 64;
 
 pub fn read(bytes: &[u8], path: &Path) -> Result<RawMesh> {
     let format_error = |detail: String| Error::Format {
@@ -49,7 +52,7 @@ pub fn read(bytes: &[u8], path: &Path) -> Result<RawMesh> {
         .ok_or_else(|| format_error("the file holds no scene".to_string()))?;
     let mut raw = RawMesh::default();
     for node in scene.nodes() {
-        add_node(&mut raw, &node, IDENTITY, &buffers);
+        add_node(&mut raw, &node, IDENTITY, &buffers, 0).map_err(format_error)?;
     }
 
     Ok(raw)
@@ -64,13 +67,34 @@ fn uri_bytes(uri: &str, path: &Path) -> std::result::Result<Vec<u8>, String> {
         return BASE64.decode(encoded).map_err(|error| error.to_string());
     }
 
+    // Only files in the model's folder or below it: an absolute path or ".."
+    // would let a downloaded model pull any file the user can read into the project.
+    let is_beside = Path::new(uri)
+        .components()
+        .all(|component| matches!(component, Component::Normal(_)));
+    if !is_beside {
+        return Err(format!(
+            "a buffer must sit in the model's folder, not at {uri:?}"
+        ));
+    }
     let folder = path.parent().unwrap_or(Path::new("."));
     let beside = folder.join(uri);
     std::fs::read(&beside).map_err(|error| format!("{}: {error}", beside.display()))
 }
 
 /// The triangles of `node` and its children, moved by their transforms.
-fn add_node(raw: &mut RawMesh, node: &Node, parent: Matrix, buffers: &[Vec<u8>]) {
+fn add_node(
+    raw: &mut RawMesh,
+    node: &Node,
+    parent: Matrix,
+    buffers: &[Vec<u8>],
+    depth: usize,
+) -> std::result::Result<(), String> {
+    if depth > MAX_NODE_DEPTH {
+        return Err(format!(
+            "nodes are nested more than {MAX_NODE_DEPTH} levels deep"
+        ));
+    }
     let matrix = multiply(&parent, &node.transform().matrix());
     if let Some(mesh) = node.mesh() {
         for primitive in mesh.primitives() {
@@ -98,8 +122,10 @@ fn add_node(raw: &mut RawMesh, node: &Node, parent: Matrix, buffers: &[Vec<u8>])
         }
     }
     for child in node.children() {
-        add_node(raw, &child, matrix, buffers);
+        add_node(raw, &child, matrix, buffers, depth + 1)?;
     }
+
+    Ok(())
 }
 
 fn multiply(a: &Matrix, b: &Matrix) -> Matrix {
