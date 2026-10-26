@@ -128,7 +128,7 @@ export const setModel = (choice: ModelChoice | null) => invoke<void>("set_model"
 export const coveredBuildings = (choice: ModelChoice) => invoke<CoveredBuilding[]>("covered_buildings", { choice });
 
 /** The open site, its neighbours and the model as triangles, in a palette's ground colours. */
-export const view3d = (themeId: string) => invoke<View3d>("view_3d", { themeId });
+export const view3d = (look: Look) => invoke<View3d>("view_3d", { look });
 export const sunDay = (month: number, day: number) => invoke<SunDay>("sun_day", { month, day });
 /** Writes a base64 PNG the 3D view took to `path`; returns the path. */
 export const saveViewPng = (path: string, png: string) => invoke<string>("save_view_png", { path, png });

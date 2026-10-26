@@ -314,15 +314,26 @@ export type ModelView = {
 };
 
 /** Triangles in one colour; `corners` is every corner as three little-endian f32 (x east, y north, z up), in base64. */
-export type Surface = { colour: string; corners: string; triangle_count: number };
+export type Surface = {
+  colour: string;
+  layer: Layer | null;
+  /** For buildings, each building's triangle count, in order. */
+  pieces?: number[];
+  corners: string;
+  triangle_count: number;
+};
 
 /** The open site as the 3D view draws it, in metres around the site centre. */
 export type View3d = {
   radius_m: number;
   eye_height_m: number;
-  sky: string;
+  storey_height_m: number;
+  sky: { horizon: string; zenith: string };
+  /** The site's open ground first (no layer), then each ground layer. */
   ground: Surface[];
-  buildings: Surface;
+  surroundings: Surface[];
+  /** One surface per colour the sheet's diagram gives the buildings. */
+  buildings: Surface[];
   neighbours: Surface;
   model: Surface | null;
   trees: { colour: string; at: [number, number][]; height_m: number; crown_m: number };

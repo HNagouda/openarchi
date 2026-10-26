@@ -5,7 +5,7 @@
 // without the model, so a replaced building still shows; the real drawing
 // comes from crates/core/src/render/proposal.rs.
 
-import type { CoveredBuilding, ModelChoice, ModelView } from "../lib/types";
+import type { CoveredBuilding, Look, ModelChoice, ModelView } from "../lib/types";
 import { rdToPaper } from "./mockPins";
 
 const ACCENT = "#c4502a";
@@ -39,11 +39,19 @@ export function answerModel(command: string, args: Record<string, unknown>): unk
     return null;
   }
   if (command === "covered_buildings") return fixture.covered;
-  // The 3D view: one site, one palette and one day, whatever is asked; saved pictures go nowhere.
-  if (command === "view_3d") return fetch("/dev-fixtures/view3d.json").then((response) => response.json());
+  // The 3D view: the sheet's palette, its diagram where the fixtures have it, one day; saved pictures go nowhere.
+  if (command === "view_3d") return mockView3d(args.look as Look);
   if (command === "sun_day") return fetch("/dev-fixtures/sun-day.json").then((response) => response.json());
   if (command === "save_view_png") return args.path;
   return undefined;
+}
+
+// Every diagram the fixtures write a 3D view for (crates/core/examples/app_fixtures/view3d.rs).
+const VIEW3D_DIAGRAMS = ["context", "building-age", "building-use"];
+
+function mockView3d(look: Look): Promise<unknown> {
+  const diagram = VIEW3D_DIAGRAMS.includes(look.diagram_id) ? look.diagram_id : "context";
+  return fetch(`/dev-fixtures/view3d/${diagram}-${look.theme_id}.json`).then((response) => response.json());
 }
 
 /** The model's footprint drawn into a fixture preview where the mock's choice stands it. */

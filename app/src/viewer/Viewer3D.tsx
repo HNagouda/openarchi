@@ -4,10 +4,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { errorText, sunDay as fetchSunDay, view3d } from "../lib/ipc";
-import type { SunDay, SunMoment, View } from "../lib/types";
+import { readPreference, writePreference } from "../lib/storage";
+import type { Look, SunDay } from "../lib/types";
 import { Button } from "../ui/Button";
+import { Segmented } from "../ui/Segmented";
 import { useToast } from "../ui/Toasts";
 import { fileStem, saveDay, saveOrbit, savePicture } from "./frames";
+import type { Finish } from "./materials";
 import type { Mode } from "./navigation";
 import { createStage, type Stage } from "./stage";
 import { clockLabel, daylight, MINUTES_PER_DAY, sunAt } from "./sunDay";
@@ -22,18 +25,23 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 // Days in each month of the core's reference year, 2026, which is no leap year.
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
+// The finish is a way of looking, kept per machine like other view settings rather than in the project.
+const FINISH_PREFERENCE = "viewer.finish";
+const FINISHES: { value: Finish; label: string; tip: string }[] = [
+  { value: "palette", label: "Palette", tip: "The sheet's palette and diagram colours" },
+  { value: "realistic", label: "Realistic", tip: "Real colours, facades with windows, and the aerial photo where there is one" },
+];
+
 type Props = {
-  themeId: string;
-  /** The sheet's date and time, where the view starts. */
-  moment: SunMoment;
-  /** The sheet's turn and tilt, for the view that matches it. */
-  sheetView: View;
+  /** The sheet the view opens from: its diagram and palette colour the site, its date and time set the sun, its turn and tilt make the sheet angle. */
+  look: Look;
   /** The project's name, for the names of saved pictures. */
   projectName: string;
   onClose: () => void;
 };
 
-export default function Viewer3D({ themeId, moment, sheetView, projectName, onClose }: Props) {
+export default function Viewer3D({ look, projectName, onClose }: Props) {
+  const moment = look.sun;
   const stem = fileStem(projectName);
   const host = useRef<HTMLDivElement>(null);
   const stage = useRef<Stage | null>(null);
@@ -47,16 +55,21 @@ export default function Viewer3D({ themeId, moment, sheetView, projectName, onCl
   const [isOrbiting, setOrbiting] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("orbit");
-  const angle = useRef({ rotationDeg: sheetView.rotation_deg, tiltDeg: sheetView.tilt_deg });
+  const [finish, setFinish] = useState<Finish>(() => readPreference<Finish>(FINISH_PREFERENCE, "palette"));
+  // What the view opens with; later changes go through the effects below.
+  const opening = useRef({ look, finish });
+  const credit: string | null = null;
   const latest = useRef({ minute, day });
   latest.current = { minute, day };
 
   useEffect(() => {
     let isCurrent = true;
-    view3d(themeId)
+    const { look: shown, finish: first } = opening.current;
+    view3d(shown)
       .then((view) => {
         if (!isCurrent || !host.current) return;
-        stage.current = createStage(host.current, view, angle.current, setMode);
+        const angle = { rotationDeg: shown.view.rotation_deg, tiltDeg: shown.view.tilt_deg };
+        stage.current = createStage(host.current, { view, finish: first, angle, onMode: setMode });
         setReady(true);
       })
       .catch((reason) => {
@@ -67,7 +80,12 @@ export default function Viewer3D({ themeId, moment, sheetView, projectName, onCl
       stage.current?.dispose();
       stage.current = null;
     };
-  }, [themeId]);
+  }, []);
+
+  useEffect(() => {
+    writePreference(FINISH_PREFERENCE, finish);
+    if (isReady) stage.current?.setFinish(finish);
+  }, [finish, isReady]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -147,13 +165,13 @@ export default function Viewer3D({ themeId, moment, sheetView, projectName, onCl
           <span className="project-name">3D view</span>
         </div>
         <div className="topbar-spacer" data-tauri-drag-region />
-        <Button icon="camera" tip="Save this picture as PNG" disabled={!isReady} onClick={() => run((shown) => savePicture(shown, stem), (path) => `Saved ${path}`)}>
+        <Button icon="camera" tip="Save this picture as PNG" disabled={!isReady} onClick={() => run((shown) => savePicture(shown, stem, credit), (path) => `Saved ${path}`)}>
           Save picture
         </Button>
-        <Button tip="Save a picture every quarter hour from sunrise to sunset" disabled={!isReady || !day} onClick={() => day && run((shown) => saveDay(shown, day, stem, setProgress), (count) => `Saved ${count} pictures of the day`)}>
+        <Button tip="Save a picture every quarter hour from sunrise to sunset" disabled={!isReady || !day} onClick={() => day && run((shown) => saveDay(shown, day, stem, credit, setProgress), (count) => `Saved ${count} pictures of the day`)}>
           Save day…
         </Button>
-        <Button tip="Save 72 pictures turning once round the site" disabled={!isReady} onClick={() => run((shown) => saveOrbit(shown, stem, setProgress), (count) => `Saved ${count} pictures round the site`)}>
+        <Button tip="Save 72 pictures turning once round the site" disabled={!isReady} onClick={() => run((shown) => saveOrbit(shown, stem, credit, setProgress), (count) => `Saved ${count} pictures round the site`)}>
           Save orbit…
         </Button>
       </header>
@@ -189,6 +207,8 @@ export default function Viewer3D({ themeId, moment, sheetView, projectName, onCl
           ))}
         </select>
         <input className="text-input viewer-day tabular" aria-label="Day" type="number" min={1} max={MONTH_DAYS[date.month - 1]} value={date.day} onChange={(event) => changeDay(Number(event.target.value))} />
+        <span className="viewer-divider" />
+        <Segmented label="Finish" value={finish} options={FINISHES} onChange={setFinish} />
         <span className="viewer-divider" />
         <Button icon="orbit" tip="Turn round the site; drag to turn, right-drag to slide, scroll to come closer" isActive={isOrbiting} disabled={!isReady} onClick={() => setOrbiting(!isOrbiting)}>
           Orbit

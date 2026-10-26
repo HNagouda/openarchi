@@ -1,33 +1,29 @@
-// The 3D view's renderer, camera and light. It draws only when something
-// changed (the camera, the sun, the size) or while the sun or the orbit is
-// playing, so an open view that nobody touches costs no processor time.
+// The 3D view's renderer, its site and its loop. It draws only when something
+// changed (the camera, the sun, the size, the finish) or while the sun, the
+// orbit or a move is playing, so an open view that nobody touches costs no
+// processor time. atmosphere.ts lights it, navigation.ts moves the camera,
+// scene.ts builds what it shows.
 //
-// One directional light is the sun, with a shadow map over the site; a soft
-// sky light keeps the shaded sides readable. The camera has z up, as the
-// core's frame has it; navigation.ts moves it.
+// Colours go through a neutral tone map, which leaves a palette colour as it
+// is up to bright highlights and only rolls those off, rather than the film
+// curves that would shift every hue of a palette.
 
 import * as THREE from "three";
 import type { SunStep, View3d } from "../lib/types";
+import { createAtmosphere, type Atmosphere } from "./atmosphere";
+import type { Finish } from "./materials";
 import { createNavigation, type Mode, type Navigation, type SheetAngle } from "./navigation";
 import { disposeGroup, siteGroup } from "./scene";
-import { isUp, towardSun } from "./sunDay";
 
 const FIELD_OF_VIEW_DEG = 35;
-// Near enough for an eye at 1.7 m to see the pavement at its feet.
-const NEAR_M = 0.2;
+// The near plane follows the camera's height: close enough at eye level to see the
+// pavement at one's feet, further from the air, so the depth buffer keeps ground
+// layers a few centimetres apart from each other at any distance.
+const NEAR_SHARE_OF_HEIGHT = 0.05;
+const MIN_NEAR_M = 0.2;
+const MAX_NEAR_M = 20;
 const FAR_RADII = 40;
 const MIN_RADIUS_M = 10;
-// The shadow map covers the site and the long shadows a low sun casts past it.
-const SHADOW_REACH_RADII = 1.6;
-const SHADOW_MAP_PX = 4096;
-const SHADOW_BIAS = -0.0004;
-const SHADOW_NORMAL_BIAS = 0.4;
-// Day: a strong sun and a soft sky. Night: the sky alone, dimmer.
-const SUN_INTENSITY = 2.6;
-const SKY_DAY = 1.1;
-const SKY_NIGHT = 0.35;
-const SKY_COLOUR = "#FFFFFF";
-const GROUND_BOUNCE_COLOUR = "#B8B0A0";
 // One turn of the orbit takes this long.
 const ORBIT_SECONDS = 30;
 // Never more pixels than this per CSS pixel, so a large display does not drown a small GPU.
@@ -35,21 +31,31 @@ const MAX_PIXEL_RATIO = 2;
 
 export type Stage = {
   setSun: (sun: SunStep) => void;
+  /** Paints the site in the sheet's palette or in real colours. */
+  setFinish: (finish: Finish) => void;
   /** Turns the camera round the site until called with false. */
   setOrbiting: (isOrbiting: boolean) => void;
   /** Calls `tick` with the seconds since the last frame on every frame until it returns false. */
   animate: (tick: (seconds: number) => boolean) => void;
-  /** The current picture as base64 PNG, without the data URL prefix. */
-  capture: () => string;
+  /** The current picture as a canvas, drawn just now. */
+  picture: () => HTMLCanvasElement;
   /** The camera turned round the site centre by `degrees`, for frames of an orbit. */
   turnCamera: (degrees: number) => void;
   navigation: Navigation;
   dispose: () => void;
 };
 
-export function createStage(host: HTMLElement, view: View3d, angle: SheetAngle, onMode: (mode: Mode) => void): Stage {
+type Options = {
+  view: View3d;
+  finish: Finish;
+  angle: SheetAngle;
+  onMode: (mode: Mode) => void;
+};
+
+export function createStage(host: HTMLElement, { view, finish, angle, onMode }: Options): Stage {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
+  renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   // Shadows follow the sun, not the camera, so turning the view reuses them.
@@ -59,32 +65,34 @@ export function createStage(host: HTMLElement, view: View3d, angle: SheetAngle, 
   host.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(view.sky);
-  const site = siteGroup(view);
-  scene.add(site);
-
   const radius = Math.max(view.radius_m, MIN_RADIUS_M);
-  const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEG, 1, NEAR_M, radius * FAR_RADII);
-  camera.up.set(0, 0, 1);
+  // The site sits in a holder of its own, so changing the finish swaps what is inside.
+  const world = new THREE.Group();
+  scene.add(world);
+  let shownFinish = finish;
+  let site = siteGroup(view, finish);
+  world.add(site);
+  const maxTexturePx = renderer.capabilities.maxTextureSize;
+  let atmosphere: Atmosphere = createAtmosphere(scene, view, radius, finish, maxTexturePx);
+  let lastSun: SunStep | null = null;
 
-  const sky = new THREE.HemisphereLight(SKY_COLOUR, GROUND_BOUNCE_COLOUR, SKY_DAY);
-  scene.add(sky);
-  const sun = new THREE.DirectionalLight(SKY_COLOUR, SUN_INTENSITY);
-  sun.castShadow = true;
-  const reach = radius * SHADOW_REACH_RADII;
-  Object.assign(sun.shadow.camera, { left: -reach, right: reach, top: reach, bottom: -reach, near: 1, far: reach * 4 });
-  const mapSize = Math.min(SHADOW_MAP_PX, renderer.capabilities.maxTextureSize);
-  sun.shadow.mapSize.set(mapSize, mapSize);
-  sun.shadow.bias = SHADOW_BIAS;
-  sun.shadow.normalBias = SHADOW_NORMAL_BIAS;
-  scene.add(sun, sun.target);
+  const camera = new THREE.PerspectiveCamera(FIELD_OF_VIEW_DEG, 1, MIN_NEAR_M, radius * FAR_RADII);
+  camera.up.set(0, 0, 1);
 
   // The animation frame that is running, 0 when none is.
   let loop = 0;
   let isFramePending = false;
+  const render = () => {
+    const near = THREE.MathUtils.clamp(camera.position.z * NEAR_SHARE_OF_HEIGHT, MIN_NEAR_M, MAX_NEAR_M);
+    if (near !== camera.near) {
+      camera.near = near;
+      camera.updateProjectionMatrix();
+    }
+    renderer.render(scene, camera);
+  };
   const draw = () => {
     isFramePending = false;
-    renderer.render(scene, camera);
+    render();
   };
   const requestDraw = () => {
     // A running animation draws every frame anyway.
@@ -112,7 +120,7 @@ export function createStage(host: HTMLElement, view: View3d, angle: SheetAngle, 
     const seconds = lastTime === null ? 0 : (time - lastTime) / 1000;
     lastTime = time;
     ticks = ticks.filter((tick) => tick(seconds));
-    renderer.render(scene, camera);
+    render();
     loop = ticks.length > 0 ? requestAnimationFrame(frame) : 0;
     if (loop === 0) lastTime = null;
   };
@@ -124,7 +132,7 @@ export function createStage(host: HTMLElement, view: View3d, angle: SheetAngle, 
   const navigation = createNavigation({
     camera,
     canvas: renderer.domElement,
-    site,
+    site: world,
     radius,
     eyeHeightM: view.eye_height_m,
     angle,
@@ -147,19 +155,30 @@ export function createStage(host: HTMLElement, view: View3d, angle: SheetAngle, 
   };
 
   const setSun = (step: SunStep) => {
-    const [east, north, up] = towardSun(step);
-    const isDay = isUp(step);
-    sun.visible = isDay;
-    sky.intensity = isDay ? SKY_DAY : SKY_NIGHT;
-    sun.position.set(east * reach * 2, north * reach * 2, up * reach * 2);
+    lastSun = step;
+    atmosphere.setSun(step);
     renderer.shadowMap.needsUpdate = true;
     requestDraw();
   };
 
-  const capture = () => {
-    // Drawn and read in one go, so the buffer still holds the picture.
-    renderer.render(scene, camera);
-    return renderer.domElement.toDataURL("image/png").split(",")[1];
+  const setFinish = (next: Finish) => {
+    if (next === shownFinish) return;
+    shownFinish = next;
+    world.remove(site);
+    disposeGroup(site);
+    site = siteGroup(view, next);
+    world.add(site);
+    atmosphere.dispose();
+    atmosphere = createAtmosphere(scene, view, radius, next, maxTexturePx);
+    if (lastSun) atmosphere.setSun(lastSun);
+    renderer.shadowMap.needsUpdate = true;
+    requestDraw();
+  };
+
+  // Drawn and returned in one go, so the canvas still holds the picture when it is read.
+  const picture = () => {
+    render();
+    return renderer.domElement;
   };
 
   // A hidden window stops turning; the next change draws it again.
@@ -175,10 +194,11 @@ export function createStage(host: HTMLElement, view: View3d, angle: SheetAngle, 
     document.removeEventListener("visibilitychange", onVisibility);
     watcher.disconnect();
     navigation.dispose();
+    atmosphere.dispose();
     disposeGroup(site);
     renderer.dispose();
     renderer.domElement.remove();
   };
 
-  return { setSun, setOrbiting, animate, capture, turnCamera, navigation, dispose };
+  return { setSun, setFinish, setOrbiting, animate, picture, turnCamera, navigation, dispose };
 }

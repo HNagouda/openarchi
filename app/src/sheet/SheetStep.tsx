@@ -244,7 +244,7 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
 
       {isViewerOpen && (
         <Suspense fallback={null}>
-          <Viewer3D themeId={look.theme_id} moment={look.sun} sheetView={look.view} projectName={project.name} onClose={() => setViewerOpen(false)} />
+          <Viewer3D look={look} projectName={project.name} onClose={() => setViewerOpen(false)} />
         </Suspense>
       )}
 
