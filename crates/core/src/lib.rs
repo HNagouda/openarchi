@@ -10,6 +10,7 @@ pub mod blocks;
 pub mod catalog;
 pub mod crs;
 pub mod diagram;
+pub mod edits;
 pub mod environment;
 pub mod error;
 pub mod export;

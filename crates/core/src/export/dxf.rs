@@ -87,9 +87,6 @@ pub fn write(input: &RenderInput, dxf_layers: DxfLayers) -> Result<String> {
         if !written.contains(&feature.layer) {
             continue;
         }
-        if input.model.is_some_and(|model| model.replaces(feature)) {
-            continue;
-        }
         let layer = match &classified {
             Some(classified) if classified.classify.layer == feature.layer => {
                 class_layer(&mut drawing, feature, classified)

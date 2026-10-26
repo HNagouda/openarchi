@@ -11,6 +11,7 @@ use std::fs;
 use std::path::Path;
 
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
+use openarchi_core::edits::SiteEdits;
 use openarchi_core::project::Look;
 use openarchi_core::report::{
     export, Block, Content, Page, RatiosStyle, Report, ReportData, ReportFormat, DEFAULT_BACKGROUND,
@@ -62,6 +63,7 @@ fn main() {
             &[],
             &[],
             None,
+            &SiteEdits::default(),
             &diagrams,
             &theme,
             &cache,

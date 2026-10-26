@@ -4,6 +4,7 @@ mod render_support;
 use std::path::Path;
 
 use dxf_support::{dxf_with_model, Sheet};
+use openarchi_core::edits::{edited, SiteEdits};
 use openarchi_core::export::DxfLayers;
 use openarchi_core::model::{self, Model, Placement};
 use openarchi_core::project::Look;
@@ -62,6 +63,12 @@ fn svg(scene: &Scene, diagram_id: &str, look: &Look, model: Option<&Model>) -> S
         model,
     })
     .expect("render")
+}
+
+/// `scene` with the office replaced by the model, as placing the model over it leaves the site.
+fn without_office(scene: &Scene) -> Scene {
+    let edits = SiteEdits::default().with_model_picks(&[OFFICE_ID.to_string()]);
+    edited(scene, &edits).into_owned()
 }
 
 /// The `d` of the path inside the group with `id`.
@@ -129,12 +136,11 @@ fn the_model_stands_among_the_buildings_in_a_tilted_view() {
 #[test]
 fn a_replaced_building_is_left_out_of_every_view() {
     let scene = site();
-    let mut model = house(&scene);
+    let model = house(&scene);
     let look = look_in(ViewMode::Axonometric, 13);
     let kept = svg(&scene, "context", &look, Some(&model));
 
-    model.replaced = vec![OFFICE_ID.to_string()];
-    let replaced = svg(&scene, "context", &look, Some(&model));
+    let replaced = svg(&without_office(&scene), "context", &look, Some(&model));
 
     assert!(paths_in_solids(&replaced) < paths_in_solids(&kept));
 }
@@ -154,7 +160,7 @@ fn the_model_casts_a_shadow_in_the_shadow_diagram() {
 #[test]
 fn the_dxf_puts_the_model_on_its_own_layer_in_place_of_what_it_replaces() {
     let scene = site();
-    let mut model = house(&scene);
+    let model = house(&scene);
     let look = look_in(ViewMode::Plan, 13);
     let sheet = Sheet {
         diagram_id: "context",
@@ -168,8 +174,7 @@ fn the_dxf_puts_the_model_on_its_own_layer_in_place_of_what_it_replaces() {
     };
     let kept = dxf_with_model(&scene, &sheet, &model);
 
-    model.replaced = vec![OFFICE_ID.to_string()];
-    let replaced = dxf_with_model(&scene, &sheet, &model);
+    let replaced = dxf_with_model(&without_office(&scene), &sheet, &model);
 
     assert!(replaced.layer("OA-PROPOSAL").is_some());
     assert_eq!(replaced.on("OA-PROPOSAL").len(), 1);

@@ -14,7 +14,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::json;
 
-use crate::server::{existing_folder, fetched_scene, reply, text, OpenArchi};
+use crate::server::{edited_scene, existing_folder, reply, text, OpenArchi};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExportLaser {
@@ -62,7 +62,8 @@ impl OpenArchi {
         let result = self
             .with_library(move |library| {
                 let project = library.load(&input.id).map_err(text)?;
-                let scene = fetched_scene(&project)?;
+                let scene = edited_scene(&project)?;
+                let scene = scene.as_ref();
                 let look = project.sheet(input.tab.unwrap_or(1)).map_err(text)?;
                 let settings = settings(&input, look.sheet.scale);
 

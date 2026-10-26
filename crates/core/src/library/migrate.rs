@@ -33,6 +33,7 @@ pub fn migrate(mut value: Value) -> Result<Project> {
         version = 3;
     }
     debug_assert_eq!(version, u64::from(PROJECT_FORMAT_VERSION));
+    let value = replaced_into_edits(value);
 
     let project: Project = serde_json::from_value(value)
         .map_err(|e| Error::Invalid(format!("not a valid openarchi project: {e}")))?;
@@ -47,6 +48,34 @@ pub fn migrate(mut value: Value) -> Result<Project> {
             .collect(),
         ..project
     })
+}
+
+/// Not a format change: a model saved before site edits kept the buildings
+/// it replaced on itself. They become edits under the model, so they stay
+/// replaced and come back when the model goes, as they did.
+fn replaced_into_edits(mut value: Value) -> Value {
+    let replaced = value
+        .get_mut("model")
+        .and_then(Value::as_object_mut)
+        .and_then(|model| model.remove("replaced"));
+    let Some(Value::Array(ids)) = replaced else {
+        return value;
+    };
+    let removed = ids
+        .into_iter()
+        .map(|id| json!({ "id": id, "is_under_model": true }));
+    if !value.get("edits").is_some_and(Value::is_object) {
+        value["edits"] = json!({});
+    }
+    let edits = &mut value["edits"];
+    if !edits.get("removed").is_some_and(Value::is_array) {
+        edits["removed"] = json!([]);
+    }
+    if let Some(list) = edits["removed"].as_array_mut() {
+        list.extend(removed);
+    }
+
+    value
 }
 
 /// Version 1 stored the scene as plain JSON; version 2 stores it packed.

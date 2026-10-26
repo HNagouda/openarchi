@@ -3,8 +3,8 @@
 //! Every format is read into one shape: triangles in metres with z up, centred
 //! on the model's plan and standing on z = 0 (`mesh.rs`). The model is placed
 //! by hand at a point, a turn and a base level, because OBJ and glTF carry no
-//! location. Existing buildings it covers are listed as replaced and left out
-//! of every sheet. A project holds one model.
+//! location. The buildings and trees it stands on are taken away as site
+//! edits (`under.rs`, `crate::edits`). A project holds one model.
 //
 // #! NOTE[3d, owner] : One model per project; would variants of a proposal side by side be worth several?
 // #! NOTE[3d, ifc] : IFC is not read yet. It is the one format that can place itself; see the IFC spike in .scratch/3d-plan.md
@@ -18,6 +18,7 @@ pub mod packed_mesh;
 mod place;
 #[cfg(test)]
 mod tests;
+mod under;
 
 use std::io::BufReader;
 use std::path::Path;
@@ -28,12 +29,10 @@ use serde::{Deserialize, Serialize};
 pub use analysed::scene_with_model;
 pub use faces::{Face, Shape};
 pub use mesh::{Mesh, Unit, UpAxis};
-pub use place::{
-    buildings_under, covered_buildings, footprint_on_site, ground_m, placed, triangles_on_site,
-    Covered, PlacedModel, REPLACED_SHARE,
-};
+pub use place::{footprint_on_site, ground_m, placed, triangles_on_site, PlacedModel};
+pub use under::{covered_buildings, covered_trees, picked, Covered, CoveredTree, REPLACED_SHARE};
 
-use crate::scene::{Feature, Layer, Scene};
+use crate::scene::Scene;
 use crate::{Error, Result};
 
 /// The extensions openarchi reads, in the words a refusal uses.
@@ -48,11 +47,6 @@ pub struct Model {
     /// The file's axis that was taken as up.
     pub up: UpAxis,
     pub placement: Placement,
-    /// The source ids (BAG pand ids) of the buildings the model takes the
-    /// place of. They are left out of every sheet and the 3D view. Kept as a
-    /// list the user edits, so moving the model later never silently changes it.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub replaced: Vec<String>,
     /// Last, because it is nearly all of the model. Shared, so a model moved
     /// or turned is a cheap copy of the one before.
     #[serde(with = "packed_mesh")]
@@ -119,35 +113,21 @@ impl Model {
             unit,
             up,
             placement,
-            replaced: Vec::new(),
             mesh: Arc::new(mesh),
             shape: OnceLock::new(),
         }
     }
 
-    /// True for an existing building the model takes the place of.
-    pub fn replaces(&self, feature: &Feature) -> bool {
-        feature.layer == Layer::Building
-            && feature
-                .attributes
-                .source_id
-                .as_ref()
-                .is_some_and(|id| self.replaced.contains(id))
-    }
-
-    /// The same model read in `unit` with `up` as up, at the same place,
-    /// replacing the same buildings.
+    /// The same model read in `unit` with `up` as up, at the same place.
     pub fn reread(&self, unit: Unit, up: UpAxis) -> Model {
         let mesh = mesh::reread(&self.mesh, (self.unit, self.up), (unit, up));
-        let mut model = Model::new(
+        Model::new(
             self.file_name.clone(),
             unit,
             up,
             mesh,
             self.placement.clone(),
-        );
-        model.replaced = self.replaced.clone();
-        model
+        )
     }
 
     pub fn shape(&self) -> Arc<Shape> {
@@ -198,7 +178,8 @@ pub fn read(path: &Path, unit: Option<Unit>, up: Option<UpAxis>) -> Result<(Mesh
 }
 
 /// The model in `path` placed on `scene`: where `placement` says, or at the
-/// middle of the site, with the buildings it covers listed as replaced.
+/// middle of the site. What it stands on is for the caller to take away, with
+/// `picked` and `SiteEdits::with_model_picks`.
 pub fn import(
     path: &Path,
     unit: Option<Unit>,
@@ -213,8 +194,6 @@ pub fn import(
         .unwrap_or_default();
     let placement = placement.unwrap_or_else(|| Placement::centre_of(scene));
     placement.check()?;
-    let mut model = Model::new(file_name, unit, up, mesh, placement);
-    model.replaced = buildings_under(&model, scene);
 
-    Ok(model)
+    Ok(Model::new(file_name, unit, up, mesh, placement))
 }

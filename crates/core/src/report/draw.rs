@@ -91,7 +91,7 @@ fn sheet(
         ..data.look.clone()
     };
     let input = RenderInput {
-        scene: data.scene,
+        scene: &data.edited,
         diagram,
         theme: data.theme,
         look: &look,

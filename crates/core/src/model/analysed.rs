@@ -1,7 +1,7 @@
-//! The site as the computed layers see it with a model on it: the buildings
-//! the model replaces taken away, and the model standing in their place as
-//! one more building. Hours of sun, sky view, radiation and wind then count
-//! the design without knowing about models at all.
+//! The site as the computed layers see it with a model on it: the model
+//! standing as one more building, on a scene that already has what it
+//! replaces taken away (`crate::edits::edited`). Hours of sun, sky view,
+//! radiation and wind then count the design without knowing about models at all.
 
 use geo::{Geometry, MultiPolygon};
 
@@ -9,18 +9,11 @@ use super::{footprint_on_site, ground_m, Model};
 use crate::scene::{Attributes, Feature, Layer, Scene};
 
 // #! NOTE[3d, analysis] : The view diagram's line of sight, sections and the explode view still see the site without the model
-/// `scene` with the model in place of the buildings it replaces.
+/// `scene` with the model standing on it.
 pub fn scene_with_model(scene: &Scene, model: &Model) -> Scene {
-    let kept = scene
-        .features
-        .iter()
-        .filter(|feature| !model.replaces(feature))
-        .cloned();
-
-    Scene {
-        features: kept.chain([model_as_building(model, scene)]).collect(),
-        ..scene.clone()
-    }
+    let mut with_model = scene.clone();
+    with_model.features.push(model_as_building(model, scene));
+    with_model
 }
 
 /// The model as a building of its footprint and its highest point, standing

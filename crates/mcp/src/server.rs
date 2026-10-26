@@ -4,9 +4,11 @@
 //! reply with JSON or a plain error the assistant can act on.
 
 use std::any::Any;
+use std::borrow::Cow;
 use std::path::PathBuf;
 
 use openarchi_core::area::Area;
+use openarchi_core::edits;
 use openarchi_core::library::Library;
 use openarchi_core::project::Project;
 use openarchi_core::scene::Scene;
@@ -18,6 +20,7 @@ use rmcp::{tool, tool_handler, tool_router, ServerHandler};
 use serde::Serialize;
 use serde_json::{json, Value};
 
+use crate::edits::edits_json;
 use crate::inputs::{CreateProject, ProjectId, SearchPlaces};
 use crate::model::model_json;
 use crate::summary::summarize;
@@ -39,7 +42,9 @@ list_sheets lists them. add_pin marks landmarks and add_highlight marks the plot
 or another area on every sheet; open_highlight_as_sheet gives a sheet of just \
 that area, and show_on_sheet shows or hides the marks per sheet. Each sheet also \
 has set_section for its section line, set_view_point for the eye of the View \
-diagram and set_wind_season for the Wind diagram. The numbers come from \
+diagram and set_wind_season for the Wind diagram. import_model puts a design on \
+the site, and pick_on_site with remove_from_site, restore_on_site, move_tree and \
+plant_tree edit its trees and buildings on every sheet. The numbers come from \
 get_ratios (land use, coverage, floor area ratio), get_environment (noise, air, \
 flood, population), get_neighbourhood (the 15 minute neighbourhood) and \
 get_analysis (location, climate, design notes). render_preview shows the sheet, \
@@ -71,7 +76,8 @@ impl OpenArchi {
                 + Self::highlight_tools()
                 + Self::view_point_tools()
                 + Self::wind_tools()
-                + Self::model_tools(),
+                + Self::model_tools()
+                + Self::edit_tools(),
         }
     }
 
@@ -138,6 +144,8 @@ impl OpenArchi {
                 // in the app meanwhile is kept.
                 let mut project = library.load(&input.id).map_err(text)?;
                 let summary = summarize(&scene);
+                // Edits of trees and buildings the new fetch no longer has are dropped.
+                project.edits = project.edits.kept_in(&scene);
                 project.scene = Some(scene);
                 library.save(&mut project).map_err(text)?;
                 Ok(summary)
@@ -230,6 +238,11 @@ pub(crate) fn fetched_scene(project: &Project) -> Result<&Scene, String> {
     })
 }
 
+/// The project's fetched site with its edits, as every sheet draws it.
+pub(crate) fn edited_scene(project: &Project) -> Result<Cow<'_, Scene>, String> {
+    Ok(edits::edited(fetched_scene(project)?, &project.edits))
+}
+
 fn overview(project: &Project) -> Value {
     json!({
         "id": project.id,
@@ -239,7 +252,8 @@ fn overview(project: &Project) -> Value {
         "area": project.area,
         "look": project.look,
         "site": project.scene.as_ref().map(summarize),
-        "model": project.model.as_ref().map(|model| model_json(model, project.scene.as_ref())),
+        "model": project.model.as_ref().map(|model| model_json(project, model)),
+        "edits": edits_json(project),
     })
 }
 

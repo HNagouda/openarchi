@@ -1,24 +1,16 @@
 //! Where a model stands on the site: its faces and footprint moved into the
-//! scene's frame, the ground under it, and the buildings it takes the place of.
+//! scene's frame, and the ground under it.
 
-use geo::{Area, BooleanOps, BoundingRect, Coord, Intersects, MapCoords, MultiPolygon, Polygon};
-
-use serde::Serialize;
+use geo::{BoundingRect, Coord, MapCoords, MultiPolygon, Polygon};
 
 use super::faces::Face;
 use super::{Model, Placement};
-use crate::scene::{Layer, Scene};
+use crate::scene::Scene;
 
 /// The ground under a model is the median terrain in this band around its
 /// footprint, the rule `sources/heights.rs` uses for a building's ground: the
 /// terrain model has no values under buildings.
 const GROUND_RING_M: f64 = 2.0;
-
-/// An existing building counts as replaced when the model covers more than
-/// this share of its footprint, so a model that only touches a neighbour's
-/// wall leaves the neighbour standing.
-// #! NOTE[3d, rule] : More than half of a building's footprint under the model replaces it; try real plots before changing the share
-pub const REPLACED_SHARE: f64 = 0.5;
 
 /// A model in the scene's frame, ready to draw.
 #[derive(Debug, Clone)]
@@ -115,62 +107,6 @@ fn lift_m(model: &Model, scene: &Scene) -> f64 {
         (Some(base_m), Some(ground_m)) => base_m - ground_m,
         _ => 0.0,
     }
-}
-
-/// An existing building the model's footprint reaches over.
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct Covered {
-    /// The building's source id, a BAG pand id in the Netherlands.
-    pub id: String,
-    /// How much of the building's footprint the model covers, 0 to 1.
-    pub share: f64,
-    pub year_built: Option<i32>,
-    pub height_m: Option<f64>,
-}
-
-/// The source ids of the buildings in `scene` that the model covers more
-/// than `REPLACED_SHARE` of, in the scene's order.
-pub fn buildings_under(model: &Model, scene: &Scene) -> Vec<String> {
-    covered_buildings(model, scene)
-        .into_iter()
-        .filter(|covered| covered.share > REPLACED_SHARE)
-        .map(|covered| covered.id)
-        .collect()
-}
-
-/// Every building with a source id that the model's footprint reaches over, in the scene's order.
-pub fn covered_buildings(model: &Model, scene: &Scene) -> Vec<Covered> {
-    let footprint = MultiPolygon::new(footprint_on_site(model, scene));
-    let Some(reach) = footprint.bounding_rect() else {
-        return Vec::new();
-    };
-    let mut covered: Vec<Covered> = Vec::new();
-    for feature in &scene.features {
-        let Some(id) = &feature.attributes.source_id else {
-            continue;
-        };
-        if feature.layer != Layer::Building || !feature.geometry.intersects(&reach) {
-            continue;
-        }
-        let building = match &feature.geometry {
-            geo::Geometry::Polygon(polygon) => MultiPolygon::new(vec![polygon.clone()]),
-            geo::Geometry::MultiPolygon(polygons) => polygons.clone(),
-            _ => continue,
-        };
-        let area = building.unsigned_area();
-        let share = building.intersection(&footprint).unsigned_area() / area;
-        let is_new = !covered.iter().any(|seen| &seen.id == id);
-        if area > 0.0 && share > 0.0 && is_new {
-            covered.push(Covered {
-                id: id.clone(),
-                share,
-                year_built: feature.attributes.year_built,
-                height_m: feature.attributes.height_m,
-            });
-        }
-    }
-
-    covered
 }
 
 /// The placement as arithmetic: turn clockwise, then move into the scene's frame.

@@ -11,7 +11,7 @@ use openarchi_core::render::RenderInput;
 use serde_json::{json, Value};
 
 use crate::resolve::find_theme;
-use crate::server::{fetched_scene, text};
+use crate::server::{edited_scene, text};
 
 /// Writes every drawing of every diagram for sheet `tab` into `folder`, and
 /// returns the paths. Checks every file name first, so nothing is written
@@ -28,7 +28,7 @@ pub fn export_series(
     overwrite: bool,
 ) -> Result<Value, String> {
     let project = library.load(id).map_err(text)?;
-    let scene = fetched_scene(&project)?;
+    let scene = edited_scene(&project)?;
     let look = project.sheet(tab).map_err(text)?;
     let theme = find_theme(&library.themes_dir(), &look.theme_id)?;
     let diagrams = catalog::builtin_diagrams();
@@ -46,13 +46,13 @@ pub fn export_series(
     let mut written = Vec::new();
     for file in &files {
         let input = RenderInput {
-            scene,
+            scene: &scene,
             diagram: file.diagram,
             theme: &theme,
             look: &file.look,
             pins: &project.pins,
             highlights: &project.highlights,
-            model: None,
+            model: project.model.as_ref(),
         };
         export::export_with_dxf_layers(&input, format, dpi, dxf_layers, &file.path)
             .map_err(text)?;

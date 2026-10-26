@@ -4,6 +4,7 @@ use geo::{Area, Geometry, Polygon};
 
 use super::*;
 use crate::area::{Area as SiteArea, LonLat};
+use crate::edits::SiteEdits;
 use crate::scene::{Attributes, Feature, Layer, Scene};
 
 fn fixture(name: &str) -> PathBuf {
@@ -194,7 +195,7 @@ fn ifc_and_unknown_files_are_refused_with_what_is_read() {
 }
 
 #[test]
-fn an_imported_model_stands_at_the_site_centre_and_replaces_what_it_covers() {
+fn an_imported_model_stands_at_the_site_centre_and_picks_what_it_covers_more_than_half_of() {
     let scene = site(vec![
         // Wholly under the 8 by 10 m house.
         building("under", (-3.0, -4.0), (3.0, 4.0)),
@@ -206,7 +207,10 @@ fn an_imported_model_stands_at_the_site_centre_and_replaces_what_it_covers() {
     let model = import(&fixture("gable-house-mm.obj"), None, None, &scene, None).unwrap();
 
     assert_eq!(model.placement, Placement::centre_of(&scene));
-    assert_eq!(model.replaced, vec!["under".to_string()]);
+    assert_eq!(
+        picked(&model, &scene, &SiteEdits::default()),
+        vec!["under".to_string()]
+    );
     assert_eq!(model.file_name, "gable-house-mm.obj");
 }
 
@@ -253,8 +257,10 @@ fn the_analysed_scene_has_the_model_in_place_of_what_it_replaces() {
         building("away", (40.0, 40.0), (50.0, 50.0)),
     ]);
     let model = import(&fixture("gable-house-mm.obj"), None, None, &scene, None).unwrap();
+    let edits =
+        SiteEdits::default().with_model_picks(&picked(&model, &scene, &SiteEdits::default()));
 
-    let analysed = scene_with_model(&scene, &model);
+    let analysed = scene_with_model(&crate::edits::edited(&scene, &edits), &model);
 
     let heights: Vec<Option<f64>> = analysed
         .features
@@ -320,4 +326,39 @@ fn a_footprint_joined_in_batches_matches_the_floors_it_stacks() {
 
     assert_eq!(footprint.len(), 41);
     assert!((footprint_area(&footprint) - 140.0).abs() < 1e-6);
+}
+
+#[test]
+fn trees_inside_the_footprint_or_within_a_crown_of_it_are_in_the_way() {
+    // The 8 by 10 m house stands from -4 to 4 east and -5 to 5 north.
+    let tree = |id: &str, x: f64, y: f64| Feature {
+        layer: Layer::Tree,
+        geometry: Geometry::Point(geo::Point::new(x, y)),
+        attributes: Attributes {
+            source_id: Some(id.to_string()),
+            ..Default::default()
+        },
+    };
+    let scene = site(vec![
+        tree("inside", 0.0, 0.0),
+        tree("crown-over", 6.5, 0.0),
+        tree("clear", 7.5, 0.0),
+    ]);
+    let model = import(&fixture("gable-house-mm.obj"), None, None, &scene, None).unwrap();
+
+    let covered = covered_trees(&model, &scene, &SiteEdits::default());
+
+    let ids: Vec<&str> = covered.iter().map(|tree| tree.id.as_str()).collect();
+    assert_eq!(ids, vec!["inside", "crown-over"]);
+    assert_eq!(covered[0].distance_m, 0.0);
+    assert!((covered[1].distance_m - 2.5).abs() < 1e-6);
+}
+
+#[test]
+fn a_tree_moved_under_the_model_is_in_its_way() {
+    let scene = site(Vec::new());
+    let model = import(&fixture("gable-house-mm.obj"), None, None, &scene, None).unwrap();
+    let (edits, id) = SiteEdits::default().with_planted(scene.origin.0 + 1.0, scene.origin.1);
+
+    assert_eq!(picked(&model, &scene, &edits), vec![id]);
 }

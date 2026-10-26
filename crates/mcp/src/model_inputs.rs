@@ -48,11 +48,12 @@ pub struct ModelUnits {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
-pub struct ReplacedBuildings {
+pub struct Replaced {
     /// The project id.
     pub id: String,
-    /// The ids of the buildings the model replaces, each one listed under
-    /// `covered` in the model's description. An empty list keeps every building.
+    /// The ids of the buildings and trees the model replaces, each one listed
+    /// under `covered` or `covered_trees` in the model's description. An empty
+    /// list keeps every building and tree.
     pub replaced: Vec<String>,
 }
 

@@ -3,6 +3,8 @@
 //!
 //! stdout carries the protocol, so anything for a person goes to stderr.
 
+mod edits;
+mod edits_inputs;
 mod export;
 mod export_inputs;
 mod figure_inputs;

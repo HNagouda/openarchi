@@ -9,6 +9,7 @@ use std::path::Path;
 use std::time::Instant;
 
 use openarchi_core::catalog::{builtin_diagrams, builtin_themes};
+use openarchi_core::edits::{edited, SiteEdits};
 use openarchi_core::export::render_png;
 use openarchi_core::model::{self, Model, UpAxis};
 use openarchi_core::project::Look;
@@ -68,11 +69,13 @@ fn main() {
     )
     .expect("parse the scene");
     let model = placed_block(&scene, root);
+    let picks = model::picked(&model, &scene, &SiteEdits::default());
+    let edited_scene = edited(&scene, &SiteEdits::default().with_model_picks(&picks)).into_owned();
     println!(
         "model: {} triangles, {} faces, replaces {:?}",
         model.mesh.triangles.len(),
         model.shape().faces.len(),
-        model.replaced
+        picks
     );
 
     let out_dir = root.join("../../target/render-samples/model");
@@ -121,6 +124,7 @@ fn main() {
             model: None,
         };
         let with = RenderInput {
+            scene: &edited_scene,
             model: Some(&model),
             ..without
         };

@@ -139,9 +139,7 @@ pub fn view(input: &RenderInput) -> Result<View3d> {
     let scene = input.scene;
     let colours = Colours::of(input)?;
     let model = input.model;
-    let is_standing = |feature: &&Feature| {
-        feature.layer == Layer::Building && !model.is_some_and(|model| model.replaces(feature))
-    };
+    let is_standing = |feature: &&Feature| feature.layer == Layer::Building;
     let neighbours = scene.context.iter().filter(is_standing);
     let (height_m, crown_m) = tree_size();
 

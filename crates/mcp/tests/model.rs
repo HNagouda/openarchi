@@ -95,13 +95,13 @@ fn only_a_building_under_the_model_can_be_replaced() {
     assert!(!covered.is_empty(), "{imported}");
 
     let stray = server.call_err(
-        "set_replaced_buildings",
+        "set_replaced",
         json!({ "id": id, "replaced": ["0000000000000000"] }),
     );
     assert!(stray.contains("not under the model"), "{stray}");
 
     let chosen = server.call_ok(
-        "set_replaced_buildings",
+        "set_replaced",
         json!({ "id": id, "replaced": [covered[0]["id"]] }),
     );
     assert_eq!(chosen["model"]["replaced"], json!([covered[0]["id"]]));

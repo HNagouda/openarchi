@@ -10,7 +10,7 @@ use openarchi_core::render::RenderInput;
 use openarchi_core::theme::Theme;
 use openarchi_core::view::ViewMode;
 
-use crate::server::{fetched_scene, text};
+use crate::server::{edited_scene, text};
 
 /// A built-in diagram, following the ids of diagrams folded into another.
 pub fn find_diagram(id: &str) -> Result<Diagram, String> {
@@ -101,19 +101,19 @@ pub fn with_render_input<T>(
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
     let project = library.load(id).map_err(text)?;
-    let scene = fetched_scene(&project)?;
+    let scene = edited_scene(&project)?;
     let look = project.sheet(tab).map_err(text)?;
     let diagram = find_diagram(&look.diagram_id)?;
     let theme = find_theme(&library.themes_dir(), &look.theme_id)?;
 
     let input = RenderInput {
-        scene,
+        scene: &scene,
         diagram: &diagram,
         theme: &theme,
         look,
         pins: &project.pins,
         highlights: &project.highlights,
-        model: None,
+        model: project.model.as_ref(),
     };
     work(&input).map_err(text)
 }

@@ -6,7 +6,10 @@
 //! say so on the page instead.
 
 use crate::analysis::{self, Part, Section};
+use std::borrow::Cow;
+
 use crate::diagram::Diagram;
+use crate::edits::{self, SiteEdits};
 use crate::highlight::Highlight;
 use crate::model::Model;
 use crate::pin::Pin;
@@ -20,7 +23,10 @@ use crate::Result;
 use super::Content;
 
 pub struct ReportData<'a> {
+    /// The site as fetched, which ratios and analysis count.
     pub scene: &'a Scene,
+    /// The site with the project's edits, which sheet blocks draw like the sheets.
+    pub edited: Cow<'a, Scene>,
     /// The project's look. Sheet blocks keep its paper, view, sun and text.
     pub look: &'a Look,
     /// The project's pins. Sheet blocks show them, as every sheet does unless
@@ -49,6 +55,7 @@ impl<'a> ReportData<'a> {
         pins: &'a [Pin],
         highlights: &'a [Highlight],
         model: Option<&'a Model>,
+        edits: &SiteEdits,
         diagrams: &'a [Diagram],
         theme: &'a Theme,
         cache: &TileCache,
@@ -75,6 +82,7 @@ impl<'a> ReportData<'a> {
 
         Ok(ReportData {
             scene,
+            edited: edits::edited(scene, edits),
             look,
             pins,
             highlights,

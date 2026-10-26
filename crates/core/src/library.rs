@@ -27,6 +27,7 @@ use std::time::SystemTime;
 use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
+use crate::edits::SiteEdits;
 use crate::model::Model;
 use crate::project::{Look, Project, PROJECT_FORMAT_VERSION};
 use crate::sheet::Frame;
@@ -169,6 +170,7 @@ impl Library {
             scene: None,
             look: Look::default(),
             model: None,
+            edits: SiteEdits::default(),
             reports: Vec::new(),
             more_sheets: Vec::new(),
             pins: Vec::new(),

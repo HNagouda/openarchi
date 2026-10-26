@@ -14,6 +14,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::area::Area;
+use crate::edits::SiteEdits;
 use crate::highlight::Highlight;
 use crate::model::Model;
 use crate::pin::Pin;
@@ -57,6 +58,11 @@ pub struct Project {
     /// Areas the user highlighted inside the site, shown on every sheet that does not hide them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub highlights: Vec<Highlight>,
+    /// Trees and buildings the user took away, moved or planted, seen on
+    /// every sheet. Older projects have none; a model's replaced buildings
+    /// from before edits existed become edits under the model (`library::migrate`).
+    #[serde(default, skip_serializing_if = "SiteEdits::is_empty")]
+    pub edits: SiteEdits,
     /// `None` until the site has been fetched.
     /// Left out of the file while `None`, so `Library::save_with_packed_scene`
     /// can write the packed text in its place. Last, because it is nearly the

@@ -5,6 +5,7 @@
 use std::fs;
 use std::path::Path;
 
+use openarchi_core::edits::{edited, SiteEdits};
 use openarchi_core::model::{self, Model, Placement, UpAxis};
 use openarchi_core::scene::Scene;
 use serde_json::json;
@@ -29,7 +30,9 @@ pub fn placed_model(scene: &Scene) -> Model {
 
 pub fn write_model(scene: &Scene, out_dir: &Path) {
     let model = placed_model(scene);
-    view3d::write(scene, &model, out_dir);
+    let picks = model::picked(&model, scene, &SiteEdits::default());
+    let replaced = edited(scene, &SiteEdits::default().with_model_picks(&picks));
+    view3d::write(&replaced, &model, out_dir);
     let footprint: Vec<Vec<[f64; 2]>> = model
         .shape()
         .footprint
@@ -44,10 +47,11 @@ pub fn write_model(scene: &Scene, out_dir: &Path) {
         "size_m": model.mesh.size(),
         "triangles": model.mesh.triangles.len(),
         "placement": model.placement,
-        "replaced": model.replaced,
         "footprint": footprint,
         "ground_m": model::ground_m(&model, scene),
         "covered": model::covered_buildings(&model, scene),
+        "covered_trees": model::covered_trees(&model, scene, &SiteEdits::default()),
+        "picked": model::picked(&model, scene, &SiteEdits::default()),
     });
     fs::write(
         out_dir.join("model.json"),

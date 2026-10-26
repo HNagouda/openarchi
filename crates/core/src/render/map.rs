@@ -29,7 +29,6 @@ use super::typeset::Typesetter;
 use super::viewpoint::{self, Seen};
 use super::RenderInput;
 use crate::diagram::{Diagram, Solar, DATE_PLACEHOLDER, WIND_PLACEHOLDER};
-use crate::model::Model;
 use crate::scene::{Feature, Layer, Scene};
 use crate::sun::{self, SunPosition};
 use crate::theme::Theme;
@@ -118,7 +117,7 @@ pub fn draw(input: &RenderInput, spec: &MapSpec, typesetter: &Typesetter) -> Res
     let mut computed = derived::features(scene, diagram, look, input.model);
     computed.extend(seen.iter().map(|seen| seen.area.clone()));
     let features = cull::within_frame(
-        features_by_layer(scene, &computed, diagram, input.model),
+        features_by_layer(scene, &computed, diagram),
         frame.ground_bounds(),
         cull::caster_margin(
             tallest_building(scene).max(solid::TREE_HEIGHT_M),
@@ -366,15 +365,11 @@ fn features_by_layer<'a>(
     scene: &'a Scene,
     computed: &'a [Feature],
     diagram: &Diagram,
-    model: Option<&Model>,
 ) -> BTreeMap<Layer, Vec<&'a Feature>> {
     let mut grouped: BTreeMap<Layer, Vec<&Feature>> = BTreeMap::new();
     let walk = diagram.walk_minutes.zip(scene.walk.as_ref());
     for feature in scene.features.iter().chain(computed) {
         if walk.is_some() && legend::is_point_layer(feature.layer) {
-            continue;
-        }
-        if model.is_some_and(|model| model.replaces(feature)) {
             continue;
         }
         grouped.entry(feature.layer).or_default().push(feature);

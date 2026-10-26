@@ -12,6 +12,7 @@ use super::draw::inner_svg;
 use super::*;
 use crate::analysis::Part;
 use crate::catalog::{builtin_diagrams, builtin_themes};
+use crate::edits::SiteEdits;
 use crate::project::{Look, Project};
 use crate::scene::Scene;
 use crate::sheet::Align;
@@ -131,6 +132,7 @@ fn render(report: &Report, theme_id: &str) -> Vec<String> {
         &[],
         &[],
         None,
+        &SiteEdits::default(),
         &diagrams,
         &theme,
         &cache,
@@ -158,6 +160,7 @@ fn a_project_saved_before_reports_opens_with_none() {
         scene: None,
         look: Look::default(),
         model: None,
+        edits: SiteEdits::default(),
         more_sheets: Vec::new(),
         pins: Vec::new(),
         highlights: Vec::new(),

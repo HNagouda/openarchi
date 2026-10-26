@@ -120,6 +120,7 @@ pub fn export(library: &Library, input: ExportReport) -> Result<Value, String> {
         &project.pins,
         &project.highlights,
         project.model.as_ref(),
+        &project.edits,
         &diagrams,
         &theme,
         &cache,

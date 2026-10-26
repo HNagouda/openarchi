@@ -3,6 +3,7 @@ use std::path::Path;
 
 use openarchi_core::analysis::{self, PARTS};
 use openarchi_core::catalog::builtin_diagrams;
+use openarchi_core::edits::SiteEdits;
 use openarchi_core::project::Look;
 use openarchi_core::ratios;
 use openarchi_core::report::{block_svg, Block, Content, RatiosStyle, ReportData};
@@ -92,6 +93,7 @@ pub(crate) fn write_report_blocks(scene: &Scene, cache: &TileCache, out_dir: &Pa
             &[],
             &[],
             None,
+            &SiteEdits::default(),
             &diagrams,
             &theme,
             cache,

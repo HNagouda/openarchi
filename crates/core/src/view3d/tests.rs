@@ -7,6 +7,7 @@ use geo::{Geometry, Rect};
 use super::*;
 use crate::area::{Area, LonLat};
 use crate::catalog::{builtin_diagrams, builtin_themes};
+use crate::edits::{self, SiteEdits};
 use crate::model::{Model, Placement};
 use crate::project::Look;
 use crate::render::luminance;
@@ -182,9 +183,11 @@ fn a_replaced_building_is_left_out_and_the_model_stands_in_its_place() {
     )
     .unwrap();
 
-    let view = view_of(&scene, "context", Some(&model));
+    let picks = model::picked(&model, &scene, &SiteEdits::default());
+    let edits = SiteEdits::default().with_model_picks(&picks);
+    let view = view_of(&edits::edited(&scene, &edits), "context", Some(&model));
 
-    assert_eq!(model.replaced, vec!["old".to_string()]);
+    assert_eq!(picks, vec!["old".to_string()]);
     assert_eq!(view.buildings[0].triangle_count, 10);
     let shown = view.model.unwrap();
     assert_eq!(shown.triangle_count, model.mesh.triangles.len());
