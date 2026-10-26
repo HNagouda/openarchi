@@ -16,7 +16,7 @@ import { createNavigation, type Mode, type Navigation, type SheetAngle } from ".
 import { photoGroup, type PhotoLevel } from "./photo";
 import { disposeGroup, siteGroup } from "./scene";
 
-const FIELD_OF_VIEW_DEG = 35;
+export const FIELD_OF_VIEW_DEG = 35;
 // The near plane follows the camera's height: close enough at eye level to see the
 // pavement at one's feet, further from the air, so the depth buffer keeps ground
 // layers a few centimetres apart from each other at any distance.
@@ -55,9 +55,10 @@ type Options = {
   finish: Finish;
   angle: SheetAngle;
   onMode: (mode: Mode) => void;
+  onWalkFieldOfView: (degrees: number) => void;
 };
 
-export function createStage(host: HTMLElement, { view: firstView, finish, angle, onMode }: Options): Stage {
+export function createStage(host: HTMLElement, { view: firstView, finish, angle, onMode, onWalkFieldOfView }: Options): Stage {
   let view = firstView;
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
@@ -148,6 +149,7 @@ export function createStage(host: HTMLElement, { view: firstView, finish, angle,
     requestDraw,
     animate,
     onMode,
+    onWalkFieldOfView,
   });
 
   let isOrbiting = false;

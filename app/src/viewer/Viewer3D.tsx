@@ -12,7 +12,7 @@ import { useToast } from "../ui/Toasts";
 import { fileStem, saveDay, saveOrbit, savePicture } from "./frames";
 import type { Finish } from "./materials";
 import type { Mode } from "./navigation";
-import { createStage, type Stage } from "./stage";
+import { createStage, FIELD_OF_VIEW_DEG, type Stage } from "./stage";
 import { clockLabel, daylight, MINUTES_PER_DAY, sunAt } from "./sunDay";
 import { PERCENT } from "../lib/units";
 import { ViewButtons } from "./ViewButtons";
@@ -59,6 +59,7 @@ export default function Viewer3D({ look, themes, projectName, onClose }: Props) 
   const [isOrbiting, setOrbiting] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("orbit");
+  const [walkFieldOfView, setWalkFieldOfView] = useState(FIELD_OF_VIEW_DEG);
   const [finish, setFinish] = useState<Finish>(() => readPreference<Finish>(FINISH_PREFERENCE, "palette"));
   const [themeId, setThemeId] = useState(look.theme_id);
   // The palette the stage is drawn in, which lags `themeId` while the core answers.
@@ -78,7 +79,7 @@ export default function Viewer3D({ look, themes, projectName, onClose }: Props) 
       .then((view) => {
         if (!isCurrent || !host.current) return;
         const angle = { rotationDeg: shown.view.rotation_deg, tiltDeg: shown.view.tilt_deg };
-        stage.current = createStage(host.current, { view, finish: first, angle, onMode: setMode });
+        stage.current = createStage(host.current, { view, finish: first, angle, onMode: setMode, onWalkFieldOfView: setWalkFieldOfView });
         setReady(true);
       })
       .catch((reason) => {
@@ -225,7 +226,17 @@ export default function Viewer3D({ look, themes, projectName, onClose }: Props) 
             {error}
           </div>
         )}
-        {isReady && <ViewButtons navigation={stage.current?.navigation ?? null} mode={mode} />}
+        {isReady && (
+          <ViewButtons
+            navigation={stage.current?.navigation ?? null}
+            mode={mode}
+            walkFieldOfView={walkFieldOfView}
+            onWalkFieldOfView={(degrees) => {
+              setWalkFieldOfView(degrees);
+              stage.current?.navigation.setWalkFieldOfView(degrees);
+            }}
+          />
+        )}
         {finish === "realistic" && photo === "loading" && <div className="viewer-progress">Fetching the aerial photo…</div>}
         {credit && <div className="viewer-credit">{credit}</div>}
         {progress !== null && <div className="viewer-progress">Saving… {Math.round(progress * PERCENT)} %</div>}
