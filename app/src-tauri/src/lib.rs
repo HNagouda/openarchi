@@ -99,6 +99,7 @@ pub fn run() {
             model::set_model,
             model::covered_buildings,
             view3d::view_3d,
+            view3d::aerial_photo,
             view3d::sun_day,
             view3d::save_view_png,
         ])

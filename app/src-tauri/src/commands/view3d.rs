@@ -1,16 +1,18 @@
-//! The live 3D view: the open site as triangles, the sun through a chosen
-//! day, and saving the pictures the view takes. The view itself draws in the
+//! The live 3D view: the open site as triangles, the aerial photo for its
+//! realistic finish, the sun through a chosen day, and saving the pictures
+//! the view takes. The view itself draws in the
 //! window with WebGL; see app/src/viewer/.
 
 use std::path::Path;
 
 use base64::Engine;
 use openarchi_core::project::Look;
+use openarchi_core::view3d::photo::{self, Photo};
 use openarchi_core::view3d::{self, SunDay, View3d};
 use tauri::State;
 
 use crate::commands::render::{current_catalog, open_model, open_scene, with_input};
-use crate::guard::blocking;
+use crate::guard::{blocking, text};
 use crate::state::Shared;
 
 const PNG_EXTENSION: &str = "png";
@@ -34,6 +36,20 @@ pub async fn view_3d(state: State<'_, Shared>, look: Look) -> Result<View3d, Str
             model.as_ref(),
             view3d::view,
         )
+    })
+    .await
+}
+
+/// The aerial photo over the open site and its neighbourhood, from the tile
+/// cache or PDOK. Asked for the first time the view shows its realistic
+/// finish, not with the site, so a site fetch never waits for it.
+#[tauri::command]
+pub async fn aerial_photo(state: State<'_, Shared>) -> Result<Photo, String> {
+    let state = state.inner().clone();
+    blocking(move || {
+        let scene = open_scene(&state)?;
+        let cache = state.library()?.tile_cache();
+        photo::photo(&scene, &cache).map_err(text)
     })
     .await
 }

@@ -12,6 +12,7 @@
 // #! NOTE[3d, owner] : "360 view" is an orbit around the site here; is an equirectangular panorama from a point on the site wanted too?
 
 mod colours;
+pub mod photo;
 mod surfaces;
 
 use std::collections::BTreeMap;

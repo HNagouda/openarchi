@@ -3,6 +3,7 @@
 //! Sources return features in absolute RD New coordinates; `site.rs` clips them
 //! to the drawn boundary and moves them into the scene's local frame.
 
+pub mod aerial;
 pub mod ahn;
 pub mod bag;
 pub mod bag_units;
