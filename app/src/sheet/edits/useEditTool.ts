@@ -56,6 +56,8 @@ export function useEditTool({ edits, onEdits, look, svg, isEnabled, onRefused }:
   useEffect(() => {
     if (!isEnabled || !isPlan) setEditing(false);
   }, [isEnabled, isPlan]);
+  // Editing belongs to the diagram it started on; its ghosts would otherwise follow to every other one.
+  useEffect(() => setEditing(false), [look.diagram_id, look.variant]);
   useEffect(() => {
     if (!isEditing) setSelected(null);
   }, [isEditing]);

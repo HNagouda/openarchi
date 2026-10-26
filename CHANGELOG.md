@@ -35,6 +35,7 @@ What changed in each version of openarchi, newest first.
 - Placing or moving the model now also takes away the trees in its way: a tree whose trunk stands inside the model's footprint, or within the 3 m crown every view draws a tree with. The Model section lists them with a box each, next to the buildings, and removing the model brings them back. Trees and buildings you removed by hand stay removed when the model moves.
 - The buildings a model replaced in a project saved before this version become edits under the model when it opens, so they stay replaced.
 - Assistants can find the tree or building at a point, remove and restore it, move and plant trees and list the edits, with the same rules as the app.
+- Switching to another diagram ends editing, so the dashed outlines of removed trees and buildings stay on the diagram you edited instead of following you to every other one.
 
 ### Sites
 
