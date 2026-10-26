@@ -83,11 +83,15 @@ export const openLink = (url: string) => invoke<void>("open_link", { url });
 
 export type FetchProgressEvent = { generation: number; progress: Progress };
 export type FetchFinishedEvent = { generation: number; error: string | null };
+// Sent before each file of a series export; `done` counts the files already written.
+export type ExportProgressEvent = { done: number; total: number; file: string };
 
 export const onFetchProgress = (handler: (event: FetchProgressEvent) => void): Promise<UnlistenFn> =>
   listen<FetchProgressEvent>("fetch-progress", (event) => handler(event.payload));
 export const onFetchFinished = (handler: (event: FetchFinishedEvent) => void): Promise<UnlistenFn> =>
   listen<FetchFinishedEvent>("fetch-finished", (event) => handler(event.payload));
+export const onExportProgress = (handler: (event: ExportProgressEvent) => void): Promise<UnlistenFn> =>
+  listen<ExportProgressEvent>("export-progress", (event) => handler(event.payload));
 export const onLibraryChanged = (handler: (id: string) => void): Promise<UnlistenFn> =>
   listen<{ id: string }>("library-changed", (event) => handler(event.payload.id));
 export const onMenu = (handler: (id: string) => void): Promise<UnlistenFn> =>

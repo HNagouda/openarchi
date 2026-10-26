@@ -9,6 +9,7 @@ import type { Report, ReportFormat } from "../lib/types";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { NumberField } from "../ui/NumberField";
+import { ProgressBar } from "../ui/ProgressBar";
 import { Segmented } from "../ui/Segmented";
 import { DEFAULT_DPI, MAX_DPI, MIN_DPI } from "../lib/units";
 import { useExportedToast } from "../ui/Toasts";
@@ -25,6 +26,8 @@ type Settings = { format: ReportFormat; dpi: number };
 export function ExportReportDialog({ report, onClose }: { report: Report; onClose: () => void }) {
   const [settings, setSettings] = useState<Settings>(() => readPreference<Settings>("reportExport", { format: "pdf", dpi: DEFAULT_DPI }));
   const [isExporting, setExporting] = useState(false);
+  // The file being written, shown under the fields with a sweeping bar until it is done.
+  const [writing, setWriting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const exported = useExportedToast();
   const format = FORMATS.find((entry) => entry.value === settings.format) ?? FORMATS[0];
@@ -43,6 +46,7 @@ export function ExportReportDialog({ report, onClose }: { report: Report; onClos
       const suggested = await reportFileName(report.name, settings.format);
       const path = await save({ defaultPath: suggested, filters: [{ name: format.name, extensions: [settings.format] }] });
       if (!path) return;
+      setWriting(fileNameOf(path));
       const written = await exportReport(report, settings.format, settings.dpi, path);
       const shown = written.length === 1 ? fileNameOf(written[0]) : `${written.length} pages`;
       exported(`Exported ${shown}`, written[0]);
@@ -51,6 +55,7 @@ export function ExportReportDialog({ report, onClose }: { report: Report; onClos
       setError(errorText(reason));
     } finally {
       setExporting(false);
+      setWriting(null);
     }
   };
 
@@ -85,6 +90,7 @@ export function ExportReportDialog({ report, onClose }: { report: Report; onClos
             <NumberField label="Resolution" value={settings.dpi} min={MIN_DPI} max={MAX_DPI} step={1} unit="dpi" onChange={(dpi) => update({ dpi })} />
           </div>
         )}
+        {writing && <ProgressBar label={`Writing ${writing}`} done={null} total={null} />}
         {error && <p className="export-error">{error}</p>}
       </div>
     </Dialog>

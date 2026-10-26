@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { formatArea } from "../lib/format";
 import type { Area, AreaSize, Place, Progress } from "../lib/types";
 import { PERCENT } from "../lib/units";
+import { ProgressBar } from "../ui/ProgressBar";
 import { Button } from "../ui/Button";
 import { EditableText } from "../ui/EditableText";
 import { Icon } from "../ui/Icon";
@@ -158,22 +159,11 @@ export function SitePanel({
 
       <div className="site-panel-foot">
         {fetch.state === "running" && (
-          <div className="fetch-progress">
-            <div className="fetch-progress-row">
-              <span>{fetch.progress ? fetch.progress.step : "Starting"}</span>
-              {fetch.progress && (
-                <span className="tabular fetch-count">
-                  {fetch.progress.done} of {fetch.progress.total}
-                </span>
-              )}
-            </div>
-            <div className="progress-track">
-              <div
-                className={fetch.progress ? "progress-fill" : "progress-fill is-waiting"}
-                style={{ width: fetch.progress ? `${(fetch.progress.done / Math.max(1, fetch.progress.total)) * PERCENT}%` : "30%" }}
-              />
-            </div>
-          </div>
+          <ProgressBar
+            label={fetch.progress ? fetch.progress.step : "Starting"}
+            done={fetch.progress?.done ?? null}
+            total={fetch.progress?.total ?? null}
+          />
         )}
         {fetch.state === "failed" && <Problem title="The site couldn't be fetched." detail={fetch.error} />}
         {fetch.state === "running" ? (

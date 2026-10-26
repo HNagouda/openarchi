@@ -165,3 +165,50 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+
+/* A progress bar under a line of text: the site fetch and exports. */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.progress-count {
+  color: var(--text-3);
+}
+
+.progress-track {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--strong);
+  transition: width 300ms var(--ease);
+}
+
+:root[data-appearance="dark"] .progress-fill {
+  background: var(--accent);
+}
+
+.progress-fill.is-waiting {
+  animation: waiting 1.2s var(--ease) infinite;
+}
+
+@keyframes waiting {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
