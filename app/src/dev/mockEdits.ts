@@ -6,18 +6,21 @@
 // building in the paper colour; the 3D view's trees follow too. The core
 // leaves removed buildings out of every view; the mock cannot, off the plan.
 
-import type { Editable, Look, SiteEdits, TreeAt, UnderModel, View3d } from "../lib/types";
+import type { Editable, Look, ModelChoice, SiteEdits, TreeAt, UnderModel, View3d } from "../lib/types";
 import { rdToPaper } from "./mockPins";
 
 type Tree = { id: string; kind: string | null; at: [number, number] };
 type Building = { id: string; year_built: number | null; height_m: number | null; outline: [number, number][][] };
 type Things = { origin: [number, number]; trees: Tree[]; buildings: Building[] };
-type Fixture = { covered: UnderModel["buildings"]; covered_trees: UnderModel["trees"]; picked: string[] };
+type Fixture = { covered: UnderModel["buildings"]; footprint: [number, number][][] };
 
 const things: Things = await fetch("/dev-fixtures/site-things.json").then((response) => response.json());
 const model: Fixture = await fetch("/dev-fixtures/model.json").then((response) => response.json());
 // A fixture tree's circle, in paper millimetres, matches a tree within this distance.
 const SAME_CIRCLE_MM = 0.05;
+// The core's rules for what the model replaces: REPLACED_SHARE and the crown radius.
+const REPLACED_SHARE = 0.5;
+const CROWN_RADIUS_M = 3;
 let current: SiteEdits = {};
 
 /** The mock's answer to a site edit command, or undefined for any other command. */
@@ -28,7 +31,7 @@ export function answerEdits(command: string, args: Record<string, unknown>): unk
   }
   if (command === "pick_on_site") return pick(args.edits as SiteEdits, args.x as number, args.y as number, args.reachM as number);
   if (command === "site_edit_things") return editedThings(args.edits as SiteEdits);
-  if (command === "under_model") return { buildings: model.covered, trees: model.covered_trees, picked: model.picked };
+  if (command === "under_model") return underModel(args.choice as ModelChoice, args.edits as SiteEdits);
   return undefined;
 }
 
@@ -102,6 +105,32 @@ function editedThings(edits: SiteEdits): Editable[] {
     .filter((tree) => !removed.some((thing) => thing.id === tree.id))
     .map((tree) => treeThing(edits, tree));
   return [...removed, ...changed];
+}
+
+/** The fixture's buildings under the model wherever it stands, and the trees by the crown rule where it does. */
+function underModel(choice: ModelChoice, edits: SiteEdits): UnderModel {
+  const angle = (choice.placement.rotation_deg * Math.PI) / 180;
+  const rings = model.footprint.map((ring) =>
+    ring.map(([x, y]) => [choice.placement.x + x * Math.cos(angle) + y * Math.sin(angle), choice.placement.y - x * Math.sin(angle) + y * Math.cos(angle)] as [number, number]),
+  );
+  const trees = standing(edits)
+    .map((tree) => ({ tree, distance: rings.some((ring) => isInside(ring, ...tree.at)) ? 0 : Math.min(...rings.map((ring) => ringDistance(ring, tree.at))) }))
+    .filter(({ distance }) => distance <= CROWN_RADIUS_M)
+    .map(({ tree, distance }) => ({ id: tree.id, distance_m: distance, is_planted: tree.is_planted }));
+  const picked = [...model.covered.filter((building) => building.share > REPLACED_SHARE).map((building) => building.id), ...trees.map((tree) => tree.id)];
+  return { buildings: model.covered, trees, picked };
+}
+
+function ringDistance(ring: [number, number][], [x, y]: [number, number]): number {
+  let nearest = Infinity;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [ax, ay] = ring[j];
+    const [bx, by] = ring[i];
+    const length = (bx - ax) ** 2 + (by - ay) ** 2;
+    const along = length === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / length));
+    nearest = Math.min(nearest, Math.hypot(x - (ax + along * (bx - ax)), y - (ay + along * (by - ay))));
+  }
+  return nearest;
 }
 
 function isInside(ring: [number, number][], x: number, y: number): boolean {

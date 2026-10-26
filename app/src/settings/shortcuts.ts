@@ -6,6 +6,7 @@ import { HIGHLIGHT_KEY } from "../sheet/highlights/useHighlightTool";
 import { CIRCLE_KEY, PAN_KEYS, POLYGON_KEY, RECTANGLE_KEY } from "../site/SitePanel";
 import { SECTION_KEY } from "../sheet/section/useSectionTool";
 import { VIEW_POINT_KEY } from "../sheet/viewpoint/useViewPointTool";
+import { EDIT_KEY } from "../sheet/edits/useEditTool";
 
 export const SHORTCUTS: { title: string; items: { label: string; keys: string[] }[] }[] = [
   {
@@ -73,6 +74,9 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
       { label: "Draw a section line, or stop drawing", keys: [SECTION_KEY] },
       { label: "Delete the selected section line", keys: ["delete"] },
       { label: "Place the View diagram's viewpoint", keys: [VIEW_POINT_KEY] },
+      { label: "Edit trees and buildings on a plan, or stop", keys: [EDIT_KEY] },
+      { label: "Remove or restore the selected tree or building", keys: ["delete"] },
+      { label: "Move the selected tree, by 10 m with Shift", keys: ["←", "→"] },
       { label: "Stop drawing or deselect", keys: ["escape"] },
       { label: "Undo", keys: ["mod+z"] },
       { label: "Redo", keys: ["mod+shift+z"] },

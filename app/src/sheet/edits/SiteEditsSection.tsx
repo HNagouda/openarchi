@@ -36,7 +36,7 @@ export function SiteEditsSection({ tool }: { tool: EditTool }) {
             <ul className="edit-list">
               {things.map((thing) => (
                 <li key={thing.id} className={selected?.id === thing.id ? "is-selected" : ""}>
-                  <button type="button" className="edit-name" onClick={() => tool.setSelected(thing)}>
+                  <button type="button" className="edit-name" title={thingLabel(thing)} onClick={() => tool.setSelected(thing)}>
                     {thingLabel(thing)}
                   </button>
                   <Button variant="plain" onClick={() => (thing.is_planted ? tool.toggleRemoved(thing) : tool.restore(thing))}>

@@ -22,7 +22,17 @@ What changed in each version of openarchi, newest first.
 - A Palette / Realistic switch under the view paints the site in real colours instead: brick and plaster facades with rows of windows a storey apart, darker roofs, a sheen of sky on the water, trees that differ a little, and a blue sky. The choice is remembered on this computer.
 - Realistic lays the newest aerial photo of the Netherlands (Beeldmateriaal Nederland, via PDOK) on the ground and takes the roofs from it. It is fetched the first time you switch to Realistic, never with the site, and kept in the tile cache. A 300 m site's photo is about 1.7 MB. Its credit shows in the corner of the view and on every saved picture, and if it cannot be fetched you get a warning and plain real colours.
 - Light in the 3D view is softer and closer to real: soft shadows sized to the site, a sky light that is bluer from above, a haze that hides where the data ends, and darker wall feet where less sky reaches. A low sun is warmer in Realistic.
-- Assistants can import, place, turn, re-read and remove the model and choose the buildings it replaces, with the same rules as the app, and `get_project` describes it.
+- Assistants can import, place, turn, re-read and remove the model and choose the buildings and trees it replaces, with the same rules as the app, and `get_project` describes it.
+
+### Site edits
+
+- Trees and buildings on the site can be taken away, and trees moved or planted. **E**, or Edit trees and buildings in the inspector's new Site edits section, turns on an edit tool on a plan sheet: click a tree or building to select it, **Delete** takes it away or brings it back, drag a tree or nudge it with the arrow keys (ten metres with ⇧) to move it, and Plant trees plants a new one with each click inside the site. Every edit undoes like any other.
+- While the tool is on, removed trees and buildings show as dashed outlines, so they can be found and clicked to bring them back, and a moved tree shows a line from where the survey has it. The Site edits section lists every edit with a button to restore it, or to remove a planted tree.
+- Edits are saved with the project and seen everywhere the site is drawn: every sheet in every view, the shadows, hours of sun, sky view, solar radiation, wind and view diagrams, the 3D view, reports, DXF and laser cutting files. Ratios and the analysis still count the site as it was fetched, as they do with a model on it.
+- An edit names its tree or building by the id BGT or BAG gives it, so fetching the site again keeps the edits. An edit whose tree or building the new fetch no longer has is dropped.
+- Placing or moving the model now also takes away the trees in its way: a tree whose trunk stands inside the model's footprint, or within the 3 m crown every view draws a tree with. The Model section lists them with a box each, next to the buildings, and removing the model brings them back. Trees and buildings you removed by hand stay removed when the model moves.
+- The buildings a model replaced in a project saved before this version become edits under the model when it opens, so they stay replaced.
+- Assistants can find the tree or building at a point, remove and restore it, move and plant trees and list the edits, with the same rules as the app.
 
 ### Sites
 

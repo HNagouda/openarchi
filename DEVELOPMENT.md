@@ -54,7 +54,8 @@ crates/core/            the library: no window, no async
   src/pin.rs            landmarks in RD New metres, shown on every sheet
   src/highlight.rs      areas marked inside the site in RD New metres, shown on every sheet
   src/selection.rs      a sheet's area, opened from a highlight: the scene cut to it
-  src/model.rs          the user's imported building model, and model/: reading OBJ and glTF, the packed mesh in the project file, its merged faces and footprint, and placing it on the site with the buildings it replaces
+  src/model.rs          the user's imported building model, and model/: reading OBJ and glTF, the packed mesh in the project file, its merged faces and footprint, placing it on the site, and the buildings and trees it stands on (under.rs)
+  src/edits.rs          site edits: trees and buildings removed, trees moved and planted, by source id; edits/apply.rs gives the edited scene every sheet, the 3D view and the exports draw, edits/editable.rs the tree or building at a point
   src/view3d.rs         the site as triangles for the app's live 3D view in the sheet's colours, the sun through a day, and view3d/photo.rs: the aerial photo for its realistic finish
   src/library.rs        project files, backups and Recently Deleted
   src/environment.rs    noise, air, flood, slope and people as numbers, for get_environment
@@ -96,6 +97,7 @@ scripts/mcp.sh          call any MCP tool from the shell
 | A new view mode | a `ViewMode` in `view.rs`, drawn by a module in `crates/core/src/render/` that returns a `SheetDrawing`, like `render/section.rs` |
 | A new export format | `crates/core/src/export/` |
 | A new model format | a reader in `crates/core/src/model/` that returns a `RawMesh`, chosen by extension in `model.rs::read`; a small file in `crates/core/tests/fixtures/models/` made by `make_models.py` |
+| Something the user can change about the fetched site, like removing a tree | `SiteEdits` in `crates/core/src/edits.rs`, applied in `edits/apply.rs::edited`, which the Tauri commands (`render.rs::edited_scene`), the MCP server (`server.rs::edited_scene`) and reports call before drawing; ratios and the analysis keep the fetched scene. The app's edit tool is `app/src/sheet/edits/`, with the same rules in `siteEdits.ts` |
 | Something more in the 3D view | the data in `crates/core/src/view3d.rs` (its colours from the sheet in `view3d/colours.rs`), drawn in `app/src/viewer/scene.ts` with the materials of both finishes in `materials.ts`; `stage.ts` owns the renderer and when to draw, `atmosphere.ts` the sun, sky and haze, `navigation.ts` the camera |
 | Something the 3D view fetches for itself, like the aerial photo | the service in `crates/core/src/sources/`, the tiles and their levels in `crates/core/src/view3d/photo.rs`, asked for by its own Tauri command when the view first needs it |
 | A new analysis section or design note | `crates/core/src/analysis/`: data in its own module, the section in `sections.rs` (a climate section's facts in `sections/climate_facts.rs`), the rule in `notes.rs` |
@@ -132,6 +134,7 @@ cargo run --release -p openarchi-core --example report_samples   # a sample repo
 cargo run --release -p openarchi-core --example highlight_samples # highlights in every theme and view, target/render-samples/highlights/
 cargo run --release -p openarchi-core --example pin_samples       # every kind of pin in every theme and view, target/render-samples/pins/
 cargo run --release -p openarchi-core --example model_samples     # the test model in plan, axonometric and shadows, with SVG sizes and times beside the same sheet without it, target/render-samples/model/
+cargo run --release -p openarchi-core --example edits_samples     # the model and some trees and a building removed, moved and planted, each sheet before and after, target/render-samples/edits/
 cargo run --release -p openarchi-core --example netherlands_outline  # rebuilds the outline of the country on the locator map, assets/places/
 ```
 
