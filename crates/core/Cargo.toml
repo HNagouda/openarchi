@@ -14,17 +14,17 @@ geo = { version = "0.29", features = ["use-serde"] }
 # City blocks cut every street surface from the site in one nonzero overlay,
 # which geo's even-odd BooleanOps cannot do with overlapping surfaces. The
 # version geo 0.29 already builds on, so it adds no new crate.
-i_overlay = "1.9"
+i_overlay = "9.1"
 thiserror = "2"
 # SVG to PNG and PDF. No system fonts: only the fonts bundled in assets/fonts,
 # so output looks the same on every machine. Versions move together; svg2pdf
 # 0.13 is built on usvg 0.45.
-usvg = { version = "0.45", default-features = false, features = ["text"] }
-resvg = { version = "0.45", default-features = false, features = ["text"] }
+usvg = { version = "0.48", default-features = false, features = ["text"] }
+resvg = { version = "0.48", default-features = false, features = ["text"] }
 svg2pdf = { version = "0.13", default-features = false, features = ["text"] }
 # Puts several svg2pdf pages into one PDF. Must be the version svg2pdf 0.13
 # itself builds on, so its chunks fit; it adds no new crate to the build.
-pdf-writer = "0.12"
+pdf-writer = "0.15"
 # Glyph advances from the bundled fonts, so the renderer can wrap titles and
 # keep furniture from colliding. Same version usvg already pulls in.
 ttf-parser = "0.25"
@@ -39,15 +39,15 @@ zune-jpeg = "0.5"
 contour = "0.13"
 humantime = "2"
 # GeoJSON from the PDOK OGC APIs, straight into geo types.
-geojson = "0.24"
+geojson = "1.0"
 # Library: the platform data folder, and the random suffix on project ids.
-dirs = "6"
+dirs = "7"
 fastrand = "2"
 # Stored scenes and cached tiles are compressed. zstd rather than gzip: about
 # a third smaller on scene JSON and several times faster to unpack.
 zstd = "0.14"
 # The compressed scene sits inside the JSON project file as text.
-base64 = "0.22"
+base64 = "0.23"
 # Imported models. Archicad writes OBJ from Save As without add-ons; SketchUp,
 # Rhino and Blender write GLB. Both read in the core, so the MCP server imports
 # what the app imports. tobj's default ahash only speeds up its vertex map.
