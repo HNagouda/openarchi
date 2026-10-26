@@ -10,6 +10,7 @@
 
 import * as THREE from "three";
 import type { Layer } from "../lib/types";
+import type { PhotoLevel } from "./photo";
 
 export type Finish = "palette" | "realistic";
 
@@ -59,25 +60,41 @@ export const REAL_MODEL = "#EDEAE4";
 export const REAL_HORIZON = "#D8E2EA";
 export const REAL_ZENITH = "#7FA4CC";
 
-type BuildingOptions = { finish: Finish; storeyM: number; hasFacades: boolean };
+type BuildingOptions = {
+  finish: Finish;
+  storeyM: number;
+  hasFacades: boolean;
+  /** The aerial photo's levels, site first: realistic roofs take their colour from it. */
+  photo: PhotoLevel[] | null;
+};
 
 /** A building surface: its colour in the palette, or brick and windows in the realistic finish. */
-export function buildingMaterial(colour: string, { finish, storeyM, hasFacades }: BuildingOptions): THREE.MeshLambertMaterial {
+export function buildingMaterial(colour: string, { finish, storeyM, hasFacades, photo }: BuildingOptions): THREE.MeshLambertMaterial {
   const material = new THREE.MeshLambertMaterial({ color: colour });
   const isFacaded = finish === "realistic" && hasFacades;
+  const roofPhoto = isFacaded && photo && photo.length > 0 ? photo : null;
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uFacades = { value: FACADES.map((tone) => new THREE.Color(tone)) };
     shader.uniforms.uRoof = { value: new THREE.Color(ROOF) };
     shader.uniforms.uGlass = { value: new THREE.Color(GLASS) };
     shader.uniforms.uStorey = { value: storeyM };
     if (isFacaded) shader.defines = { ...shader.defines, FACADES: "" };
+    if (roofPhoto) {
+      // The site's level and the widest; the same one twice when there is only one.
+      const around = roofPhoto[roofPhoto.length - 1];
+      shader.defines = { ...shader.defines, ROOF_PHOTO: "" };
+      shader.uniforms.uSitePhoto = { value: roofPhoto[0].texture };
+      shader.uniforms.uSiteRect = { value: roofPhoto[0].rect };
+      shader.uniforms.uAroundPhoto = { value: around.texture };
+      shader.uniforms.uAroundRect = { value: around.rect };
+    }
     shader.vertexShader = withSitePosition(shader.vertexShader, `attribute float aTop;\nattribute float aSeed;\nvarying float vTop;\nvarying float vSeed;`, `vTop = aTop;\nvSeed = aSeed;`);
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${SITE_VARYINGS}\n${FACADE_FUNCTIONS}`)
       .replace("#include <color_fragment>", `#include <color_fragment>\n${BUILDING_COLOUR}`);
   };
   // Every palette colour compiles the same program; only the finish changes it.
-  material.customProgramCacheKey = () => (isFacaded ? "building-facades" : "building");
+  material.customProgramCacheKey = () => (roofPhoto ? "building-roof-photo" : isFacaded ? "building-facades" : "building");
   return material;
 }
 
@@ -160,6 +177,21 @@ float windowShare(vec3 p, vec3 n) {
   return mix(average, across * up, detail) * belowEaves;
 }
 
+#ifdef ROOF_PHOTO
+uniform sampler2D uSitePhoto;
+uniform vec4 uSiteRect;
+uniform sampler2D uAroundPhoto;
+uniform vec4 uAroundRect;
+
+// The roof as the aerial photo saw it: from the site's finer photo where it covers, else the neighbourhood's.
+vec3 photographedRoof(vec2 at) {
+  vec2 inSite = (at - uSiteRect.xy) / uSiteRect.zw;
+  bool isInSite = all(greaterThanEqual(inSite, vec2(0.0))) && all(lessThanEqual(inSite, vec2(1.0)));
+  vec2 inAround = (at - uAroundRect.xy) / uAroundRect.zw;
+  return isInSite ? texture2D(uSitePhoto, inSite).rgb : texture2D(uAroundPhoto, inAround).rgb;
+}
+#endif
+
 vec3 facadeTone() {
   int index = int(floor(vSeed * ${FACADES.length.toFixed(1)}));
   float brightness = 0.9 + 0.2 * fract(vSeed * 7.31);
@@ -172,6 +204,9 @@ float isWall = 1.0 - step(0.5, abs(vSiteNormal.z));
 #ifdef FACADES
   vec3 tone = facadeTone();
   vec3 roof = mix(uRoof, tone, ${ROOF_SHARE_OF_FACADE.toFixed(2)});
+  #ifdef ROOF_PHOTO
+    roof = photographedRoof(vSitePosition.xy);
+  #endif
   diffuseColor.rgb = mix(roof, tone, isWall);
   diffuseColor.rgb = mix(diffuseColor.rgb, uGlass, windowShare(vSitePosition, vSiteNormal) * isWall);
 #endif

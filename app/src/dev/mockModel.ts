@@ -41,6 +41,8 @@ export function answerModel(command: string, args: Record<string, unknown>): unk
   if (command === "covered_buildings") return fixture.covered;
   // The 3D view: the sheet's palette, its diagram where the fixtures have it, one day; saved pictures go nowhere.
   if (command === "view_3d") return mockView3d(args.look as Look);
+  // Written by app_fixtures when it could reach PDOK; without it the view shows real colours only.
+  if (command === "aerial_photo") return fetch("/dev-fixtures/aerial-photo.json").then((response) => (response.ok ? response.json() : Promise.reject(new Error("The aerial photo isn't in the fixtures."))));
   if (command === "sun_day") return fetch("/dev-fixtures/sun-day.json").then((response) => response.json());
   if (command === "save_view_png") return args.path;
   return undefined;

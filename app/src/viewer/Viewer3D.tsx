@@ -3,7 +3,7 @@
 // (SheetStep imports it lazily), so the rest of the app never carries it.
 
 import { useEffect, useRef, useState } from "react";
-import { errorText, sunDay as fetchSunDay, view3d } from "../lib/ipc";
+import { aerialPhoto, errorText, sunDay as fetchSunDay, view3d } from "../lib/ipc";
 import { readPreference, writePreference } from "../lib/storage";
 import type { Look, SunDay } from "../lib/types";
 import { Button } from "../ui/Button";
@@ -58,7 +58,9 @@ export default function Viewer3D({ look, projectName, onClose }: Props) {
   const [finish, setFinish] = useState<Finish>(() => readPreference<Finish>(FINISH_PREFERENCE, "palette"));
   // What the view opens with; later changes go through the effects below.
   const opening = useRef({ look, finish });
-  const credit: string | null = null;
+  // The photo is asked for once, the first time the realistic finish shows.
+  const [photo, setPhoto] = useState<"none" | "loading" | "failed" | { credit: string }>("none");
+  const credit = finish === "realistic" && typeof photo === "object" ? photo.credit : null;
   const latest = useRef({ minute, day });
   latest.current = { minute, day };
 
@@ -86,6 +88,22 @@ export default function Viewer3D({ look, projectName, onClose }: Props) {
     writePreference(FINISH_PREFERENCE, finish);
     if (isReady) stage.current?.setFinish(finish);
   }, [finish, isReady]);
+
+  useEffect(() => {
+    if (!isReady || finish !== "realistic" || photo !== "none") return;
+    setPhoto("loading");
+    aerialPhoto()
+      .then(async (fetched) => {
+        await stage.current?.setPhoto(fetched);
+        setPhoto({ credit: fetched.credit });
+        if (fetched.warnings.length > 0) toast("Part of the aerial photo could not be fetched; the rest is shown.");
+      })
+      .catch((reason) => {
+        setPhoto("failed");
+        // A warning, not an error: the realistic finish works without the photo.
+        toast(`The aerial photo could not be fetched, so the ground shows plain colours. ${errorText(reason)}`);
+      });
+  }, [isReady, finish, photo, toast]);
 
   useEffect(() => {
     let isCurrent = true;
@@ -183,6 +201,8 @@ export default function Viewer3D({ look, projectName, onClose }: Props) {
           </div>
         )}
         {isReady && <ViewButtons navigation={stage.current?.navigation ?? null} mode={mode} />}
+        {finish === "realistic" && photo === "loading" && <div className="viewer-progress">Fetching the aerial photo…</div>}
+        {credit && <div className="viewer-credit">{credit}</div>}
         {progress !== null && <div className="viewer-progress">Saving… {Math.round(progress * PERCENT)} %</div>}
       </div>
       <footer className="viewer-controls">

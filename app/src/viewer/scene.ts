@@ -1,7 +1,9 @@
 // The site as three.js meshes, from the triangles the core sends: the ground,
 // the buildings, the neighbourhood, the model, and trees as a trunk and a
 // round crown. The palette finish keeps the sheet's colours; the realistic
-// finish paints the same shapes in real ones (materials.ts). Everything casts
+// finish paints the same shapes in real ones (materials.ts), and where the
+// aerial photo lies under it, leaves the ground to the photo but for a sheen
+// on the water. Everything casts
 // or catches shadows. The frame is the core's: x east, y north, z up, in metres.
 
 import * as THREE from "three";
@@ -19,6 +21,7 @@ import {
   seedOf,
   waterMaterial,
 } from "./materials";
+import type { PhotoLevel } from "./photo";
 
 // Corners per triangle, and numbers per corner.
 const CORNERS = 3;
@@ -26,16 +29,22 @@ const TREE_CROWN_DETAIL = 2;
 const TRUNK_RADIUS_M = 0.25;
 const TRUNK_SIDES = 6;
 const TRUNK_COLOUR = "#6B5B4B";
+// Over the photo, water is a tint and a sheen, letting the photo's own water show through.
+const WATER_OVER_PHOTO_OPACITY = 0.25;
 // Real trees differ: crowns this much larger or smaller, and a little lighter or darker.
 const CROWN_SIZE_SPREAD = 0.3;
 const CROWN_LIGHTNESS_SPREAD = 0.12;
 const CROWN_HUE_SPREAD = 0.03;
 
 /** Every mesh of the site in one group, ready to add to a scene. */
-export function siteGroup(view: View3d, finish: Finish): THREE.Group {
+export function siteGroup(view: View3d, finish: Finish, photo: PhotoLevel[] | null): THREE.Group {
   const group = new THREE.Group();
-  for (const surface of [...view.ground, ...view.surroundings]) group.add(groundMesh(surface, finish));
-  const buildingOptions = { finish, storeyM: view.storey_height_m, hasFacades: true };
+  const isOnPhoto = photo !== null;
+  for (const surface of [...view.ground, ...view.surroundings]) {
+    if (isOnPhoto && surface.layer !== "water") continue;
+    group.add(groundMesh(surface, finish, isOnPhoto));
+  }
+  const buildingOptions = { finish, storeyM: view.storey_height_m, hasFacades: true, photo };
   for (const surface of [...view.buildings, view.neighbours]) {
     if (surface.triangle_count === 0) continue;
     const mesh = surfaceMesh(surface, buildingMaterial(surface.colour, buildingOptions));
@@ -57,10 +66,11 @@ export function siteGroup(view: View3d, finish: Finish): THREE.Group {
 }
 
 /** A ground surface: it only catches shadows, being flat. */
-function groundMesh(surface: Surface, finish: Finish): THREE.Mesh {
+function groundMesh(surface: Surface, finish: Finish, isOnPhoto: boolean): THREE.Mesh {
   const isReal = finish === "realistic";
   const colour = !isReal ? surface.colour : surface.layer ? (REAL_GROUND[surface.layer] ?? REAL_OPEN_GROUND) : REAL_OPEN_GROUND;
-  const material = surface.layer === "water" ? waterMaterial(colour, finish, REAL_ZENITH) : new THREE.MeshLambertMaterial({ color: colour });
+  const opacity = isOnPhoto ? WATER_OVER_PHOTO_OPACITY : 1;
+  const material = surface.layer === "water" ? waterMaterial(colour, finish, REAL_ZENITH, opacity) : new THREE.MeshLambertMaterial({ color: colour });
   return surfaceMesh(surface, material);
 }
 
@@ -123,7 +133,11 @@ export function disposeGroup(group: THREE.Group) {
     if (object instanceof THREE.Mesh) {
       object.geometry.dispose();
       const materials = Array.isArray(object.material) ? object.material : [object.material];
-      materials.forEach((material) => material.dispose());
+      for (const material of materials) {
+        // The photo's texture is the only one the view makes.
+        if ("map" in material && material.map instanceof THREE.Texture) material.map.dispose();
+        material.dispose();
+      }
     }
   });
 }

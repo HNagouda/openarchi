@@ -339,6 +339,21 @@ export type View3d = {
   trees: { colour: string; at: [number, number][]; height_m: number; crown_m: number };
 };
 
+/** The aerial photo for the 3D view's realistic finish: the site, then the neighbourhood, each a grid of JPEG tiles. */
+export type AerialPhoto = {
+  levels: {
+    west: number;
+    south: number;
+    columns: number;
+    rows: number;
+    tile_m: number;
+    tile_px: number;
+    tiles: { column: number; row: number; jpeg: string }[];
+  }[];
+  credit: string;
+  warnings: string[];
+};
+
 /** Where the sun stands through one day, every few minutes of the clock. */
 export type SunStep = { minute: number; azimuth_deg: number; altitude_deg: number };
 export type SunDay = { month: number; day: number; steps: SunStep[] };

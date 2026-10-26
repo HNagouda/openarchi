@@ -9,10 +9,11 @@
 // curves that would shift every hue of a palette.
 
 import * as THREE from "three";
-import type { SunStep, View3d } from "../lib/types";
+import type { AerialPhoto, SunStep, View3d } from "../lib/types";
 import { createAtmosphere, type Atmosphere } from "./atmosphere";
 import type { Finish } from "./materials";
 import { createNavigation, type Mode, type Navigation, type SheetAngle } from "./navigation";
+import { photoGroup, type PhotoLevel } from "./photo";
 import { disposeGroup, siteGroup } from "./scene";
 
 const FIELD_OF_VIEW_DEG = 35;
@@ -33,6 +34,8 @@ export type Stage = {
   setSun: (sun: SunStep) => void;
   /** Paints the site in the sheet's palette or in real colours. */
   setFinish: (finish: Finish) => void;
+  /** Lays the aerial photo on the ground, shown in the realistic finish. */
+  setPhoto: (photo: AerialPhoto) => Promise<void>;
   /** Turns the camera round the site until called with false. */
   setOrbiting: (isOrbiting: boolean) => void;
   /** Calls `tick` with the seconds since the last frame on every frame until it returns false. */
@@ -70,7 +73,10 @@ export function createStage(host: HTMLElement, { view, finish, angle, onMode }: 
   const world = new THREE.Group();
   scene.add(world);
   let shownFinish = finish;
-  let site = siteGroup(view, finish);
+  let photo: { group: THREE.Group; levels: PhotoLevel[] } | null = null;
+  // A photo still decoding when the view closes is thrown away.
+  let isDisposed = false;
+  let site = siteGroup(view, finish, null);
   world.add(site);
   const maxTexturePx = renderer.capabilities.maxTextureSize;
   let atmosphere: Atmosphere = createAtmosphere(scene, view, radius, finish, maxTexturePx);
@@ -161,18 +167,40 @@ export function createStage(host: HTMLElement, { view, finish, angle, onMode }: 
     requestDraw();
   };
 
+  /** Builds the site again for the finish shown, on the photo when there is one to show. */
+  const rebuild = () => {
+    const shownPhoto = shownFinish === "realistic" ? photo : null;
+    world.remove(site);
+    disposeGroup(site);
+    site = siteGroup(view, shownFinish, shownPhoto?.levels ?? null);
+    world.add(site);
+    if (photo) photo.group.visible = shownPhoto !== null;
+    renderer.shadowMap.needsUpdate = true;
+    requestDraw();
+  };
+
   const setFinish = (next: Finish) => {
     if (next === shownFinish) return;
     shownFinish = next;
-    world.remove(site);
-    disposeGroup(site);
-    site = siteGroup(view, next);
-    world.add(site);
     atmosphere.dispose();
     atmosphere = createAtmosphere(scene, view, radius, next, maxTexturePx);
     if (lastSun) atmosphere.setSun(lastSun);
-    renderer.shadowMap.needsUpdate = true;
-    requestDraw();
+    rebuild();
+  };
+
+  const setPhoto = async (aerial: AerialPhoto) => {
+    const built = await photoGroup(aerial, renderer.capabilities.getMaxAnisotropy());
+    if (isDisposed) {
+      disposeGroup(built.group);
+      return;
+    }
+    if (photo) {
+      world.remove(photo.group);
+      disposeGroup(photo.group);
+    }
+    photo = built;
+    world.add(photo.group);
+    rebuild();
   };
 
   // Drawn and returned in one go, so the canvas still holds the picture when it is read.
@@ -188,6 +216,7 @@ export function createStage(host: HTMLElement, { view, finish, angle, onMode }: 
   document.addEventListener("visibilitychange", onVisibility);
 
   const dispose = () => {
+    isDisposed = true;
     isOrbiting = false;
     ticks = [];
     cancelAnimationFrame(loop);
@@ -196,9 +225,10 @@ export function createStage(host: HTMLElement, { view, finish, angle, onMode }: 
     navigation.dispose();
     atmosphere.dispose();
     disposeGroup(site);
+    if (photo) disposeGroup(photo.group);
     renderer.dispose();
     renderer.domElement.remove();
   };
 
-  return { setSun, setFinish, setOrbiting, animate, picture, turnCamera, navigation, dispose };
+  return { setSun, setFinish, setPhoto, setOrbiting, animate, picture, turnCamera, navigation, dispose };
 }
