@@ -6,7 +6,7 @@
 //! it does on every sheet.
 
 use crate::render::{
-    building_height, lighten_massing, massing_fill, mix, muted_colour, resolve_colour,
+    building_height, lighten_massing, luminance, massing_fill, mix, muted_colour, resolve_colour,
     resolve_layers, roof_fill, RenderInput, ResolvedLayer, ESTIMATED_GREY,
 };
 use crate::scene::{Feature, Layer};
@@ -17,6 +17,9 @@ use super::Sky;
 
 /// How far the sky overhead moves from the paper towards the palette's water.
 const SKY_TINT: f64 = 0.3;
+/// Plain buildings closer to the paper than this in luminance stand in their
+/// outline colour instead, see `massing`.
+const MIN_MASSING_CONTRAST: f64 = 0.08;
 
 pub struct Colours<'a> {
     input: &'a RenderInput<'a>,
@@ -44,8 +47,11 @@ impl<'a> Colours<'a> {
     /// sheet's when its height is a guess.
     pub fn building(&self, feature: &Feature) -> String {
         let colour = match &self.buildings {
-            Some(resolved) => roof_fill(resolved, feature, self.input.diagram, self.theme()),
-            None => massing_fill(self.theme()),
+            Some(resolved) if resolved.classes.is_some() => {
+                roof_fill(resolved, feature, self.input.diagram, self.theme())
+            }
+            Some(resolved) => self.massing(resolved.style.fill.as_deref()),
+            None => self.massing(None),
         };
         let (_, is_estimated) = building_height(feature);
         if is_estimated {
@@ -57,7 +63,26 @@ impl<'a> Colours<'a> {
 
     /// Every building around the site, in the sheet's muted roof colour.
     pub fn neighbour(&self) -> String {
-        muted_colour(&massing_fill(self.theme()), &self.theme().palette.paper)
+        muted_colour(&self.massing(None), &self.theme().palette.paper)
+    }
+
+    /// The colour plain buildings stand in: the sheet's own `fill`, or the
+    /// theme's massing colour. A palette that draws buildings as a dark fill
+    /// on dark paper with a light outline, like Ink, would leave them unseen
+    /// in 3D, which draws no outlines, so those stand in the outline's colour.
+    fn massing(&self, fill: Option<&str>) -> String {
+        let theme = self.theme();
+        let fill = fill.map_or_else(|| massing_fill(theme), str::to_string);
+        let contrast = (luminance(&fill) - luminance(&theme.palette.paper)).abs();
+        if contrast >= MIN_MASSING_CONTRAST {
+            return fill;
+        }
+        theme
+            .layers
+            .get(&Layer::Building)
+            .and_then(|style| style.stroke.as_deref())
+            .and_then(|stroke| resolve_colour(&theme.palette, stroke).ok())
+            .unwrap_or(fill)
     }
 
     /// The site's ground where no layer covers it.

@@ -9,6 +9,7 @@ use crate::area::{Area, LonLat};
 use crate::catalog::{builtin_diagrams, builtin_themes};
 use crate::model::{Model, Placement};
 use crate::project::Look;
+use crate::render::luminance;
 use crate::scene::Attributes;
 use crate::theme::Theme;
 
@@ -52,6 +53,13 @@ fn site(features: Vec<Feature>) -> Scene {
     }
 }
 
+fn theme(id: &str) -> Theme {
+    builtin_themes()
+        .into_iter()
+        .find(|theme| theme.id == id)
+        .unwrap()
+}
+
 fn paper() -> Theme {
     builtin_themes()
         .into_iter()
@@ -61,11 +69,15 @@ fn paper() -> Theme {
 
 /// The 3D view of `scene` opened from a sheet of `diagram_id` in the paper palette.
 fn view_of(scene: &Scene, diagram_id: &str, model: Option<&Model>) -> View3d {
+    view_in(scene, diagram_id, "paper", model)
+}
+
+fn view_in(scene: &Scene, diagram_id: &str, theme_id: &str, model: Option<&Model>) -> View3d {
     let diagram = builtin_diagrams()
         .into_iter()
         .find(|diagram| diagram.id == diagram_id)
         .unwrap();
-    let theme = paper();
+    let theme = theme(theme_id);
     let look = Look {
         diagram_id: diagram_id.to_string(),
         ..Look::default()
@@ -259,4 +271,26 @@ fn the_sun_through_the_day_is_the_sun_the_sheets_draw() {
         (sheet.azimuth_deg, sheet.altitude_deg)
     );
     assert!(day.steps[0].altitude_deg < 0.0);
+}
+
+#[test]
+fn in_a_palette_of_outlined_buildings_the_buildings_stand_in_the_outline_colour() {
+    let mut scene = site(vec![building("a", (0.0, 0.0), (10.0, 10.0), 12.0)]);
+    scene.context = vec![building("b", (150.0, 0.0), (160.0, 10.0), 12.0)];
+    let paper_of = |id: &str| luminance(&theme(id).palette.paper);
+
+    let ink = view_in(&scene, "context", "ink", None);
+
+    let building = luminance(&ink.buildings[0].colour);
+    let neighbour = luminance(&ink.neighbours.colour);
+    assert!(
+        building - paper_of("ink") > 0.5,
+        "{}",
+        ink.buildings[0].colour
+    );
+    assert!(
+        neighbour - paper_of("ink") > 0.05,
+        "{}",
+        ink.neighbours.colour
+    );
 }
