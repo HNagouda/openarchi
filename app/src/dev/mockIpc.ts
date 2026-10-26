@@ -125,6 +125,9 @@ async function answer(command: string, args: Args) {
   if (palette !== undefined) return palette;
   const model = answerModel(command, args);
   if (model !== undefined) return model;
+  // The save and folder dialogs answer at once, as if the user chose the Desktop.
+  if (command === "plugin:dialog|save") return `/Users/you/Desktop/${(args.options as { defaultPath?: string }).defaultPath ?? "openarchi"}`;
+  if (command === "plugin:dialog|open") return "/Users/you/Desktop";
   if (command === "library_path") return "/Users/you/Documents/openarchi";
   if (command === "list_projects") return PROJECTS;
   if (command === "list_trash") return TRASH;

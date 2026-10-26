@@ -44,7 +44,11 @@ export function answerModel(command: string, args: Record<string, unknown>): unk
   // Written by app_fixtures when it could reach PDOK; without it the view shows real colours only.
   if (command === "aerial_photo") return fetch("/dev-fixtures/aerial-photo.json").then((response) => (response.ok ? response.json() : Promise.reject(new Error("The aerial photo isn't in the fixtures."))));
   if (command === "sun_day") return fetch("/dev-fixtures/sun-day.json").then((response) => response.json());
-  if (command === "save_view_png") return args.path;
+  if (command === "save_view_png") {
+    // Kept so a browser test can look at what would have been written.
+    (window as unknown as { savedViewPngs: string[] }).savedViewPngs = [...((window as unknown as { savedViewPngs?: string[] }).savedViewPngs ?? []), String(args.png)];
+    return args.path;
+  }
   return undefined;
 }
 

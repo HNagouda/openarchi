@@ -2,6 +2,9 @@
 //! a few diagrams in every built-in palette, so the mock can show the view
 //! the way each sheet opens it. The sun on the equinox, and the aerial photo,
 //! which is fetched from PDOK into the tile cache the examples share.
+//!
+//! `VIEW3D_SCENE=.scratch/site.json` draws these from a scene `fetch_site`
+//! wrote instead, which has the neighbourhood the checked-in fixture lacks.
 
 use std::fs;
 use std::path::Path;
@@ -20,10 +23,16 @@ use openarchi_core::view3d::photo;
 /// the plain one for every other diagram.
 const DIAGRAMS: [&str; 3] = ["context", "building-age", "building-use"];
 const FOLDER: &str = "view3d";
+const SCENE_VARIABLE: &str = "VIEW3D_SCENE";
 /// The cache `fetch_site` fills, so the photo is downloaded once.
 const TILE_CACHE: &str = "../../target/tile-cache";
 
-pub fn write(scene: &Scene, model: &Model, out_dir: &Path) {
+pub fn write(fixture: &Scene, model: &Model, out_dir: &Path) {
+    let fetched = std::env::var(SCENE_VARIABLE).ok().map(|path| {
+        let text = fs::read_to_string(&path).expect("read the scene in VIEW3D_SCENE");
+        serde_json::from_str::<Scene>(&text).expect("parse the scene in VIEW3D_SCENE")
+    });
+    let scene = fetched.as_ref().unwrap_or(fixture);
     let folder = out_dir.join(FOLDER);
     fs::create_dir_all(&folder).expect("make the 3D view folder");
     let diagrams = builtin_diagrams();

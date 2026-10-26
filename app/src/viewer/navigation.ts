@@ -11,6 +11,7 @@
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { listenToMoveKeys } from "./keys";
 import { isTrackpadScroll, wheelPixels } from "./wheel";
 
 // The opening view: from the south-west and above, far enough to see the site whole.
@@ -35,7 +36,6 @@ const PINCH_ZOOM_PER_PIXEL = 0.01;
 // Keys: a share of the distance to the target per second, and degrees per second.
 const KEY_MOVE_SHARE_PER_SECOND = 0.6;
 const KEY_TURN_DEG_PER_SECOND = 60;
-const FAST_FACTOR = 4;
 // Walking: the pace of a walk, how far ahead the eye looks, and how fast a drag turns it.
 const WALK_M_PER_SECOND = 1.4;
 const WALK_LOOK_AHEAD_M = 1;
@@ -191,7 +191,8 @@ export function createNavigation(options: Options): Navigation {
     const box = canvas.getBoundingClientRect();
     const pointer = new THREE.Vector2(((clientX - box.left) / box.width) * 2 - 1, -((clientY - box.top) / box.height) * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
-    const [hit] = raycaster.intersectObject(options.site, true);
+    // Trees are see-through to the pointer: nobody means to stand on a crown or zoom into one.
+    const hit = raycaster.intersectObject(options.site, true).find((found) => !(found.object instanceof THREE.InstancedMesh));
     if (hit) return hit;
     const point = raycaster.ray.intersectPlane(ground, new THREE.Vector3());
     return point ? { point, face: null } : null;
@@ -311,48 +312,14 @@ export function createNavigation(options: Options): Navigation {
     return true;
   };
 
-  // * ====================================================================
-  // * === keys
-  // * ====================================================================
-
-  const held = new Set<string>();
-  let isMoving = false;
-  const onKeyDown = (event: KeyboardEvent) => {
-    if (isTyping(event) || event.metaKey || event.ctrlKey || event.altKey) return;
-    if (!MOVES[event.code]) return;
-    event.preventDefault();
-    held.add(event.code);
-    if (isMoving) return;
-    isMoving = true;
-    options.animate(moveFor);
-  };
-  const onKeyUp = (event: KeyboardEvent) => held.delete(event.code);
-  const onBlur = () => held.clear();
-  window.addEventListener("keydown", onKeyDown);
-  window.addEventListener("keyup", onKeyUp);
-  window.addEventListener("blur", onBlur);
-
-  function moveFor(seconds: number): boolean {
-    if (held.size === 0) {
-      isMoving = false;
-      return false;
-    }
-    let forward = 0;
-    let right = 0;
-    let turn = 0;
-    for (const code of held) {
-      const [f, r, t] = MOVES[code];
-      forward += f;
-      right += r;
-      turn += t;
-    }
-    const isFast = held.has("ShiftLeft") || held.has("ShiftRight");
-    const speed = mode === "walk" ? WALK_M_PER_SECOND : camera.position.distanceTo(controls.target) * KEY_MOVE_SHARE_PER_SECOND;
-    const step = speed * seconds * (isFast ? FAST_FACTOR : 1);
-    if (forward !== 0 || right !== 0) walkBy(forward * step, right * step);
-    if (turn !== 0) turnBy(turn * KEY_TURN_DEG_PER_SECOND * seconds);
-    return true;
-  }
+  const stopKeys = listenToMoveKeys({
+    animate: options.animate,
+    move: (forward, right, turn, seconds) => {
+      const speed = mode === "walk" ? WALK_M_PER_SECOND : camera.position.distanceTo(controls.target) * KEY_MOVE_SHARE_PER_SECOND;
+      if (forward !== 0 || right !== 0) walkBy(forward * speed * seconds, right * speed * seconds);
+      if (turn !== 0) turnBy(turn * KEY_TURN_DEG_PER_SECOND * seconds);
+    },
+  });
 
   // * ====================================================================
   // * === turning, and the ground's own directions
@@ -389,33 +356,9 @@ export function createNavigation(options: Options): Navigation {
     canvas.removeEventListener("pointerdown", onPointerDown);
     window.removeEventListener("pointermove", onPointerMove);
     window.removeEventListener("pointerup", onPointerUp);
-    window.removeEventListener("keydown", onKeyDown);
-    window.removeEventListener("keyup", onKeyUp);
-    window.removeEventListener("blur", onBlur);
+    stopKeys();
     controls.dispose();
   };
 
   return { fit, top, sheetAngle, pickStandpoint, leave, turn: (degrees) => turnBy(-degrees), dispose };
-}
-
-// What each key does: forward, right, turn left. Every key that moves, in one place.
-const MOVES: Record<string, [number, number, number]> = {
-  KeyW: [1, 0, 0],
-  ArrowUp: [1, 0, 0],
-  KeyS: [-1, 0, 0],
-  ArrowDown: [-1, 0, 0],
-  KeyA: [0, -1, 0],
-  ArrowLeft: [0, -1, 0],
-  KeyD: [0, 1, 0],
-  ArrowRight: [0, 1, 0],
-  KeyQ: [0, 0, 1],
-  KeyE: [0, 0, -1],
-  ShiftLeft: [0, 0, 0],
-  ShiftRight: [0, 0, 0],
-};
-
-/** True while the user types into a field, where keys are not for moving. */
-function isTyping(event: KeyboardEvent): boolean {
-  const target = event.target;
-  return target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement;
 }
