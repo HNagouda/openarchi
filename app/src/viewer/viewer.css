@@ -73,6 +73,10 @@
   width: 56px;
 }
 
+.viewer-palette {
+  width: 140px;
+}
+
 .viewer-divider {
   width: 1px;
   height: 20px;

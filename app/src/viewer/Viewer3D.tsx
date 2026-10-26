@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { aerialPhoto, errorText, sunDay as fetchSunDay, view3d } from "../lib/ipc";
 import { readPreference, writePreference } from "../lib/storage";
-import type { Look, SunDay } from "../lib/types";
+import type { Look, SunDay, Theme } from "../lib/types";
 import { Button } from "../ui/Button";
 import { Segmented } from "../ui/Segmented";
 import { useToast } from "../ui/Toasts";
@@ -32,16 +32,19 @@ const FINISHES: { value: Finish; label: string; tip: string }[] = [
   { value: "palette", label: "Palette", tip: "The sheet's palette and diagram colours" },
   { value: "realistic", label: "Realistic", tip: "Real colours, facades with windows, and the aerial photo where there is one" },
 ];
+const PALETTE_TIP = "The palette of this 3D view; the sheet keeps its own";
 
 type Props = {
   /** The sheet the view opens from: its diagram and palette colour the site, its date and time set the sun, its turn and tilt make the sheet angle. */
   look: Look;
+  /** Every palette the view can be coloured in; it opens in the sheet's. */
+  themes: Theme[];
   /** The project's name, for the names of saved pictures. */
   projectName: string;
   onClose: () => void;
 };
 
-export default function Viewer3D({ look, projectName, onClose }: Props) {
+export default function Viewer3D({ look, themes, projectName, onClose }: Props) {
   const moment = look.sun;
   const stem = fileStem(projectName);
   const host = useRef<HTMLDivElement>(null);
@@ -57,6 +60,9 @@ export default function Viewer3D({ look, projectName, onClose }: Props) {
   const [progress, setProgress] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("orbit");
   const [finish, setFinish] = useState<Finish>(() => readPreference<Finish>(FINISH_PREFERENCE, "palette"));
+  const [themeId, setThemeId] = useState(look.theme_id);
+  // The palette the stage is drawn in, which lags `themeId` while the core answers.
+  const shownThemeId = useRef(look.theme_id);
   // What the view opens with; later changes go through the effects below.
   const opening = useRef({ look, finish });
   // The photo is asked for once, the first time the realistic finish shows.
@@ -84,6 +90,24 @@ export default function Viewer3D({ look, projectName, onClose }: Props) {
       stage.current = null;
     };
   }, []);
+
+  // Another palette is the same site in other colours, so the camera stays put.
+  useEffect(() => {
+    if (!isReady || themeId === shownThemeId.current) return;
+    let isCurrent = true;
+    view3d({ ...opening.current.look, theme_id: themeId })
+      .then((view) => {
+        if (!isCurrent) return;
+        stage.current?.setView(view);
+        shownThemeId.current = themeId;
+      })
+      .catch((reason) => {
+        if (isCurrent) toast(`Couldn't change the palette. ${errorText(reason)}`, { isError: true });
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [themeId, isReady, toast]);
 
   useEffect(() => {
     writePreference(FINISH_PREFERENCE, finish);
@@ -230,6 +254,15 @@ export default function Viewer3D({ look, projectName, onClose }: Props) {
         <input className="text-input viewer-day tabular" aria-label="Day" type="number" min={1} max={MONTH_DAYS[date.month - 1]} value={date.day} onChange={(event) => changeDay(Number(event.target.value))} />
         <span className="viewer-divider" />
         <Segmented label="Finish" value={finish} options={FINISHES} onChange={setFinish} />
+        {finish === "palette" && (
+          <select className="text-input viewer-palette" aria-label="Palette" data-tip={PALETTE_TIP} value={themeId} disabled={!isReady} onChange={(event) => setThemeId(event.target.value)}>
+            {themes.map((theme) => (
+              <option key={theme.id} value={theme.id}>
+                {theme.name}
+              </option>
+            ))}
+          </select>
+        )}
         <span className="viewer-divider" />
         <Button icon="orbit" tip="Turn round the site; drag to turn, right-drag to slide, scroll to come closer" isActive={isOrbiting} disabled={!isReady} onClick={() => setOrbiting(!isOrbiting)}>
           Orbit

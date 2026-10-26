@@ -34,6 +34,8 @@ export type Stage = {
   setSun: (sun: SunStep) => void;
   /** Paints the site in the sheet's palette or in real colours. */
   setFinish: (finish: Finish) => void;
+  /** The same site in other colours, such as another palette; the camera stays where it is. */
+  setView: (view: View3d) => void;
   /** Lays the aerial photo on the ground, shown in the realistic finish. */
   setPhoto: (photo: AerialPhoto) => Promise<void>;
   /** Turns the camera round the site until called with false. */
@@ -55,7 +57,8 @@ type Options = {
   onMode: (mode: Mode) => void;
 };
 
-export function createStage(host: HTMLElement, { view, finish, angle, onMode }: Options): Stage {
+export function createStage(host: HTMLElement, { view: firstView, finish, angle, onMode }: Options): Stage {
+  let view = firstView;
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -179,12 +182,23 @@ export function createStage(host: HTMLElement, { view, finish, angle, onMode }: 
     requestDraw();
   };
 
+  /** The sky, light and haze again, for a new finish or new colours. */
+  const refreshAtmosphere = () => {
+    atmosphere.dispose();
+    atmosphere = createAtmosphere(scene, view, radius, shownFinish, maxTexturePx);
+    if (lastSun) atmosphere.setSun(lastSun);
+  };
+
   const setFinish = (next: Finish) => {
     if (next === shownFinish) return;
     shownFinish = next;
-    atmosphere.dispose();
-    atmosphere = createAtmosphere(scene, view, radius, next, maxTexturePx);
-    if (lastSun) atmosphere.setSun(lastSun);
+    refreshAtmosphere();
+    rebuild();
+  };
+
+  const setView = (next: View3d) => {
+    view = next;
+    refreshAtmosphere();
     rebuild();
   };
 
@@ -230,5 +244,5 @@ export function createStage(host: HTMLElement, { view, finish, angle, onMode }: 
     renderer.domElement.remove();
   };
 
-  return { setSun, setFinish, setPhoto, setOrbiting, animate, picture, turnCamera, navigation, dispose };
+  return { setSun, setFinish, setView, setPhoto, setOrbiting, animate, picture, turnCamera, navigation, dispose };
 }
