@@ -19,6 +19,10 @@ const PLANE_STEP_M: f64 = 0.01;
 const MIN_FACE_AREA_M2: f64 = 1e-6;
 /// A footprint piece smaller than this is a stray edge, not a part of the building.
 const MIN_FOOTPRINT_AREA_M2: f64 = 0.01;
+/// The footprint joins this many triangles at a time, then the pieces two by
+/// two. One overlay of every triangle of a real model, floor stacked on floor
+/// in plan, needed gigabytes and was killed; in steps each overlay stays small.
+const FOOTPRINT_BATCH: usize = 256;
 
 /// One flat face in the model's frame: its outline first, then its holes.
 #[derive(Debug, Clone, PartialEq)]
@@ -140,8 +144,7 @@ fn footprint(mesh: &Mesh) -> Vec<Polygon<f64>> {
         }
     }
 
-    contours
-        .simplify_shape(FillRule::NonZero, MIN_FOOTPRINT_AREA_M2)
+    joined(contours)
         .into_iter()
         .map(|shape| {
             let mut rings = shape.into_iter().map(|ring| {
@@ -155,6 +158,27 @@ fn footprint(mesh: &Mesh) -> Vec<Polygon<f64>> {
             Polygon::new(exterior, rings.collect())
         })
         .collect()
+}
+
+/// `contours` joined into shapes, outline first, then holes, in batches. The
+/// outlines come back counterclockwise and the holes clockwise, so the pieces
+/// of one round join again under the same nonzero fill.
+fn joined(contours: Vec<Vec<[f64; 2]>>) -> Vec<Vec<Vec<[f64; 2]>>> {
+    let join = |contours: Vec<Vec<[f64; 2]>>| {
+        contours.simplify_shape(FillRule::NonZero, MIN_FOOTPRINT_AREA_M2)
+    };
+    let mut pieces: Vec<Vec<Vec<[f64; 2]>>> = contours
+        .chunks(FOOTPRINT_BATCH)
+        .map(|batch| join(batch.to_vec()).concat())
+        .collect();
+    while pieces.len() > 1 {
+        pieces = pieces
+            .chunks(2)
+            .map(|pair| join(pair.concat()).concat())
+            .collect();
+    }
+
+    join(pieces.concat())
 }
 
 fn unit_normal([a, b, c]: &[[f64; 3]; 3]) -> Option<[f64; 3]> {

@@ -76,7 +76,7 @@ fn a_model_read_in_another_unit_keeps_its_place() {
 
     let reread = server.call_ok(
         "set_model_units",
-        json!({ "id": id, "unit": "centimetre", "up": "z" }),
+        json!({ "id": id, "unit": "centimetre", "up": "y" }),
     );
 
     assert_eq!(size(&reread["model"]), vec![80.0, 100.0, 90.0]);

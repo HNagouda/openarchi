@@ -67,11 +67,11 @@ fn assert_size(size: [f64; 3], expected: [f64; 3]) {
 }
 
 #[test]
-fn an_obj_in_millimetres_is_read_in_metres_with_z_up() {
+fn an_obj_in_millimetres_is_read_in_metres_with_y_up_as_archicad_writes_it() {
     let (mesh, unit, up) = read(&fixture("gable-house-mm.obj"), None, None).unwrap();
 
     assert_eq!(unit, Unit::Millimetre);
-    assert_eq!(up, UpAxis::Z);
+    assert_eq!(up, UpAxis::Y);
     assert_size(mesh.size(), [8.0, 10.0, 9.0]);
 }
 
@@ -285,4 +285,39 @@ fn the_model_takes_hours_of_sun_from_the_ground_behind_it() {
 
     assert_eq!(shaded_area(&scene), 0.0);
     assert!(shaded_area(&scene_with_model(&scene, &model)) > 50.0);
+}
+
+#[test]
+fn a_footprint_joined_in_batches_matches_the_floors_it_stacks() {
+    // Two hundred storeys of a 10 by 10 m floor, each two triangles, and a row of
+    // forty 1 m tiles beside them: more triangles than one batch, so the
+    // footprint is joined over several rounds.
+    let mut positions = Vec::new();
+    let mut triangles = Vec::new();
+    let mut square = |x: f64, y: f64, side: f64, z: f64| {
+        let first = positions.len() as u32;
+        positions.extend([
+            [x, y, z],
+            [x + side, y, z],
+            [x + side, y + side, z],
+            [x, y + side, z],
+        ]);
+        triangles.push([first, first + 1, first + 2]);
+        triangles.push([first, first + 2, first + 3]);
+    };
+    for storey in 0..200 {
+        square(0.0, 0.0, 10.0, f64::from(storey) * 3.0);
+    }
+    for tile in 0..40 {
+        square(20.0 + f64::from(tile) * 2.0, 0.0, 1.0, 0.0);
+    }
+    let mesh = mesh::Mesh {
+        positions,
+        triangles,
+    };
+
+    let footprint = faces::shape(&mesh).footprint;
+
+    assert_eq!(footprint.len(), 41);
+    assert!((footprint_area(&footprint) - 140.0).abs() < 1e-6);
 }

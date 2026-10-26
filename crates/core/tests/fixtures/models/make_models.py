@@ -3,7 +3,8 @@
     python3 crates/core/tests/fixtures/models/make_models.py
 
 gable-house-mm.obj is a house 8 m wide, 10 m deep, 6 m to the eaves and 9 m to
-the ridge, in millimetres with z up, as Archicad's OBJ is assumed to be.
+the ridge, in millimetres with y up and z pointing south, as Archicad 28 writes
+OBJ (checked against a real export).
 l-block-y-up.obj is an L-shaped block, 30 by 30 m and 12 m tall, in metres with
 y up, its roof and floor in two quads each. gable-house.glb is the gable house
 again in glTF's metres with y up, as a child node moved by its parent.
@@ -99,7 +100,7 @@ def write_glb(path, corners, faces):
 
 
 millimetres = [(x * 1000, y * 1000, z * 1000) for x, y, z in HOUSE_CORNERS]
-write_obj(HERE / "gable-house-mm.obj", millimetres, HOUSE_FACES, {0: "slab", 1: "walls", 5: "roof"})
+write_obj(HERE / "gable-house-mm.obj", y_up(millimetres), HOUSE_FACES, {0: "slab", 1: "walls", 5: "roof"})
 l_corners, l_faces = l_block()
 write_obj(HERE / "l-block-y-up.obj", y_up(l_corners), l_faces)
 write_glb(HERE / "gable-house.glb", y_up(HOUSE_CORNERS), HOUSE_FACES)

@@ -30,8 +30,8 @@ const UNITS: { value: ModelUnit; label: string }[] = [
   { value: "millimetre", label: "mm" },
 ];
 const AXES: { value: UpAxis; label: string; tip: string }[] = [
-  { value: "z", label: "Z up", tip: "As CAD programs such as Archicad write it" },
-  { value: "y", label: "Y up", tip: "As glTF and many renderers write it" },
+  { value: "z", label: "Z up", tip: "As some CAD exports write it" },
+  { value: "y", label: "Y up", tip: "As OBJ, glTF and Archicad write it" },
 ];
 
 export function ModelSection({ tool }: { tool: ModelTool }) {

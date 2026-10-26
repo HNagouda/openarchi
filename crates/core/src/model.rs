@@ -159,9 +159,9 @@ impl Model {
 
 /// The model in the file at `path`, in metres with z up. A unit or up axis
 /// left out is guessed: glTF is metres and y up by its specification; an OBJ
-/// says neither, so its unit follows from its size and z is taken as up, as
-/// CAD programs write it.
-// #! NOTE[3d, verify] : Which axis is up in an Archicad OBJ export? Check a real file; the user can turn it in the model panel
+/// says neither, so its unit follows from its size and y is taken as up, as
+/// the format's convention has it and Archicad writes it (checked against a
+/// real Archicad 28 export, which also sets z pointing south).
 pub fn read(path: &Path, unit: Option<Unit>, up: Option<UpAxis>) -> Result<(Mesh, Unit, UpAxis)> {
     let extension = path
         .extension()
@@ -173,7 +173,7 @@ pub fn read(path: &Path, unit: Option<Unit>, up: Option<UpAxis>) -> Result<(Mesh
             let file = std::fs::File::open(path).map_err(|e| Error::io(path, e))?;
             let raw = obj::read(&mut BufReader::new(file), path)?;
             let unit = Unit::guessed(raw.extent());
-            (raw, unit, UpAxis::Z)
+            (raw, unit, UpAxis::Y)
         }
         "glb" | "gltf" => {
             let bytes = std::fs::read(path).map_err(|e| Error::io(path, e))?;

@@ -22,7 +22,7 @@ use crate::server::{fetched_scene, reply, text, OpenArchi};
 #[tool_router(router = model_tools, vis = "pub(crate)")]
 impl OpenArchi {
     #[tool(
-        description = "Import a building model into a project, to see a design on its site: an .obj (Archicad: File > Save As > Wavefront) or a .glb/.gltf (SketchUp, Rhino, Blender), read in metres with z up and centred on its plan. It stands at the site centre, or where the project's previous model stood, on the terrain, and the existing buildings it covers more than half of are left out of every sheet. It draws in the palette's accent: its footprint in plan, standing up in the axonometric and casting shadows in the shadow diagram. Returns the model: size, placement and the buildings under it."
+        description = "Import a building model into a project, to see a design on its site: an .obj (Archicad: File > Save As > Wavefront) or a .glb/.gltf (SketchUp, Rhino, Blender), read in metres with y up as OBJ and glTF write it, and centred on its plan. It stands at the site centre, or where the project's previous model stood, on the terrain, and the existing buildings it covers more than half of are left out of every sheet. It draws in the palette's accent: its footprint in plan, standing up in the axonometric and casting shadows in the shadow diagram. Returns the model: size, placement and the buildings under it."
     )]
     async fn import_model(&self, Parameters(input): Parameters<ImportModel>) -> CallToolResult {
         let result = self
