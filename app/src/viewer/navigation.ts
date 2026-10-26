@@ -42,6 +42,9 @@ const WALK_LOOK_AHEAD_M = 1;
 const WALK_WHEEL_M_PER_PIXEL = 0.05;
 const LOOK_RAD_PER_PIXEL = 0.004;
 const MAX_LOOK_PITCH = THREE.MathUtils.degToRad(80);
+// The walk's lens, as a vertical field of view: from a long lens to a wide one.
+export const MIN_WALK_FIELD_OF_VIEW_DEG = 20;
+export const MAX_WALK_FIELD_OF_VIEW_DEG = 100;
 // A press that moves less than this is a click, not a drag.
 const CLICK_SLOP_PX = 4;
 // Named views fly there in this long.
@@ -65,6 +68,8 @@ export type Navigation = {
   leave: () => boolean;
   /** Turns the camera round the target, or the eye where it stands. */
   turn: (degrees: number) => void;
+  /** The walk's field of view in degrees, kept for later walks; the view from outside keeps its own. */
+  setWalkFieldOfView: (degrees: number) => void;
   dispose: () => void;
 };
 
@@ -79,6 +84,8 @@ type Options = {
   requestDraw: () => void;
   animate: (tick: (seconds: number) => boolean) => void;
   onMode: (mode: Mode) => void;
+  /** Called when a pinch changes the walk's field of view, so a control can follow. */
+  onWalkFieldOfView: (degrees: number) => void;
 };
 
 export function createNavigation(options: Options): Navigation {
@@ -89,6 +96,9 @@ export function createNavigation(options: Options): Navigation {
   controls.screenSpacePanning = false;
   controls.maxTargetRadius = radius * MAX_TARGET_RADII;
   let mode: Mode = "orbit";
+  // The view from outside keeps the lens the stage made; the walk starts with it too.
+  const orbitFieldOfView = camera.fov;
+  let walkFieldOfView = orbitFieldOfView;
   applyLimits();
   placeAt(...startView());
 
@@ -111,7 +121,20 @@ export function createNavigation(options: Options): Navigation {
     mode = next;
     canvas.style.cursor = next === "pick" ? "crosshair" : "";
     applyLimits();
+    useLens(next === "walk" ? walkFieldOfView : orbitFieldOfView);
     options.onMode(next);
+  }
+
+  function useLens(degrees: number) {
+    if (camera.fov === degrees) return;
+    camera.fov = degrees;
+    camera.updateProjectionMatrix();
+    options.requestDraw();
+  }
+
+  function setWalkFieldOfView(degrees: number) {
+    walkFieldOfView = THREE.MathUtils.clamp(degrees, MIN_WALK_FIELD_OF_VIEW_DEG, MAX_WALK_FIELD_OF_VIEW_DEG);
+    if (mode === "walk") useLens(walkFieldOfView);
   }
 
   function applyLimits() {
@@ -242,7 +265,13 @@ export function createNavigation(options: Options): Navigation {
   const onGestureChange = (event: Event) => {
     event.preventDefault();
     const gesture = event as Gesture;
-    if (mode !== "walk") zoomAt(gesture.clientX, gesture.clientY, Math.log(lastScale / gesture.scale));
+    // Walking, a pinch is a zoom lens: spreading the fingers narrows the view.
+    if (mode === "walk") {
+      setWalkFieldOfView((walkFieldOfView * lastScale) / gesture.scale);
+      options.onWalkFieldOfView(walkFieldOfView);
+    } else {
+      zoomAt(gesture.clientX, gesture.clientY, Math.log(lastScale / gesture.scale));
+    }
     lastScale = gesture.scale;
   };
   canvas.addEventListener("gesturestart", onGestureStart);
@@ -360,5 +389,5 @@ export function createNavigation(options: Options): Navigation {
     controls.dispose();
   };
 
-  return { fit, top, sheetAngle, pickStandpoint, leave, turn: (degrees) => turnBy(-degrees), dispose };
+  return { fit, top, sheetAngle, pickStandpoint, leave, turn: (degrees) => turnBy(-degrees), setWalkFieldOfView, dispose };
 }

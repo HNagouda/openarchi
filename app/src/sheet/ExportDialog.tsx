@@ -4,12 +4,13 @@
 
 import { useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { errorText, exportFileName, exportLaser, exportSeries, exportSheet } from "../lib/ipc";
+import { errorText, exportFileName, exportLaser, exportSeries, exportSheet, onExportProgress } from "../lib/ipc";
 import { readPreference, writePreference } from "../lib/storage";
 import type { DxfLayers, ExportFormat, Highlight, Look, Pin } from "../lib/types";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { NumberField } from "../ui/NumberField";
+import { ProgressBar } from "../ui/ProgressBar";
 import { Segmented } from "../ui/Segmented";
 import { clamp, fileNameOf } from "../lib/format";
 import { DEFAULT_DPI, MAX_DPI, MIN_DPI } from "../lib/units";
@@ -39,6 +40,8 @@ const DXF_LAYERS: { value: DxfLayers; label: string; note: string }[] = [
 
 type Scope = "one" | "series";
 type Settings = { format: Choice; dpi: number; scope: Scope; dxfLayers: DxfLayers };
+// What the bar under the fields says while files are written. A single file has no count.
+type Status = { label: string; done: number | null; total: number | null };
 
 const DEFAULT_SETTINGS: Settings = { format: "pdf", dpi: DEFAULT_DPI, scope: "one", dxfLayers: "shown" };
 
@@ -55,6 +58,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
   });
   const [laser, updateLaser] = useLaserSettings(look);
   const [isExporting, setExporting] = useState(false);
+  const [status, setStatus] = useState<Status | null>(null);
   const [error, setError] = useState<string | null>(null);
   const exported = useExportedToast();
   const format = FORMATS.find((entry) => entry.value === settings.format) ?? FORMATS[0];
@@ -73,6 +77,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
     const suggested = await exportFileName(look.diagram_id, variantId, drawing);
     const path = await save({ defaultPath: suggested, filters: [{ name: format.name, extensions: [drawing] }] });
     if (!path) return false;
+    setStatus({ label: `Writing ${fileNameOf(path)}`, done: null, total: null });
     const written = await exportSheet(look, pins, highlights, drawing, settings.dpi, settings.dxfLayers, path);
     exported(`Exported ${fileNameOf(written)}`, written);
     return true;
@@ -81,14 +86,21 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
   const exportAll = async (drawing: ExportFormat) => {
     const folder = await open({ directory: true, title: "Choose a folder for the series" });
     if (typeof folder !== "string") return false;
-    const written = await exportSeries(look, pins, highlights, drawing, settings.dpi, settings.dxfLayers, folder);
-    exported(`Exported ${written.length} diagrams`, written[0]);
+    setStatus({ label: "Starting", done: 0, total: sheetCount });
+    const stop = await onExportProgress((event) => setStatus({ label: `Writing ${event.file}`, done: event.done, total: event.total }));
+    try {
+      const written = await exportSeries(look, pins, highlights, drawing, settings.dpi, settings.dxfLayers, folder);
+      exported(`Exported ${written.length} diagrams`, written[0]);
+    } finally {
+      stop();
+    }
     return true;
   };
 
   const exportModel = async () => {
     const folder = await open({ directory: true, title: "Choose a folder for the laser files" });
     if (typeof folder !== "string") return false;
+    setStatus({ label: "Writing the laser sheets", done: null, total: null });
     const written = await exportLaser(look, laser, folder);
     const count = written.files.length;
     exported(count === 1 ? "Wrote 1 laser sheet" : `Wrote ${count} laser sheets`, written.files[0]);
@@ -109,6 +121,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
       setError(errorText(reason));
     } finally {
       setExporting(false);
+      setStatus(null);
     }
   };
 
@@ -168,6 +181,7 @@ export function ExportDialog({ look, pins, highlights, diagramName, variantId, s
             </span>
           </div>
         )}
+        {status && <ProgressBar label={status.label} done={status.done} total={status.total} />}
         {error && <p className="export-error">{error}</p>}
       </div>
     </Dialog>

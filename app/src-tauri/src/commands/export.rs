@@ -7,7 +7,8 @@ use openarchi_core::export::{export_with_dxf_layers, DxfLayers, ExportFormat};
 use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
-use tauri::{AppHandle, State};
+use serde::Serialize;
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_opener::OpenerExt;
 
 use crate::commands::render::{
@@ -15,6 +16,16 @@ use crate::commands::render::{
 };
 use crate::guard::blocking;
 use crate::state::Shared;
+
+/// Sent before each file of a series export, so the dialog can show how far it is.
+pub const EXPORT_PROGRESS_EVENT: &str = "export-progress";
+
+#[derive(Clone, Serialize)]
+struct ExportProgress {
+    done: usize,
+    total: usize,
+    file: String,
+}
 
 /// The suggested name in the save dialog, the same one a series export uses.
 #[tauri::command]
@@ -71,6 +82,7 @@ pub async fn export_sheet(
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn export_series(
+    app: AppHandle,
     state: State<'_, Shared>,
     look: Look,
     pins: Vec<Pin>,
@@ -90,7 +102,13 @@ pub async fn export_series(
         let files = series::files(&catalog.diagrams, &name, &look, format, Path::new(&folder));
 
         let mut written = Vec::new();
-        for file in &files {
+        for (done, file) in files.iter().enumerate() {
+            let progress = ExportProgress {
+                done,
+                total: files.len(),
+                file: file_label(&file.path),
+            };
+            let _ = app.emit(EXPORT_PROGRESS_EVENT, progress);
             with_input(
                 &catalog,
                 &scene,
@@ -106,6 +124,13 @@ pub async fn export_series(
         Ok(written)
     })
     .await
+}
+
+/// "ballet-hall-shadow.pdf" from the file's full path.
+fn file_label(path: &Path) -> String {
+    path.file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default()
 }
 
 /// Shows a file in Finder or Explorer.

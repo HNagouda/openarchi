@@ -18,8 +18,10 @@ What changed in each version of openarchi, newest first.
 - The 3D view loads only when it opens and draws only when something changes, so an open view that you are not touching costs nothing.
 - The 3D view moves the way architects expect. Drag turns round the point in the middle, right-drag or ⇧-drag slides over the ground, and the wheel or a pinch comes closer to whatever is under the pointer. A two-finger swipe on a trackpad slides. **W**, **A**, **S**, **D** or the arrows move, **Q** and **E** turn, and ⇧ goes faster. The camera never goes under the ground.
 - Named views fly the camera to the whole site, straight down with north up, or the sheet's own turn and tilt. Walk stands you on the site at 1.7 m, the eye height of the View diagram: click where to stand, drag to look round, walk with the keys, and **Esc** steps back out.
+- While walking, a Field of view slider sets the lens from 20° (a long lens) to 100° (wide enough to take in a street), and a trackpad pinch does the same. The view from outside keeps its own lens, and the walk's is kept for the next walk.
 - The 3D view takes the colours of the sheet it opened from. Buildings get the diagram's classes, so an age or use sheet opens as an age or use model. The neighbourhood is muted as on the sheet, the model stands in the accent, and the sky is the palette's paper. All eight palettes look right, the dark ones included.
 - A Palette / Realistic switch under the view paints the site in real colours instead: brick and plaster facades with rows of windows a storey apart, darker roofs, a sheen of sky on the water, trees that differ a little, and a blue sky. The choice is remembered on this computer.
+- In the palette finish, a menu beside the switch recolours the 3D view in any palette without moving the camera. The sheet keeps its own palette.
 - Realistic lays the newest aerial photo of the Netherlands (Beeldmateriaal Nederland, via PDOK) on the ground and takes the roofs from it. It is fetched the first time you switch to Realistic, never with the site, and kept in the tile cache. A 300 m site's photo is about 1.7 MB. Its credit shows in the corner of the view and on every saved picture, and if it cannot be fetched you get a warning and plain real colours.
 - Light in the 3D view is softer and closer to real: soft shadows sized to the site, a sky light that is bluer from above, a haze that hides where the data ends, and darker wall feet where less sky reaches. A low sun is warmer in Realistic.
 - Assistants can import, place, turn, re-read and remove the model and choose the buildings and trees it replaces, with the same rules as the app, and `get_project` describes it.
@@ -55,6 +57,8 @@ What changed in each version of openarchi, newest first.
 - Themes are now called palettes in the app.
 - Palettes are picked from a compact menu, like choosing a font: the closed control shows the current palette and its colours, and the open menu lists every palette with its colours, your own palettes in their own group. [ and ] still step through them.
 - Diagrams are picked from the filmstrip along the bottom only. The inspector no longer repeats them, which leaves it room for the palette, layers, view and sheet.
+- Exporting shows a bar under the settings, so a long export never looks stuck. The whole series counts the files as it writes them, "Writing ballet-hall-shadow.pdf, 14 of 38"; one sheet, a report or laser sheets show the file being written.
+- PDFs of axonometric and shadow sheets open at once in Preview and print in full. A sheet with an imported model used to take Preview half a minute to draw, so pages showed blank or only their lower left corner. Edges between faces are now drawn solid in a colour between the face and the paper, and the shadows go in small pieces, which also makes these PDFs about a third of the size.
 
 ### Sheet tabs and pins
 

@@ -14,7 +14,7 @@ use geo::{Geometry, Polygon};
 use super::classify;
 use super::color;
 use super::drawing::{Canvas, Drawn};
-use super::geometry::{decimal, mm, Projection};
+use super::geometry::{mm, Projection};
 use super::lighting::light;
 use super::order::{back_to_front, Footprint};
 use super::proposal;
@@ -38,7 +38,6 @@ const TREE_CROWN_RADIUS_M: f64 = 3.0;
 pub(crate) const ESTIMATED_GREY: f64 = 0.65;
 /// Edges between faces: a light hairline in the paper colour.
 const EDGE_MM: f64 = 0.06;
-const EDGE_OPACITY: f64 = 0.7;
 /// Neighbours' walls stay this close to their roof, so the site's own
 /// massing is the one that models in the light.
 const NEIGHBOUR_LIGHT: f64 = 0.35;
@@ -191,11 +190,10 @@ pub fn write(
 
     let _ = write!(
         out,
-        r#"<g {} fill-rule="evenodd" stroke="{}" stroke-width="{}" stroke-opacity="{}" stroke-linejoin="round">"#,
+        r#"<g {} fill-rule="evenodd" stroke="{}" stroke-width="{}" stroke-linejoin="round">"#,
         layer_attributes(&format!("{scope}solids"), "Buildings and trees"),
         theme.palette.paper,
-        mm(EDGE_MM),
-        decimal(EDGE_OPACITY)
+        mm(EDGE_MM)
     );
     // Neighbours next to each other in drawing order share one clip group. A
     // group per neighbour, let alone a see-through one, made a tilted sheet

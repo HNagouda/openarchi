@@ -20,6 +20,8 @@ const FIXTURES = "/dev-fixtures";
 const MAX_AREA_M2 = 4_000_000;
 // How long the mock pretends PVGIS and KNMI take, so the loading state shows.
 const SLOW_PART_MS = 1200;
+// How long the mock takes to write one exported file.
+const MOCK_FILE_MS = 250;
 
 type Fixture = { catalog: Catalog; area: Area; credits: Credit[]; layers_present: Layer[] };
 
@@ -193,6 +195,19 @@ async function answer(command: string, args: Args) {
     const report = args.report as Report;
     const theme = fixture.catalog.themes.find((entry) => entry.id === (report.theme_id ?? openSheets[0].theme_id));
     return theme ? mockBackdrop(report, args.index as number, theme) : null;
+  }
+  if (command === "export_series") {
+    // The app writes a file every few hundred milliseconds, so the mock does too and reports each one.
+    const files = fixture.catalog.diagrams.map((diagram) => `${args.folder}/westermarkt-${diagram.id}.${args.format}`);
+    for (const [done, file] of files.entries()) {
+      await emit("export-progress", { done, total: files.length, file: file.split("/").pop() });
+      await new Promise((resolve) => setTimeout(resolve, MOCK_FILE_MS));
+    }
+    return files;
+  }
+  if (command === "export_sheet") {
+    await new Promise((resolve) => setTimeout(resolve, MOCK_FILE_MS));
+    return args.path;
   }
   if (command === "laser_summary") return mockLaserSummary(args.settings as LaserSettings);
   if (command === "export_laser") {

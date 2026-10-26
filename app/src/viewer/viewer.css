@@ -73,6 +73,10 @@
   width: 56px;
 }
 
+.viewer-palette {
+  width: 140px;
+}
+
 .viewer-divider {
   width: 1px;
   height: 20px;
@@ -115,4 +119,25 @@
   color: #333333;
   font-size: 11px;
   pointer-events: none;
+}
+
+/* The walk's lens, under the hint. */
+.viewer-lens {
+  position: absolute;
+  top: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--float-shadow);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.viewer-lens .slider {
+  width: 160px;
 }
