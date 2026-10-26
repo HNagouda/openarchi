@@ -11,7 +11,7 @@ import type {
   AreaSize,
   Catalog,
   ChartStyle,
-  CoveredBuilding,
+  Editable,
   DxfLayers,
   ExportFormat,
   LaserExport,
@@ -33,7 +33,9 @@ import type {
   Report,
   ReportBlock,
   ReportFormat,
+  SiteEdits,
   SunDay,
+  UnderModel,
   View3d,
 } from "./types";
 
@@ -45,9 +47,9 @@ export const createProject = (name: string, area: Area) =>
 export const openProject = (id: string) => invoke<ProjectView>("open_project", { id });
 export const reloadProject = () => invoke<ProjectView>("reload_project");
 export const closeProject = () => invoke<void>("close_project");
-/** Every sheet in tab order, and the project's pins and highlights. Returns the new modified time. */
-export const saveSheets = (sheets: Look[], pins: Pin[], highlights: Highlight[]) =>
-  invoke<string>("save_sheets", { sheets, pins, highlights });
+/** Every sheet in tab order, and the project's pins, highlights and site edits. Returns the new modified time. */
+export const saveSheets = (sheets: Look[], pins: Pin[], highlights: Highlight[], edits: SiteEdits) =>
+  invoke<string>("save_sheets", { sheets, pins, highlights, edits });
 /** The sheet area a highlight becomes when it opens as a sheet, in longitude and latitude. */
 export const highlightArea = (highlight: Highlight) => invoke<Area>("highlight_area", { highlight });
 /** The largest round scale at which the look's area, or the sheet's area when it has one, fills the sheet. */
@@ -126,7 +128,16 @@ export const importModel = (path: string, unit: ModelUnit | null, up: UpAxis | n
 export const rereadModel = (key: string, unit: ModelUnit, up: UpAxis) => invoke<ModelView>("reread_model", { key, unit, up });
 /** Puts a model in effect where the choice places it, or takes it away with null. */
 export const setModel = (choice: ModelChoice | null) => invoke<void>("set_model", { choice });
-export const coveredBuildings = (choice: ModelChoice) => invoke<CoveredBuilding[]>("covered_buildings", { choice });
+/** The buildings and trees under the model where `choice` places it, with the trees where `edits` have them. */
+export const underModel = (choice: ModelChoice, edits: SiteEdits) => invoke<UnderModel>("under_model", { choice, edits });
+
+/** Puts the site edits in effect for every sheet, the 3D view and the exports. */
+export const setSiteEdits = (edits: SiteEdits) => invoke<void>("set_site_edits", { edits });
+/** The tree within `reachM` of an RD New point, or the building under it, removed ones too. */
+export const pickOnSite = (edits: SiteEdits, x: number, y: number, reachM: number) =>
+  invoke<Editable | null>("pick_on_site", { edits, x, y, reachM });
+/** Every tree and building the edits name, for the edit tool's list and marks. */
+export const siteEditThings = (edits: SiteEdits) => invoke<Editable[]>("site_edit_things", { edits });
 
 /** The open site, its neighbours and the model as triangles, in a palette's ground colours. */
 export const view3d = (look: Look) => invoke<View3d>("view_3d", { look });

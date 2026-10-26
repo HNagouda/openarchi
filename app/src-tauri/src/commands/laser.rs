@@ -7,7 +7,7 @@ use openarchi_core::export::series::slug;
 use openarchi_core::project::Look;
 use tauri::State;
 
-use crate::commands::render::{open_scene, project_name};
+use crate::commands::render::{edited_scene, project_name};
 use crate::guard::blocking;
 use crate::state::Shared;
 
@@ -20,7 +20,7 @@ pub async fn laser_summary(
 ) -> Result<LaserSummary, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
+        let scene = edited_scene(&state)?;
         laser::summarize(&scene, look.selection.as_ref(), &settings)
             .map_err(|error| error.to_string())
     })
@@ -37,7 +37,7 @@ pub async fn export_laser(
 ) -> Result<LaserExport, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
+        let scene = edited_scene(&state)?;
         laser::export(
             &scene,
             look.selection.as_ref(),

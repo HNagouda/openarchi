@@ -1,11 +1,11 @@
-// The project's sheets, pins, highlights and model as one value, so one undo stack covers adding,
+// The project's sheets, pins, highlights, model and site edits as one value, so one undo stack covers adding,
 // renaming, reordering and deleting tabs as well as every edit on a sheet.
 // Every function returns a new workbook and leaves the old one alone.
 
-import type { Area, Highlight, Look, ModelChoice, Pin } from "../../lib/types";
+import type { Area, Highlight, Look, ModelChoice, Pin, SiteEdits } from "../../lib/types";
 
-/** `model` is the imported model in effect and where it stands; null for none. */
-export type Workbook = { sheets: Look[]; pins: Pin[]; highlights: Highlight[]; model: ModelChoice | null };
+/** `model` is the imported model in effect and where it stands; null for none. `edits` are the trees and buildings taken away, moved or planted. */
+export type Workbook = { sheets: Look[]; pins: Pin[]; highlights: Highlight[]; model: ModelChoice | null; edits: SiteEdits };
 
 const COPY_SUFFIX = " copy";
 

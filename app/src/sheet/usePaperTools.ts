@@ -1,10 +1,11 @@
-// The five tools that act on the paper: text, pins, highlights, the section
-// line and the View eye, all wired to the sheet's undo history.
+// The six tools that act on the paper: text, pins, highlights, the section
+// line, the View eye and the site edits, all wired to the sheet's undo history.
 
 import type { RefObject } from "react";
 import { sheetDiagrams } from "../lib/diagrams";
 import type { Diagram } from "../lib/types";
 import type { CanvasControls } from "./Canvas";
+import { useEditTool } from "./edits/useEditTool";
 import { useSheetHighlights } from "./highlights/useSheetHighlights";
 import type { PaperTools } from "./paperPress";
 import { usePinTool } from "./pins/usePinTool";
@@ -48,6 +49,8 @@ export function usePaperTools({ history, diagrams, canvas, svg, isEditable, isRe
   const hasEye = isEditable && canPlaceEye(sheetDiagrams(diagrams, look), look);
   const viewPoint = useViewPointTool({ look, onLook: history.changeLook, svg, isEnabled: hasEye, onRefused: refuse });
 
-  const tools: PaperTools = { section, highlight: highlights.tool, pin, text, viewPoint };
+  const edit = useEditTool({ edits: book.edits, onEdits: history.changeEdits, look, svg, isEnabled: isEditable, onRefused: refuse });
+
+  const tools: PaperTools = { section, highlight: highlights.tool, pin, text, viewPoint, edit };
   return { tools, highlights };
 }

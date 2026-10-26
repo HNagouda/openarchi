@@ -11,6 +11,7 @@ use std::time::Instant;
 
 use openarchi_core::area::Area;
 use openarchi_core::diagram::Diagram;
+use openarchi_core::edits::SiteEdits;
 use openarchi_core::library::Library;
 use openarchi_core::model::Model;
 use openarchi_core::project::Project;
@@ -38,6 +39,9 @@ pub struct AppState {
     /// site takes longer than drawing it, and the preview, the thumbnails and
     /// the ratios all ask for the same area over and over.
     pub framed: Mutex<Vec<Framed>>,
+    /// The open scene with the project's edits, made once per change of
+    /// either rather than on every preview and thumbnail.
+    pub edited: Mutex<Option<Edited>>,
 }
 
 /// A gallery card's picture as a data URL, and what it was drawn from.
@@ -51,6 +55,13 @@ pub struct Framed {
     /// The scene it was cut from; a fetch or reload makes a new one.
     pub source: Arc<Scene>,
     pub selection: Area,
+    pub scene: Arc<Scene>,
+}
+
+pub struct Edited {
+    /// The scene it was made from; a fetch or reload makes a new one.
+    pub source: Arc<Scene>,
+    pub edits: SiteEdits,
     pub scene: Arc<Scene>,
 }
 
@@ -92,6 +103,7 @@ impl AppState {
             own_saves: Mutex::new(HashMap::new()),
             fetch_generation: AtomicU64::new(0),
             framed: Mutex::new(Vec::new()),
+            edited: Mutex::new(None),
         }
     }
 

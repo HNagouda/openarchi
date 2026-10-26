@@ -1,6 +1,7 @@
 //! The imported model: reading a file, choosing which model is in effect and
-//! where it stands, and the buildings under it. Each is a thin call into
-//! `openarchi_core::model`.
+//! where it stands, and the buildings and trees under it. Each is a thin call
+//! into `openarchi_core::model`. What it replaces is a site edit, kept with
+//! the others (see `commands::edits`).
 //!
 //! The sheet's undo history holds the model in effect as a key and its
 //! placement, so the app keeps every model of the session by key (see
@@ -9,7 +10,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use openarchi_core::model::{self, Covered, Model, Placement, Unit, UpAxis};
+use openarchi_core::edits::SiteEdits;
+use openarchi_core::model::{self, Covered, CoveredTree, Model, Placement, Unit, UpAxis};
 use openarchi_core::scene::Scene;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -29,7 +31,6 @@ pub struct ModelView {
     pub size_m: [f64; 3],
     pub triangles: usize,
     pub placement: Placement,
-    pub replaced: Vec<String>,
     /// The outline of its footprint in its own frame, metres around its
     /// middle, for showing it while it is dragged.
     pub footprint: Vec<Vec<[f64; 2]>>,
@@ -42,7 +43,16 @@ pub struct ModelView {
 pub struct ModelChoice {
     pub key: String,
     pub placement: Placement,
-    pub replaced: Vec<String>,
+}
+
+/// What the model stands on where a choice places it, for the Model section's boxes.
+#[derive(Serialize)]
+pub struct UnderModel {
+    pub buildings: Vec<Covered>,
+    pub trees: Vec<CoveredTree>,
+    /// The ids placing it takes away by the rules: the buildings it covers
+    /// more than half of and the trees in its way.
+    pub picked: Vec<String>,
 }
 
 pub fn view_of_model(key: String, model: &Model, scene: Option<&Scene>) -> ModelView {
@@ -60,7 +70,6 @@ pub fn view_of_model(key: String, model: &Model, scene: Option<&Scene>) -> Model
         size_m: model.mesh.size(),
         triangles: model.mesh.triangles.len(),
         placement: model.placement.clone(),
-        replaced: model.replaced.clone(),
         footprint,
         ground_m: scene.and_then(|scene| model::ground_m(model, scene)),
     }
@@ -158,13 +167,14 @@ pub async fn set_model(
     .await
 }
 
-/// The buildings the model would reach over where `choice` places it, with
-/// how much of each it covers, for the replaced buildings list.
+/// The buildings and trees the model would stand on where `choice` places
+/// it, with the trees where `edits` have them, for the boxes in the Model section.
 #[tauri::command]
-pub async fn covered_buildings(
+pub async fn under_model(
     state: State<'_, Shared>,
     choice: ModelChoice,
-) -> Result<Vec<Covered>, String> {
+    edits: SiteEdits,
+) -> Result<UnderModel, String> {
     let state = state.inner().clone();
     blocking(move || {
         let scene = open_scene(&state)?;
@@ -172,7 +182,11 @@ pub async fn covered_buildings(
             let open = lock(&state.open);
             chosen(open.as_ref().ok_or("No project is open.")?, choice)?
         };
-        Ok(model::covered_buildings(&model, &scene))
+        Ok(UnderModel {
+            buildings: model::covered_buildings(&model, &scene),
+            trees: model::covered_trees(&model, &scene, &edits),
+            picked: model::picked(&model, &scene, &edits),
+        })
     })
     .await
 }
@@ -181,6 +195,5 @@ fn chosen(open: &OpenProject, choice: ModelChoice) -> Result<Model, String> {
     choice.placement.check().map_err(text)?;
     let mut model = kept(open, &choice.key)?.clone();
     model.placement = choice.placement;
-    model.replaced = choice.replaced;
     Ok(model)
 }

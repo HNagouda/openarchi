@@ -10,7 +10,9 @@ use openarchi_core::project::Look;
 use tauri::{AppHandle, State};
 use tauri_plugin_opener::OpenerExt;
 
-use crate::commands::render::{current_catalog, open_model, open_scene, project_name, with_input};
+use crate::commands::render::{
+    current_catalog, edited_scene, open_model, project_name, with_input,
+};
 use crate::guard::blocking;
 use crate::state::Shared;
 
@@ -45,7 +47,7 @@ pub async fn export_sheet(
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
+        let scene = edited_scene(&state)?;
         let catalog = current_catalog(&state);
         let model = open_model(&state);
         with_input(
@@ -80,7 +82,7 @@ pub async fn export_series(
 ) -> Result<Vec<String>, String> {
     let state = state.inner().clone();
     blocking(move || {
-        let scene = open_scene(&state)?;
+        let scene = edited_scene(&state)?;
         let catalog = current_catalog(&state);
         let name = project_name(&state);
         let model = open_model(&state);

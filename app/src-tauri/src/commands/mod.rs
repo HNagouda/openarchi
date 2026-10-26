@@ -1,4 +1,5 @@
 pub mod analysis;
+pub mod edits;
 pub mod export;
 pub mod laser;
 pub mod library;

@@ -6,19 +6,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorText, fittingScale, saveSheets } from "../../lib/ipc";
 import { useHistory } from "../../lib/history";
-import type { Area, Highlight, Look, ModelChoice, Pin, ProjectView } from "../../lib/types";
+import type { Area, Highlight, Look, ModelChoice, Pin, ProjectView, SiteEdits } from "../../lib/types";
 import { useToast } from "../../ui/Toasts";
 import { withoutLostViewPins } from "../viewpoint/viewPointEdits";
 import { movedTo, sheetName, withAreaSheet, withDuplicate, withMoved, withNewSheet, withoutSheet, withRenamed, withSheet, type Workbook } from "./workbook";
 
-/** The sheets, pins, highlights and model a project view holds. The core migrates older projects, so all are always there. */
+/** The sheets, pins, highlights, model and edits a project view holds. The core migrates older projects, so all are always there. */
 export function workbookOf(project: ProjectView): Workbook {
-  const model = project.model && { key: project.model.key, placement: project.model.placement, replaced: project.model.replaced };
-  return { sheets: project.sheets, pins: project.pins, highlights: project.highlights, model };
+  const model = project.model && { key: project.model.key, placement: project.model.placement };
+  return { sheets: project.sheets, pins: project.pins, highlights: project.highlights, model, edits: project.edits };
 }
 
-/** Writes every sheet, pin and highlight of the open project, and the model the app already holds (see useModelSync). */
-export const saveWorkbook = (book: Workbook) => saveSheets(book.sheets, book.pins, book.highlights);
+/** Writes every sheet, pin, highlight and edit of the open project, and the model the app already holds (see useAppliedSite). */
+export const saveWorkbook = (book: Workbook) => saveSheets(book.sheets, book.pins, book.highlights, book.edits);
 
 /** The first sheet that differs between two workbooks of the same length, for undo to show it. */
 function changedSheet(before: Workbook, after: Workbook): number | null {
@@ -82,8 +82,14 @@ export function useWorkbook(project: ProjectView) {
     [change],
   );
 
+  // The model and what it stands on change together, so moving it undoes in one step.
   const changeModel = useCallback(
-    (model: ModelChoice | null, mergeKey?: string) => change({ ...latest.current.book, model }, mergeKey),
+    (model: ModelChoice | null, edits: SiteEdits, mergeKey?: string) => change({ ...latest.current.book, model, edits }, mergeKey),
+    [change],
+  );
+
+  const changeEdits = useCallback(
+    (edits: SiteEdits, mergeKey?: string) => change({ ...latest.current.book, edits }, mergeKey),
     [change],
   );
 
@@ -144,6 +150,7 @@ export function useWorkbook(project: ProjectView) {
     changePins,
     changeHighlights,
     changeModel,
+    changeEdits,
     addAreaSheet,
     addSheet,
     duplicateSheet,

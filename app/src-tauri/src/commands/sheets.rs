@@ -1,7 +1,8 @@
-//! The open project's sheet tabs, pins and highlights: saving them, fitting a
+//! The open project's sheet tabs, pins, highlights and site edits: saving them, fitting a
 //! sheet's scale to a new sub-selection, and turning a highlight into one.
 
 use openarchi_core::area::Area;
+use openarchi_core::edits::SiteEdits;
 use openarchi_core::highlight::Highlight;
 use openarchi_core::pin::Pin;
 use openarchi_core::project::Look;
@@ -13,17 +14,22 @@ use crate::commands::render::open_scene;
 use crate::guard::{blocking, text};
 use crate::state::{lock, Shared};
 
-/// Saves every sheet, in tab order, and the pins and highlights of the open project.
-/// Returns the new modified time.
+/// Saves every sheet, in tab order, and the pins, highlights and site edits
+/// of the open project. Returns the new modified time.
 #[tauri::command]
 pub async fn save_sheets(
     state: State<'_, Shared>,
     sheets: Vec<Look>,
     pins: Vec<Pin>,
     highlights: Vec<Highlight>,
+    edits: SiteEdits,
 ) -> Result<String, String> {
     let state = state.inner().clone();
     blocking(move || {
+        if !edits.is_empty() {
+            let scene = open_scene(&state)?;
+            edits.check(&scene).map_err(text)?;
+        }
         for pin in &pins {
             pin.check().map_err(text)?;
         }
@@ -35,6 +41,7 @@ pub async fn save_sheets(
                 open.project.set_sheets(sheets).map_err(text)?;
                 open.project.pins = pins;
                 open.project.highlights = highlights;
+                open.project.edits = edits;
             }
             None => return Err("No project is open.".to_string()),
         }

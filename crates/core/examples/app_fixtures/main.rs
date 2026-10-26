@@ -1,13 +1,14 @@
 //! Writes what the app's dev-only IPC mock serves: the catalog, the
 //! Westermarkt fixture's area and layers, every diagram in every theme as
 //! an SVG preview and a PNG thumbnail, the ratios and analysis, and the report
-//! blocks drawn from them. One palette made from a few swatches stands in for
+//! blocks drawn from them, and every tree and building for the edit tool. One palette made from a few swatches stands in for
 //! the user's own, with what the palette editor asks for. With it the front
 //! end runs in a plain
 //! browser, which is how the screenshots in docs/screenshots are taken.
 //!
 //! cargo run --release -p openarchi-core --example app_fixtures   # writes app/dev-fixtures/
 
+mod edits;
 mod model;
 mod palettes;
 mod previews;
@@ -27,6 +28,7 @@ use openarchi_core::scene::{Layer, Scene};
 use openarchi_core::sheet::Sheet;
 use serde_json::json;
 
+use self::edits::write_site_things;
 use self::model::write_model;
 use self::palettes::{fixture_themes, write_palette};
 use self::previews::{
@@ -61,6 +63,7 @@ fn main() {
     write_analysis(&scene, &cache, &out_dir);
     write_report_blocks(&scene, &cache, &out_dir);
     write_model(&scene, &out_dir);
+    write_site_things(&scene, &out_dir);
 
     let sheet = Sheet {
         title: "Westermarkt".to_string(),

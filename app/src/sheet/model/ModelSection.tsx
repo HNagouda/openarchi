@@ -1,17 +1,18 @@
 // The imported model in the inspector: what it is, the unit and axis it was
-// read with, its turn and base, and the buildings it replaces. Moving it
-// happens on the sheet; see ModelOverlay.
+// read with, its turn and base, and the buildings and trees it replaces.
+// Moving it happens on the sheet; see ModelOverlay.
 
 import { useEffect, useState } from "react";
-import { coveredBuildings, errorText } from "../../lib/ipc";
+import { errorText, underModel } from "../../lib/ipc";
 import { shortcutLabel } from "../../lib/platform";
-import type { CoveredBuilding, ModelUnit, UpAxis } from "../../lib/types";
+import type { CoveredBuilding, CoveredTree, ModelUnit, UnderModel, UpAxis } from "../../lib/types";
 import { Button } from "../../ui/Button";
 import { NumberField } from "../../ui/NumberField";
 import { Section } from "../../ui/Section";
 import { Segmented } from "../../ui/Segmented";
 import { Toggle } from "../../ui/Toggle";
-import { sizeLabel, withReplaced } from "./modelEdits";
+import { isRemoved, withTicked } from "../edits/siteEdits";
+import { sizeLabel } from "./modelEdits";
 import { MODEL_KEY, type ModelTool } from "./useModelTool";
 import { PERCENT } from "../../lib/units";
 import "./model.css";
@@ -96,7 +97,7 @@ export function ModelSection({ tool }: { tool: ModelTool }) {
         )}
         <ReplacedList tool={tool} />
         <p className="model-hint">
-          {shortcutLabel(MODEL_KEY).toUpperCase()} moves the model on the sheet. Moving it picks again the buildings it covers more than half of.
+          {shortcutLabel(MODEL_KEY).toUpperCase()} moves the model on the sheet. Moving it picks again the buildings it covers more than half of, and the trees within a crown (3 m) of it.
         </p>
         <div className="model-actions">
           <Button icon="cube" onClick={tool.importFile}>
@@ -111,20 +112,24 @@ export function ModelSection({ tool }: { tool: ModelTool }) {
   );
 }
 
-/** The buildings under the model, ticked when it replaces them. */
+const NOTHING_UNDER: UnderModel = { buildings: [], trees: [], picked: [] };
+
+/** The buildings and trees under the model, ticked when it replaces them. */
 function ReplacedList({ tool }: { tool: ModelTool }) {
-  const { choice } = tool;
-  const [covered, setCovered] = useState<CoveredBuilding[]>([]);
+  const { choice, edits } = tool;
+  const [under, setUnder] = useState<UnderModel>(NOTHING_UNDER);
   const [error, setError] = useState<string | null>(null);
-  const placementKey = JSON.stringify(choice && [choice.key, choice.placement]);
+  // Only a new place, or a tree moved or planted, changes what stands under
+  // the model; ticking a box or removing something does not.
+  const placementKey = JSON.stringify(choice && [choice.key, choice.placement, edits.moved, edits.planted]);
 
   useEffect(() => {
     if (!choice) return;
     let isCurrent = true;
-    coveredBuildings(choice)
+    underModel(choice, edits)
       .then((found) => {
         if (!isCurrent) return;
-        setCovered(found);
+        setUnder(found);
         setError(null);
       })
       .catch((reason) => {
@@ -133,31 +138,34 @@ function ReplacedList({ tool }: { tool: ModelTool }) {
     return () => {
       isCurrent = false;
     };
-    // Only a new place changes what lies under the model; ticking a box does not.
   }, [placementKey]);
 
   if (!choice) return null;
   if (error) return <p className="model-hint">{error}</p>;
-  if (covered.length === 0) return <p className="model-hint">No existing buildings under the model.</p>;
+  if (under.buildings.length + under.trees.length === 0) return <p className="model-hint">No existing buildings or trees under the model.</p>;
+  const box = (id: string, label: string) => (
+    <li key={id}>
+      <label>
+        <input type="checkbox" checked={isRemoved(edits, id)} onChange={(event) => tool.onEdits(withTicked(edits, id, event.target.checked))} />
+        <span>{label}</span>
+      </label>
+    </li>
+  );
   return (
     <div className="field-stack">
       <span className="field-label">Replaces</span>
       <ul className="model-replaced">
-        {covered.map((building) => (
-          <li key={building.id}>
-            <label>
-              <input
-                type="checkbox"
-                checked={choice.replaced.includes(building.id)}
-                onChange={(event) => tool.onReplaced(withReplaced(choice, building.id, event.target.checked))}
-              />
-              <span>{buildingLabel(building)}</span>
-            </label>
-          </li>
-        ))}
+        {under.buildings.map((building) => box(building.id, buildingLabel(building)))}
+        {under.trees.map((tree) => box(tree.id, treeLabel(tree)))}
       </ul>
     </div>
   );
+}
+
+/** "Tree, 2.1 m from the model" or "Planted tree, inside the model". */
+function treeLabel(tree: CoveredTree): string {
+  const name = tree.is_planted ? "Planted tree" : "Tree";
+  return tree.distance_m === 0 ? `${name}, inside the model` : `${name}, ${tree.distance_m.toFixed(1)} m from the model`;
 }
 
 /** "Built 1772, 15.8 m tall, 92 % under the model". */

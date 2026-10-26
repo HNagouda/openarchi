@@ -6,6 +6,7 @@ use std::sync::Arc;
 use base64::Engine;
 use openarchi_core::area::Area;
 use openarchi_core::catalog;
+use openarchi_core::edits::{self, SiteEdits};
 use openarchi_core::export::render_png;
 use openarchi_core::highlight::Highlight;
 use openarchi_core::model::Model;
@@ -18,7 +19,7 @@ use openarchi_core::theme::Theme;
 use tauri::State;
 
 use crate::guard::{blocking, text};
-use crate::state::{lock, AppState, Catalog, Framed, LayerInfo, Shared, Thumbnail};
+use crate::state::{lock, AppState, Catalog, Edited, Framed, LayerInfo, Shared, Thumbnail};
 
 fn read_catalog(state: &AppState) -> Catalog {
     let diagrams = catalog::builtin_diagrams();
@@ -127,13 +128,57 @@ pub fn open_model(state: &AppState) -> Option<Model> {
         .and_then(|open| open.project.model.clone())
 }
 
-/// Enough for every sheet area of a few tabs at once.
-const FRAMED_KEPT: usize = 4;
-
-/// The open scene as a sheet shows it: cut to `selection` when there is one.
-/// Cut scenes are kept, so a render with the same area does not cut again.
-pub fn shown_scene(state: &AppState, selection: Option<&Area>) -> Result<Arc<Scene>, String> {
+/// The open scene with the project's edits, as every sheet, the 3D view and
+/// the exports draw it. Without edits it is the open scene itself.
+pub fn edited_scene(state: &AppState) -> Result<Arc<Scene>, String> {
     let scene = open_scene(state)?;
+    let edits = open_edits(state)?;
+    if edits.is_empty() {
+        return Ok(scene);
+    }
+    let is_match = |kept: &Edited| Arc::ptr_eq(&kept.source, &scene) && kept.edits == edits;
+    if let Some(kept) = lock(&state.edited).as_ref().filter(|kept| is_match(kept)) {
+        return Ok(kept.scene.clone());
+    }
+
+    let edited = Arc::new(edits::edited(&scene, &edits).into_owned());
+    *lock(&state.edited) = Some(Edited {
+        source: scene,
+        edits,
+        scene: edited.clone(),
+    });
+    Ok(edited)
+}
+
+/// The open project's site edits.
+pub fn open_edits(state: &AppState) -> Result<SiteEdits, String> {
+    match lock(&state.open).as_ref() {
+        Some(open) => Ok(open.project.edits.clone()),
+        None => Err("No project is open.".to_string()),
+    }
+}
+
+/// Enough for every sheet area of a few tabs at once, as fetched and edited.
+const FRAMED_KEPT: usize = 8;
+
+/// The open scene as fetched, cut to `selection` when there is one, which
+/// ratios and the analysis count.
+pub fn shown_scene(state: &AppState, selection: Option<&Area>) -> Result<Arc<Scene>, String> {
+    framed(state, open_scene(state)?, selection)
+}
+
+/// The edited scene as a sheet draws it: cut to `selection` when there is one.
+pub fn drawn_scene(state: &AppState, selection: Option<&Area>) -> Result<Arc<Scene>, String> {
+    framed(state, edited_scene(state)?, selection)
+}
+
+/// `scene` cut to `selection`. Cut scenes are kept, so a render with the
+/// same area does not cut again.
+fn framed(
+    state: &AppState,
+    scene: Arc<Scene>,
+    selection: Option<&Area>,
+) -> Result<Arc<Scene>, String> {
     let Some(selection) = selection else {
         return Ok(scene);
     };
@@ -144,9 +189,10 @@ pub fn shown_scene(state: &AppState, selection: Option<&Area>) -> Result<Arc<Sce
     }
 
     let cut = Arc::new(selection::framed(&scene, selection).map_err(text)?);
+    let open = open_scene(state)?;
     let mut kept = lock(&state.framed);
-    // Cuts of a scene that is no longer open only hold memory.
-    kept.retain(|framed| Arc::ptr_eq(&framed.source, &scene));
+    // Cuts of a scene that is no longer open, or of edits since undone, only hold memory.
+    kept.retain(|framed| Arc::ptr_eq(&framed.source, &scene) || Arc::ptr_eq(&framed.source, &open));
     kept.push(Framed {
         source: scene,
         selection: selection.clone(),
@@ -168,7 +214,7 @@ pub fn render_shown<T>(
     highlights: &[Highlight],
     work: impl FnOnce(&RenderInput) -> openarchi_core::Result<T>,
 ) -> Result<T, String> {
-    let scene = shown_scene(state, look.selection.as_ref())?;
+    let scene = drawn_scene(state, look.selection.as_ref())?;
     let catalog = current_catalog(state);
     let model = open_model(state);
     let whole = Look {
@@ -262,9 +308,10 @@ pub async fn project_thumbnail(
             return Ok(None);
         };
         let catalog = current_catalog(&state);
+        let scene = edits::edited(scene, &project.edits);
         let bytes = with_input(
             &catalog,
-            scene,
+            &scene,
             &project.look,
             None,
             &project.pins,

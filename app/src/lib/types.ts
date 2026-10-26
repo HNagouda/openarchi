@@ -285,6 +285,37 @@ export type ProjectView = {
   reports: Report[];
   /** The imported model in effect. */
   model: ModelView | null;
+  edits: SiteEdits;
+};
+
+/**
+ * Trees and buildings the user took away, moved or planted, by source id, as
+ * crates/core/src/edits.rs keeps them. Points are RD New metres. A removal
+ * under the model goes when the model moves or is removed.
+ */
+export type SiteEdits = {
+  removed?: { id: string; is_under_model?: boolean }[];
+  moved?: TreeAt[];
+  planted?: TreeAt[];
+};
+export type TreeAt = { id: string; x: number; y: number };
+
+/** A tree or building of the site as the edit tool sees it, in RD New metres. */
+export type Editable = {
+  id: string;
+  layer: "tree" | "building";
+  kind: string | null;
+  year_built: number | null;
+  height_m: number | null;
+  /** Where a tree stands now. */
+  at: [number, number] | null;
+  /** Where a moved tree stands in the survey. */
+  surveyed_at: [number, number] | null;
+  /** A building's outline. */
+  outline: [number, number][][];
+  is_removed: boolean;
+  is_under_model: boolean;
+  is_planted: boolean;
 };
 
 /** The unit a model file was read in, and the file's axis taken as up. */
@@ -294,8 +325,8 @@ export type UpAxis = "y" | "z";
 /** Where a model stands: RD New metres, a clockwise turn, and its base in metres above NAP or null for "on the terrain". */
 export type Placement = { x: number; y: number; rotation_deg: number; base_m?: number | null };
 
-/** The model in effect, as the sheet's undo history keeps it: which one, where, and the BAG ids it replaces. */
-export type ModelChoice = { key: string; placement: Placement; replaced: string[] };
+/** The model in effect, as the sheet's undo history keeps it: which one and where. What it replaces is in the site edits. */
+export type ModelChoice = { key: string; placement: Placement };
 
 export type ModelView = {
   key: string;
@@ -306,7 +337,6 @@ export type ModelView = {
   size_m: [number, number, number];
   triangles: number;
   placement: Placement;
-  replaced: string[];
   /** Footprint outlines in the model's own frame, metres around its middle. */
   footprint: [number, number][][];
   /** The terrain under it in metres above NAP, when known. */
@@ -360,6 +390,10 @@ export type SunDay = { month: number; day: number; steps: SunStep[] };
 
 /** An existing building the model reaches over, and how much of it, 0 to 1. */
 export type CoveredBuilding = { id: string; share: number; year_built: number | null; height_m: number | null };
+/** A tree the model stands on or into: how far its trunk is from the footprint, 0 inside it. */
+export type CoveredTree = { id: string; distance_m: number; is_planted: boolean };
+/** What the model stands on where a choice places it, and what the core's rules pick to take away. */
+export type UnderModel = { buildings: CoveredBuilding[]; trees: CoveredTree[]; picked: string[] };
 
 export type Place = { label: string; kind: string; location: LonLat };
 

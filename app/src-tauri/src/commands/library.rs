@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use openarchi_core::area::Area;
+use openarchi_core::edits::SiteEdits;
 use openarchi_core::highlight::Highlight;
 use openarchi_core::library::{Library, ProjectSummary};
 use openarchi_core::pin::Pin;
@@ -38,6 +39,8 @@ pub struct ProjectView {
     pub reports: Vec<Report>,
     /// The imported model in effect, `None` when the project has none.
     pub model: Option<ModelView>,
+    /// Trees and buildings taken away, moved or planted.
+    pub edits: SiteEdits,
 }
 
 pub fn view_of(open: &OpenProject) -> ProjectView {
@@ -75,6 +78,7 @@ pub fn view_of(open: &OpenProject) -> ProjectView {
         layers_present,
         reports: project.reports.clone(),
         model: current_model_view(open),
+        edits: project.edits.clone(),
     }
 }
 

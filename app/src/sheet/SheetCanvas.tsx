@@ -8,6 +8,7 @@ import { Canvas, type CanvasControls, type PaperView } from "./Canvas";
 import { CanvasMessage } from "./CanvasMessage";
 import type { LiveValue } from "./liveValue";
 import { MissingData } from "./MissingData";
+import { EditOverlay } from "./edits/EditOverlay";
 import { doubleClickPaper, pressPaper, type PaperTools } from "./paperPress";
 import { PinOverlay } from "./pins/PinOverlay";
 import { SectionOverlay } from "./section/SectionOverlay";
@@ -38,12 +39,13 @@ type Props = {
 
 export function SheetCanvas(props: Props) {
   const { preview, tools } = props;
-  const { section, highlight, viewPoint } = tools;
+  const { section, highlight, viewPoint, edit } = tools;
   const classes = [
     "canvas-wrap",
     section.isDrawing ? "is-drawing-section" : "",
     highlight.isDrawing ? "is-drawing-highlight" : "",
     viewPoint.isPlacing ? "is-placing-view-point" : "",
+    edit.isEditing ? (edit.mode === "plant" ? "is-planting-trees" : "is-editing-site") : "",
   ];
 
   return (
@@ -79,6 +81,7 @@ function PaperOverlays({ view, svg, tools, highlightOverlay, modelOverlay, look,
       {highlightOverlay(view)}
       <ViewPointOverlay view={view} draft={viewPoint.draft} />
       {modelOverlay(view)}
+      <EditOverlay view={view} tool={tools.edit} />
       <PinOverlay
         view={view}
         svg={svg}

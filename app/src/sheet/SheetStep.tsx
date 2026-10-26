@@ -23,6 +23,8 @@ import { useSheetKeys } from "./useSheetKeys";
 import { ModelOverlay } from "./model/ModelOverlay";
 import { ModelSection } from "./model/ModelSection";
 import { useModelTool } from "./model/useModelTool";
+import { SiteEditsSection } from "./edits/SiteEditsSection";
+import { useAppliedSite } from "./edits/useAppliedSite";
 import { usePaperTools } from "./usePaperTools";
 import { ColumnResizer, DIAGRAM_COLUMN, INSPECTOR_COLUMN } from "./columns/ColumnResizer";
 import { PaletteSwatches } from "../ui/ColorPicker";
@@ -82,12 +84,14 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
   const isEditable = !isExportOpen && !isReportsOpen && isReady;
   const { tools, highlights } = usePaperTools({ history, diagrams, canvas, svg: preview.svg, isEditable, isReady, toast });
   const drawAgain = useCallback(() => setRevision((value) => value + 1), []);
+  useAppliedSite({ model: book.model, edits: book.edits, onApplied: drawAgain, toast });
   const modelTool = useModelTool({
     project,
     choice: book.model,
+    edits: book.edits,
     onModel: history.changeModel,
+    onEdits: history.changeEdits,
     onSeal: history.seal,
-    onApplied: drawAgain,
     isEnabled: isEditable,
     toast,
     onUndo: history.undo,
@@ -126,7 +130,8 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
     stepping,
     isReady,
     isEnabled: !isExportOpen && !isReportsOpen,
-    isNothingSelected: tools.text.selectedId === null && tools.pin.selectedId === null && tools.highlight.selectedId === null && !modelTool.isPlacing,
+    isNothingSelected:
+      tools.text.selectedId === null && tools.pin.selectedId === null && tools.highlight.selectedId === null && !modelTool.isPlacing && !tools.edit.isEditing,
     onUndo: history.undo,
     onRedo: history.redo,
     onExport: () => setExportOpen(true),
@@ -222,7 +227,12 @@ export function SheetStep({ project: initial, catalog, catalogError, onRetryCata
               onSeal={history.seal}
               onCatalogChanged={onRetryCatalog}
               viewPoint={{ pins: book.pins, isPlacing: tools.viewPoint.isPlacing, onPlace: tools.viewPoint.toggle }}
-              modelSection={<ModelSection tool={modelTool} />}
+              modelSection={
+                <>
+                  <ModelSection tool={modelTool} />
+                  <SiteEditsSection tool={tools.edit} />
+                </>
+              }
             />
           )}
         </div>

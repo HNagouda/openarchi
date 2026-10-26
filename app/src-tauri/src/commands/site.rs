@@ -65,6 +65,8 @@ fn fetch_and_store(
     match lock(&state.open).as_mut() {
         Some(open) => {
             open.project.area = area;
+            // Edits of trees and buildings the new fetch no longer has are dropped.
+            open.project.edits = open.project.edits.kept_in(&scene);
             open.scene = Some(Arc::new(scene));
             open.packed_scene = None;
         }

@@ -1,18 +1,19 @@
 // Dev only: the imported model and the 3D view in a plain browser. Importing any file gives
 // the test L-shaped block app_fixtures placed north of the Westerkerk
 // (dev-fixtures/model.json), and the preview gets its footprint drawn in, so
-// moving, turning and replacing can be tried. The fixtures are rendered
-// without the model, so a replaced building still shows; the real drawing
-// comes from crates/core/src/render/proposal.rs.
+// moving, turning and replacing can be tried. What it replaces is a site
+// edit, drawn by mockEdits.ts; the real drawing comes from
+// crates/core/src/render/proposal.rs.
 
-import type { CoveredBuilding, Look, ModelChoice, ModelView } from "../lib/types";
+import type { Look, ModelChoice, ModelView, View3d } from "../lib/types";
+import { withMockEditedTrees } from "./mockEdits";
 import { rdToPaper } from "./mockPins";
 
 const ACCENT = "#c4502a";
 const OUTLINE_MM = 0.18;
 const MOCK_PATH = "/Users/you/Models/house.obj";
 
-type Fixture = ModelView & { covered: CoveredBuilding[] };
+type Fixture = ModelView & { covered: unknown; covered_trees: unknown; picked: unknown };
 
 const fixture: Fixture = await fetch("/dev-fixtures/model.json").then((response) => response.json());
 const models: Record<string, ModelView> = {};
@@ -21,7 +22,7 @@ let current: ModelChoice | null = null;
 /** The model in effect as the project view sends it, or null. */
 export function mockModelView(): ModelView | null {
   if (!current) return null;
-  return { ...models[current.key], placement: current.placement, replaced: current.replaced };
+  return { ...models[current.key], placement: current.placement };
 }
 
 /** The mock's answer to a model command, or undefined for any other command. */
@@ -29,7 +30,7 @@ export function answerModel(command: string, args: Record<string, unknown>): unk
   if (command === "plugin:dialog|open") return MOCK_PATH;
   if (command === "import_model" || command === "reread_model") {
     const key = `model-${Object.keys(models).length + 1}`;
-    const { covered: _covered, ...view } = fixture;
+    const { covered: _covered, covered_trees: _trees, picked: _picked, ...view } = fixture;
     const placement = (args.placement as ModelView["placement"] | null) ?? view.placement;
     models[key] = { ...view, key, placement, unit: (args.unit as ModelView["unit"]) ?? view.unit, up: (args.up as ModelView["up"]) ?? view.up };
     return models[key];
@@ -38,7 +39,6 @@ export function answerModel(command: string, args: Record<string, unknown>): unk
     current = (args.choice as ModelChoice | null) ?? null;
     return null;
   }
-  if (command === "covered_buildings") return fixture.covered;
   // The 3D view: the sheet's palette, its diagram where the fixtures have it, one day; saved pictures go nowhere.
   if (command === "view_3d") return mockView3d(args.look as Look);
   // Written by app_fixtures when it could reach PDOK; without it the view shows real colours only.
@@ -57,7 +57,9 @@ const VIEW3D_DIAGRAMS = ["context", "building-age", "building-use"];
 
 function mockView3d(look: Look): Promise<unknown> {
   const diagram = VIEW3D_DIAGRAMS.includes(look.diagram_id) ? look.diagram_id : "context";
-  return fetch(`/dev-fixtures/view3d/${diagram}-${look.theme_id}.json`).then((response) => response.json());
+  return fetch(`/dev-fixtures/view3d/${diagram}-${look.theme_id}.json`)
+    .then((response) => response.json())
+    .then((view: View3d) => withMockEditedTrees(view));
 }
 
 /** The model's footprint drawn into a fixture preview where the mock's choice stands it. */

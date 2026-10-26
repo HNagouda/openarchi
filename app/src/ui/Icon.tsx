@@ -26,6 +26,8 @@ const PATHS: Record<string, string> = {
   section: "M2.5 10h11M2.5 7v6M13.5 7v6M2.5 7l2-2.5M13.5 7l-2-2.5",
   // The imported model: a box seen from a corner, and the four arrows that move it.
   cube: "M8 1.5l5.5 3v7L8 14.5l-5.5-3v-7zM2.5 4.5 8 7.5l5.5-3M8 7.5v7",
+  // Site edits: a round crown on a trunk, as the plan and the sections draw a tree.
+  tree: "M8 14.5V10M4.5 10a2.5 2.5 0 0 1-.5-4.9A3 3 0 0 1 8 2.5a3 3 0 0 1 4 2.6 2.5 2.5 0 0 1-.5 4.9z",
   // The 3D view: play and pause the sun, turn round the site.
   play: "M5 3.5v9l7-4.5z",
   pause: "M5.5 3.5v9M10.5 3.5v9",

@@ -9,6 +9,7 @@ import { chosenVariant } from "../lib/diagrams";
 import type { Area, Catalog, Highlight, Credit, LaserSettings, Layer, Look, Pin, ProjectSummary, ProjectView, Report, ReportBlock, Sheet, SunMoment, View } from "../lib/types";
 import { answerPalette, withPaletteEdits } from "./mockPalettes";
 import { mockHighlightArea, withMockHighlights } from "./mockHighlights";
+import { answerEdits, mockEdits, withMockEdits } from "./mockEdits";
 import { answerModel, mockModelView, withMockModel } from "./mockModel";
 import { withMockPins } from "./mockPins";
 import { withMockSection } from "./mockSection";
@@ -100,6 +101,7 @@ function view(project: ProjectSummary): ProjectView {
     layers_present: fixture.layers_present,
     reports: openReports,
     model: mockModelView(),
+    edits: mockEdits(),
   };
 }
 
@@ -125,6 +127,8 @@ async function answer(command: string, args: Args) {
   if (palette !== undefined) return palette;
   const model = answerModel(command, args);
   if (model !== undefined) return model;
+  const edits = answerEdits(command, args);
+  if (edits !== undefined) return edits;
   // The save and folder dialogs answer at once, as if the user chose the Desktop.
   if (command === "plugin:dialog|save") return `/Users/you/Desktop/${(args.options as { defaultPath?: string }).defaultPath ?? "openarchi"}`;
   if (command === "plugin:dialog|open") return "/Users/you/Desktop";
@@ -161,7 +165,7 @@ async function answer(command: string, args: Args) {
     // The explode fixture's ground points belong to its top plate, so the mock draws highlights there only;
     // the core draws them on every plate.
     const highlights = shown.hide_highlights ? [] : ((args.highlights as Highlight[] | undefined) ?? []);
-    const withHighlights = withMockHighlights(withMockModel(withLine), highlights);
+    const withHighlights = withMockHighlights(withMockModel(withMockEdits(withLine, shown)), highlights);
     return shown.hide_pins ? withHighlights : withMockPins(withHighlights, pins);
   }
   if (command === "render_thumbnail") return picture(args.look as Look);

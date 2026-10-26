@@ -13,7 +13,8 @@ use openarchi_core::library::Library;
 use tauri::Manager;
 
 use crate::commands::{
-    analysis, export, laser, library, model, palettes, ratios, render, report, sheets, site, view3d,
+    analysis, edits, export, laser, library, model, palettes, ratios, render, report, sheets, site,
+    view3d,
 };
 use crate::guard::{calm, text};
 use crate::state::AppState;
@@ -97,7 +98,10 @@ pub fn run() {
             model::import_model,
             model::reread_model,
             model::set_model,
-            model::covered_buildings,
+            model::under_model,
+            edits::set_site_edits,
+            edits::pick_on_site,
+            edits::site_edit_things,
             view3d::view_3d,
             view3d::aerial_photo,
             view3d::sun_day,

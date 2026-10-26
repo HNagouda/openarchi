@@ -2,20 +2,21 @@
 // and moving and turning it on the sheet.
 //
 // Which model is in effect and where it stands live in the sheet's undo
-// history, so every change undoes like any other edit. The app keeps every
-// model read this session by key, and this hook hands it the choice after each
-// change; the preview draws again once the app has it. Like pins, a drag only
-// changes the history when it is dropped, and the drop picks again the
-// buildings the model replaces.
+// history with the site edits, so every change undoes like any other edit.
+// The app keeps every model read this session by key, and useAppliedSite hands
+// it the choice after each change. Like pins, a drag only changes the history
+// when it is dropped, and the drop picks again the buildings and trees the
+// model replaces, as site edits under the model.
 
 import { useEffect, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { coveredBuildings, errorText, importModel, rereadModel, setModel } from "../../lib/ipc";
+import { errorText, importModel, rereadModel, underModel } from "../../lib/ipc";
 import { usePlainKeys } from "../../lib/keys";
-import type { ModelChoice, ModelUnit, ModelView, Placement, ProjectView, UpAxis } from "../../lib/types";
+import type { ModelChoice, ModelUnit, ModelView, Placement, ProjectView, SiteEdits, UpAxis } from "../../lib/types";
 import { useToast } from "../../ui/Toasts";
 import { useLiveValue } from "../liveValue";
-import { replacedBy, sizeLabel } from "./modelEdits";
+import { withModelPicks, withoutModelPicks } from "../edits/siteEdits";
+import { sizeLabel } from "./modelEdits";
 
 export const MODEL_KEY = "m";
 // The extensions the core reads; see READABLE_FORMATS in crates/core/src/model.rs.
@@ -27,25 +28,27 @@ const BIG_NUDGE_M = 10;
 type Options = {
   project: ProjectView;
   choice: ModelChoice | null;
-  onModel: (next: ModelChoice | null, mergeKey?: string) => void;
+  edits: SiteEdits;
+  /** The model and the site edits, which change together when the model moves. */
+  onModel: (next: ModelChoice | null, edits: SiteEdits, mergeKey?: string) => void;
+  onEdits: (next: SiteEdits) => void;
   onSeal: () => void;
-  /** The app holds the new choice: draw the sheet again. */
-  onApplied: () => void;
   isEnabled: boolean;
   toast: ReturnType<typeof useToast>;
   onUndo: () => void;
 };
 
-export function useModelTool({ project, choice, onModel, onSeal, onApplied, isEnabled, toast, onUndo }: Options) {
+export function useModelTool({ project, choice, edits, onModel, onEdits, onSeal, isEnabled, toast, onUndo }: Options) {
   const [models, setModels] = useState<Record<string, ModelView>>(() => (project.model ? { [project.model.key]: project.model } : {}));
   const [isPlacing, setPlacing] = useState(false);
   // The placement while the footprint is dragged or turned, until it is dropped.
   const draft = useLiveValue<Placement | null>(null);
-  const applied = useRef(JSON.stringify(choice));
   // Each placement is one undo step, though it changes the history twice.
   const placements = useRef(0);
   const latest = useRef(choice);
   latest.current = choice;
+  const latestEdits = useRef(edits);
+  latestEdits.current = edits;
   const model = choice ? models[choice.key] ?? null : null;
 
   // A model the app sent again after an assistant's edit is known by its new key.
@@ -53,15 +56,6 @@ export function useModelTool({ project, choice, onModel, onSeal, onApplied, isEn
     const fresh = project.model;
     if (fresh) setModels((known) => ({ ...known, [fresh.key]: fresh }));
   }, [project.model]);
-
-  useEffect(() => {
-    const wanted = JSON.stringify(choice);
-    if (wanted === applied.current) return;
-    applied.current = wanted;
-    setModel(choice)
-      .then(onApplied)
-      .catch((error) => toast(`Couldn't place the model. ${errorText(error)}`, { isError: true }));
-  }, [choice, onApplied, toast]);
 
   useEffect(() => {
     if (!isEnabled || !choice) setPlacing(false);
@@ -76,7 +70,9 @@ export function useModelTool({ project, choice, onModel, onSeal, onApplied, isEn
       // A model imported again, after a change in Archicad, stands where the last one stood.
       const view = await importModel(path, null, null, latest.current?.placement ?? null);
       keep(view);
-      onModel({ key: view.key, placement: view.placement, replaced: view.replaced });
+      const imported = { key: view.key, placement: view.placement };
+      const under = await underModel(imported, latestEdits.current);
+      onModel(imported, withModelPicks(latestEdits.current, under.picked));
       toast(`Imported ${view.file_name}, ${sizeLabel(view)}`);
     } catch (error) {
       toast(`Couldn't import the model. ${errorText(error)}`, { isError: true });
@@ -89,14 +85,14 @@ export function useModelTool({ project, choice, onModel, onSeal, onApplied, isEn
     try {
       const view = await rereadModel(current.key, unit, up);
       keep(view);
-      onModel({ ...current, key: view.key });
+      onModel({ ...current, key: view.key }, latestEdits.current);
     } catch (error) {
       toast(`Couldn't read the model that way. ${errorText(error)}`, { isError: true });
     }
   };
 
   const remove = () => {
-    onModel(null);
+    onModel(null, withoutModelPicks(latestEdits.current));
     toast("Removed the model", { action: { label: "Undo", run: onUndo } });
   };
 
@@ -106,12 +102,13 @@ export function useModelTool({ project, choice, onModel, onSeal, onApplied, isEn
     if (!current) return;
     placements.current += 1;
     mergeKey ??= `model-place-${placements.current}`;
-    onModel({ ...current, placement }, mergeKey);
+    const placed = { ...current, placement };
+    onModel(placed, latestEdits.current, mergeKey);
     try {
-      const covered = await coveredBuildings({ ...current, placement });
-      onModel({ ...current, placement, replaced: replacedBy(covered) }, mergeKey);
+      const under = await underModel(placed, latestEdits.current);
+      onModel(placed, withModelPicks(latestEdits.current, under.picked), mergeKey);
     } catch (error) {
-      toast(`Couldn't find the buildings under the model. ${errorText(error)}`, { isError: true });
+      toast(`Couldn't find the buildings and trees under the model. ${errorText(error)}`, { isError: true });
     }
     draft.set(null);
   };
@@ -132,7 +129,7 @@ export function useModelTool({ project, choice, onModel, onSeal, onApplied, isEn
     place({ ...current.placement, x: current.placement.x + east * metres, y: current.placement.y + north * metres });
   }, isEnabled);
 
-  return { model, models, choice, isPlacing, draft, togglePlacing, importFile, reread, remove, place, onReplaced: onModel, onSeal };
+  return { model, models, choice, edits, isPlacing, draft, togglePlacing, importFile, reread, remove, place, onEdits, onSeal };
 }
 
 export type ModelTool = ReturnType<typeof useModelTool>;
