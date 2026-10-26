@@ -3,7 +3,7 @@
 //!
 //! Windows and Linux get no menu bar; the window handles Ctrl shortcuts itself.
 
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Emitter, Runtime};
 
 pub const MENU_EVENT: &str = "menu";
@@ -17,6 +17,22 @@ fn item<R: Runtime>(
     MenuItem::with_id(app, id, label, true, keys)
 }
 
+/// What the About panel says besides the name and icon.
+fn about() -> AboutMetadata<'static> {
+    AboutMetadata {
+        version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        comments: Some("Site-analysis diagrams from a drawn site.".to_string()),
+        copyright: Some("Free software under the GPL, version 3 or later.".to_string()),
+        license: Some(env!("CARGO_PKG_LICENSE").to_string()),
+        website: Some(env!("CARGO_PKG_REPOSITORY").to_string()),
+        website_label: Some("openarchi on GitHub".to_string()),
+        credits: Some(
+            "Built on open data; every sheet credits the sources it draws from.".to_string(),
+        ),
+        ..AboutMetadata::default()
+    }
+}
+
 pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let separator = || PredefinedMenuItem::separator(app);
 
@@ -25,7 +41,7 @@ pub fn build<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         "openarchi",
         true,
         &[
-            &PredefinedMenuItem::about(app, Some("About openarchi"), None)?,
+            &PredefinedMenuItem::about(app, Some("About openarchi"), Some(about()))?,
             &separator()?,
             &item(app, "settings", "Settings…", Some("CmdOrCtrl+,"))?,
             &separator()?,

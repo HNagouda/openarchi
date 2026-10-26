@@ -66,8 +66,13 @@ jobs:
       - name: Write release notes
         run: scripts/changelog-section.sh "${TAG#v}" > release-notes.md
       # Created as a draft and published once every file is attached, so nobody
-      # downloads from a release that is still missing an installer.
+      # downloads from a release that is still missing an installer. A tag with
+      # a hyphen, like v1.0.0-beta.1, is a prerelease and never becomes "latest".
       - name: Publish release
         run: |
           gh release create "$TAG" --draft --verify-tag --title "openarchi $TAG" --notes-file release-notes.md dist/*
-          gh release edit "$TAG" --draft=false --latest
+          if [[ "$TAG" == *-* ]]; then
+            gh release edit "$TAG" --draft=false --prerelease
+          else
+            gh release edit "$TAG" --draft=false --latest
+          fi

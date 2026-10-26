@@ -22,7 +22,7 @@ body:
     attributes:
       label: openarchi version
       description: The release you downloaded, or "dev build" with its date.
-      placeholder: v0.1.0
+      placeholder: v1.0.0-beta.1
     validations:
       required: true
   - type: dropdown

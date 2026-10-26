@@ -74,5 +74,10 @@ for (const name of files.sort()) {
   css += `@font-face { font-family: "${family}"; src: url("./${name}"); font-weight: ${weight}; font-style: ${style}; font-display: block; }\n`;
 }
 
+// The fonts' licences (SIL OFL) travel with them into the app.
+for (const name of readdirSync(CORE_FONTS_DIR).filter((name) => /\.txt$/i.test(name))) {
+  copyFileSync(join(CORE_FONTS_DIR, name), join(OUT_DIR, name));
+}
+
 writeFileSync(join(OUT_DIR, "fonts.css"), css);
 console.log(`Copied ${files.length} fonts into public/fonts.`);

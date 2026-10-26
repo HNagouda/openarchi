@@ -3021,7 +3021,7 @@ dependencies = [
 
 [[package]]
 name = "openarchi-app"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "notify",
@@ -3036,7 +3036,7 @@ dependencies = [
 
 [[package]]
 name = "openarchi-core"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "contour",
@@ -3065,7 +3065,7 @@ dependencies = [
 
 [[package]]
 name = "openarchi-mcp"
-version = "0.1.0"
+version = "1.0.0-beta.1"
 dependencies = [
  "base64 0.22.1",
  "geo",

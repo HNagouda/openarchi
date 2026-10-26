@@ -8,7 +8,7 @@
 
 Draw a site, and get a whole series of clean, styled diagrams ready for a board or a portfolio.
 
-[![Download](https://img.shields.io/github/v/release/HNagouda/openarchi?label=download&color=2ea44f)](https://github.com/HNagouda/openarchi/releases/latest)
+[![Download](https://img.shields.io/github/v/release/HNagouda/openarchi?include_prereleases&label=download&color=2ea44f)](https://github.com/HNagouda/openarchi/releases)
 [![CI](https://github.com/HNagouda/openarchi/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/HNagouda/openarchi/actions/workflows/ci.yml)
 [![License: GPL v3](https://img.shields.io/github/license/HNagouda/openarchi?color=blue)](LICENSE)
 ![macOS and Windows](https://img.shields.io/badge/macOS%20%7C%20Windows-lightgrey)
@@ -65,7 +65,7 @@ In full transparency, openarchi is vibe coded. I described what I wanted and [Cl
 
 ## Downloading it
 
-Download the installer for your computer from the [latest release](https://github.com/HNagouda/openarchi/releases/latest). It's under "Assets" at the bottom of that page.
+Download the installer for your computer from the [newest release](https://github.com/HNagouda/openarchi/releases). openarchi is in beta, so the newest release is marked Pre-release. It's under "Assets" at the bottom of that page.
 
 - **Mac:** `openarchi_<version>_universal.dmg` runs on both Apple Silicon and Intel Macs, on macOS 11 or newer. Open it and drag openarchi into Applications.
 - **Windows:** `openarchi_<version>_x64-setup.exe` is the usual installer. The `.msi` installs the same app, for computers that only accept MSI packages.
