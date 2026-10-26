@@ -90,10 +90,12 @@ pub(crate) use highlights::shown as shown_highlights;
 // Shared with the DXF export, so each CAD layer takes its colour on the sheet.
 pub(crate) use highlights::colour_of as highlight_colour;
 // Shared with the DXF marks, so they plot with the sheet's own dashes and sizes.
+pub(crate) use context::fade as muted_colour;
 pub(crate) use highlights::{
     DASH_MM as HIGHLIGHT_DASH_MM, DOT_GAP_MM as HIGHLIGHT_DOT_GAP_MM, GAP_MM as HIGHLIGHT_GAP_MM,
     LABEL_GAP_MM as HIGHLIGHT_LABEL_GAP_MM,
 };
+pub(crate) use massing::{lighten as lighten_massing, theme_fill as massing_fill};
 pub(crate) use section_marker::{
     ARROW_HALF_WIDTH as ARROW_HALF_WIDTH_MM, ARROW_LENGTH as ARROW_LENGTH_MM,
     DASHES as SECTION_DASHES_MM, LABEL_GAP as SECTION_LABEL_GAP_MM, TICK_LENGTH as SECTION_TICK_MM,
@@ -104,6 +106,7 @@ pub(crate) use section_pieces::{
 };
 pub(crate) use solid::tree_size;
 pub use solid::DEFAULT_HEIGHT_M;
+pub(crate) use solid::{roof_fill, ESTIMATED_GREY};
 pub(crate) use style::{resolve_layers, ResolvedLayer};
 // Shared with the sunlight hours, so they cast exactly the shadows the shadow diagram draws.
 pub(crate) use shadow::{shadow_per_metre, signed_area, tree_shadow_ring};

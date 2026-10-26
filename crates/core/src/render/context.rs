@@ -239,7 +239,7 @@ fn muted(style: &LayerStyle, theme: &Theme) -> Result<LayerStyle> {
 }
 
 /// "#C2532E" on "#F4F1EA" -> a pale, greyed terracotta.
-fn fade(colour: &str, paper: &str) -> String {
+pub(crate) fn fade(colour: &str, paper: &str) -> String {
     let grey = color::to_hex({
         let level = color::luminance(colour) * 255.0;
         (level, level, level)

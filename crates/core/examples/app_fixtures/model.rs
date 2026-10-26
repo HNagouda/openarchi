@@ -5,13 +5,11 @@
 use std::fs;
 use std::path::Path;
 
-use std::time::Instant;
-
-use openarchi_core::catalog::builtin_themes;
 use openarchi_core::model::{self, Model, Placement, UpAxis};
 use openarchi_core::scene::Scene;
-use openarchi_core::view3d;
 use serde_json::json;
+
+use crate::view3d;
 
 /// A plot of about 740 m² north of the Westerkerk, in metres from the scene's origin.
 const PLOT: (f64, f64) = (12.0, 62.0);
@@ -31,7 +29,7 @@ pub fn placed_model(scene: &Scene) -> Model {
 
 pub fn write_model(scene: &Scene, out_dir: &Path) {
     let model = placed_model(scene);
-    write_view3d(scene, &model, out_dir);
+    view3d::write(scene, &model, out_dir);
     let footprint: Vec<Vec<[f64; 2]>> = model
         .shape()
         .footprint
@@ -56,29 +54,4 @@ pub fn write_model(scene: &Scene, out_dir: &Path) {
         serde_json::to_string_pretty(&view).expect("write the model as JSON"),
     )
     .expect("write the model fixture");
-}
-
-/// What the 3D view draws of the site with the model, in the paper palette,
-/// and the sun on the equinox, timed, since the view waits on both when it opens.
-fn write_view3d(scene: &Scene, model: &Model, out_dir: &Path) {
-    let theme = builtin_themes()
-        .into_iter()
-        .find(|theme| theme.id == "paper")
-        .expect("the paper palette");
-    let started = Instant::now();
-    let view = view3d::view(scene, &theme, Some(model)).expect("the 3D view");
-    let text = serde_json::to_string(&view).expect("the 3D view as JSON");
-    println!(
-        "3D view: {} building triangles, {:.0} KB of JSON in {:.0} ms",
-        view.buildings.triangle_count,
-        text.len() as f64 / 1024.0,
-        started.elapsed().as_secs_f64() * 1000.0
-    );
-    fs::write(out_dir.join("view3d.json"), text).expect("write the 3D view");
-    let day = view3d::sun_day(scene, 3, 21);
-    fs::write(
-        out_dir.join("sun-day.json"),
-        serde_json::to_string(&day).expect("the sun's day as JSON"),
-    )
-    .expect("write the sun's day");
 }

@@ -5,24 +5,35 @@
 use std::path::Path;
 
 use base64::Engine;
+use openarchi_core::project::Look;
 use openarchi_core::view3d::{self, SunDay, View3d};
 use tauri::State;
 
-use crate::commands::render::{find_theme, open_model, open_scene};
-use crate::guard::{blocking, text};
+use crate::commands::render::{current_catalog, open_model, open_scene, with_input};
+use crate::guard::blocking;
 use crate::state::Shared;
 
 const PNG_EXTENSION: &str = "png";
 
-/// The open site, its neighbourhood and the model in effect, in `theme_id`'s ground colours.
+/// The open site, its neighbourhood and the model in effect, in the colours
+/// of the sheet `look` draws: its diagram's classes and its palette.
 #[tauri::command]
-pub async fn view_3d(state: State<'_, Shared>, theme_id: String) -> Result<View3d, String> {
+pub async fn view_3d(state: State<'_, Shared>, look: Look) -> Result<View3d, String> {
     let state = state.inner().clone();
     blocking(move || {
         let scene = open_scene(&state)?;
-        let theme = find_theme(&state, &theme_id)?;
         let model = open_model(&state);
-        view3d::view(&scene, &theme, model.as_ref()).map_err(text)
+        let catalog = current_catalog(&state);
+        with_input(
+            &catalog,
+            &scene,
+            &look,
+            None,
+            &[],
+            &[],
+            model.as_ref(),
+            view3d::view,
+        )
     })
     .await
 }

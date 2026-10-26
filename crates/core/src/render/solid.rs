@@ -35,7 +35,7 @@ pub const DEFAULT_HEIGHT_M: f64 = 3.0 * STOREY_HEIGHT_M;
 pub const TREE_HEIGHT_M: f64 = 10.0;
 const TREE_CROWN_RADIUS_M: f64 = 3.0;
 /// How far a building of unknown height moves towards the unknown colour.
-pub(super) const ESTIMATED_GREY: f64 = 0.65;
+pub(crate) const ESTIMATED_GREY: f64 = 0.65;
 /// Edges between faces: a light hairline in the paper colour.
 const EDGE_MM: f64 = 0.06;
 const EDGE_OPACITY: f64 = 0.7;
@@ -261,7 +261,7 @@ pub fn write(
 }
 
 /// The roof colour: the feature's class, or the layer's own fill.
-pub(super) fn roof_fill(
+pub(crate) fn roof_fill(
     resolved: &ResolvedLayer,
     feature: &Feature,
     diagram: &Diagram,

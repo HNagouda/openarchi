@@ -13,6 +13,7 @@ mod palettes;
 mod previews;
 mod recorded;
 mod report_blocks;
+mod view3d;
 
 use std::collections::{BTreeSet, HashMap};
 use std::fs;

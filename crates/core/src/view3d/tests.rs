@@ -6,9 +6,11 @@ use geo::{Geometry, Rect};
 
 use super::*;
 use crate::area::{Area, LonLat};
-use crate::catalog::builtin_themes;
-use crate::model::Placement;
+use crate::catalog::{builtin_diagrams, builtin_themes};
+use crate::model::{Model, Placement};
+use crate::project::Look;
 use crate::scene::Attributes;
+use crate::theme::Theme;
 
 fn building(id: &str, min: (f64, f64), max: (f64, f64), height_m: f64) -> Feature {
     Feature {
@@ -57,6 +59,42 @@ fn paper() -> Theme {
         .unwrap()
 }
 
+/// The 3D view of `scene` opened from a sheet of `diagram_id` in the paper palette.
+fn view_of(scene: &Scene, diagram_id: &str, model: Option<&Model>) -> View3d {
+    let diagram = builtin_diagrams()
+        .into_iter()
+        .find(|diagram| diagram.id == diagram_id)
+        .unwrap();
+    let theme = paper();
+    let look = Look {
+        diagram_id: diagram_id.to_string(),
+        ..Look::default()
+    };
+    let input = RenderInput {
+        scene,
+        diagram: &diagram,
+        theme: &theme,
+        look: &look,
+        pins: &[],
+        highlights: &[],
+        model,
+    };
+    view(&input).unwrap()
+}
+
+fn built_in(mut feature: Feature, year: i32) -> Feature {
+    feature.attributes.year_built = Some(year);
+    feature
+}
+
+fn road(min: (f64, f64), max: (f64, f64)) -> Feature {
+    Feature {
+        layer: Layer::Road,
+        geometry: Geometry::Polygon(Rect::new(min, max).to_polygon()),
+        attributes: Attributes::default(),
+    }
+}
+
 /// Every triangle's corners from a surface's packed text.
 fn corners(surface: &Surface) -> Vec<[[f32; 3]; 3]> {
     let bytes = BASE64.decode(&surface.corners).unwrap();
@@ -88,10 +126,11 @@ fn normal([a, b, c]: [[f32; 3]; 3]) -> [f32; 3] {
 fn a_building_stands_as_four_walls_facing_out_under_a_roof_facing_up() {
     let scene = site(vec![building("a", (0.0, 0.0), (10.0, 10.0), 12.0)]);
 
-    let view = view(&scene, &paper(), None).unwrap();
-    let triangles = corners(&view.buildings);
+    let view = view_of(&scene, "context", None);
+    let triangles = corners(&view.buildings[0]);
 
-    assert_eq!(view.buildings.triangle_count, 10);
+    assert_eq!(view.buildings.len(), 1);
+    assert_eq!(view.buildings[0].triangle_count, 10);
     for triangle in triangles {
         let normal = normal(triangle);
         let middle = [0, 1, 2].map(|axis| triangle.iter().map(|c| c[axis]).sum::<f32>() / 3.0);
@@ -107,7 +146,7 @@ fn a_building_stands_as_four_walls_facing_out_under_a_roof_facing_up() {
 
 #[test]
 fn the_ground_faces_up_and_the_site_is_framed_by_its_corners() {
-    let view = view(&site(Vec::new()), &paper(), None).unwrap();
+    let view = view_of(&site(Vec::new()), "context", None);
 
     assert!((view.radius_m - 100.0 * 2f64.sqrt()).abs() < 1e-9);
     for triangle in corners(&view.ground[0]) {
@@ -131,14 +170,70 @@ fn a_replaced_building_is_left_out_and_the_model_stands_in_its_place() {
     )
     .unwrap();
 
-    let view = view(&scene, &paper(), Some(&model)).unwrap();
+    let view = view_of(&scene, "context", Some(&model));
 
     assert_eq!(model.replaced, vec!["old".to_string()]);
-    assert_eq!(view.buildings.triangle_count, 10);
-    assert_eq!(
-        view.model.unwrap().triangle_count,
-        model.mesh.triangles.len()
-    );
+    assert_eq!(view.buildings[0].triangle_count, 10);
+    let shown = view.model.unwrap();
+    assert_eq!(shown.triangle_count, model.mesh.triangles.len());
+    assert_eq!(shown.colour, paper().palette.accent);
+}
+
+#[test]
+fn an_age_sheet_colours_old_and_new_buildings_apart_as_its_roofs_do() {
+    let scene = site(vec![
+        built_in(building("old", (0.0, 0.0), (10.0, 10.0), 12.0), 1650),
+        built_in(building("new", (30.0, 0.0), (40.0, 10.0), 12.0), 2010),
+        built_in(building("newer", (60.0, 0.0), (70.0, 10.0), 12.0), 2015),
+    ]);
+
+    let plain = view_of(&scene, "context", None);
+    let by_age = view_of(&scene, "building-age", None);
+
+    assert_eq!(plain.buildings.len(), 1);
+    assert_eq!(by_age.buildings.len(), 2);
+    assert!(by_age
+        .buildings
+        .iter()
+        .all(|surface| surface.pieces.iter().all(|&count| count == 10)));
+    let triangles: usize = by_age
+        .buildings
+        .iter()
+        .map(|surface| surface.triangle_count)
+        .sum();
+    assert_eq!(triangles, 30);
+}
+
+#[test]
+fn a_building_of_unknown_height_is_greyed_like_on_the_sheet() {
+    let mut guessed = building("guessed", (30.0, 0.0), (40.0, 10.0), 12.0);
+    guessed.attributes.height_m = None;
+    let scene = site(vec![
+        building("measured", (0.0, 0.0), (10.0, 10.0), 12.0),
+        guessed,
+    ]);
+
+    let view = view_of(&scene, "context", None);
+
+    assert_eq!(view.buildings.len(), 2);
+}
+
+#[test]
+fn the_neighbourhood_ground_is_muted_and_keeps_its_layer() {
+    let mut scene = site(vec![road((-10.0, -10.0), (10.0, 10.0))]);
+    scene.context = vec![road((150.0, -10.0), (170.0, 10.0))];
+
+    let view = view_of(&scene, "context", None);
+
+    let inside = view
+        .ground
+        .iter()
+        .find(|surface| surface.layer == Some(Layer::Road))
+        .unwrap();
+    let around = &view.surroundings[0];
+    assert_eq!(around.layer, Some(Layer::Road));
+    assert_ne!(around.colour, inside.colour);
+    assert_eq!(view.ground[0].layer, None);
 }
 
 #[test]
