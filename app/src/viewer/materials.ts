@@ -4,6 +4,9 @@
 // water a sheen of the sky. All of it is worked out in the shaders from the
 // position of each pixel, so no image is downloaded or shipped.
 //
+// #! NOTE[3d, realistic] : Facades are drawn from the storey height alone, not from data on real windows or materials; is that clear enough to students?
+// #! NOTE[3d, owner] : The model is the accent in the palette finish and near white in the realistic one; should it keep its file's own colours there?
+//
 // Both finishes darken the foot of every wall a little: less sky reaches the
 // bottom of a street, and that cheap baked shade grounds the buildings
 // without a screen-space occlusion pass.

@@ -26,6 +26,7 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
 // The finish is a way of looking, kept per machine like other view settings rather than in the project.
+// #! NOTE[3d, owner] : Should the finish be saved with each sheet instead, so a project opens its 3D view the way it was left?
 const FINISH_PREFERENCE = "viewer.finish";
 const FINISHES: { value: Finish; label: string; tip: string }[] = [
   { value: "palette", label: "Palette", tip: "The sheet's palette and diagram colours" },
