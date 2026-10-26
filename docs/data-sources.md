@@ -8,7 +8,7 @@ The short version: almost everything is available without a key. PDOK, RIVM, LIW
 
 PDOK for the BGT (OGC API features at `https://api.pdok.nl/lv/bgt/ogc/v1`), BAG v2 buildings (`https://api.pdok.nl/kadaster/bag/ogc/v2`, collection `pand`), BRK v1 parcels (`https://api.pdok.nl/kadaster/brk-kadastrale-kaart/ogc/v1`), AHN heights through WCS (`https://service.pdok.nl/rws/ahn/wcs/v1_0`, coverages `dsm_05m` and `dtm_05m`) and the Locatieserver for search. 3D BAG timed out from this machine and is not used.
 
-Since round 2 it also fetches the BAG `verblijfsobject` units (`bag_units.rs`), the administrative boundaries (`boundaries.rs`), the PDOK infrared photo for the vegetation index (`luchtfoto.rs`), RIVM's WCS for noise, air, trees, green and the heat island (`rivm.rs`), LIWO flood depths (`liwo.rs`), the CBS 100 m statistics and area divisions (`cbs.rs`), PVGIS typical-year weather (`pvgis.rs`), KNMI daily data (`knmi.rs`), Rijkswaterstaat's bed survey and target water levels (`rws.rs`) and OpenStreetMap through Overpass (`osm/`). The sections below record how each was checked. Open-Meteo, the Klimaateffectatlas, Sentinel-2, Landsat and the zoning services were checked but are not used.
+Since round 2 it also fetches the BAG `verblijfsobject` units (`bag_units.rs`), the administrative boundaries (`boundaries.rs`), the PDOK infrared photo for the vegetation index (`luchtfoto.rs`), the PDOK colour photo for the 3D view (`aerial.rs`), RIVM's WCS for noise, air, trees, green and the heat island (`rivm.rs`), LIWO flood depths (`liwo.rs`), the CBS 100 m statistics and area divisions (`cbs.rs`), PVGIS typical-year weather (`pvgis.rs`), KNMI daily data (`knmi.rs`), Rijkswaterstaat's bed survey and target water levels (`rws.rs`) and OpenStreetMap through Overpass (`osm/`). The sections below record how each was checked. Open-Meteo, the Klimaateffectatlas, Sentinel-2, Landsat and the zoning services were checked but are not used.
 
 ## Where do business and facility points come from?
 
@@ -257,6 +257,20 @@ So a fetch asks both services for each 250 m tile that BGT water reaches, after 
 #! NOTE[sections, water] : Should the Waal be drawn at a measured level instead of its bank? Rijkswaterstaat's water level API has live and average levels per station, but none of them is a fixed level to draw
 
 #! NOTE[sections, water] : City canals have no bed survey; do Waternet or the water boards publish canal depths openly?
+
+## Which aerial photo lies under the 3D view?
+
+The 3D view's realistic finish wanted a real photo on the ground, added on 2026-10-26. PDOK's colour photo is the obvious one, since the infrared photo for the vegetation index already comes from the same family. Its capabilities (`https://service.pdok.nl/hwh/luchtfotorgb/wms/v1_0?service=WMS&request=GetCapabilities`) list `Actueel_orthoHR`, `Actueel_ortho25`, the yearly `<year>_ortho25` layers from 2016 to 2025, `<year>_orthoHR` from 2021 on and two 2026 quick orthos. The keywords say "open data cc-by", and the Nationaal Georegister record says CC BY 4.0 with "Naamsvermelding verplicht, Beeldmateriaal.nl", so the credit has to show wherever the photo does.
+
+`Actueel_ortho25` is the one used: the newest flight as one seamless layer at 25 cm, so there is no edition to resolve, and the tile cache's thirty days pick up the next flight. A GetMap for one 250 m tile at the Westerkerk (`bbox=120500,487500,120750,487750`, `crs=EPSG:28992`, `format=image/jpeg`) came back in 0.56 s as a 512 x 512 JPEG of 66 KB; at 256 pixels it is 32 KB and at 1024 pixels 216 KB. The photo looked right: canal houses, the Prinsengracht, trees along the water.
+
+The view needs one texture, not hundreds of tiles, and the brief was a few MB at most. So `view3d/photo.rs` asks for two levels: the site's tiles at the largest of 512, 256, 128 or 64 pixels that keeps the texture within 2048 pixels, and the neighbourhood's within 1024. Each tile is fetched and cached on its own under `luchtfotorgb-Actueel_ortho25-<pixels>`, eight at a time, and sent to the view as the JPEG PDOK returned; the view draws them onto one canvas per level. The live test (`cargo test -p openarchi-core -- --ignored the_live_photo`) fetched a 300 m Westerkerk site's 16 tiles, 1,290 KB as base64, in 0.7 s. With its neighbourhood, from a site written by `fetch_site -- 4.8840 52.3745 300`, it was 52 tiles and 1,674 KB of JSON in 0.8 s.
+
+The photo is fetched the first time the view shows its realistic finish, not with the site, because most sheets never need it. A failed tile leaves a gap and a warning; a photo with no tiles at all is a warning in the view, which then shows plain real colours.
+
+#! NOTE[3d, photo] : The photo carries the shadows of the day it was flown; the view's own shadows fall on top of them
+
+#! NOTE[3d, photo] : Roofs take their colour from the photo, which leans tall buildings outward a little, so some roofs show a strip of street or facade
 
 ## What can be computed locally instead of fetched?
 

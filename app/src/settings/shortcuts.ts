@@ -98,4 +98,13 @@ export const SHORTCUTS: { title: string; items: { label: string; keys: string[] 
       { label: "Fit the pages", keys: ["mod+0"] },
     ],
   },
+  {
+    title: "3D view",
+    items: [
+      { label: "Move forward, back or sideways, faster with Shift", keys: ["w", "a", "s", "d"] },
+      { label: "Move with the arrows too", keys: ["↑", "↓", "←", "→"] },
+      { label: "Turn left or right", keys: ["q", "e"] },
+      { label: "Step back from a walk, then close the view", keys: ["escape"] },
+    ],
+  },
 ];
