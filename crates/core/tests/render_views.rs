@@ -191,3 +191,21 @@ fn an_impossible_date_is_refused() {
 
     assert!(try_svg("shadow", "paper", &look).is_err());
 }
+
+/// The radius of the first tree in the plan's tree layer, in paper millimetres.
+fn plan_tree_radius_mm(scale: u32) -> f64 {
+    let mut look = look_in(ViewMode::Plan);
+    look.sheet.scale = scale;
+    let svg = svg_for("context", "paper", &look);
+    let trees = &svg[svg.find(r#"inkscape:label="Trees""#).expect("the trees")..];
+    let radius = &trees[trees.find(r#" r=""#).expect("a tree") + 4..];
+    radius[..radius.find('"').unwrap()].parse().unwrap()
+}
+
+#[test]
+fn plan_trees_are_as_wide_as_their_crown_and_never_smaller_than_the_palette_dot() {
+    // The 3 m crown the axonometric and the 3D view give every tree: 6 mm at 1:500.
+    assert_eq!(plan_tree_radius_mm(500), 6.0);
+    // At 1:10000 the crown would be 0.3 mm, so the paper palette's 1 mm dot stays.
+    assert_eq!(plan_tree_radius_mm(10000), 1.0);
+}

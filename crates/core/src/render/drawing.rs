@@ -6,6 +6,7 @@ use super::classify;
 use super::color;
 
 use super::geometry::{decimal, mm, paper_shapes, PaperShapes, Projection};
+use super::solid::tree_size;
 use super::style::ResolvedLayer;
 use super::svg::{escape, layer_attributes, paint_attributes};
 use crate::diagram::Diagram;
@@ -74,6 +75,7 @@ pub fn write_layer(
     }
 
     let style = &resolved.style;
+    let radius_mm = point_radius_mm(resolved, projection);
     let fill = if style.pattern.is_some() {
         Some(format!("url(#{})", pattern_id(scope, resolved.layer)))
     } else {
@@ -122,7 +124,7 @@ pub fn write_layer(
                     &class.label,
                     &class.fill,
                     members,
-                    style.radius_mm,
+                    radius_mm,
                     projection,
                 );
             }
@@ -134,16 +136,29 @@ pub fn write_layer(
                     &classes.unknown_label,
                     &classes.unknown_fill,
                     &unknown,
-                    style.radius_mm,
+                    radius_mm,
                     projection,
                 );
             }
         }
-        _ => write_features(out, features, style.radius_mm, projection),
+        _ => write_features(out, features, radius_mm, projection),
     }
 
     out.push_str("</g>\n");
     drawn
+}
+
+/// The radius of the layer's point symbols on paper. A tree is drawn with the
+/// crown every other view gives it (the axonometric, the shadows, the 3D view),
+/// so a plan at 1:400 shows the same trees as large as they stand; the theme's
+/// dot is the smallest it gets, so trees still show at 1:10000.
+fn point_radius_mm(resolved: &ResolvedLayer, projection: &Projection) -> f64 {
+    if resolved.layer == Layer::Tree {
+        let (_, crown_m) = tree_size();
+        resolved.style.radius_mm.max(crown_m * projection.mm_per_m)
+    } else {
+        resolved.style.radius_mm
+    }
 }
 
 fn write_class_group(
