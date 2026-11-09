@@ -22,4 +22,4 @@ tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 # Watches the library so edits made by the MCP server show up in the open window.
 notify = "8"
-base64 = "0.22"
+base64 = "0.23"
